@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import colors from '../theme/colors';
 import {
   BellIcon,
@@ -55,13 +56,41 @@ type LocalRecord = {
 
 type ApiOrder = {
   order_id?: string | number;
+  order_number?: string | number;
   id?: string | number;
   order_date?: string;
   created_at?: string;
   total_amount?: number | string;
   order_status?: string;
   customer_name?: string;
+  order_type?: string;
+  items?: ApiOrderItem[];
   payment_method?: string;
+};
+
+type ApiOrderItem = {
+  food_id?: string | number;
+  food_name?: string;
+  product_name?: string;
+  quantity?: number | string;
+  total_price?: number | string;
+  unit_price?: number | string;
+};
+
+type ApiBill = {
+  bill_id?: string | number;
+  bill_number?: string | number;
+  table_number?: string | number;
+  server_name?: string;
+  status?: string;
+  grand_total?: number | string;
+  created_at?: string;
+};
+
+type ApiKitchenTicket = {
+  bill_id?: string | number;
+  status?: string;
+  items?: ApiOrderItem[];
 };
 
 type ApiUser = {
@@ -69,35 +98,97 @@ type ApiUser = {
 };
 
 type ApiCatalogItem = {
+  food_id?: string | number;
   product_name?: string;
   productName?: string;
   name?: string;
+  food_name?: string;
+  food_images?: unknown;
+  is_menu_visible?: boolean | number;
+  status?: string;
   category?: string;
+  category_id?: string | number;
+  category_name?: string;
   sub_category?: string;
   size_variants?: unknown;
   variants?: unknown;
   stock_quantity?: number | string;
   current_stock?: number | string;
   stock?: number | string;
+  category_image?: string;
   created_at?: string;
   updated_at?: string;
 };
 
+type ApiInventorySummary = {
+  lowStock?: number;
+  pendingKitchenRequests?: number;
+};
+
+type ApiKitchenRequest = {
+  status?: string;
+};
+
+type ApiCategory = {
+  category_id?: string | number;
+  category_name?: string;
+  category_image?: string;
+  status?: string;
+};
+
+type ApiRevenueSummary = {
+  totalRevenue?: number | string;
+};
+
+type ApiRevenueTrend = {
+  date?: string;
+  label?: string;
+  revenue?: number | string;
+  orders?: number | string;
+};
+
+type ApiRevenueStatus = {
+  status?: string;
+  count?: number | string;
+};
+
 type DashboardData = {
   orders: ApiOrder[];
+  bills: ApiBill[];
+  kitchenOrders: ApiKitchenTicket[];
   users: ApiUser[];
-  products: ApiCatalogItem[];
-  albums: ApiCatalogItem[];
-  gifts: ApiCatalogItem[];
+  foods: ApiCatalogItem[];
+  inventory: ApiInventorySummary;
+  kitchenRequests: ApiKitchenRequest[];
+  kitchenRequestsLoaded: boolean;
+  categories: ApiCategory[];
 };
 
 type ApiListResponse<T> =
   | T[]
   | {
       data?: T[] | null;
+      bills?: T[] | null;
+      orders?: T[] | null;
     };
 
-type DashboardDateFilter = 'today' | 'this-week' | 'this-month' | 'all';
+type DashboardDateFilter =
+  | 'today'
+  | 'yesterday'
+  | 'week'
+  | 'lastWeek'
+  | 'month'
+  | 'lastMonth'
+  | 'year'
+  | 'lastYear'
+  | 'all'
+  | 'custom';
+
+type DashboardReport = {
+  summary: ApiRevenueSummary | null;
+  trend: ApiRevenueTrend[];
+  statuses: ApiRevenueStatus[];
+};
 
 type QuickAction = {
   id: QuickActionId;
@@ -178,6 +269,19 @@ const quickActions: QuickAction[] = [
   },
 ];
 
+const dashboardPeriods: { value: DashboardDateFilter; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'week', label: 'This week' },
+  { value: 'lastWeek', label: 'Last week' },
+  { value: 'month', label: 'This month' },
+  { value: 'lastMonth', label: 'Last month' },
+  { value: 'year', label: 'This year' },
+  { value: 'lastYear', label: 'Last year' },
+  { value: 'all', label: 'All dates' },
+  { value: 'custom', label: 'Custom' },
+];
+
 const moreFeatures = [
   { title: 'Customers', subtitle: 'Customer list and details', icon: CustomersIcon, action: 'customer' as QuickActionId },
   { title: 'Products & Inventory', subtitle: 'Products, prices, and stock', icon: ProductIcon, action: 'product' as QuickActionId },
@@ -211,15 +315,28 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [logoutError, setLogoutError] = useState('');
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     orders: [],
+    bills: [],
+    kitchenOrders: [],
     users: [],
-    products: [],
-    albums: [],
-    gifts: [],
+    foods: [],
+    inventory: {},
+    kitchenRequests: [],
+    kitchenRequestsLoaded: false,
+    categories: [],
+  });
+  const [dashboardReport, setDashboardReport] = useState<DashboardReport>({
+    summary: null,
+    trend: [],
+    statuses: [],
   });
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [isReportLoading, setIsReportLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState('');
+  const [reportError, setReportError] = useState('');
   const [dashboardRefresh, setDashboardRefresh] = useState(0);
-  const [dateFilter, setDateFilter] = useState<DashboardDateFilter>('this-month');
+  const [dateFilter, setDateFilter] = useState<DashboardDateFilter>('year');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const isWide = width >= 768;
 
   const userName =
@@ -232,22 +349,28 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   useEffect(() => {
     let isActive = true;
+    const controller = new AbortController();
 
     const loadDashboard = async () => {
       setIsDashboardLoading(true);
       setDashboardError('');
       const endpoints = [
-        { key: 'orders', path: '/orders' },
+        { key: 'orders', path: '/orders/management' },
+        { key: 'bills', path: '/table-bills' },
+        { key: 'kitchenOrders', path: '/kitchen-orders' },
         { key: 'users', path: '/users' },
-        { key: 'products', path: '/products' },
-        { key: 'albums', path: '/albums' },
-        { key: 'gifts', path: '/gift-boxes' },
+        { key: 'foods', path: '/foods' },
+        { key: 'inventory', path: '/inventory/dashboard' },
+        { key: 'kitchenRequests', path: '/inventory/kitchen-requests' },
+        { key: 'categories', path: '/categories' },
       ] as const;
 
       const results = await Promise.allSettled(
-        endpoints.map(endpoint => api.get(endpoint.path)),
+        endpoints.map(endpoint =>
+          api.get(endpoint.path, { signal: controller.signal }),
+        ),
       );
-      if (!isActive) {
+      if (!isActive || controller.signal.aborted) {
         return;
       }
 
@@ -262,24 +385,42 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
                 result.value.data as ApiListResponse<ApiOrder>,
               );
               break;
+            case 'bills':
+              nextData.bills = readResponsePropertyRows<ApiBill>(
+                result.value.data,
+                'bills',
+              );
+              break;
+            case 'kitchenOrders':
+              nextData.kitchenOrders = readResponsePropertyRows<ApiKitchenTicket>(
+                result.value.data,
+                'orders',
+              );
+              break;
             case 'users':
               nextData.users = readResponseRows<ApiUser>(
                 result.value.data as ApiListResponse<ApiUser>,
               );
               break;
-            case 'products':
-              nextData.products = readResponseRows<ApiCatalogItem>(
+            case 'foods':
+              nextData.foods = readResponseRows<ApiCatalogItem>(
                 result.value.data as ApiListResponse<ApiCatalogItem>,
               );
               break;
-            case 'albums':
-              nextData.albums = readResponseRows<ApiCatalogItem>(
+            case 'inventory':
+              nextData.inventory = readResponseObject<ApiInventorySummary>(
                 result.value.data as ApiListResponse<ApiCatalogItem>,
               );
               break;
-            case 'gifts':
-              nextData.gifts = readResponseRows<ApiCatalogItem>(
+            case 'kitchenRequests':
+              nextData.kitchenRequests = readResponseRows<ApiKitchenRequest>(
                 result.value.data as ApiListResponse<ApiCatalogItem>,
+              );
+              nextData.kitchenRequestsLoaded = true;
+              break;
+            case 'categories':
+              nextData.categories = readResponseRows<ApiCategory>(
+                result.value.data as ApiListResponse<ApiCategory>,
               );
               break;
           }
@@ -304,8 +445,71 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     void loadDashboard();
     return () => {
       isActive = false;
+      controller.abort();
     };
   }, [dashboardRefresh]);
+
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+    setReportError('');
+    if (dateFilter === 'custom' && !isValidDateRange(customFrom, customTo)) {
+      setIsReportLoading(false);
+      return () => {
+        isActive = false;
+      };
+    }
+    setIsReportLoading(true);
+    const params = {
+      range: dateFilter,
+      ...(dateFilter === 'custom'
+        ? { startDate: customFrom, endDate: customTo }
+        : {}),
+    };
+    const trend = dateFilter === 'year' || dateFilter === 'lastYear' ? 'year' : 'month';
+
+    Promise.allSettled([
+      api.get('/revenue/summary', { params, signal: controller.signal }),
+      api.get('/revenue/trend', {
+        params: { ...params, trend, dateBasis: 'delivered' },
+        signal: controller.signal,
+      }),
+      api.get('/revenue/status', { params, signal: controller.signal }),
+    ]).then(results => {
+      if (!isActive) {
+        return;
+      }
+      const [summaryResult, trendResult, statusResult] = results;
+      setDashboardReport(current => ({
+        summary:
+          summaryResult.status === 'fulfilled'
+            ? readResponseObject<ApiRevenueSummary>(summaryResult.value.data)
+            : current.summary,
+        trend:
+          trendResult.status === 'fulfilled'
+            ? readResponseRows<ApiRevenueTrend>(trendResult.value.data)
+            : current.trend,
+        statuses:
+          statusResult.status === 'fulfilled'
+            ? readResponseRows<ApiRevenueStatus>(statusResult.value.data)
+            : current.statuses,
+      }));
+      const failures = results.filter(result => result.status === 'rejected');
+      if (failures.length) {
+        setReportError(
+          `Some revenue report data could not be loaded. ${getErrorMessage(
+            failures[0].status === 'rejected' ? failures[0].reason : null,
+          )}`,
+        );
+      }
+      setIsReportLoading(false);
+    });
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [dateFilter, customFrom, customTo, dashboardRefresh]);
 
   const navigateToTab = (tab: AppTab) => {
     setActiveTab(tab);
@@ -428,9 +632,13 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               orders={orders}
               records={records}
               dashboardData={dashboardData}
-              dashboardError={dashboardError}
+              dashboardReport={dashboardReport}
+              dashboardError={[dashboardError, reportError].filter(Boolean).join(' ')}
               isDashboardLoading={isDashboardLoading}
+              isReportLoading={isReportLoading}
               dateFilter={dateFilter}
+              customFrom={customFrom}
+              customTo={customTo}
               selectedAction={selectedActionDetails}
               selectedFeature={selectedFeature}
               userEmail={userEmail}
@@ -441,6 +649,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onUpdateOrderStatus={updateOrderStatus}
               onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
               onSetDateFilter={setDateFilter}
+              onSetCustomFrom={setCustomFrom}
+              onSetCustomTo={setCustomTo}
             />
           </View>
         </View>
@@ -465,9 +675,13 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             orders={orders}
             records={records}
             dashboardData={dashboardData}
-            dashboardError={dashboardError}
+            dashboardReport={dashboardReport}
+            dashboardError={[dashboardError, reportError].filter(Boolean).join(' ')}
             isDashboardLoading={isDashboardLoading}
+            isReportLoading={isReportLoading}
             dateFilter={dateFilter}
+            customFrom={customFrom}
+            customTo={customTo}
             selectedAction={selectedActionDetails}
             selectedFeature={selectedFeature}
             userEmail={userEmail}
@@ -478,6 +692,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onUpdateOrderStatus={updateOrderStatus}
             onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
             onSetDateFilter={setDateFilter}
+            onSetCustomFrom={setCustomFrom}
+            onSetCustomTo={setCustomTo}
           />
         </View>
       )}
@@ -602,7 +818,7 @@ function getRecordTimestamp(value?: string) {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-function getOrderDate(order: ApiOrder) {
+function getOrderDate(order: { order_date?: string; created_at?: string }) {
   const value = order.order_date || order.created_at;
   if (!value) {
     return null;
@@ -611,36 +827,114 @@ function getOrderDate(order: ApiOrder) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function filterOrdersByPeriod(
-  orders: ApiOrder[],
+function filterOrdersByPeriod<T extends { order_date?: string; created_at?: string }>(
+  orders: T[],
   filter: DashboardDateFilter,
+  customFrom = '',
+  customTo = '',
 ) {
   if (filter === 'all') {
     return orders;
   }
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (filter === 'this-week') {
-    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
-  } else if (filter === 'this-month') {
-    start.setDate(1);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const shift = (date: Date, days: number) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+  let start = today;
+  let end = shift(today, 1);
+  if (filter === 'custom') {
+    if (!isValidDateRange(customFrom, customTo)) {
+      return [];
+    }
+    start = new Date(`${customFrom}T00:00:00`);
+    end = shift(new Date(`${customTo}T00:00:00`), 1);
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      end <= start
+    ) {
+      return [];
+    }
+  } else {
+    switch (filter) {
+      case 'yesterday':
+        start = shift(today, -1);
+        end = today;
+        break;
+      case 'week':
+        start = shift(today, -((today.getDay() + 6) % 7));
+        break;
+      case 'lastWeek':
+        end = shift(today, -((today.getDay() + 6) % 7));
+        start = shift(end, -7);
+        break;
+      case 'month':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case 'lastMonth':
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case 'year':
+        start = new Date(today.getFullYear(), 0, 1);
+        break;
+      case 'lastYear':
+        start = new Date(today.getFullYear() - 1, 0, 1);
+        end = new Date(today.getFullYear(), 0, 1);
+        break;
+    }
   }
   return orders.filter(order => {
     const date = getOrderDate(order);
-    return date !== null && date >= start && date <= now;
+    return date !== null && date >= start && date < end;
   });
+}
+
+function isValidDateRange(from: string, to: string) {
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!datePattern.test(from) || !datePattern.test(to)) {
+    return false;
+  }
+  const makeDate = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+      ? date
+      : null;
+  };
+  const start = makeDate(from);
+  const end = makeDate(to);
+  return (
+    start !== null &&
+    end !== null &&
+    end >= start
+  );
 }
 
 function getDateFilterLabel(filter: DashboardDateFilter) {
   switch (filter) {
     case 'today':
       return 'Today';
-    case 'this-week':
+    case 'yesterday':
+      return 'Yesterday';
+    case 'week':
       return 'This week';
-    case 'this-month':
+    case 'lastWeek':
+      return 'Last week';
+    case 'month':
       return 'This month';
+    case 'lastMonth':
+      return 'Last month';
+    case 'year':
+      return 'This year';
+    case 'lastYear':
+      return 'Last year';
     case 'all':
       return 'All time';
+    case 'custom':
+      return 'Custom range';
   }
 }
 
@@ -682,6 +976,34 @@ function readResponseRows<T>(payload: ApiListResponse<T> | unknown): T[] {
   return [];
 }
 
+function readResponsePropertyRows<T>(
+  payload: unknown,
+  property: 'bills' | 'orders',
+): T[] {
+  if (typeof payload !== 'object' || payload === null) {
+    return [];
+  }
+  const data = 'data' in payload ? payload.data : payload;
+  if (typeof data !== 'object' || data === null || !(property in data)) {
+    return [];
+  }
+  const rows = (data as Record<string, unknown>)[property];
+  return Array.isArray(rows) ? (rows as T[]) : [];
+}
+
+function readResponseObject<T>(payload: unknown): T {
+  if (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'data' in payload &&
+    typeof payload.data === 'object' &&
+    payload.data !== null
+  ) {
+    return payload.data as T;
+  }
+  return {} as T;
+}
+
 function getErrorMessage(error: unknown) {
   if (typeof error === 'object' && error !== null && 'message' in error) {
     const message = error.message;
@@ -698,9 +1020,13 @@ function MainContent({
   orders,
   records,
   dashboardData,
+  dashboardReport,
   dashboardError,
   isDashboardLoading,
+  isReportLoading,
   dateFilter,
+  customFrom,
+  customTo,
   selectedAction,
   selectedFeature,
   userEmail,
@@ -711,15 +1037,21 @@ function MainContent({
   onUpdateOrderStatus,
   onRefreshDashboard,
   onSetDateFilter,
+  onSetCustomFrom,
+  onSetCustomTo,
 }: {
   activeTab: AppTab;
   invoices: LocalRecord[];
   orders: LocalRecord[];
   records: LocalRecord[];
   dashboardData: DashboardData;
+  dashboardReport: DashboardReport;
   dashboardError: string;
   isDashboardLoading: boolean;
+  isReportLoading: boolean;
   dateFilter: DashboardDateFilter;
+  customFrom: string;
+  customTo: string;
   selectedAction?: QuickAction;
   selectedFeature: string | null;
   userEmail: string;
@@ -733,6 +1065,8 @@ function MainContent({
   ) => void;
   onRefreshDashboard: () => void;
   onSetDateFilter: (filter: DashboardDateFilter) => void;
+  onSetCustomFrom: (date: string) => void;
+  onSetCustomTo: (date: string) => void;
 }) {
   if (selectedAction) {
     return (
@@ -809,62 +1143,189 @@ function MainContent({
   return (
     <HomePage
       apiData={dashboardData}
+      report={dashboardReport}
       dateFilter={dateFilter}
+      customFrom={customFrom}
+      customTo={customTo}
       error={dashboardError}
       isLoading={isDashboardLoading}
+      isReportLoading={isReportLoading}
       records={records}
       userName={userName}
       onRefresh={onRefreshDashboard}
       onSetDateFilter={onSetDateFilter}
+      onSetCustomFrom={onSetCustomFrom}
+      onSetCustomTo={onSetCustomTo}
     />
   );
 }
 
 function HomePage({
   apiData,
+  report,
   dateFilter,
+  customFrom,
+  customTo,
   error,
   isLoading,
+  isReportLoading,
   records,
   userName,
   onRefresh,
   onSetDateFilter,
+  onSetCustomFrom,
+  onSetCustomTo,
 }: {
   apiData: DashboardData;
+  report: DashboardReport;
   dateFilter: DashboardDateFilter;
+  customFrom: string;
+  customTo: string;
   error: string;
   isLoading: boolean;
+  isReportLoading: boolean;
   records: LocalRecord[];
   userName: string;
   onRefresh: () => void;
   onSetDateFilter: (filter: DashboardDateFilter) => void;
+  onSetCustomFrom: (date: string) => void;
+  onSetCustomTo: (date: string) => void;
 }) {
-  const filteredOrders = filterOrdersByPeriod(apiData.orders, dateFilter);
-  const apiRevenue = filteredOrders.reduce(
-    (total, order) => total + Number(order.total_amount || 0),
-    0,
+  const { width: screenWidth } = useWindowDimensions();
+  const summaryCardBasis =
+    screenWidth >= 1100 ? '23%' : screenWidth < 360 ? '100%' : '48%';
+  const filteredOrders = filterOrdersByPeriod(
+    apiData.orders,
+    dateFilter,
+    customFrom,
+    customTo,
   );
+  const filteredBills = filterOrdersByPeriod(
+    apiData.bills,
+    dateFilter,
+    customFrom,
+    customTo,
+  );
+  const todayOrders = filterOrdersByPeriod(apiData.orders, 'today');
+  const todayBills = filterOrdersByPeriod(apiData.bills, 'today');
+  const apiRevenue =
+    filteredOrders
+      .filter(order =>
+        ['delivered', 'completed', 'served'].includes(
+          String(order.order_status || '').trim().toLowerCase(),
+        ),
+      )
+      .reduce((total, order) => total + Number(order.total_amount || 0), 0) +
+    filteredBills
+      .filter(bill => String(bill.status || '').trim().toLowerCase() === 'paid')
+      .reduce((total, bill) => total + Number(bill.grand_total || 0), 0);
   const localRevenue = records
     .filter(record => record.action === 'invoice')
     .reduce((total, record) => total + (record.amount || 0), 0);
-  const sales = apiRevenue + localRevenue;
+  const sales = Number(report.summary?.totalRevenue ?? apiRevenue + localRevenue);
   const localOrders = records.filter(record => record.action === 'order');
-  const orderCount = filteredOrders.length + localOrders.length;
+  const reportOrderCount = report.statuses.reduce(
+    (total, status) => total + Number(status.count || 0),
+    0,
+  );
+  const orderCount =
+    (report.statuses.length
+      ? reportOrderCount
+      : filteredOrders.length + filteredBills.length) + localOrders.length;
   const customerCount = apiData.users.filter(
-    user => !['admin', 'super admin'].includes(String(user.role || '').toLowerCase()),
+    user => ['user', 'customer'].includes(String(user.role || '').trim().toLowerCase()),
   ).length;
-  const catalogCount =
-    apiData.products.length + apiData.albums.length + apiData.gifts.length;
-  const catalogItems: ApiCatalogItem[] = [
-    ...apiData.products,
-    ...apiData.albums,
-    ...apiData.gifts,
-  ];
+  const catalogItems = apiData.foods;
   const lowStockItems = catalogItems.filter(
     (item: ApiCatalogItem) => getItemStock(item) <= 15,
   );
-  const lowStockCount = lowStockItems.length;
-  const recentApiOrders = [...apiData.orders]
+  const lowStockCount = Number(apiData.inventory.lowStock ?? lowStockItems.length);
+  const todayRevenue =
+    todayOrders
+      .filter(order =>
+        ['delivered', 'completed', 'served'].includes(
+          String(order.order_status || '').trim().toLowerCase(),
+        ),
+      )
+      .reduce((total, order) => total + Number(order.total_amount || 0), 0) +
+    todayBills
+      .filter(bill => String(bill.status || '').trim().toLowerCase() === 'paid')
+      .reduce((total, bill) => total + Number(bill.grand_total || 0), 0);
+  const todayOrderCount = todayOrders.length + todayBills.length;
+  const pendingOrderCount = report.statuses.length
+    ? report.statuses
+        .filter(status =>
+          ['pending', 'placed', 'preparing', 'ready'].includes(
+            String(status.status || '').trim().toLowerCase(),
+          ),
+        )
+        .reduce((total, status) => total + Number(status.count || 0), 0)
+    : filteredOrders.filter(order =>
+        ['pending', 'placed', 'confirmed', 'preparing', 'processing', 'ready'].includes(
+          String(order.order_status || '').trim().toLowerCase(),
+        ),
+      ).length;
+  const completedOrderCount = report.statuses.length
+    ? report.statuses
+        .filter(status =>
+          ['delivered', 'completed', 'served'].includes(
+            String(status.status || '').trim().toLowerCase(),
+          ),
+        )
+        .reduce((total, status) => total + Number(status.count || 0), 0)
+    : filteredOrders.filter(order =>
+        ['delivered', 'completed', 'served'].includes(
+          String(order.order_status || '').trim().toLowerCase(),
+        ),
+      ).length;
+  const kitchenTicketsByBill = new Map<string, ApiKitchenTicket[]>();
+  apiData.kitchenOrders.forEach(ticket => {
+    if (!ticket.bill_id) {
+      return;
+    }
+    const billId = String(ticket.bill_id);
+    kitchenTicketsByBill.set(billId, [
+      ...(kitchenTicketsByBill.get(billId) || []),
+      ticket,
+    ]);
+  });
+  const topItems = new Map<
+    string,
+    { name: string; quantity: number; revenue: number }
+  >();
+  const addTopItem = (item: ApiOrderItem) => {
+    const id = String(item.food_id || item.food_name || item.product_name || 'item');
+    const name = item.food_name || item.product_name || 'Menu item';
+    const quantity = Number(item.quantity || 0);
+    const revenue = Number(
+      item.total_price ?? quantity * Number(item.unit_price || 0),
+    );
+    const current = topItems.get(id) || { name, quantity: 0, revenue: 0 };
+    current.quantity += quantity;
+    current.revenue += revenue;
+    topItems.set(id, current);
+  };
+  filteredOrders
+    .filter(order => String(order.order_status || '').toLowerCase() === 'delivered')
+    .forEach(order => (order.items || []).forEach(addTopItem));
+  filteredBills
+    .filter(bill => String(bill.status || '').toLowerCase() === 'paid')
+    .forEach(bill => {
+      const tickets = kitchenTicketsByBill.get(String(bill.bill_id || '')) || [];
+      if (
+        tickets.length &&
+        tickets.every(ticket =>
+          ['served', 'delivered'].includes(String(ticket.status || '').toLowerCase()),
+        )
+      ) {
+        tickets.forEach(ticket => (ticket.items || []).forEach(addTopItem));
+      }
+    });
+  const topSellingItems = [...topItems.entries()]
+    .map(([id, item]) => ({ id, ...item }))
+    .sort((left, right) => right.revenue - left.revenue)
+    .slice(0, 5);
+  const recentApiOrders = [...filteredOrders]
     .sort(
       (a, b) =>
         getRecordTimestamp(b.order_date || b.created_at) -
@@ -874,15 +1335,15 @@ function HomePage({
   const hasAnyData =
     apiData.orders.length > 0 ||
     apiData.users.length > 0 ||
-    apiData.products.length > 0 ||
-    apiData.albums.length > 0 ||
-    apiData.gifts.length > 0 ||
+    apiData.foods.length > 0 ||
+    apiData.bills.length > 0 ||
+    apiData.kitchenOrders.length > 0 ||
     records.length > 0;
   return (
     <ScrollView
       contentContainerStyle={{
         alignSelf: 'center',
-        maxWidth: 1100,
+        maxWidth: 1440,
         paddingHorizontal: 20,
         paddingTop: 24,
         paddingBottom: 24,
@@ -895,13 +1356,9 @@ function HomePage({
 
       <View style={styles.dashboardToolbar}>
         <Text style={styles.mutedText}>Store performance</Text>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          {([
-            ['today', 'Today'],
-            ['this-week', 'Week'],
-            ['this-month', 'Month'],
-            ['all', 'All'],
-          ] as const).map(([filter, label]) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+          {dashboardPeriods.map(({ value: filter, label }) => (
             <Pressable
               accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
               accessibilityRole="button"
@@ -930,8 +1387,49 @@ function HomePage({
               </Text>
             </Pressable>
           ))}
-        </View>
+          </View>
+        </ScrollView>
       </View>
+      {dateFilter === 'custom' ? (
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+          <TextInput
+            accessibilityLabel="Custom range start date"
+            onChangeText={onSetCustomFrom}
+            placeholder="From (YYYY-MM-DD)"
+            placeholderTextColor={colors.textSecondary}
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderRadius: 10,
+              borderWidth: 1,
+              color: colors.textPrimary,
+              flex: 1,
+              fontSize: 13,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+            }}
+            value={customFrom}
+          />
+          <TextInput
+            accessibilityLabel="Custom range end date"
+            onChangeText={onSetCustomTo}
+            placeholder="To (YYYY-MM-DD)"
+            placeholderTextColor={colors.textSecondary}
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderRadius: 10,
+              borderWidth: 1,
+              color: colors.textPrimary,
+              flex: 1,
+              fontSize: 13,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+            }}
+            value={customTo}
+          />
+        </View>
+      ) : null}
 
       {error ? (
         <View style={styles.errorBanner}>
@@ -951,30 +1449,85 @@ function HomePage({
         </View>
       ) : null}
 
-      <View style={styles.statsGrid}>
+      <View
+        style={[
+          styles.statsGrid,
+          {
+            columnGap: screenWidth >= 1100 ? 16 : 12,
+            rowGap: screenWidth >= 1100 ? 20 : 12,
+          },
+        ]}
+      >
         <StatCard
-          label="Total sales"
+          label="Total Revenue"
           value={isLoading && !hasAnyData ? '—' : formatCurrency(sales)}
+          detail="in selected period"
+          badge="PERIOD"
+          tone="green"
+          basis={summaryCardBasis}
           icon={ChartIcon}
         />
         <StatCard
-          label="Orders"
+          label="Total Orders"
           value={isLoading && !hasAnyData ? '—' : String(orderCount)}
+          detail="in selected period"
+          badge="PERIOD"
+          tone="blue"
+          basis={summaryCardBasis}
           icon={OrdersIcon}
         />
         <StatCard
-          label="Customers"
-          value={isLoading && !hasAnyData ? '—' : String(customerCount)}
-          icon={CustomersIcon}
+          label="Pending Orders"
+          value={isLoading && !hasAnyData ? '—' : String(pendingOrderCount)}
+          detail="active right now"
+          badge="LIVE"
+          tone="orange"
+          basis={summaryCardBasis}
+          icon={OrdersIcon}
         />
         <StatCard
-          label="Products"
-          value={isLoading && !hasAnyData ? '—' : String(catalogCount)}
+          label="Completed Orders"
+          value={isLoading && !hasAnyData ? '—' : String(completedOrderCount)}
+          detail="in selected period"
+          badge="PERIOD"
+          tone="purple"
+          basis={summaryCardBasis}
           icon={ProductIcon}
         />
         <StatCard
-          label="Low stock"
+          label="Today’s Revenue"
+          value={isLoading && !hasAnyData ? '—' : formatCurrency(todayRevenue)}
+          detail="from all channels today"
+          badge="TODAY"
+          tone="cyan"
+          basis={summaryCardBasis}
+          icon={PaymentIcon}
+        />
+        <StatCard
+          label="Today’s Orders"
+          value={isLoading && !hasAnyData ? '—' : String(todayOrderCount)}
+          detail="from all channels today"
+          badge="TODAY"
+          tone="pink"
+          basis={summaryCardBasis}
+          icon={OrdersIcon}
+        />
+        <StatCard
+          label="Total Customers"
+          value={isLoading && !hasAnyData ? '—' : String(customerCount)}
+          detail="registered customers"
+          badge="TOTAL"
+          tone="teal"
+          basis={summaryCardBasis}
+          icon={CustomersIcon}
+        />
+        <StatCard
+          label="Low Stock Items"
           value={isLoading && !hasAnyData ? '—' : String(lowStockCount)}
+          detail="needs attention"
+          badge="STOCK"
+          tone="red"
+          basis={summaryCardBasis}
           icon={ReceiptIcon}
         />
       </View>
@@ -983,7 +1536,13 @@ function HomePage({
         <Text style={styles.sectionTitle}>Sales overview</Text>
         <Text style={styles.smallMuted}>{getDateFilterLabel(dateFilter)}</Text>
       </View>
-      <SalesOverview orders={filteredOrders} />
+      {isReportLoading && !report.trend.length ? (
+        <View style={[styles.emptyCard, { minHeight: 72 }]}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : (
+        <SalesOverview orders={filteredOrders} trend={report.trend} />
+      )}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent orders</Text>
@@ -1031,7 +1590,61 @@ function HomePage({
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Order status</Text>
       </View>
-      <OrderStatusSummary orders={filteredOrders} />
+      <OrderStatusSummary
+        orders={filteredOrders}
+        reportStatuses={report.statuses}
+      />
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Top-selling items</Text>
+      </View>
+      {topSellingItems.length ? (
+        topSellingItems.map(item => (
+          <View
+            key={item.id}
+            style={[
+              styles.card,
+              { alignItems: 'center', flexDirection: 'row', marginBottom: 8 },
+            ]}
+          >
+            <View style={styles.featureIcon}>
+              <ProductIcon color={colors.primary} size={18} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.cardTitle}>{item.name}</Text>
+              <Text style={styles.smallMuted}>{item.quantity} sold</Text>
+            </View>
+            <Text style={styles.orderAmount}>{formatCurrency(item.revenue)}</Text>
+          </View>
+        ))
+      ) : (
+        <EmptyState
+          icon={ProductIcon}
+          title="No completed item sales"
+          description="Completed food sales will appear here for this period."
+        />
+      )}
+
+      {apiData.categories.length ? (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Food categories</Text>
+          </View>
+          <View style={styles.statsGrid}>
+            {apiData.categories.slice(0, 8).map((category, index) => (
+              <View
+                key={category.category_id || category.category_name || index}
+                style={[styles.card, { flexBasis: 150, flexGrow: 1 }]}
+              >
+                <Text style={styles.cardTitle}>
+                  {category.category_name || 'Category'}
+                </Text>
+                <Text style={styles.smallMuted}>{category.status || 'Available'}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       {lowStockCount > 0 ? (
         <>
@@ -1052,7 +1665,7 @@ function HomePage({
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.cardTitle}>
-                    {item.product_name || item.name || 'Product'}
+                    {item.food_name || item.product_name || item.name || 'Food'}
                   </Text>
                   <Text style={styles.smallMuted}>Stock is running low</Text>
                 </View>
@@ -1067,7 +1680,13 @@ function HomePage({
   );
 }
 
-function SalesOverview({ orders }: { orders: ApiOrder[] }) {
+function SalesOverview({
+  orders,
+  trend,
+}: {
+  orders: ApiOrder[];
+  trend: ApiRevenueTrend[];
+}) {
   const revenueByDay = new Map<string, number>();
   orders.forEach(order => {
     const date = getOrderDate(order);
@@ -1080,7 +1699,7 @@ function SalesOverview({ orders }: { orders: ApiOrder[] }) {
       (revenueByDay.get(key) || 0) + Number(order.total_amount || 0),
     );
   });
-  const days = Array.from({ length: 7 }, (_, offset) => {
+  const fallbackDays = Array.from({ length: 7 }, (_, offset) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - offset));
     const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -1089,6 +1708,15 @@ function SalesOverview({ orders }: { orders: ApiOrder[] }) {
       value: revenueByDay.get(key) || 0,
     };
   });
+  const days = trend.length
+    ? trend.slice(-7).map((entry, index) => ({
+        label:
+          entry.label ||
+          entry.date ||
+          `Period ${index + 1}`,
+        value: Number(entry.revenue || 0),
+      }))
+    : fallbackDays;
   const maxValue = Math.max(...days.map(day => day.value), 1);
 
   return (
@@ -1161,31 +1789,57 @@ function normalizeOrderStatus(status: string): NonNullable<LocalRecord['status']
   return 'Pending';
 }
 
-function OrderStatusSummary({ orders }: { orders: ApiOrder[] }) {
-  const statuses = [
-    { label: 'Delivered', count: 0, color: '#15803D' },
-    { label: 'Processing', count: 0, color: '#D97706' },
-    { label: 'Shipped', count: 0, color: '#2563EB' },
-    { label: 'Cancelled', count: 0, color: colors.error },
-    { label: 'Other', count: 0, color: colors.textSecondary },
-  ];
-  orders.forEach(order => {
-    const status = (order.order_status || 'other').trim().toLowerCase();
-    const category = ['delivered', 'completed'].includes(status)
-      ? 'Delivered'
-      : ['processing', 'packing', 'ready', 'out for delivery', 'out_for_delivery'].includes(status)
-        ? 'Processing'
-        : status === 'shipped'
-          ? 'Shipped'
-          : ['cancelled', 'canceled'].includes(status)
-            ? 'Cancelled'
-            : 'Other';
-    const entry = statuses.find(item => item.label === category);
-    if (entry) {
-      entry.count += 1;
-    }
-  });
-  const total = orders.length || 1;
+function OrderStatusSummary({
+  orders,
+  reportStatuses,
+}: {
+  orders: ApiOrder[];
+  reportStatuses: ApiRevenueStatus[];
+}) {
+  const statuses = reportStatuses.length
+    ? reportStatuses.map(entry => {
+        const status = String(entry.status || 'Other').trim();
+        const normalized = status.toLowerCase();
+        const color = ['delivered', 'served', 'completed'].includes(normalized)
+          ? '#15803D'
+          : ['cancelled', 'canceled'].includes(normalized)
+            ? colors.error
+            : ['pending', 'placed'].includes(normalized)
+              ? colors.warning
+              : ['ready', 'preparing', 'processing'].includes(normalized)
+                ? colors.info
+                : colors.textSecondary;
+        return { label: status, count: Number(entry.count || 0), color };
+      })
+    : [
+        { label: 'Delivered', count: 0, color: '#15803D' },
+        { label: 'Processing', count: 0, color: '#D97706' },
+        { label: 'Shipped', count: 0, color: '#2563EB' },
+        { label: 'Cancelled', count: 0, color: colors.error },
+        { label: 'Other', count: 0, color: colors.textSecondary },
+      ];
+  if (!reportStatuses.length) {
+    orders.forEach(order => {
+      const status = (order.order_status || 'other').trim().toLowerCase();
+      const category = ['delivered', 'completed'].includes(status)
+        ? 'Delivered'
+        : ['processing', 'packing', 'ready', 'out for delivery', 'out_for_delivery'].includes(status)
+          ? 'Processing'
+          : status === 'shipped'
+            ? 'Shipped'
+            : ['cancelled', 'canceled'].includes(status)
+              ? 'Cancelled'
+              : 'Other';
+      const entry = statuses.find(item => item.label === category);
+      if (entry) {
+        entry.count += 1;
+      }
+    });
+  }
+  const total =
+    reportStatuses.reduce((sum, status) => sum + Number(status.count || 0), 0) ||
+    orders.length ||
+    1;
   return (
     <View style={[styles.card, { gap: 12 }]}>
       {statuses.map(status => (
@@ -1857,24 +2511,77 @@ function PageShell({
 function StatCard({
   label,
   value,
+  detail,
+  badge,
+  tone,
+  basis,
   icon: Icon,
 }: {
   label: string;
   value: string;
+  detail: string;
+  badge: string;
+  tone: 'green' | 'blue' | 'orange' | 'purple' | 'cyan' | 'pink' | 'teal' | 'red';
+  basis: `${number}%`;
   icon: typeof ChartIcon;
 }) {
+  const palette = statCardPalettes[tone];
   return (
-    <View style={[styles.card, { flex: 1, minWidth: 145, padding: 16 }]}>
-      <View style={styles.statIcon}>
-        <Icon color={colors.primary} size={18} />
+    <View
+      style={[
+        styles.statCard,
+        { backgroundColor: palette.background, flexBasis: basis },
+      ]}
+    >
+      <View style={styles.statCardTop}>
+        <View style={[styles.statCardIcon, { backgroundColor: palette.iconBackground }]}>
+          <Icon color="#FFFFFF" size={24} />
+        </View>
+        <View style={styles.statCardCopy}>
+          <Text numberOfLines={1} style={styles.statCardLabel}>{label}</Text>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.statCardValue}>
+            {value}
+          </Text>
+        </View>
       </View>
-      <Text style={[styles.mutedText, { marginTop: 16 }]}>{label}</Text>
-      <Text style={{ color: colors.textPrimary, fontSize: 22, fontWeight: '700', marginTop: 4 }}>
-        {value}
-      </Text>
+      <View style={styles.statCardFooter}>
+        <View style={styles.statCardDetail}>
+          <Text style={[styles.statCardBadge, { backgroundColor: palette.badgeBackground }]}>
+            {badge}
+          </Text>
+          <Text numberOfLines={1} style={styles.statCardDetailText}>{detail}</Text>
+        </View>
+      </View>
+      <Svg
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        pointerEvents="none"
+        style={styles.statCardWave}
+        viewBox="0 0 120 32"
+      >
+        <Path
+          d="M1 22 C18 14 31 14 49 22 S82 31 119 2"
+          fill="none"
+          stroke="#FFFFFF"
+          strokeLinecap="round"
+          strokeWidth="2.5"
+          opacity={0.4}
+        />
+      </Svg>
     </View>
   );
 }
+
+const statCardPalettes = {
+  green: { background: '#20C463', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  blue: { background: '#3B82F6', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  orange: { background: '#F59E0B', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  purple: { background: '#8B5CF6', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  cyan: { background: '#06B6D4', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  pink: { background: '#EC4899', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  teal: { background: '#14B8A6', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  red: { background: '#F43F5E', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+} as const;
 
 function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
   return (
@@ -1992,8 +2699,77 @@ const styles = {
   statsGrid: {
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
-    gap: 10,
-    marginTop: 22,
+    gap: 12,
+    marginTop: 20,
+  },
+  statCard: {
+    borderRadius: 16,
+    justifyContent: 'space-between' as const,
+    minHeight: 175,
+    overflow: 'hidden' as const,
+    padding: 24,
+    position: 'relative' as const,
+  },
+  statCardTop: {
+    alignItems: 'center' as const,
+    flexDirection: 'row' as const,
+    gap: 15,
+    zIndex: 1,
+  },
+  statCardIcon: {
+    alignItems: 'center' as const,
+    borderRadius: 12,
+    height: 60,
+    justifyContent: 'center' as const,
+    width: 60,
+  },
+  statCardCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  statCardLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700' as const,
+  },
+  statCardValue: {
+    color: '#FFFFFF',
+    fontSize: 29,
+    fontWeight: '800' as const,
+    marginTop: 4,
+  },
+  statCardFooter: {
+    marginTop: 18,
+    zIndex: 1,
+  },
+  statCardDetail: {
+    alignItems: 'center' as const,
+    flexDirection: 'row' as const,
+    gap: 9,
+    maxWidth: '90%',
+  },
+  statCardBadge: {
+    borderRadius: 7,
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800' as const,
+    overflow: 'hidden' as const,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+  },
+  statCardDetailText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600' as const,
+    opacity: 0.88,
+  },
+  statCardWave: {
+    bottom: 0,
+    height: 48,
+    opacity: 0.95,
+    position: 'absolute' as const,
+    right: 0,
+    width: 122,
   },
   dashboardToolbar: {
     alignItems: 'center' as const,
