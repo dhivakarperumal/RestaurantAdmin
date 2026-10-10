@@ -1,7 +1,20 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import AuthInput from './AuthInput';
 import colors from '../theme/colors';
+import {
+  EyeIcon,
+  EyeOffIcon,
+  LockIcon,
+  MailIcon,
+  UserIcon,
+} from './AuthIcons';
 
 export type RegisterValues = {
   username: string;
@@ -21,6 +34,9 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -52,6 +68,11 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
       return;
     }
 
+    if (!acceptedTerms) {
+      setError('Please accept the Terms and Conditions to continue.');
+      return;
+    }
+
     if (!onRegister) {
       setError('Registration is not connected to an authentication service yet.');
       return;
@@ -68,6 +89,7 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
         password,
       });
       setIsRegistered(true);
+      onShowLogin();
     } catch (submitError) {
       setError(
         typeof submitError === 'object' &&
@@ -83,18 +105,35 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
   };
 
   return (
-    <View className="w-full max-w-md self-center rounded-3xl p-6">
-      <Text className="mb-2 text-3xl font-bold" style={{ color: colors.textPrimary }}>
-        Create account
+    <View
+      style={{
+        alignSelf: 'center',
+        backgroundColor: colors.surface,
+        borderColor: colors.border,
+        borderRadius: 26,
+        borderWidth: 1,
+        elevation: 3,
+        maxWidth: 460,
+        padding: 26,
+        shadowColor: colors.textPrimary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 20,
+        width: '100%',
+      }}
+    >
+      <Text style={{ color: colors.textPrimary, fontSize: 29, fontWeight: '800' }}>
+        Create Account
       </Text>
-      <Text className="mb-8 text-base" style={{ color: colors.textSecondary }}>
-        Get started managing your restaurant.
+      <Text style={{ color: colors.textSecondary, fontSize: 15, marginBottom: 25, marginTop: 8 }}>
+        Start managing your money smarter.
       </Text>
 
       <AuthInput
         autoCapitalize="words"
         autoComplete="name"
-        label="Name"
+        icon={UserIcon}
+        label="Full Name"
         onChangeText={setUsername}
         placeholder="Your name"
         value={username}
@@ -102,6 +141,7 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
       <AuthInput
         autoCapitalize="none"
         autoComplete="email"
+        icon={MailIcon}
         keyboardType="email-address"
         label="Email"
         onChangeText={setEmail}
@@ -111,6 +151,7 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
       <AuthInput
         autoComplete="tel"
         keyboardType="phone-pad"
+        icon={UserIcon}
         label="Phone number"
         onChangeText={setPhone}
         placeholder="Your phone number"
@@ -118,59 +159,143 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
       />
       <AuthInput
         autoComplete="new-password"
+        icon={LockIcon}
         label="Password"
         onChangeText={setPassword}
         placeholder="Create a password"
-        secureTextEntry
+        rightAccessory={
+          <Pressable
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={() => setShowPassword(visible => !visible)}
+            style={{ padding: 6 }}
+          >
+            {showPassword ? (
+              <EyeOffIcon color={colors.textSecondary} size={20} />
+            ) : (
+              <EyeIcon color={colors.textSecondary} size={20} />
+            )}
+          </Pressable>
+        }
+        secureTextEntry={!showPassword}
         value={password}
       />
       <AuthInput
+        autoComplete="new-password"
+        icon={LockIcon}
         label="Confirm password"
         onChangeText={setConfirmPassword}
         placeholder="Enter your password again"
         returnKeyType="done"
-        secureTextEntry
+        rightAccessory={
+          <Pressable
+            accessibilityLabel={
+              showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'
+            }
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={() => setShowConfirmPassword(visible => !visible)}
+            style={{ padding: 6 }}
+          >
+            {showConfirmPassword ? (
+              <EyeOffIcon color={colors.textSecondary} size={20} />
+            ) : (
+              <EyeIcon color={colors.textSecondary} size={20} />
+            )}
+          </Pressable>
+        }
+        secureTextEntry={!showConfirmPassword}
         value={confirmPassword}
       />
 
+      <View style={{ alignItems: 'center', flexDirection: 'row', marginBottom: 17 }}>
+        <Pressable
+          accessibilityLabel="Accept Terms and Conditions"
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: acceptedTerms }}
+          onPress={() => setAcceptedTerms(accepted => !accepted)}
+          style={{ alignItems: 'center', flexDirection: 'row' }}
+        >
+          <View
+            style={{
+              alignItems: 'center',
+              backgroundColor: acceptedTerms ? colors.primary : colors.surface,
+              borderColor: acceptedTerms ? colors.primary : colors.border,
+              borderRadius: 5,
+              borderWidth: 1,
+              height: 20,
+              justifyContent: 'center',
+              marginRight: 10,
+              width: 20,
+            }}
+          >
+            {acceptedTerms ? (
+              <Text style={{ color: colors.textOnPrimary, fontSize: 14, fontWeight: '800' }}>
+                ✓
+              </Text>
+            ) : null}
+          </View>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+            I agree to the
+          </Text>
+        </Pressable>
+        <Text
+          onPress={() =>
+            Alert.alert(
+              'Terms and Conditions',
+              'By creating an account, you agree to use Life Ledger responsibly and keep your account credentials secure.',
+            )
+          }
+          style={{ color: colors.primary, fontSize: 13, fontWeight: '700', marginLeft: 4 }}
+        >
+          Terms and Conditions
+        </Text>
+      </View>
+
       {error ? (
-        <Text className="mb-4 text-sm" style={{ color: colors.error }}>
+        <Text accessibilityRole="alert" style={{ color: colors.error, fontSize: 13, marginBottom: 14 }}>
           {error}
         </Text>
       ) : null}
       {isRegistered ? (
         <Text
           accessibilityRole="alert"
-          className="mb-4 text-sm"
-          style={{ color: colors.success }}
+          style={{ color: colors.success, fontSize: 13, marginBottom: 14 }}
         >
-          Account created successfully. You are signed in.
+          Account created successfully. Please log in to continue.
         </Text>
       ) : null}
 
       <Pressable
         accessibilityLabel="Create account"
         accessibilityRole="button"
-        className="items-center rounded-xl px-4 py-4"
         disabled={isSubmitting}
         onPress={handleRegister}
         style={{
           backgroundColor: colors.primary,
+          alignItems: 'center',
+          borderRadius: 14,
+          flexDirection: 'row',
+          gap: 9,
+          justifyContent: 'center',
+          minHeight: 54,
           opacity: isSubmitting ? 0.7 : 1,
         }}
       >
-        <Text className="font-semibold text-white">
-          {isSubmitting ? 'Creating account…' : 'Create account'}
+        {isSubmitting ? <ActivityIndicator color={colors.textOnPrimary} /> : null}
+        <Text style={{ color: colors.textOnPrimary, fontSize: 16, fontWeight: '700' }}>
+          {isSubmitting ? 'Creating account…' : 'Create Account'}
         </Text>
       </Pressable>
 
-      <View className="mt-6 flex-row justify-center">
-        <Text style={{ color: colors.textSecondary }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginTop: 22 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
           Already have an account?{' '}
         </Text>
         <Pressable accessibilityRole="button" onPress={onShowLogin}>
-          <Text className="font-semibold" style={{ color: colors.primary }}>
-            Sign in
+          <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '700' }}>
+            Login
           </Text>
         </Pressable>
       </View>

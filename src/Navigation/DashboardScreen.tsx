@@ -2174,6 +2174,8 @@ function BottomNavigation({
           height: 58,
           justifyContent: 'center',
           marginTop: -25,
+          position: 'relative',
+          zIndex: 10,
           shadowColor: colors.primary,
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.24,
@@ -2181,7 +2183,7 @@ function BottomNavigation({
           width: 58,
         })}
       >
-        <PlusIcon color={colors.surface} size={27} />
+        <PlusIcon color={colors.textOnPrimary} size={30} />
       </Pressable>
       <TabButton
         active={activeTab === 'orders'}

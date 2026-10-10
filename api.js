@@ -202,24 +202,10 @@ export const registerUser = async ({ username, email, phone, password }) => {
   });
 
   const data = response.data || {};
-  const token = data.token;
-  const user = data.user || data.data;
+  await setAuthToken(null);
+  await AsyncStorage.removeItem("userProfile");
 
-  if (!token || !user || typeof user !== "object") {
-    throw new Error(
-      data.message || "The server returned an incomplete registration response.",
-    );
-  }
-
-  await setAuthToken(token);
-  await saveUser(user);
-
-  return {
-    ...data,
-    token,
-    user,
-    message: data.message || "Registration successful",
-  };
+  return { ...data, message: data.message || "Registration successful" };
 };
 
 /* =========================

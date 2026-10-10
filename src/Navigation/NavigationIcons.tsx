@@ -129,38 +129,22 @@ export function ReceiptIcon({ color, size = 20 }: NavigationIconProps) {
 }
 
 export function PlusIcon({ color, size = 24 }: NavigationIconProps) {
-  const strokeWidth = Math.max(2, Math.round(size / 9));
-  const strokeLength = size * 0.68;
   return (
-    <View
+    <Svg
       accessibilityElementsHidden
       importantForAccessibility="no"
-      style={{
-        alignItems: 'center',
-        height: size,
-        justifyContent: 'center',
-        width: size,
-      }}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
     >
-      <View
-        style={{
-          backgroundColor: color,
-          borderRadius: strokeWidth,
-          height: strokeWidth,
-          position: 'absolute',
-          width: strokeLength,
-        }}
+      <Path
+        d="M12 5v14M5 12h14"
+        stroke={color}
+        strokeWidth="3"
+        strokeLinecap="round"
       />
-      <View
-        style={{
-          backgroundColor: color,
-          borderRadius: strokeWidth,
-          height: strokeLength,
-          position: 'absolute',
-          width: strokeWidth,
-        }}
-      />
-    </View>
+    </Svg>
   );
 }
 

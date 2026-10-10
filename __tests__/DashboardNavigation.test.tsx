@@ -1,5 +1,6 @@
 import React from 'react';
-import { TextInput, View } from 'react-native';
+import { TextInput } from 'react-native';
+import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
 import DashboardScreen from '../src/Navigation/DashboardScreen';
 import { PlusIcon } from '../src/Navigation/NavigationIcons';
@@ -94,12 +95,19 @@ test('renders the plus icon as visible horizontal and vertical strokes', async (
     );
   });
 
-  const strokes = renderer!.root
-    .findAllByType(View)
-    .filter(view => view.props.style?.backgroundColor === '#FFFFFF');
-  expect(strokes).toHaveLength(2);
-  expect(strokes.some(stroke => stroke.props.style.width > stroke.props.style.height)).toBe(true);
-  expect(strokes.some(stroke => stroke.props.style.height > stroke.props.style.width)).toBe(true);
+  const plusStroke = renderer!.root.findByType(Path);
+  expect(plusStroke.props.d).toBe('M12 5v14M5 12h14');
+  expect(plusStroke.props.stroke).toBe('#FFFFFF');
+  expect(plusStroke.props.strokeWidth).toBe('3');
+});
+
+test('shows the quick-action plus button in the center of the bottom bar', async () => {
+  const renderer = await renderDashboard();
+  const plusButton = renderer.root.findByProps({
+    accessibilityLabel: 'Quick actions',
+  });
+  expect(plusButton.props.accessibilityRole).toBe('button');
+  expect(JSON.stringify(renderer.toJSON())).toContain('M12 5v14M5 12h14');
 });
 
 test('loads the restaurant POS dashboard snapshot and revenue reports', async () => {

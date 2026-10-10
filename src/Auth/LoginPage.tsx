@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import AuthInput from './AuthInput';
 import colors from '../theme/colors';
+import {
+  EyeIcon,
+  EyeOffIcon,
+  LockIcon,
+  MailIcon,
+} from './AuthIcons';
 
 export type LoginValues = {
   identifier: string;
@@ -9,19 +15,29 @@ export type LoginValues = {
 };
 
 type LoginPageProps = {
+  notice?: string;
   onLogin?: (values: LoginValues) => Promise<void>;
   onShowRegister: () => void;
 };
 
-function LoginPage({ onLogin, onShowRegister }: LoginPageProps) {
+function LoginPage({ notice, onLogin, onShowRegister }: LoginPageProps) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async () => {
     if (!identifier.trim() || !password) {
-      setError('Enter your email or phone number and password.');
+      setError('Enter your email or username and password.');
+      return;
+    }
+
+    if (
+      identifier.includes('@') &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim())
+    ) {
+      setError('Enter a valid email address or username.');
       return;
     }
 
@@ -49,62 +65,142 @@ function LoginPage({ onLogin, onShowRegister }: LoginPageProps) {
   };
 
   return (
-    <View className="w-full max-w-md self-center rounded-3xl p-6">
-      <Text className="mb-2 text-3xl font-bold" style={{ color: colors.textPrimary }}>
-        Welcome back
+    <View
+      style={{
+        alignSelf: 'center',
+        backgroundColor: colors.surface,
+        borderColor: colors.border,
+        borderRadius: 26,
+        borderWidth: 1,
+        elevation: 3,
+        maxWidth: 460,
+        padding: 26,
+        shadowColor: colors.textPrimary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 20,
+        width: '100%',
+      }}
+    >
+      <Text style={{ color: colors.textPrimary, fontSize: 29, fontWeight: '800' }}>
+        Welcome Back!
       </Text>
-      <Text className="mb-8 text-base" style={{ color: colors.textSecondary }}>
-        Sign in to manage your restaurant.
+      <Text style={{ color: colors.textSecondary, fontSize: 15, marginBottom: 28, marginTop: 8 }}>
+        Sign in to manage your finances.
       </Text>
+      {notice ? (
+        <Text
+          accessibilityRole="alert"
+          style={{
+            backgroundColor: colors.surfaceSecondary,
+            borderRadius: 10,
+            color: colors.success,
+            fontSize: 13,
+            marginBottom: 18,
+            padding: 12,
+          }}
+        >
+          {notice}
+        </Text>
+      ) : null}
 
       <AuthInput
         autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        label="Email or phone number"
+        autoComplete="username"
+        autoCorrect={false}
+        icon={MailIcon}
+        label="Email or Username"
         onChangeText={setIdentifier}
-        placeholder="you@example.com"
+        placeholder="you@example.com or username"
         returnKeyType="next"
         value={identifier}
       />
       <AuthInput
         autoComplete="password"
+        icon={LockIcon}
         label="Password"
         onChangeText={setPassword}
         placeholder="Enter your password"
         returnKeyType="done"
-        secureTextEntry
+        rightAccessory={
+          <Pressable
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={() => setShowPassword(visible => !visible)}
+            style={{ padding: 6 }}
+          >
+            {showPassword ? (
+              <EyeOffIcon color={colors.textSecondary} size={20} />
+            ) : (
+              <EyeIcon color={colors.textSecondary} size={20} />
+            )}
+          </Pressable>
+        }
+        secureTextEntry={!showPassword}
         value={password}
       />
 
+      <Pressable
+        accessibilityRole="button"
+        onPress={() =>
+          Alert.alert(
+            'Forgot password?',
+            'Please contact your administrator to reset your password.',
+          )
+        }
+        style={{ alignSelf: 'flex-end', marginBottom: 20, marginTop: -5 }}
+      >
+        <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
+          Forgot Password?
+        </Text>
+      </Pressable>
+
       {error ? (
-        <Text className="mb-4 text-sm" style={{ color: colors.error }}>
+        <Text accessibilityRole="alert" style={{ color: colors.error, fontSize: 13, marginBottom: 14 }}>
           {error}
         </Text>
       ) : null}
 
       <Pressable
+        accessibilityLabel="Login"
         accessibilityRole="button"
-        className="items-center rounded-xl px-4 py-4"
         disabled={isSubmitting}
         onPress={handleLogin}
         style={{
           backgroundColor: colors.primary,
+          alignItems: 'center',
+          borderRadius: 14,
+          flexDirection: 'row',
+          gap: 9,
+          justifyContent: 'center',
+          minHeight: 54,
           opacity: isSubmitting ? 0.7 : 1,
         }}
       >
-        <Text className="font-semibold text-white">
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
+        {isSubmitting ? <ActivityIndicator color={colors.textOnPrimary} /> : null}
+        <Text style={{ color: colors.textOnPrimary, fontSize: 16, fontWeight: '700' }}>
+          {isSubmitting ? 'Signing in…' : 'Login'}
         </Text>
       </Pressable>
 
-      <View className="mt-6 flex-row justify-center">
-        <Text style={{ color: colors.textSecondary }}>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: 12, marginVertical: 22 }}>
+        <View style={{ backgroundColor: colors.border, flex: 1, height: 1 }} />
+        <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '600' }}>OR</Text>
+        <View style={{ backgroundColor: colors.border, flex: 1, height: 1 }} />
+      </View>
+
+      <View style={{ alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
           Don&apos;t have an account?{' '}
         </Text>
-        <Pressable accessibilityRole="button" onPress={onShowRegister}>
-          <Text className="font-semibold" style={{ color: colors.primary }}>
-            Create account
+        <Pressable
+          accessibilityLabel="Register"
+          accessibilityRole="button"
+          onPress={onShowRegister}
+        >
+          <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '700' }}>
+            Register
           </Text>
         </Pressable>
       </View>

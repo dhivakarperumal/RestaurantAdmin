@@ -32,6 +32,11 @@ test('submits valid registration details to the auth handler', async () => {
   await enter(renderer, 'Your phone number', '5551234567');
   await enter(renderer, 'Create a password', 'secret123');
   await enter(renderer, 'Enter your password again', 'secret123');
+  await ReactTestRenderer.act(() => {
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Accept Terms and Conditions' })
+      .props.onPress();
+  });
 
   const submitButton = renderer.root.findByProps({
     accessibilityLabel: 'Create account',
@@ -46,7 +51,9 @@ test('submits valid registration details to the auth handler', async () => {
     phone: '5551234567',
     password: 'secret123',
   });
-  expect(JSON.stringify(renderer.toJSON())).toContain('You are signed in');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Please log in to continue',
+  );
 });
 
 test('rejects mismatched confirmation without calling the auth handler', async () => {
@@ -65,4 +72,25 @@ test('rejects mismatched confirmation without calling the auth handler', async (
 
   expect(onRegister).not.toHaveBeenCalled();
   expect(JSON.stringify(renderer.toJSON())).toContain('Passwords do not match');
+});
+
+test('requires acceptance of terms before submitting registration', async () => {
+  const { renderer, onRegister } = await renderRegisterPage();
+
+  await enter(renderer, 'Your name', 'Maya Rivera');
+  await enter(renderer, 'you@example.com', 'maya@example.com');
+  await enter(renderer, 'Your phone number', '5551234567');
+  await enter(renderer, 'Create a password', 'secret123');
+  await enter(renderer, 'Enter your password again', 'secret123');
+
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Create account' })
+      .props.onPress();
+  });
+
+  expect(onRegister).not.toHaveBeenCalled();
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Please accept the Terms and Conditions',
+  );
 });

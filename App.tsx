@@ -94,8 +94,7 @@ function AppContent() {
   };
 
   const handleRegister = async (values: RegisterValues) => {
-    const result = await registerUser(values);
-    setUser(result.user);
+    await registerUser(values);
   };
 
   const handleLogout = async () => {
