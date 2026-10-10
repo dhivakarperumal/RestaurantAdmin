@@ -157,29 +157,31 @@ api.interceptors.response.use(
 ========================= */
 
 export const loginWithIdentifier = async (identifier, password) => {
-  try {
-    const response = await api.post("/auth/login", {
-      identifier: String(identifier || "").trim(),
-      password: String(password || ""),
-    });
+  const normalizedIdentifier = String(identifier || "").trim();
+  const response = await api.post("/users/login", {
+    identifier: normalizedIdentifier,
+    email: normalizedIdentifier,
+    password: String(password || ""),
+    rememberMe: false,
+  });
 
-    const data = response.data || {};
+  const data = response.data || {};
+  const token = data.token;
+  const user = data.user || data.data;
 
-    if (data.token) {
-      await setAuthToken(data.token);
-    }
-
-    if (data.user) {
-      await saveUser(data.user);
-    }
-
-    return {
-      ...data,
-      message: data.message || "Login successful",
-    };
-  } catch (error) {
-    throw error;
+  if (!token || !user || typeof user !== "object") {
+    throw new Error(data.message || "The server returned an incomplete login response.");
   }
+
+  await setAuthToken(token);
+  await saveUser(user);
+
+  return {
+    ...data,
+    token,
+    user,
+    message: data.message || "Login successful",
+  };
 };
 
 /* =========================
@@ -187,15 +189,37 @@ export const loginWithIdentifier = async (identifier, password) => {
 ========================= */
 
 export const registerUser = async ({ username, email, phone, password }) => {
-  const response = await api.post("/auth/register", {
-    username: String(username || "").trim(),
-    email: String(email || "").trim(),
-    phone: String(phone || "").trim(),
-    role: "admin",
+  const normalizedUsername = String(username || "").trim();
+  const normalizedEmail = String(email || "").trim();
+  const normalizedPhone = String(phone || "").trim();
+  const response = await api.post("/users/register", {
+    username: normalizedUsername,
+    firstName: normalizedUsername,
+    email: normalizedEmail,
+    phone: normalizedPhone,
+    mobile_number: normalizedPhone,
     password: String(password || ""),
   });
 
-  return response.data || {};
+  const data = response.data || {};
+  const token = data.token;
+  const user = data.user || data.data;
+
+  if (!token || !user || typeof user !== "object") {
+    throw new Error(
+      data.message || "The server returned an incomplete registration response.",
+    );
+  }
+
+  await setAuthToken(token);
+  await saveUser(user);
+
+  return {
+    ...data,
+    token,
+    user,
+    message: data.message || "Registration successful",
+  };
 };
 
 /* =========================

@@ -1,4 +1,5 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { View } from 'react-native';
 
 type NavigationIconProps = {
   color: string;
@@ -95,6 +96,140 @@ export function LogoutIcon({ color, size = 20 }: NavigationIconProps) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </Svg>
+  );
+}
+
+export function HomeIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function ReceiptIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 3v18l3-2 4 2 4-2 3 2V3l-3 2-4-2-4 2-3-2ZM9 9h6M9 13h6M9 17h3"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function PlusIcon({ color, size = 24 }: NavigationIconProps) {
+  const strokeWidth = Math.max(2, Math.round(size / 9));
+  const strokeLength = size * 0.68;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      style={{
+        alignItems: 'center',
+        height: size,
+        justifyContent: 'center',
+        width: size,
+      }}
+    >
+      <View
+        style={{
+          backgroundColor: color,
+          borderRadius: strokeWidth,
+          height: strokeWidth,
+          position: 'absolute',
+          width: strokeLength,
+        }}
+      />
+      <View
+        style={{
+          backgroundColor: color,
+          borderRadius: strokeWidth,
+          height: strokeLength,
+          position: 'absolute',
+          width: strokeWidth,
+        }}
+      />
+    </View>
+  );
+}
+
+export function MoreIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="5" cy="12" r="1.5" fill={color} />
+      <Circle cx="12" cy="12" r="1.5" fill={color} />
+      <Circle cx="19" cy="12" r="1.5" fill={color} />
+    </Svg>
+  );
+}
+
+export function CustomersIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="9" cy="8" r="4" stroke={color} strokeWidth="2" />
+      <Path
+        d="M2 21a7 7 0 0 1 14 0M16 4.5a4 4 0 0 1 0 7.5M18 14a6 6 0 0 1 4 7"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+export function ProductIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="m12 3 9 5-9 5-9-5 9-5ZM3 8v9l9 5 9-5V8M12 13v9"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function PaymentIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="2" y="5" width="20" height="14" rx="2" stroke={color} strokeWidth="2" />
+      <Path d="M2 10h20M6 15h4" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function ChartIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 3v18h18M8 15l4-4 4 3 5-7"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function SearchIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="11" cy="11" r="7" stroke={color} strokeWidth="2" />
+      <Path d="m20 20-4-4" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </Svg>
   );
 }

@@ -24,9 +24,11 @@ import {
   isLoggedIn,
   loginWithIdentifier,
   logoutUser,
+  registerUser,
 } from './api';
 import AuthScreen from './src/Auth/AuthScreen';
 import type { LoginValues } from './src/Auth/LoginPage';
+import type { RegisterValues } from './src/Auth/RegisterPage';
 import colors from './src/theme/colors';
 import DashboardScreen from './src/Navigation/DashboardScreen';
 import type { HeaderUser } from './src/Navigation/TopHeader';
@@ -91,6 +93,11 @@ function AppContent() {
     setUser(result.user ?? storedUser ?? null);
   };
 
+  const handleRegister = async (values: RegisterValues) => {
+    const result = await registerUser(values);
+    setUser(result.user);
+  };
+
   const handleLogout = async () => {
     await logoutUser();
     setUser(null);
@@ -148,7 +155,7 @@ function AppContent() {
   return user ? (
     <DashboardScreen user={user} onLogout={handleLogout} />
   ) : (
-    <AuthScreen onLogin={handleLogin} />
+    <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />
   );
 }
 

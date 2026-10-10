@@ -23,6 +23,7 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const handleRegister = async () => {
     if (
@@ -33,6 +34,16 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
       !confirmPassword
     ) {
       setError('Complete all fields to create your account.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Enter a valid email address.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
 
@@ -47,6 +58,7 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
     }
 
     setError('');
+    setIsRegistered(false);
     setIsSubmitting(true);
     try {
       await onRegister({
@@ -55,9 +67,13 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
         phone: phone.trim(),
         password,
       });
+      setIsRegistered(true);
     } catch (submitError) {
       setError(
-        submitError instanceof Error
+        typeof submitError === 'object' &&
+          submitError !== null &&
+          'message' in submitError &&
+          typeof submitError.message === 'string'
           ? submitError.message
           : 'Unable to create your account. Please try again.',
       );
@@ -122,8 +138,18 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
           {error}
         </Text>
       ) : null}
+      {isRegistered ? (
+        <Text
+          accessibilityRole="alert"
+          className="mb-4 text-sm"
+          style={{ color: colors.success }}
+        >
+          Account created successfully. You are signed in.
+        </Text>
+      ) : null}
 
       <Pressable
+        accessibilityLabel="Create account"
         accessibilityRole="button"
         className="items-center rounded-xl px-4 py-4"
         disabled={isSubmitting}
