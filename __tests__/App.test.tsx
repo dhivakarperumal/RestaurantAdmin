@@ -16,8 +16,9 @@ test('renders correctly', async () => {
   const renderedScreen = JSON.stringify(renderers[0].toJSON());
 
   expect(renderedScreen).toContain('Restaurant Admin');
-  expect(renderedScreen).toContain('Dashboard');
-  expect(renderedScreen).toContain('Orders');
-  expect(renderedScreen).toContain('Menu');
-  expect(renderedScreen).toContain('Profile');
+  expect(renderedScreen).toContain('Welcome back');
+  expect(renderedScreen).toContain('Email or phone number');
+  expect(renderedScreen).toContain('Password');
+  expect(renderedScreen).toContain('Sign in');
+  expect(renderedScreen).toContain('Create account');
 });

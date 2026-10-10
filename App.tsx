@@ -6,51 +6,36 @@
  */
 
 import './global.css';
-import { useState } from 'react';
-import { Dimensions, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  StatusBar,
+  Text,
+} from 'react-native';
 import {
   initialWindowMetrics,
   SafeAreaProvider,
   SafeAreaView,
 } from 'react-native-safe-area-context';
-import Bottombar, { type BottomBarTab } from './src/Navigation/Bottombar';
 import {
-  DashboardIcon,
-  MenuIcon,
-  OrdersIcon,
-  ProfileIcon,
-} from './src/Navigation/NavigationIcons';
-import TopHeader from './src/Navigation/TopHeader';
+  getStoredUser,
+  isLoggedIn,
+  loginWithIdentifier,
+  logoutUser,
+} from './api';
+import AuthScreen from './src/Auth/AuthScreen';
+import type { LoginValues } from './src/Auth/LoginPage';
 import colors from './src/theme/colors';
+import DashboardScreen from './src/Navigation/DashboardScreen';
+import type { HeaderUser } from './src/Navigation/TopHeader';
 
 const { height, width } = Dimensions.get('window');
 const fallbackWindowMetrics = {
   frame: { x: 0, y: 0, width, height },
   insets: { top: 0, right: 0, bottom: 0, left: 0 },
 };
-
-const navigationTabs: BottomBarTab[] = [
-  {
-    key: 'dashboard',
-    label: 'Dashboard',
-    icon: color => <DashboardIcon color={color} />,
-  },
-  {
-    key: 'orders',
-    label: 'Orders',
-    icon: color => <OrdersIcon color={color} />,
-  },
-  {
-    key: 'menu',
-    label: 'Menu',
-    icon: color => <MenuIcon color={color} />,
-  },
-  {
-    key: 'profile',
-    label: 'Profile',
-    icon: color => <ProfileIcon color={color} />,
-  },
-];
 
 function App() {
   return (
@@ -62,55 +47,109 @@ function App() {
 }
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [user, setUser] = useState<HeaderUser | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState('');
+  const [retrySessionCheck, setRetrySessionCheck] = useState(0);
 
-  return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
-      <TopHeader
-        title="Restaurant Admin"
-        subtitle="Manage your restaurant"
-      />
-      <View
-        className="flex-1 items-center justify-center px-6"
-        style={styles.content}
+  useEffect(() => {
+    let isActive = true;
+
+    const restoreSession = async () => {
+      setIsCheckingSession(true);
+      setSessionError('');
+      try {
+        const authenticated = await isLoggedIn();
+        const storedUser = authenticated ? await getStoredUser() : null;
+        if (isActive) {
+          setUser(authenticated ? storedUser : null);
+        }
+      } catch (error) {
+        if (isActive) {
+          setSessionError(
+            error instanceof Error
+              ? error.message
+              : 'Unable to restore your session.',
+          );
+        }
+      } finally {
+        if (isActive) {
+          setIsCheckingSession(false);
+        }
+      }
+    };
+
+    restoreSession();
+    return () => {
+      isActive = false;
+    };
+  }, [retrySessionCheck]);
+
+  const handleLogin = async ({ identifier, password }: LoginValues) => {
+    const result = await loginWithIdentifier(identifier, password);
+    const storedUser = await getStoredUser();
+    setUser(result.user ?? storedUser ?? null);
+  };
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setUser(null);
+  };
+
+  if (isCheckingSession) {
+    return (
+      <SafeAreaView
+        style={{
+          alignItems: 'center',
+          backgroundColor: colors.background,
+          flex: 1,
+          justifyContent: 'center',
+        }}
       >
-        <Text className="text-2xl font-bold" style={styles.heading}>
-          Dashboard
+        <ActivityIndicator color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <SafeAreaView
+        style={{
+          alignItems: 'center',
+          backgroundColor: colors.background,
+          flex: 1,
+          justifyContent: 'center',
+          padding: 24,
+        }}
+      >
+        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>
+          Could not restore your session
         </Text>
-        <Text className="mt-2 text-center" style={styles.message}>
-          Your restaurant overview will appear here.
+        <Text style={{ color: colors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          {sessionError}
         </Text>
-      </View>
-      <Bottombar
-        tabs={navigationTabs}
-        activeTab={activeTab}
-        onTabPress={setActiveTab}
-      />
-    </SafeAreaView>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setRetrySessionCheck(attempt => attempt + 1)}
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 10,
+            marginTop: 20,
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+          }}
+        >
+          <Text style={{ color: colors.surface, fontWeight: '600' }}>Try again</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  return user ? (
+    <DashboardScreen user={user} onLogout={handleLogout} />
+  ) : (
+    <AuthScreen onLogin={handleLogin} />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.surface,
-    flex: 1,
-  },
-  content: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  heading: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  message: {
-    color: colors.textSecondary,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-});
 
 export default App;

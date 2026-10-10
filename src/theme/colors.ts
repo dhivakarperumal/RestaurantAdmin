@@ -3,6 +3,7 @@ const colors = {
   surface: '#FFFFFF',
   border: '#E5E7EB',
   primary: '#2563EB',
+  error: '#DC2626',
   textPrimary: '#111827',
   textSecondary: '#6B7280',
 } as const;

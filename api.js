@@ -3,7 +3,7 @@ import axios from "axios";
 
 export const API_BASE_URL =
 //  process.env.EXPO_PUBLIC_API_URL || "https://lifetracking.qtechx.com/api";
-    process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.3:8000/api";
+    process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.3:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -204,7 +204,7 @@ export const registerUser = async ({ username, email, phone, password }) => {
 
 export const logoutUser = async () => {
   try {
-    await AsyncStorage.multiRemove(["userToken", "userProfile"]);
+    await AsyncStorage.removeMany(["userToken", "userProfile"]);
   } finally {
     clearTokenCache();
     setAppLockToken(null);
