@@ -38,7 +38,7 @@ type DashboardScreenProps = {
   onLogout: () => void;
 };
 
-type AppTab = 'home' | 'billing' | 'add' | 'orders' | 'more';
+type AppTab = 'home' | 'billing' | 'add' | 'orders' | 'employees' | 'more';
 type QuickActionId =
   | 'invoice'
   | 'order'
@@ -295,6 +295,7 @@ const moreFeatures: {
   { title: 'Banner Management', subtitle: 'Create and manage website banners', icon: ProductIcon },
   { title: 'Gallery Management', subtitle: 'Organize albums and photos', icon: ProductIcon },
   { title: 'Review Management', subtitle: 'Manage customer ratings and feedback', icon: CustomersIcon },
+  { title: 'Employee Management', subtitle: 'Manage staff schedules, roles, and attendance', icon: CustomersIcon },
 ];
 
 const quickActionFeatureDetails: Record<
@@ -1058,6 +1059,9 @@ function MainContent({
         />
       );
     }
+    if (selectedFeature === 'Employee Management') {
+      return <EmployeesPage onBack={() => onSelectFeature(null)} />;
+    }
     if (selectedFeature === 'Profile') {
       return (
         <PageShell title="Profile" subtitle="Your account details">
@@ -1119,6 +1123,9 @@ function MainContent({
         onUpdateOrderStatus={onUpdateOrderStatus}
       />
     );
+  }
+  if (activeTab === 'employees') {
+    return <EmployeesPage />;
   }
   if (activeTab === 'add') {
     return <AddItemsPage onSelectAction={onSelectAction} />;
@@ -2050,6 +2057,145 @@ function OrdersPage({
   );
 }
 
+function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
+  const employees = [
+    { name: 'Maya Carter', role: 'Manager', email: 'maya@buyfood.com', phone: '+1 555 0148', shift: '08:00 - 17:00', status: 'On duty', hours: '8h' },
+    { name: 'Daniel Brooks', role: 'Chef', email: 'daniel@buyfood.com', phone: '+1 555 0151', shift: '10:00 - 19:00', status: 'On duty', hours: '9h' },
+    { name: 'Aisha Khan', role: 'Cashier', email: 'aisha@buyfood.com', phone: '+1 555 0162', shift: '09:00 - 18:00', status: 'Break', hours: '8h' },
+    { name: 'Lucas Reed', role: 'Support', email: 'lucas@buyfood.com', phone: '+1 555 0174', shift: '12:00 - 21:00', status: 'Off shift', hours: '0h' },
+  ];
+
+  const total = employees.length;
+  const onDutyCount = employees.filter(employee => employee.status === 'On duty').length;
+  const filteredEmployees = employees;
+
+  return (
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">TEAM</Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Employees</Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Manage your restaurant staff and daily coverage.</Text>
+
+      <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
+        <StatCard
+          label="Total Staff"
+          value={String(total)}
+          detail="scheduled team members"
+          badge="TEAM"
+          tone="blue"
+          basis="32%"
+          icon={CustomersIcon}
+        />
+        <StatCard
+          label="On Duty"
+          value={String(onDutyCount)}
+          detail="available now"
+          badge="LIVE"
+          tone="green"
+          basis="32%"
+          icon={HomeIcon}
+        />
+        <StatCard
+          label="Shift Hours"
+          value="42h"
+          detail="today’s coverage"
+          badge="PLAN"
+          tone="purple"
+          basis="32%"
+          icon={OrdersIcon}
+        />
+      </View>
+
+      <View className="mt-7 rounded-2xl border border-[#E5E7EB] bg-white p-4">
+        <View className="flex-row flex-wrap items-center gap-2.5">
+          <View className="min-w-[180px] flex-1 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5">
+            <Text className="text-[11px] font-semibold text-[#6B7280]">Search employee</Text>
+            <Text className="mt-1 text-[13px] text-[#012711]">Name, role, email</Text>
+          </View>
+          <View className="min-w-[140px] rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5">
+            <Text className="text-[11px] font-semibold text-[#6B7280]">Department</Text>
+            <Text className="mt-1 text-[13px] text-[#012711]">All teams</Text>
+          </View>
+          <View className="min-w-[140px] rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5">
+            <Text className="text-[11px] font-semibold text-[#6B7280]">Status</Text>
+            <Text className="mt-1 text-[13px] text-[#012711]">All</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Add new employee"
+            accessibilityRole="button"
+            className="rounded-xl bg-[#116C0B] px-3 py-3"
+          >
+            <Text className="text-[12px] font-semibold text-white">+ Add employee</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View className="mb-3 mt-7 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-[#012711]">Team roster</Text>
+        <Text className="text-[11px] text-[#6B7280]">{filteredEmployees.length} employees</Text>
+      </View>
+
+      <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
+        {filteredEmployees.map(employee => (
+          <View
+            key={employee.name}
+            className="flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3"
+          >
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#E0F2FE]">
+              <Text className="text-sm font-bold text-[#0F172A]">
+                {employee.name
+                  .split(' ')
+                  .map(part => part[0])
+                  .slice(0, 2)
+                  .join('')}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-[#012711]">{employee.name}</Text>
+              <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">{employee.role} • {employee.shift}</Text>
+              <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">{employee.email}</Text>
+            </View>
+            <View className="items-end">
+              <Text
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                  employee.status === 'On duty'
+                    ? 'bg-[#DCFCE7] text-[#166534]'
+                    : employee.status === 'Break'
+                      ? 'bg-[#FEF3C7] text-[#92400E]'
+                      : 'bg-[#F3F4F6] text-[#4B5563]'
+                }`}
+              >
+                {employee.status}
+              </Text>
+              <Text className="mt-2 text-[10px] font-medium text-[#6B7280]">{employee.hours}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <View className="mt-7 rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
+        <Text className="text-base font-bold text-[#012711]">Contact directory</Text>
+        <View className="mt-4 gap-3">
+          {employees.map(employee => (
+            <View key={`${employee.name}-contact`} className="flex-row items-center justify-between border-b border-[#E5E7EB] pb-2.5">
+              <View>
+                <Text className="text-sm font-semibold text-[#012711]">{employee.name}</Text>
+                <Text className="text-[11px] text-[#6B7280]">{employee.role}</Text>
+              </View>
+              <Text className="text-[11px] text-[#6B7280]">{employee.phone}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {onBack ? (
+        <View className="mt-5">
+          <TextButton label="Back to More" onPress={onBack} />
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
 function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => void }) {
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
@@ -2097,6 +2243,7 @@ function BottomNavigation({
     { key: 'billing', label: 'Billing', icon: color => <ReceiptIcon color={color} size={21} /> },
     { key: 'add', label: 'Add', icon: color => <PlusIcon color={color} size={21} /> },
     { key: 'orders', label: 'Orders', icon: color => <OrdersIcon color={color} size={21} /> },
+    { key: 'employees', label: 'Employees', icon: color => <CustomersIcon color={color} size={21} /> },
     { key: 'more', label: 'More', icon: color => <MoreIcon color={color} size={21} /> },
   ];
   return <Bottombar tabs={tabs} activeTab={activeTab} onTabPress={onPressTab} />;
@@ -2228,6 +2375,7 @@ function Sidebar({
       <TabButtonLarge icon={HomeIcon} label="Home" onPress={() => onNavigate('home')} />
       <TabButtonLarge icon={ReceiptIcon} label="Billing" onPress={() => onNavigate('billing')} />
       <TabButtonLarge icon={OrdersIcon} label="Orders" onPress={() => onNavigate('orders')} />
+      <TabButtonLarge icon={CustomersIcon} label="Employees" onPress={() => onNavigate('employees')} />
       <TabButtonLarge icon={MoreIcon} label="More" onPress={() => onNavigate('more')} />
     </View>
   );
