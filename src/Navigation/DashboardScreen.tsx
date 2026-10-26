@@ -30,6 +30,7 @@ import TopHeader, { type HeaderUser } from './TopHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
 import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
+import ReviewsManagementPage from '../Tabs/ReviewsManagement';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -293,6 +294,7 @@ const moreFeatures: {
 }[] = [
   { title: 'Banner Management', subtitle: 'Create and manage website banners', icon: ProductIcon },
   { title: 'Gallery Management', subtitle: 'Organize albums and photos', icon: ProductIcon },
+  { title: 'Review Management', subtitle: 'Manage customer ratings and feedback', icon: CustomersIcon },
 ];
 
 const quickActionFeatureDetails: Record<
@@ -1047,6 +1049,14 @@ function MainContent({
     }
     if (selectedFeature === 'Gallery Management') {
       return <GalleryManagementPage onBack={() => onSelectFeature(null)} />;
+    }
+    if (selectedFeature === 'Review Management') {
+      return (
+        <ReviewsManagementPage
+          currentUser={userName}
+          onBack={() => onSelectFeature(null)}
+        />
+      );
     }
     if (selectedFeature === 'Profile') {
       return (

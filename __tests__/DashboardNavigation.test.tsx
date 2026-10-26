@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput } from 'react-native';
+import { Alert, TextInput, type AlertButton } from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
 import DashboardScreen from '../src/Navigation/DashboardScreen';
@@ -236,6 +236,180 @@ test('opens Gallery Management below Banner Management and creates an album', as
       category: 'Canvas Prints',
     }),
   );
+});
+
+test('opens Review Management below Gallery Management and creates a review', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: {
+          data: [{ food_id: 21, food_name: 'House Blend', food_images: [] }],
+        },
+      });
+    }
+    if (path === '/reviews/next-id') {
+      return Promise.resolve({ data: { data: 'REV014' } });
+    }
+    if (path === '/reviews/stats') {
+      return Promise.resolve({
+        data: {
+          data: {
+            total_reviews: 0,
+            avg_rating: 0,
+            five_star_count: 0,
+            photo_reviews_count: 0,
+            published_count: 0,
+          },
+        },
+      });
+    }
+    if (path === '/reviews') {
+      return Promise.resolve({ data: { data: [] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  const moreScreen = JSON.stringify(renderer.toJSON());
+  expect(moreScreen.indexOf('Gallery Management')).toBeLessThan(
+    moreScreen.indexOf('Review Management'),
+  );
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Manage customer ratings, comments, and review photos.');
+  expect(get).toHaveBeenCalledWith('/reviews');
+  expect(get).toHaveBeenCalledWith('/reviews/stats');
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Add review' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await press(renderer, 'Select food for review');
+  await press(renderer, 'Select food House Blend');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Customer name' }).props.onChangeText('Maya Rivera');
+    renderer.root
+      .findByProps({ placeholder: "Write the customer's review..." })
+      .props.onChangeText('Excellent coffee and friendly service.');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create review' }).props.onPress();
+  });
+
+  expect(api.post).toHaveBeenCalledWith(
+    '/reviews',
+    expect.objectContaining({
+      review_id: 'REV014',
+      product_id: 21,
+      product_name: 'House Blend',
+      product_type: 'food',
+      reviewer_name: 'Maya Rivera',
+      rating: 5,
+      comment: 'Excellent coffee and friendly service.',
+      status: 'Published',
+    }),
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain('Review added successfully.');
+});
+
+test('loads review details, updates a review, and deletes it', async () => {
+  const review = {
+    id: 73,
+    review_id: 'REV073',
+    product_id: 21,
+    product_code: '21',
+    product_name: 'House Blend',
+    product_type: 'food',
+    reviewer_name: 'Alex Morgan',
+    reviewer_email: 'alex@example.com',
+    rating: 4,
+    title: 'Nice coffee',
+    comment: 'A good cup of coffee.',
+    review_photo: '',
+    status: 'Pending',
+    created_by: 'Admin',
+  };
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: { data: [{ food_id: 21, food_name: 'House Blend' }] },
+      });
+    }
+    if (path === '/reviews/stats') {
+      return Promise.resolve({ data: { data: { total_reviews: 1, avg_rating: 4 } } });
+    }
+    if (path === '/reviews/73') {
+      return Promise.resolve({ data: { data: review } });
+    }
+    if (path === '/reviews') {
+      return Promise.resolve({ data: { data: [review] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'View review REV073',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(get).toHaveBeenCalledWith('/reviews/73');
+  expect(JSON.stringify(renderer.toJSON())).toContain('A good cup of coffee.');
+  await press(renderer, 'Close review details');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Edit review REV073',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await ReactTestRenderer.act(() => {
+    renderer.root
+      .findByProps({ placeholder: "Write the customer's review..." })
+      .props.onChangeText('Updated review after another visit.');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Save review changes' })
+      .props.onPress();
+  });
+
+  expect(api.put).toHaveBeenCalledWith(
+    '/reviews/73',
+    expect.objectContaining({
+      review_id: 'REV073',
+      comment: 'Updated review after another visit.',
+      product_id: 21,
+    }),
+  );
+
+  let confirmDelete: AlertButton | undefined;
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
+    confirmDelete = buttons?.find(button => button.text === 'Delete');
+  });
+  await press(renderer, 'Delete review REV073');
+  await ReactTestRenderer.act(async () => {
+    await confirmDelete?.onPress?.();
+  });
+  expect(alert).toHaveBeenCalled();
+  expect(api.delete).toHaveBeenCalledWith('/reviews/73');
+  alert.mockRestore();
 });
 
 test('shows full-width sidebar navigation with icons and labels in the same row', async () => {
