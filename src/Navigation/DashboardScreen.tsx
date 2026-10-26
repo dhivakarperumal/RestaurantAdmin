@@ -293,6 +293,25 @@ const moreFeatures: {
   { title: 'Banner Management', subtitle: 'Create and manage website banners', icon: ProductIcon },
 ];
 
+const quickActionFeatureDetails: Record<
+  string,
+  { subtitle: string; action: QuickActionId }
+> = {
+  Customers: { subtitle: 'Customer list and details', action: 'customer' },
+  'Products & Inventory': {
+    subtitle: 'Products, prices, and stock',
+    action: 'product',
+  },
+  'Suppliers & Purchases': {
+    subtitle: 'Supplier records and purchases',
+    action: 'purchase',
+  },
+  'Payments & Expenses': {
+    subtitle: 'Track money in and out',
+    action: 'payment',
+  },
+};
+
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<AppTab>('home');
@@ -1037,7 +1056,9 @@ function MainContent({
         </PageShell>
       );
     }
-    const feature = moreFeatures.find(item => item.title === selectedFeature);
+    const feature =
+      moreFeatures.find(item => item.title === selectedFeature) ||
+      quickActionFeatureDetails[selectedFeature];
     const relatedAction = feature?.action;
     return (
       <PageShell
