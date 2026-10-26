@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import api from '../../api';
+import api, { API_BASE_URL } from '../../api';
 import { PlusIcon, ProductIcon } from '../Navigation/NavigationIcons';
 import AddFood from '../Screens/AddFood';
 import FoodDetails from '../Screens/fooddetails';
@@ -39,6 +39,9 @@ type Item = {
   selling_price?: number | string;
   unit_price?: number | string;
   food_images?: unknown;
+  food_image?: unknown;
+  food_image_url?: unknown;
+  image_url?: unknown;
   image?: unknown;
 };
 
@@ -74,8 +77,15 @@ function getItemName(item: Item) {
 function getItemImage(value: unknown): string | undefined {
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (!trimmed) {
+      return undefined;
+    }
+    if (/^(https?:|data:image\/|file:|content:)/i.test(trimmed)) {
       return trimmed;
+    }
+    if (trimmed.startsWith('//')) {
+      const protocol = API_BASE_URL.match(/^(https?:)/i)?.[1] || 'https:';
+      return `${protocol}${trimmed}`;
     }
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       try {
@@ -84,7 +94,8 @@ function getItemImage(value: unknown): string | undefined {
         return undefined;
       }
     }
-    return undefined;
+    const apiRoot = API_BASE_URL.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    return `${apiRoot}/${trimmed.replace(/^\.?\//, '')}`;
   }
   if (Array.isArray(value)) {
     for (const entry of value) {
@@ -99,11 +110,39 @@ function getItemImage(value: unknown): string | undefined {
     return (
       getItemImage(value.url) ||
       getItemImage(value.image_url) ||
+      getItemImage(value.imageUrl) ||
       getItemImage(value.image) ||
-      getItemImage(value.src)
+      getItemImage(value.src) ||
+      getItemImage(value.path)
     );
   }
   return undefined;
+}
+
+function ItemThumbnail({ name, uri }: { name: string; uri?: string }) {
+  const [hasLoadError, setHasLoadError] = useState(false);
+
+  useEffect(() => {
+    setHasLoadError(false);
+  }, [uri]);
+
+  if (!uri || hasLoadError) {
+    return (
+      <View className="h-16 w-16 items-center justify-center rounded-xl bg-[#F0F7EE]">
+        <ProductIcon color={colors.primary} size={25} />
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      accessibilityLabel={`${name} image`}
+      onError={() => setHasLoadError(true)}
+      source={{ uri }}
+      className="h-16 w-16 rounded-xl bg-[#F3F4F6]"
+      resizeMode="cover"
+    />
+  );
 }
 
 function getItemStock(item: Item) {
@@ -331,7 +370,14 @@ function Items({
           )
         }
         renderItem={({ item }) => {
-          const image = getItemImage(item.food_images ?? item.image);
+          const name = getItemName(item);
+          const image = getItemImage(
+            item.food_images ??
+              item.food_image ??
+              item.food_image_url ??
+              item.image_url ??
+              item.image,
+          );
           const stock = getItemStock(item);
           const price = getItemPrice(item);
           const category = item.category_name || item.category;
@@ -346,21 +392,10 @@ function Items({
               }}
               className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4"
             >
-              {image ? (
-                <Image
-                  accessibilityLabel={`${getItemName(item)} image`}
-                  source={{ uri: image }}
-                  className="h-16 w-16 rounded-xl bg-[#F3F4F6]"
-                  resizeMode="cover"
-                />
-              ) : (
-                <View className="h-16 w-16 items-center justify-center rounded-xl bg-[#F0F7EE]">
-                  <ProductIcon color={colors.primary} size={25} />
-                </View>
-              )}
+              <ItemThumbnail name={name} uri={image} />
               <View className="min-w-0 flex-1 gap-1">
                 <Text numberOfLines={1} className="text-base font-bold text-[#012711]">
-                  {getItemName(item)}
+                  {name}
                 </Text>
                 <Text numberOfLines={1} className="text-sm text-[#6B7280]">
                   {category || 'Uncategorized'}

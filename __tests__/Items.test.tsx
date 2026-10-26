@@ -48,6 +48,7 @@ test('loads and shows all menu items with category, stock, price, and status', a
           food_id: 1,
           food_name: 'Garden Salad',
           category_name: 'Starters',
+          food_images: [{ image_url: '/uploads/garden-salad.jpg' }],
           current_stock: 12,
           final_price: '8.50',
           selling_price: 10,
@@ -57,6 +58,7 @@ test('loads and shows all menu items with category, stock, price, and status', a
           food_id: 2,
           product_name: 'Mango Juice',
           category: 'Drinks',
+          image_url: '/uploads/mango-juice.jpg',
           stock_quantity: 6,
           price: 4,
           is_menu_visible: false,
@@ -81,6 +83,12 @@ test('loads and shows all menu items with category, stock, price, and status', a
   expect(hasText(renderer!, '₹8.5')).toBe(true);
   expect(hasText(renderer!, 'Mango Juice')).toBe(true);
   expect(hasText(renderer!, 'Hidden')).toBe(true);
+  expect(
+    renderer!.root.findByProps({ accessibilityLabel: 'Garden Salad image' }).props.source,
+  ).toEqual({ uri: 'https://restaurant.qtechx.com/uploads/garden-salad.jpg' });
+  expect(
+    renderer!.root.findByProps({ accessibilityLabel: 'Mango Juice image' }).props.source,
+  ).toEqual({ uri: 'https://restaurant.qtechx.com/uploads/mango-juice.jpg' });
   expect(
     renderer!.root.findByProps({ accessibilityLabel: 'Add item' }).props.className,
   ).toContain('absolute bottom-5 right-5');
