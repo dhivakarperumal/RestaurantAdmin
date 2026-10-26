@@ -971,6 +971,25 @@ function readResponsePropertyRows<T>(
   return Array.isArray(rows) ? (rows as T[]) : [];
 }
 
+function readEmployeeRows(payload: unknown): ApiEmployee[] {
+  const responseBody =
+    typeof payload === 'object' &&
+    payload !== null &&
+    'data' in payload
+      ? payload.data
+      : payload;
+  if (
+    typeof responseBody === 'object' &&
+    responseBody !== null &&
+    'employees' in responseBody
+  ) {
+    return Array.isArray(responseBody.employees)
+      ? (responseBody.employees as ApiEmployee[])
+      : [];
+  }
+  return readResponseRows<ApiEmployee>(payload);
+}
+
 function readResponseObject<T>(payload: unknown): T {
   if (
     typeof payload === 'object' &&
@@ -2087,7 +2106,7 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
       setError('');
       try {
         const response = await api.get('/employees', { signal: controller.signal });
-        const rows = readResponseRows<ApiEmployee>(response.data as ApiListResponse<ApiEmployee>);
+        const rows = readEmployeeRows(response.data);
         if (isActive) {
           setEmployees(rows);
         }

@@ -604,3 +604,36 @@ test('requests reports for a selected custom date range', async () => {
     }),
   );
 });
+
+test('shows employees returned in the backend employees response property', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/employees') {
+      return Promise.resolve({
+        data: {
+          success: true,
+          employees: [
+            {
+              employee_id: 12,
+              full_name: 'Jordan Lee',
+              employee_type: 'Server',
+              email: 'jordan@example.com',
+              status: 'Active',
+            },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  const output = JSON.stringify(renderer.toJSON());
+  expect(output).toContain('Jordan Lee');
+  expect(output).toContain('Server');
+});
