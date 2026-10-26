@@ -9,8 +9,14 @@ import {
   View,
 } from 'react-native';
 import api from '../../api';
-import { ProductIcon } from '../Navigation/NavigationIcons';
+import { PlusIcon, ProductIcon } from '../Navigation/NavigationIcons';
+import AddFood from '../Screens/AddFood';
+import FoodDetails from '../Screens/fooddetails';
 import colors from '../theme/colors';
+
+type ItemsProps = {
+  actor?: string;
+};
 
 type Item = {
   food_id?: string | number;
@@ -26,6 +32,8 @@ type Item = {
   current_stock?: number | string;
   stock_quantity?: number | string;
   stock?: number | string;
+  final_price?: number | string;
+  mrp?: number | string;
   price?: number | string;
   selling_price?: number | string;
   unit_price?: number | string;
@@ -110,8 +118,14 @@ function getItemStatus(item: Item) {
 }
 
 function getItemPrice(item: Item) {
-  const price = Number(item.selling_price ?? item.price ?? item.unit_price);
-  return Number.isFinite(price)
+  const rawPrice =
+    item.final_price ??
+    item.selling_price ??
+    item.price ??
+    item.unit_price ??
+    item.mrp;
+  const price = rawPrice === undefined ? Number.NaN : Number(rawPrice);
+  return Number.isFinite(price) && price >= 0
     ? `₹${price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
     : null;
 }
@@ -120,12 +134,14 @@ function ItemSeparator() {
   return <View className="h-3" />;
 }
 
-function Items() {
+function Items({ actor = 'Admin' }: ItemsProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
+  const [isAddFoodOpen, setIsAddFoodOpen] = useState(false);
+  const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -173,6 +189,28 @@ function Items() {
     );
   }, [items, search]);
 
+  if (isAddFoodOpen) {
+    return (
+      <AddFood
+        actor={actor}
+        onCancel={() => setIsAddFoodOpen(false)}
+        onSaved={() => {
+          setIsAddFoodOpen(false);
+          setRetry(count => count + 1);
+        }}
+      />
+    );
+  }
+
+  if (selectedFoodId) {
+    return (
+      <FoodDetails
+        foodId={selectedFoodId}
+        onBack={() => setSelectedFoodId(null)}
+      />
+    );
+  }
+
   return (
     <View className="flex-1 bg-[#F9FAFB]">
       <FlatList
@@ -180,7 +218,13 @@ function Items() {
         keyExtractor={(item, index) =>
           String(item.food_id ?? item.id ?? `${getItemName(item)}-${index}`)
         }
-        contentContainerStyle={{ alignSelf: 'center', maxWidth: 900, padding: 20, width: '100%' }}
+        contentContainerStyle={{
+          alignSelf: 'center',
+          maxWidth: 900,
+          padding: 20,
+          paddingBottom: 100,
+          width: '100%',
+        }}
         ItemSeparatorComponent={ItemSeparator}
         ListHeaderComponent={
           <View className="mb-5 gap-4">
@@ -259,8 +303,14 @@ function Items() {
           const stock = getItemStock(item);
           const price = getItemPrice(item);
           const category = item.category_name || item.category;
+          const foodId = String(item.food_id ?? item.id ?? '');
           return (
-            <View className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4">
+            <Pressable
+              accessibilityLabel={`View details of ${getItemName(item)}`}
+              accessibilityRole="button"
+              onPress={() => setSelectedFoodId(foodId)}
+              className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+            >
               {image ? (
                 <Image
                   accessibilityLabel={`${getItemName(item)} image`}
@@ -298,10 +348,18 @@ function Items() {
                   {getItemStatus(item)}
                 </Text>
               </View>
-            </View>
+            </Pressable>
           );
         }}
       />
+      <Pressable
+        accessibilityLabel="Add item"
+        accessibilityRole="button"
+        onPress={() => setIsAddFoodOpen(true)}
+        className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
+      >
+        <PlusIcon color="#FFFFFF" size={24} />
+      </Pressable>
     </View>
   );
 }

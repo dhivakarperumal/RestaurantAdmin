@@ -14,6 +14,10 @@ jest.mock('../api', () => ({
   },
 }));
 
+jest.mock('react-native-image-picker', () => ({
+  launchImageLibrary: jest.fn(),
+}));
+
 async function renderDashboard() {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
@@ -76,6 +80,12 @@ test('opens the items screen from the bottom navigation', async () => {
     renderer.root.findAllByType(Text).some(node => node.props.children === 'All items'),
   ).toBe(true);
   expect(renderer.root.findByProps({ accessibilityLabel: 'Search items' })).toBeTruthy();
+  await press(renderer, 'Add item');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain('Add Food');
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Food name' })).toBeTruthy();
 });
 
 test('adds an order and updates its status from the order details sheet', async () => {
@@ -123,14 +133,30 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
       data: path === '/foods'
         ? {
             data: {
-              foods: [{
+              products: [{
                 food_id: 1,
                 food_name: 'Masala Dosa',
                 selling_price: '325.00',
+                description: 'Crispy rice and lentil crepe with potato masala',
+                stock_quantity: 8,
+                status: 'Available',
+                size_variants: [{ size_name: 'Regular', selling_price: 325 }],
                 food_images: [{ image_url: '/uploads/masala-dosa.jpg' }],
               }, {
                 food_id: 2,
                 food_name: 'Price Missing Food',
+              }, {
+                id: 45,
+                food_id: 'FOOD043',
+                food_name: 'Pineapple Fried Rice',
+                cuisine_id: 'CUS011',
+                cuisine_name: 'Thai',
+                category_name: 'Main Course',
+                subcategory_name: 'Rice',
+                mrp: '324.00',
+                discount: '21.00',
+                final_price: '255.96',
+                image_url: '/uploads/pineapple-fried-rice.jpg',
               }],
             },
           }
@@ -148,6 +174,12 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
   });
   expect(JSON.stringify(renderer.toJSON())).toContain('Add food to billing');
   expect(JSON.stringify(renderer.toJSON())).toContain('Masala Dosa');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Crispy rice and lentil crepe');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Regular · ₹325.00');
+  expect(JSON.stringify(renderer.toJSON())).toContain('8 in stock · Available');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Pineapple Fried Rice');
+  expect(JSON.stringify(renderer.toJSON())).toContain('FOOD043');
+  expect(JSON.stringify(renderer.toJSON())).toContain('CUS011');
   expect(get).toHaveBeenCalledWith(
     '/foods',
     expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -162,28 +194,41 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
   await press(renderer, 'Add Price Missing Food to billing');
   expect(JSON.stringify(renderer.toJSON())).toContain('Price Missing Food');
   expect(JSON.stringify(renderer.toJSON())).toContain('Price needed');
-  expect(
-    renderer.root.findByProps({ accessibilityLabel: 'Review bill' }).props.disabled,
-  ).toBe(true);
-  await press(renderer, 'Remove Price Missing Food from bill');
+  await press(renderer, 'Add Pineapple Fried Rice to billing');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Pineapple Fried Rice');
+  expect(JSON.stringify(renderer.toJSON())).toContain('₹255.96');
 
   await press(renderer, 'Add Masala Dosa to billing');
   expect(JSON.stringify(renderer.toJSON())).toContain('Bill preview');
   expect(JSON.stringify(renderer.toJSON())).toContain('Masala Dosa');
   expect(JSON.stringify(renderer.toJSON())).toContain('Review bill');
   expect(JSON.stringify(renderer.toJSON())).toContain('₹325.00');
-
-  await press(renderer, 'Remove Masala Dosa from bill');
-  expect(JSON.stringify(renderer.toJSON())).not.toContain('Bill preview');
-
-  await press(renderer, 'Add Masala Dosa to billing');
-  await press(renderer, 'View billing, 1 item');
-  expect(JSON.stringify(renderer.toJSON())).toContain('Current bill');
-  expect(JSON.stringify(renderer.toJSON())).toContain('₹325.00');
-
-  await press(renderer, 'Create invoice from billing items');
+  await press(renderer, 'Review bill');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Invoice / Bill');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Subtotal');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Send bill' }).props.disabled,
+  ).toBe(true);
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'Back to food items' }),
+  ).toHaveLength(0);
+  await press(renderer, 'Decrease Price Missing Food quantity');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Send bill' }).props.disabled,
+  ).toBe(false);
+  await press(renderer, 'Decrease Pineapple Fried Rice quantity');
+  await press(renderer, 'Increase Masala Dosa quantity');
+  expect(JSON.stringify(renderer.toJSON())).toContain('₹650.00');
+  await press(renderer, 'Preview Bill');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Bill Preview');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Subtotal: ₹650.00');
+  await press(renderer, 'Close bill preview');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Print Bill' }),
+  ).toBeTruthy();
+  await press(renderer, 'Send bill');
   expect(JSON.stringify(renderer.toJSON())).toContain('Food billing - 1 item');
-  expect(JSON.stringify(renderer.toJSON())).not.toContain('Current bill');
+  expect(JSON.stringify(renderer.toJSON())).toContain('₹650.00');
 });
 
 test('shows full-width sidebar navigation with icons and labels in the same row', async () => {

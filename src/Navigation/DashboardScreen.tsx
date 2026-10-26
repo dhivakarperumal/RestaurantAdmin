@@ -61,7 +61,10 @@ type LocalRecord = {
 type BillingLineItem = {
   id: string;
   name: string;
+  category?: string;
+  image?: string;
   amount: number | null;
+  quantity: number;
 };
 
 type ApiOrder = {
@@ -584,9 +587,22 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       {
         id: `${food.id}-${Date.now()}-${current.length}`,
         name: food.name,
+        category: food.category,
+        image: food.image,
         amount: price,
+        quantity: 1,
       },
     ]);
+  };
+
+  const updateBillingItemQuantity = (itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeFoodFromBilling(itemId);
+      return;
+    }
+    setBillingItems(current =>
+      current.map(item => item.id === itemId ? { ...item, quantity } : item),
+    );
   };
 
   const removeFoodFromBilling = (itemId: string) => {
@@ -598,7 +614,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       return;
     }
     const total = billingItems.reduce(
-      (sum, item) => sum + (item.amount ?? 0),
+      (sum, item) => sum + (item.amount ?? 0) * item.quantity,
       0,
     );
     setRecords(current => [
@@ -702,8 +718,13 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
               onRemoveFoodFromBilling={removeFoodFromBilling}
+              onQuantityChange={updateBillingItemQuantity}
               onOpenBilling={() => navigateToTab('billing')}
               onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
+              onCompleteBill={() => {
+                createInvoiceFromBillingItems();
+                navigateToTab('billing');
+              }}
               onSelectFeature={setSelectedFeature}
               onUpdateOrderStatus={updateOrderStatus}
               onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
@@ -745,8 +766,13 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
             onRemoveFoodFromBilling={removeFoodFromBilling}
+            onQuantityChange={updateBillingItemQuantity}
             onOpenBilling={() => navigateToTab('billing')}
             onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
+            onCompleteBill={() => {
+              createInvoiceFromBillingItems();
+              navigateToTab('billing');
+            }}
             onSelectFeature={setSelectedFeature}
             onUpdateOrderStatus={updateOrderStatus}
             onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
@@ -1079,8 +1105,10 @@ function MainContent({
   onSelectAction,
   onAddFoodToBilling,
   onRemoveFoodFromBilling,
+  onQuantityChange,
   onOpenBilling,
   onCreateInvoiceFromBillingItems,
+  onCompleteBill,
   onSelectFeature,
   onUpdateOrderStatus,
   onRefreshDashboard,
@@ -1109,8 +1137,10 @@ function MainContent({
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
+  onQuantityChange: (itemId: string, quantity: number) => void;
   onOpenBilling: () => void;
   onCreateInvoiceFromBillingItems: () => void;
+  onCompleteBill: () => void;
   onSelectFeature: (feature: string | null) => void;
   onUpdateOrderStatus: (
     orderId: number,
@@ -1200,7 +1230,7 @@ function MainContent({
     );
   }
   if (activeTab === 'items') {
-    return <Items />;
+    return <Items actor={userName} />;
   }
   if (activeTab === 'add') {
     return (
@@ -1208,7 +1238,9 @@ function MainContent({
         billingItems={billingItems}
         onAddFood={onAddFoodToBilling}
         onRemoveBillingItem={onRemoveFoodFromBilling}
+        onQuantityChange={onQuantityChange}
         onOpenBilling={onOpenBilling}
+        onConfirmBill={onCompleteBill}
       />
     );
   }
@@ -1925,7 +1957,7 @@ function BillingPage({
 }) {
   const billingHasUnpricedItems = billingItems.some(item => item.amount === null);
   const billingTotal = billingItems.reduce(
-    (total, item) => total + (item.amount ?? 0),
+    (total, item) => total + (item.amount ?? 0) * item.quantity,
     0,
   );
   return (
@@ -1962,7 +1994,9 @@ function BillingPage({
                   {item.name}
                 </Text>
                 <Text className="text-sm font-semibold text-[#012711]">
-                  {item.amount === null ? 'Price needed' : formatCurrency(item.amount)}
+                  {item.amount === null
+                    ? 'Price needed'
+                    : `${formatCurrency(item.amount)} × ${item.quantity}`}
                 </Text>
               </View>
             ))}
