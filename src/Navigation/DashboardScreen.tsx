@@ -24,11 +24,11 @@ import {
   PaymentIcon,
   PlusIcon,
   ProductIcon,
-  ProfileIcon,
   ReceiptIcon,
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
+import BannerManagementPage from '../Tabs/BannerManagement';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -284,25 +284,13 @@ const dashboardPeriods: { value: DashboardDateFilter; label: string }[] = [
   { value: 'custom', label: 'Custom' },
 ];
 
-const moreFeatures = [
-  { title: 'Customers', subtitle: 'Customer list and details', icon: CustomersIcon, action: 'customer' as QuickActionId },
-  { title: 'Products & Inventory', subtitle: 'Products, prices, and stock', icon: ProductIcon, action: 'product' as QuickActionId },
-  { title: 'Suppliers & Purchases', subtitle: 'Supplier records and purchases', icon: MenuIcon, action: 'purchase' as QuickActionId },
-  { title: 'Payments & Expenses', subtitle: 'Track money in and out', icon: PaymentIcon, action: 'payment' as QuickActionId },
-  { title: 'Returns & Refunds', subtitle: 'Manage returned items and refunds', icon: ReceiptIcon },
-  { title: 'Pending Payments', subtitle: 'Review outstanding balances', icon: PaymentIcon },
-  { title: 'Reports & Analytics', subtitle: 'Business performance overview', icon: ChartIcon },
-  { title: 'Sales Reports', subtitle: 'Review sales over time', icon: ChartIcon },
-  { title: 'Profit & Revenue', subtitle: 'Revenue and profitability summary', icon: ChartIcon },
-  { title: 'Offers & Discounts', subtitle: 'Manage promotional offers', icon: ReceiptIcon },
-  { title: 'Staff & Employees', subtitle: 'Manage your team', icon: CustomersIcon },
-  { title: 'Branch Management', subtitle: 'Manage restaurant locations', icon: MenuIcon },
-  { title: 'Barcode Scanner', subtitle: 'Scan or look up products', icon: ProductIcon },
-  { title: 'Tax & GST Reports', subtitle: 'Review tax summaries', icon: ReceiptIcon },
-  { title: 'Notifications', subtitle: 'Review recent updates', icon: BellIcon },
-  { title: 'Backup & Restore', subtitle: 'Manage business data backups', icon: MenuIcon },
-  { title: 'Help & Support', subtitle: 'Get help with your account', icon: ProfileIcon },
-  { title: 'Settings', subtitle: 'Manage app preferences', icon: MenuIcon },
+const moreFeatures: {
+  title: string;
+  subtitle: string;
+  icon: typeof ProductIcon;
+  action?: QuickActionId;
+}[] = [
+  { title: 'Banner Management', subtitle: 'Create and manage website banners', icon: ProductIcon },
 ];
 
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
@@ -1033,6 +1021,9 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Banner Management') {
+      return <BannerManagementPage onBack={() => onSelectFeature(null)} />;
+    }
     if (selectedFeature === 'Profile') {
       return (
         <PageShell title="Profile" subtitle="Your account details">
@@ -2023,8 +2014,39 @@ function OrdersPage({
   );
 }
 
-function MorePage() {
-  return <View className="flex-1" />;
+function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => void }) {
+  return (
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">TOOLS</Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">More</Text>
+      <View className="mt-[22px]">
+        {moreFeatures.map(feature => {
+          const Icon = feature.icon;
+          return (
+            <Pressable
+              accessibilityLabel={`Open ${feature.title}`}
+              accessibilityRole="button"
+              key={feature.title}
+              onPress={() => onSelectFeature(feature.title)}
+              className="min-h-[76px] w-full flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? '#F3F7FF' : colors.surface,
+              })}
+            >
+              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
+                <Icon color={colors.primary} size={20} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-[#012711]">{feature.title}</Text>
+                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{feature.subtitle}</Text>
+              </View>
+              <Text className="text-xl text-[#9CA3AF]">›</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScrollView>
+  );
 }
 
 function BottomNavigation({

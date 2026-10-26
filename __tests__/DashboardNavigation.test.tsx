@@ -10,7 +10,15 @@ jest.mock('../api', () => ({
   __esModule: true,
   default: {
     get: jest.fn(() => Promise.resolve({ data: { data: [] } })),
+    post: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    put: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    delete: jest.fn(() => Promise.resolve({ data: { success: true } })),
   },
+  API_BASE_URL: 'https://example.com/api',
+}));
+
+jest.mock('react-native-image-picker', () => ({
+  launchImageLibrary: jest.fn(),
 }));
 
 async function renderDashboard() {
@@ -116,15 +124,48 @@ test('opens an add-items page from the plus tab without opening a popup', async 
   expect(renderer.root.findByProps({ placeholder: 'Product name' })).toBeTruthy();
 });
 
-test('shows an empty page from the More tab', async () => {
+test('opens banner management from the More tab', async () => {
   const renderer = await renderDashboard();
 
   await press(renderer, 'More');
 
-  const screen = JSON.stringify(renderer.toJSON());
-  expect(screen).not.toContain('TOOLS');
-  expect(screen).not.toContain('Everything you need to run your business.');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Banner Management');
   expect(renderer.root.findAllByProps({ accessibilityLabel: 'Customers' })).toHaveLength(0);
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Banner Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(JSON.stringify(renderer.toJSON())).toContain('WEBSITE CONTENT');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Create, edit, and publish your website banners.');
+  expect(api.get).toHaveBeenCalledWith('/banners');
+
+  await press(renderer, 'Add banner');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Banner title' }).props.onChangeText('Weekend offer');
+    renderer.root.findByProps({
+      placeholder: 'https://example.com/banner.jpg',
+    }).props.onChangeText('https://example.com/weekend.jpg');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create banner' }).props.onPress();
+  });
+
+  expect(api.post).toHaveBeenCalledWith(
+    '/banners',
+    expect.objectContaining({
+      title: 'Weekend offer',
+      image: 'https://example.com/weekend.jpg',
+      type: 'hero',
+      active: true,
+    }),
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain('Banner added successfully.');
+
+  await press(renderer, 'Back to More');
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' })).toBeTruthy();
 });
 
 test('shows full-width sidebar navigation with icons and labels in the same row', async () => {
