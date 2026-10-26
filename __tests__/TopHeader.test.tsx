@@ -1,6 +1,23 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import { Path } from 'react-native-svg';
+import { HamburgerIcon } from '../src/Navigation/NavigationIcons';
 import TopHeader from '../src/Navigation/TopHeader';
+
+test('renders the supplied hamburger icon with a shorter middle bar', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(
+      <HamburgerIcon color="#000000" size={22} />,
+    );
+  });
+
+  const bars = renderer!.root.findByType(Path);
+  expect(bars.props.d).toBe('M4 5h16M4 12h9M4 19h16');
+  expect(bars.props.strokeWidth).toBe('3');
+  expect(bars.props.strokeLinecap).toBe('round');
+});
 
 test('opens and dismisses the profile menu and connects its actions', async () => {
   const onToggleSidebar = jest.fn();
@@ -25,6 +42,11 @@ test('opens and dismisses the profile menu and connects its actions', async () =
   expect(
     renderer!.root.findByProps({ accessibilityLabel: 'Toggle sidebar' }),
   ).toBeTruthy();
+  const logo = renderer!.root.findByProps({
+    accessibilityLabel: 'Buy Food logo',
+  });
+  expect(logo.props.source).toBeDefined();
+  expect(logo.props.resizeMode).toBe('contain');
   await ReactTestRenderer.act(() => {
     renderer!.root
       .findByProps({ accessibilityLabel: 'Notifications, 4 unread' })

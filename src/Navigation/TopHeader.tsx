@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import {
+  Image,
   Pressable,
   Text,
   View,
   useWindowDimensions,
-  type StyleProp,
-  type ViewStyle,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import colors from '../theme/colors';
@@ -39,12 +38,12 @@ function IconButton({
   accessibilityLabel,
   children,
   onPress,
-  style,
+  className,
 }: {
   accessibilityLabel: string;
   children: React.ReactNode;
   onPress: () => void;
-  style?: StyleProp<ViewStyle>;
+  className?: string;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   return (
@@ -54,18 +53,10 @@ function IconButton({
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       onPress={onPress}
-      style={({ pressed }) => [
-        {
-          alignItems: 'center',
-          backgroundColor:
-            pressed || isHovered ? '#F3F4F6' : 'transparent',
-          borderRadius: 12,
-          height: 44,
-          justifyContent: 'center',
-          width: 44,
-        },
-        style,
-      ]}
+      className={`h-11 w-11 items-center justify-center rounded-xl ${className ?? ''}`}
+      style={({ pressed }) => ({
+        backgroundColor: pressed || isHovered ? '#F3F4F6' : 'transparent',
+      })}
     >
       {children}
     </Pressable>
@@ -103,61 +94,34 @@ function TopHeader({
 
   return (
     <View
-      style={{
-        backgroundColor: colors.surface,
-        borderBottomColor: colors.border,
-        borderBottomWidth: 1,
-        elevation: 3,
-        height: 72,
-        position: 'relative',
-        zIndex: 10,
-      }}
+      className="relative z-10 h-[72px] border-b border-[#E5E7EB] bg-white shadow-sm"
     >
       <View
-        style={{
-          alignItems: 'center',
-          flex: 1,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          paddingHorizontal: compact ? 12 : 24,
-        }}
+        className={`flex-1 flex-row items-center justify-between ${compact ? 'px-3' : 'px-6'}`}
       >
-        <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1 }}>
+        <View className="flex-1 flex-row items-center">
           <IconButton
             accessibilityLabel="Toggle sidebar"
             onPress={onToggleSidebar}
-            style={{ marginRight: compact ? 8 : 16 }}
+            className={compact ? 'mr-2' : 'mr-4'}
           >
             <HamburgerIcon color={colors.textPrimary} size={22} />
           </IconButton>
-          <View
-            style={{
-              alignItems: 'center',
-              backgroundColor: colors.primary,
-              borderRadius: 12,
-              height: 40,
-              justifyContent: 'center',
-              width: 40,
-            }}
-          >
-            <Text style={{ color: colors.surface, fontSize: 21, fontWeight: '800' }}>
-              R
-            </Text>
-          </View>
+          <Image
+            accessibilityLabel="Buy Food logo"
+            resizeMode="contain"
+            source={require('../images/buy-food-logo.png')}
+            className="h-10 w-10"
+          />
           <Text
             numberOfLines={1}
-            style={{
-              color: colors.textPrimary,
-              fontSize: compact ? 15 : 18,
-              fontWeight: '700',
-              marginLeft: 10,
-            }}
+            className={`ml-2.5 font-bold text-[#012711] ${compact ? 'text-[15px]' : 'text-lg'}`}
           >
-            Restaurant Admin
+            Buy Food
           </Text>
         </View>
 
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+        <View className="flex-row items-center gap-2">
           <IconButton
             accessibilityLabel={`Notifications, ${badgeCount} unread`}
             onPress={onOpenNotifications}
@@ -165,23 +129,8 @@ function TopHeader({
             <View>
               <BellIcon color={colors.textSecondary} size={21} />
               {badgeCount > 0 ? (
-                <View
-                  style={{
-                    alignItems: 'center',
-                    backgroundColor: colors.error,
-                    borderColor: colors.surface,
-                    borderRadius: 9,
-                    borderWidth: 1.5,
-                    height: 18,
-                    justifyContent: 'center',
-                    minWidth: 18,
-                    paddingHorizontal: 4,
-                    position: 'absolute',
-                    right: -9,
-                    top: -8,
-                  }}
-                >
-                  <Text style={{ color: colors.surface, fontSize: 10, fontWeight: '700' }}>
+                <View className="absolute -right-[9px] -top-2 h-[18px] min-w-[18px] items-center justify-center rounded-full border-[1.5px] border-white bg-[#DC2626] px-1">
+                  <Text className="text-[10px] font-bold text-white">
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </Text>
                 </View>
@@ -195,19 +144,13 @@ function TopHeader({
             onHoverIn={() => setIsAvatarHovered(true)}
             onHoverOut={() => setIsAvatarHovered(false)}
             onPress={() => setIsProfileOpen(open => !open)}
+            className={`h-[42px] w-[42px] items-center justify-center rounded-full border ${isProfileOpen ? 'border-[#116C0B]' : 'border-[#DBEAFE]'}`}
             style={({ pressed }) => ({
-              alignItems: 'center',
               backgroundColor:
                 pressed || isAvatarHovered ? '#DBEAFE' : '#EFF6FF',
-              borderColor: isProfileOpen ? colors.primary : '#DBEAFE',
-              borderRadius: 24,
-              borderWidth: 1,
-              height: 42,
-              justifyContent: 'center',
-              width: 42,
             })}
           >
-            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '700' }}>
+            <Text className="text-base font-bold text-[#116C0B]">
               {initial}
             </Text>
           </Pressable>
@@ -217,79 +160,41 @@ function TopHeader({
       {isProfileOpen ? (
         <View
           accessibilityViewIsModal
-          style={{
-            height: Math.max(0, height - 72),
-            left: 0,
-            position: 'absolute',
-            right: 0,
-            top: 72,
-            zIndex: 20,
-          }}
+          className="absolute left-0 right-0 top-[72px] z-20"
+          style={{ height: Math.max(0, height - 72) }}
         >
           <Pressable
             accessibilityLabel="Close profile menu"
             onPress={() => setIsProfileOpen(false)}
-            style={{ ...absoluteFill }}
+            className="absolute inset-0"
           />
           <View
-            style={{
-              alignSelf: 'flex-end',
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: 16,
-              borderWidth: 1,
-              elevation: 12,
-              marginHorizontal: compact ? 12 : 24,
-              maxWidth: '92%',
-              overflow: 'hidden',
-              shadowColor: '#111827',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.14,
-              shadowRadius: 18,
-              width: 300,
-              zIndex: 21,
-            }}
+            className={`z-[21] w-[300px] max-w-[92%] self-end overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-xl ${compact ? 'mx-3' : 'mx-6'}`}
           >
             <View
-              style={{
-                alignItems: 'center',
-                backgroundColor: '#F9FAFB',
-                flexDirection: 'row',
-                gap: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-              }}
+              className="flex-row items-center gap-3 bg-[#F9FAFB] px-4 py-4"
             >
-              <View
-                style={{
-                  alignItems: 'center',
-                  backgroundColor: '#EFF6FF',
-                  borderRadius: 22,
-                  height: 44,
-                  justifyContent: 'center',
-                  width: 44,
-                }}
-              >
-                <Text style={{ color: colors.primary, fontSize: 17, fontWeight: '700' }}>
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#EFF6FF]">
+                <Text className="text-[17px] font-bold text-[#116C0B]">
                   {initial}
                 </Text>
               </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
+              <View className="min-w-0 flex-1">
                 <Text
                   numberOfLines={1}
-                  style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700' }}
+                  className="text-sm font-bold text-[#012711]"
                 >
                   {userName}
                 </Text>
                 <Text
                   numberOfLines={1}
-                  style={{ color: colors.textSecondary, fontSize: 12, marginTop: 3 }}
+                  className="mt-[3px] text-xs text-[#6B7280]"
                 >
                   {user?.email?.trim() || ' '}
                 </Text>
               </View>
             </View>
-            <View style={{ backgroundColor: colors.border, height: 1 }} />
+            <View className="h-px bg-[#E5E7EB]" />
             <MenuAction
               icon={<ProfileIcon color={colors.textSecondary} size={18} />}
               label="Profile"
@@ -307,14 +212,6 @@ function TopHeader({
     </View>
   );
 }
-
-const absoluteFill: ViewStyle = {
-  bottom: 0,
-  left: 0,
-  position: 'absolute',
-  right: 0,
-  top: 0,
-};
 
 function MenuAction({
   icon,
@@ -335,42 +232,30 @@ function MenuAction({
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       onPress={onPress}
+      className="min-h-12 flex-row items-center gap-3 px-[18px]"
       style={({ pressed }) => ({
-        alignItems: 'center',
         backgroundColor:
           pressed || isHovered ? '#F9FAFB' : colors.surface,
-        flexDirection: 'row',
-        gap: 12,
-        minHeight: 48,
-        paddingHorizontal: 18,
       })}
     >
       {icon}
       <Text
-        style={{
-          color: destructive ? colors.error : colors.textPrimary,
-          fontSize: 14,
-          fontWeight: '500',
-        }}
+        className={`text-sm font-medium ${destructive ? 'text-[#DC2626]' : 'text-[#012711]'}`}
       >
         {label}
       </Text>
       {label === 'Profile' ? (
-        <Svg
-          width={16}
-          height={16}
-          viewBox="0 0 24 24"
-          fill="none"
-          style={{ marginLeft: 'auto' }}
-        >
-          <Path
-            d="m9 18 6-6-6-6"
-            stroke={colors.textSecondary}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
+        <View className="ml-auto">
+          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="m9 18 6-6-6-6"
+              stroke={colors.textSecondary}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </View>
       ) : null}
     </Pressable>
   );

@@ -116,6 +116,51 @@ test('opens an add-items page from the plus tab without opening a popup', async 
   expect(renderer.root.findByProps({ placeholder: 'Product name' })).toBeTruthy();
 });
 
+test('shows full-width sidebar navigation with icons and labels in the same row', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'Toggle sidebar');
+  const homeNavigationItems = renderer.root.findAllByProps({
+    accessibilityLabel: 'Home',
+  });
+  const sidebarHome = homeNavigationItems.find(item =>
+    item.props.className?.includes('flex-row'),
+  );
+
+  expect(sidebarHome).toBeTruthy();
+  expect(sidebarHome!.props.className).toContain('w-full');
+  expect(sidebarHome!.props.className).toContain('gap-3');
+  expect(JSON.stringify(renderer.toJSON())).toContain('WORKSPACE');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Buy Food');
+  expect(JSON.stringify(renderer.toJSON())).toContain('h-12 w-12 shrink-0');
+  expect(JSON.stringify(renderer.toJSON())).toContain('w-full flex-1 border-r');
+
+  await press(renderer, 'Close sidebar navigation');
+  expect(
+    renderer.root
+      .findAllByProps({ accessibilityLabel: 'Home' })
+      .some(item => item.props.className?.includes('flex-row')),
+  ).toBe(false);
+});
+
+test('sidebar menu items navigate to their page and dismiss the sidebar', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'Toggle sidebar');
+  const ordersMenuItem = renderer.root
+    .findAllByProps({ accessibilityLabel: 'Orders' })
+    .find(item => item.props.accessibilityRole === 'button');
+
+  expect(ordersMenuItem).toBeTruthy();
+  await ReactTestRenderer.act(() => {
+    ordersMenuItem!.props.onPress();
+  });
+
+  const screen = JSON.stringify(renderer.toJSON());
+  expect(screen).toContain('Keep track of every customer order.');
+  expect(screen).not.toContain('WORKSPACE');
+});
+
 test('loads the restaurant POS dashboard snapshot and revenue reports', async () => {
   const get = api.get as jest.Mock;
   get.mockImplementation((path: string) => {

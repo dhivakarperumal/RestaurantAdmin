@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -595,7 +596,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   return (
     <SafeAreaView
       edges={['top', 'bottom']}
-      style={{ backgroundColor: colors.background, flex: 1 }}
+      className="flex-1 bg-[#F9FAFB]"
     >
       <TopHeader
         user={user}
@@ -617,14 +618,15 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       />
 
       {isWide && isSidebarOpen ? (
-        <View style={{ flex: 1, flexDirection: 'row' }}>
+        <View className="flex-1 flex-row">
           <Sidebar
+            onClose={() => setIsSidebarOpen(false)}
             onNavigate={tab => {
               navigateToTab(tab);
               setIsSidebarOpen(false);
             }}
           />
-          <View style={{ flex: 1 }}>
+          <View className="flex-1">
             <MainContent
               activeTab={activeTab}
               invoices={invoices}
@@ -654,16 +656,11 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           </View>
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           {logoutError ? (
             <Text
               accessibilityRole="alert"
-              style={{
-                backgroundColor: '#FEF2F2',
-                color: colors.error,
-                paddingHorizontal: 20,
-                paddingVertical: 12,
-              }}
+              className="bg-[#FEF2F2] px-5 py-3 text-[#DC2626]"
             >
               {logoutError}
             </Text>
@@ -703,23 +700,19 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       />
 
       {!isWide && isSidebarOpen ? (
-        <View style={{ ...overlayFill, top: 72, zIndex: 30 }}>
+        <View className="absolute bottom-0 left-0 right-0 top-0 z-[30]">
           <Pressable
             accessibilityLabel="Close sidebar"
             onPress={() => setIsSidebarOpen(false)}
-            style={{ ...overlayFill, backgroundColor: '#11182766' }}
+            className="absolute bottom-0 left-0 right-0 top-0 z-0 bg-[#11182766]"
           />
           <View
-            style={{
-              backgroundColor: colors.surface,
-              bottom: 0,
-              left: 0,
-              position: 'absolute',
-              top: 0,
-              width: Math.min(width - 48, 280),
-            }}
+            className="absolute bottom-0 left-0 right-0 top-0 z-[1] w-full bg-white"
+            style={{ elevation: 12 }}
           >
             <Sidebar
+              fullWidth
+              onClose={() => setIsSidebarOpen(false)}
               onNavigate={tab => {
                 navigateToTab(tab);
                 setIsSidebarOpen(false);
@@ -730,38 +723,23 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       ) : null}
 
       {isNotificationsOpen ? (
-        <View style={{ ...overlayFill, top: 72, zIndex: 25 }}>
+        <View className="absolute bottom-0 left-0 right-0 top-[72px] z-[25]">
           <Pressable
             accessibilityLabel="Close notifications"
             onPress={() => setIsNotificationsOpen(false)}
-            style={{ ...overlayFill, backgroundColor: '#11182733' }}
+            className="absolute bottom-0 left-0 right-0 top-0 bg-[#11182733]"
           />
           <View
-            style={{
-              alignSelf: 'flex-end',
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: 16,
-              borderWidth: 1,
-              elevation: 10,
-              marginHorizontal: width < 480 ? 12 : 24,
-              marginTop: 8,
-              maxWidth: '92%',
-              padding: 20,
-              shadowColor: '#111827',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.12,
-              shadowRadius: 16,
-              width: 320,
-            }}
+            className={`mt-2 w-[320px] max-w-[92%] self-end rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-xl ${width < 480 ? 'mx-3' : 'mx-6'}`}
+            style={{ elevation: 10 }}
           >
-            <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
+            <View className="flex-row items-center gap-2.5">
               <BellIcon color={colors.textPrimary} size={19} />
-              <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
+              <Text className="text-base font-bold text-[#012711]">
                 Notifications
               </Text>
             </View>
-            <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 8 }}>
+            <Text className="mt-2 text-[13px] leading-5 text-[#6B7280]">
               You’re all caught up. New notifications will appear here.
             </Text>
           </View>
@@ -785,13 +763,6 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     </SafeAreaView>
   );
 }
-
-const overlayFill = {
-  bottom: 0,
-  left: 0,
-  position: 'absolute' as const,
-  right: 0,
-};
 
 function getRecordTimestamp(value?: string) {
   if (!value) {
@@ -1054,7 +1025,7 @@ function MainContent({
   if (selectedAction) {
     return (
       <PageShell title={selectedAction.label} subtitle={selectedAction.description}>
-        <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+        <Text className="text-sm text-[#6B7280]">
           Complete the form to add this item.
         </Text>
       </PageShell>
@@ -1065,11 +1036,11 @@ function MainContent({
     if (selectedFeature === 'Profile') {
       return (
         <PageShell title="Profile" subtitle="Your account details">
-          <View style={styles.card}>
+          <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
             <Avatar initial={userInitial} size={56} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{userName}</Text>
-              <Text style={styles.mutedText}>{userEmail}</Text>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-[#012711]">{userName}</Text>
+              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{userEmail}</Text>
             </View>
           </View>
         </PageShell>
@@ -1089,19 +1060,17 @@ function MainContent({
             }
             accessibilityRole="button"
             onPress={() => onSelectAction(relatedAction)}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              { opacity: pressed ? 0.85 : 1 },
-            ]}
+              className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
+              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
             <PlusIcon color={colors.surface} size={18} />
-            <Text style={styles.primaryButtonText}>
+            <Text className="text-[13px] font-bold text-white">
               {quickActions.find(action => action.id === relatedAction)?.label}
             </Text>
           </Pressable>
         ) : null}
-        <View style={styles.card}>
-          <Text style={styles.mutedText}>
+        <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
+          <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
             {feature
               ? `You’re viewing ${selectedFeature}. Connect your business data to start using this section.`
               : 'Manage your account details and preferences.'}
@@ -1156,13 +1125,13 @@ function AddItemsPage({
   onSelectAction: (action: QuickActionId) => void;
 }) {
   return (
-    <ScrollView contentContainerStyle={pageContentStyle}>
-      <Text style={styles.eyebrow}>QUICK ENTRY</Text>
-      <Text style={styles.pageTitle}>Add items</Text>
-      <Text style={styles.pageSubtitle}>
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">QUICK ENTRY</Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Add items</Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
         Choose what you would like to add to your restaurant.
       </Text>
-      <View style={{ gap: 12, marginTop: 22 }}>
+      <View className="mt-[22px] gap-3">
         {quickActions.map(action => {
           const Icon = action.icon;
           return (
@@ -1171,24 +1140,17 @@ function AddItemsPage({
               accessibilityRole="button"
               key={action.id}
               onPress={() => onSelectAction(action.id)}
+              className="min-h-[76px] flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] px-3.5 py-3.5"
               style={({ pressed }) => ({
-                alignItems: 'center',
                 backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-                borderColor: colors.border,
-                borderRadius: 16,
-                borderWidth: 1,
-                flexDirection: 'row',
-                gap: 14,
-                minHeight: 76,
-                padding: 14,
               })}
             >
-              <View style={styles.featureIcon}>
+              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
                 <Icon color={colors.primary} size={21} />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{action.label}</Text>
-                <Text style={styles.smallMuted}>{action.description}</Text>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-[#012711]">{action.label}</Text>
+                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{action.description}</Text>
               </View>
               <PlusIcon color={colors.primary} size={18} />
             </Pressable>
@@ -1379,24 +1341,15 @@ function HomePage({
     apiData.kitchenOrders.length > 0 ||
     records.length > 0;
   return (
-    <ScrollView
-      contentContainerStyle={{
-        alignSelf: 'center',
-        maxWidth: 1440,
-        paddingHorizontal: 20,
-        paddingTop: 24,
-        paddingBottom: 24,
-        width: '100%',
-      }}
-    >
-      <Text style={styles.eyebrow}>OVERVIEW</Text>
-      <Text style={styles.pageTitle}>Good day, {userName}</Text>
-      <Text style={styles.pageSubtitle}>Here’s your restaurant at a glance.</Text>
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6">
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">OVERVIEW</Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Good day, {userName}</Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Here’s your restaurant at a glance.</Text>
 
-      <View style={styles.dashboardToolbar}>
-        <Text style={styles.mutedText}>Store performance</Text>
+      <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
+        <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Store performance</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
+          <View className="flex-row gap-1.5">
           {dashboardPeriods.map(({ value: filter, label }) => (
             <Pressable
               accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
@@ -1404,23 +1357,16 @@ function HomePage({
               accessibilityState={{ selected: dateFilter === filter }}
               key={filter}
               onPress={() => onSetDateFilter(filter)}
-              style={{
-                backgroundColor:
-                  dateFilter === filter ? colors.primary : colors.surface,
-                borderColor: dateFilter === filter ? colors.primary : colors.border,
-                borderRadius: 16,
-                borderWidth: 1,
-                paddingHorizontal: 10,
-                paddingVertical: 7,
-              }}
+              className={`rounded-2xl border px-2.5 py-[7px] ${
+                dateFilter === filter
+                  ? 'border-[#116C0B] bg-[#116C0B]'
+                  : 'border-[#E5E7EB] bg-white'
+              }`}
             >
               <Text
-                style={{
-                  color:
-                    dateFilter === filter ? colors.surface : colors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: '600',
-                }}
+                className={`text-[11px] font-semibold ${
+                  dateFilter === filter ? 'text-white' : 'text-[#6B7280]'
+                }`}
               >
                 {label}
               </Text>
@@ -1430,23 +1376,13 @@ function HomePage({
         </ScrollView>
       </View>
       {dateFilter === 'custom' ? (
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+        <View className="mb-3.5 flex-row gap-2">
           <TextInput
             accessibilityLabel="Custom range start date"
             onChangeText={onSetCustomFrom}
             placeholder="From (YYYY-MM-DD)"
             placeholderTextColor={colors.textSecondary}
-            style={{
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: 10,
-              borderWidth: 1,
-              color: colors.textPrimary,
-              flex: 1,
-              fontSize: 13,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-            }}
+            className="min-w-0 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 text-[13px] text-[#012711]"
             value={customFrom}
           />
           <TextInput
@@ -1454,34 +1390,24 @@ function HomePage({
             onChangeText={onSetCustomTo}
             placeholder="To (YYYY-MM-DD)"
             placeholderTextColor={colors.textSecondary}
-            style={{
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: 10,
-              borderWidth: 1,
-              color: colors.textPrimary,
-              flex: 1,
-              fontSize: 13,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-            }}
+            className="min-w-0 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 text-[13px] text-[#012711]"
             value={customTo}
           />
         </View>
       ) : null}
 
       {error ? (
-        <View style={styles.errorBanner}>
-          <Text style={{ color: colors.error, flex: 1, fontSize: 12, lineHeight: 18 }}>
+        <View className="mt-3 flex-row items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2.5">
+          <Text className="flex-1 text-xs leading-[18px] text-[#DC2626]">
             {error}
           </Text>
           <Pressable
             accessibilityLabel="Retry dashboard loading"
             accessibilityRole="button"
             onPress={onRefresh}
-            style={{ paddingHorizontal: 8, paddingVertical: 6 }}
+            className="px-2 py-1.5"
           >
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
+            <Text className="text-xs font-bold text-[#116C0B]">
               Retry
             </Text>
           </Pressable>
@@ -1489,13 +1415,11 @@ function HomePage({
       ) : null}
 
       <View
-        style={[
-          styles.statsGrid,
-          {
-            columnGap: screenWidth >= 1100 ? 16 : 12,
-            rowGap: screenWidth >= 1100 ? 20 : 12,
-          },
-        ]}
+        className="mt-5 flex-row flex-wrap"
+        style={{
+          columnGap: screenWidth >= 1100 ? 16 : 12,
+          rowGap: screenWidth >= 1100 ? 20 : 12,
+        }}
       >
         <StatCard
           label="Total Revenue"
@@ -1571,36 +1495,36 @@ function HomePage({
         />
       </View>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Sales overview</Text>
-        <Text style={styles.smallMuted}>{getDateFilterLabel(dateFilter)}</Text>
+      <View className="mb-3 mt-7 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-[#012711]">Sales overview</Text>
+        <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{getDateFilterLabel(dateFilter)}</Text>
       </View>
       {isReportLoading && !report.trend.length ? (
-        <View style={[styles.emptyCard, { minHeight: 72 }]}>
+        <View className="min-h-[72px] items-center gap-1.5 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
         <SalesOverview orders={filteredOrders} trend={report.trend} />
       )}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent orders</Text>
+      <View className="mb-3 mt-7 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-[#012711]">Recent orders</Text>
         <Pressable
           accessibilityLabel="Refresh dashboard"
           accessibilityRole="button"
           onPress={onRefresh}
-          style={{ paddingHorizontal: 8, paddingVertical: 6 }}
+          className="px-2 py-1.5"
         >
-          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>
+          <Text className="text-xs font-semibold text-[#116C0B]">
             {isLoading ? 'Refreshing…' : 'Refresh'}
           </Text>
         </Pressable>
       </View>
 
       {isLoading && !hasAnyData ? (
-        <View style={[styles.emptyCard, { minHeight: 120 }]}>
+        <View className="min-h-[120px] items-center gap-1.5 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.mutedText}>Loading your store data…</Text>
+          <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Loading your store data…</Text>
         </View>
       ) : recentApiOrders.length || localOrders.length ? (
         <>
@@ -1626,34 +1550,31 @@ function HomePage({
         />
       )}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Order status</Text>
+      <View className="mb-3 mt-7 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-[#012711]">Order status</Text>
       </View>
       <OrderStatusSummary
         orders={filteredOrders}
         reportStatuses={report.statuses}
       />
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Top-selling items</Text>
+      <View className="mb-3 mt-7 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-[#012711]">Top-selling items</Text>
       </View>
       {topSellingItems.length ? (
         topSellingItems.map(item => (
           <View
             key={item.id}
-            style={[
-              styles.card,
-              { alignItems: 'center', flexDirection: 'row', marginBottom: 8 },
-            ]}
+            className="mb-2 flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
           >
-            <View style={styles.featureIcon}>
+            <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
               <ProductIcon color={colors.primary} size={18} />
             </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-              <Text style={styles.smallMuted}>{item.quantity} sold</Text>
+            <View className="ml-3 flex-1">
+              <Text className="text-sm font-semibold text-[#012711]">{item.name}</Text>
+              <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{item.quantity} sold</Text>
             </View>
-            <Text style={styles.orderAmount}>{formatCurrency(item.revenue)}</Text>
+            <Text className="text-[13px] font-bold text-[#012711]">{formatCurrency(item.revenue)}</Text>
           </View>
         ))
       ) : (
@@ -1666,19 +1587,20 @@ function HomePage({
 
       {apiData.categories.length ? (
         <>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Food categories</Text>
+          <View className="mb-3 mt-7 flex-row items-center justify-between">
+            <Text className="text-base font-bold text-[#012711]">Food categories</Text>
           </View>
-          <View style={styles.statsGrid}>
+          <View className="mt-5 flex-row flex-wrap gap-3">
             {apiData.categories.slice(0, 8).map((category, index) => (
               <View
                 key={category.category_id || category.category_name || index}
-                style={[styles.card, { flexBasis: 150, flexGrow: 1 }]}
+                className="grow rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
+                style={{ flexBasis: 150 }}
               >
-                <Text style={styles.cardTitle}>
+                <Text className="text-sm font-semibold text-[#012711]">
                   {category.category_name || 'Category'}
                 </Text>
-                <Text style={styles.smallMuted}>{category.status || 'Available'}</Text>
+                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{category.status || 'Available'}</Text>
               </View>
             ))}
           </View>
@@ -1687,28 +1609,25 @@ function HomePage({
 
       {lowStockCount > 0 ? (
         <>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Low stock alerts</Text>
-            <Text style={styles.smallMuted}>{lowStockCount} items</Text>
+          <View className="mb-3 mt-7 flex-row items-center justify-between">
+            <Text className="text-base font-bold text-[#012711]">Low stock alerts</Text>
+            <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{lowStockCount} items</Text>
           </View>
           {lowStockItems.slice(0, 5).map((item: ApiCatalogItem, index) => (
               <View
                 key={`${item.name || item.product_name || 'item'}-${index}`}
-                style={[
-                  styles.card,
-                  { alignItems: 'center', flexDirection: 'row', marginBottom: 8 },
-                ]}
+                className="mb-2 flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
               >
-                <View style={styles.featureIcon}>
+                <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
                   <ProductIcon color={colors.warning} size={18} />
                 </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.cardTitle}>
+                <View className="ml-3 flex-1">
+                  <Text className="text-sm font-semibold text-[#012711]">
                     {item.food_name || item.product_name || item.name || 'Food'}
                   </Text>
-                  <Text style={styles.smallMuted}>Stock is running low</Text>
+                  <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">Stock is running low</Text>
                 </View>
-                <Text style={{ color: colors.warning, fontSize: 13, fontWeight: '700' }}>
+                <Text className="text-[13px] font-bold text-[#F59E0B]">
                   {getItemStock(item)} left
                 </Text>
               </View>
@@ -1759,31 +1678,29 @@ function SalesOverview({
   const maxValue = Math.max(...days.map(day => day.value), 1);
 
   return (
-    <View style={[styles.card, { paddingBottom: 14, paddingTop: 18 }]}>
-      <View style={{ flexDirection: 'row', height: 124, justifyContent: 'space-around' }}>
+    <View className="rounded-2xl border border-[#E5E7EB] bg-white px-[18px] pb-[14px] pt-[18px]">
+      <View className="h-[124px] flex-row justify-around">
         {days.map(day => (
           <View
             key={day.label}
-            style={{ alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}
+            className="flex-1 items-center justify-end"
           >
             <View
               accessibilityLabel={`${day.label} sales ${formatCurrency(day.value)}`}
+              className="w-[55%] max-w-6 rounded-[5px]"
               style={{
                 backgroundColor: day.value ? colors.primary : '#E5E7EB',
-                borderRadius: 5,
                 height: Math.max(day.value ? 8 : 4, (day.value / maxValue) * 88),
-                maxWidth: 24,
-                width: '55%',
               }}
             />
-            <Text style={{ color: colors.textSecondary, fontSize: 10, marginTop: 8 }}>
+            <Text className="mt-2 text-[10px] text-[#6B7280]">
               {day.label}
             </Text>
           </View>
         ))}
       </View>
       {orders.length === 0 ? (
-        <Text style={[styles.smallMuted, { textAlign: 'center' }]}>
+        <Text className="mt-[3px] text-center text-[11px] leading-4 text-[#6B7280]">
           No sales are recorded for this period yet.
         </Text>
       ) : null}
@@ -1796,19 +1713,19 @@ function ApiOrderRow({ order }: { order: ApiOrder }) {
   const orderName = String(order.order_id || order.id || 'Order');
   const date = getOrderDate(order);
   return (
-    <View style={[styles.card, styles.apiOrderRow]}>
-      <View style={styles.featureIcon}>
+    <View className="mb-2 flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+      <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
         <OrdersIcon color={colors.primary} size={18} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{orderName}</Text>
-        <Text style={styles.smallMuted}>
+      <View className="flex-1">
+        <Text className="text-sm font-semibold text-[#012711]">{orderName}</Text>
+        <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
           {order.customer_name || 'Customer'}
           {date ? ` · ${date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : ''}
         </Text>
       </View>
-      <View style={{ alignItems: 'flex-end', gap: 6 }}>
-        <Text style={styles.orderAmount}>
+      <View className="items-end gap-1.5">
+        <Text className="text-[13px] font-bold text-[#012711]">
           {formatCurrency(Number(order.total_amount || 0))}
         </Text>
         <StatusPill status={normalizeOrderStatus(status)} />
@@ -1880,31 +1797,26 @@ function OrderStatusSummary({
     orders.length ||
     1;
   return (
-    <View style={[styles.card, { gap: 12 }]}>
+    <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
       {statuses.map(status => (
         <View key={status.label}>
-          <View style={styles.statusSummaryRow}>
-            <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8 }}>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
               <View
-                style={{
-                  backgroundColor: status.color,
-                  borderRadius: 4,
-                  height: 8,
-                  width: 8,
-                }}
+                className="h-2 w-2 rounded"
+                style={{ backgroundColor: status.color }}
               />
-              <Text style={styles.mutedText}>{status.label}</Text>
+              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{status.label}</Text>
             </View>
-            <Text style={styles.cardTitle}>
+            <Text className="text-sm font-semibold text-[#012711]">
               {status.count} ({Math.round((status.count / total) * 100)}%)
             </Text>
           </View>
-          <View style={styles.statusBarTrack}>
+          <View className="mt-[7px] h-1.5 overflow-hidden rounded-[3px] bg-[#F9FAFB]">
             <View
+              className="h-full rounded-[3px]"
               style={{
                 backgroundColor: status.color,
-                borderRadius: 3,
-                height: '100%',
                 width: `${Math.round((status.count / total) * 100)}%`,
               }}
             />
@@ -1912,7 +1824,7 @@ function OrderStatusSummary({
         </View>
       ))}
       {orders.length === 0 ? (
-        <Text style={[styles.smallMuted, { textAlign: 'center' }]}>
+        <Text className="mt-[3px] text-center text-[11px] leading-4 text-[#6B7280]">
           Order status details will appear when orders are available.
         </Text>
       ) : null}
@@ -1928,26 +1840,27 @@ function BillingPage({
   onCreateInvoice: () => void;
 }) {
   return (
-    <ScrollView contentContainerStyle={pageContentStyle}>
-      <Text style={styles.eyebrow}>SALES</Text>
-      <View style={styles.pageHeadingRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.pageTitle}>Billing</Text>
-          <Text style={styles.pageSubtitle}>Create and review invoices.</Text>
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">SALES</Text>
+      <View className="mt-1 flex-row items-center gap-3">
+        <View className="flex-1">
+          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Billing</Text>
+          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Create and review invoices.</Text>
         </View>
         <Pressable
           accessibilityLabel="New invoice"
           accessibilityRole="button"
           onPress={onCreateInvoice}
-          style={({ pressed }) => [styles.primaryButton, { opacity: pressed ? 0.85 : 1 }]}
+          className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
           <PlusIcon color={colors.surface} size={18} />
-          <Text style={styles.primaryButtonText}>New invoice</Text>
+          <Text className="text-[13px] font-bold text-white">New invoice</Text>
         </Pressable>
       </View>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Invoice history</Text>
-        <Text style={styles.mutedText}>{invoices.length} total</Text>
+      <View className="mb-3 mt-7 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-[#012711]">Invoice history</Text>
+        <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{invoices.length} total</Text>
       </View>
       {invoices.length ? (
         invoices.map(invoice => <RecordRow key={invoice.id} record={invoice} />)
@@ -1980,27 +1893,28 @@ function OrdersPage({
   const filteredOrders =
     filter === 'All' ? orders : orders.filter(order => order.status === filter);
   return (
-    <ScrollView contentContainerStyle={pageContentStyle}>
-      <Text style={styles.eyebrow}>FULFILLMENT</Text>
-      <View style={styles.pageHeadingRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.pageTitle}>Orders</Text>
-          <Text style={styles.pageSubtitle}>Keep track of every customer order.</Text>
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">FULFILLMENT</Text>
+      <View className="mt-1 flex-row items-center gap-3">
+        <View className="flex-1">
+          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Orders</Text>
+          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Keep track of every customer order.</Text>
         </View>
         <Pressable
           accessibilityLabel="Add Order"
           accessibilityRole="button"
           onPress={onAddOrder}
-          style={({ pressed }) => [styles.primaryButton, { opacity: pressed ? 0.85 : 1 }]}
+          className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
           <PlusIcon color={colors.surface} size={18} />
-          <Text style={styles.primaryButtonText}>Add order</Text>
+          <Text className="text-[13px] font-bold text-white">Add order</Text>
         </Pressable>
       </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingVertical: 20 }}
+        contentContainerClassName="gap-2 py-5"
       >
         {filters.map(item => (
           <Pressable
@@ -2009,21 +1923,16 @@ function OrdersPage({
             accessibilityState={{ selected: item === filter }}
             key={item}
             onPress={() => setFilter(item)}
-            style={{
-              backgroundColor: item === filter ? colors.primary : colors.surface,
-              borderColor: item === filter ? colors.primary : colors.border,
-              borderRadius: 20,
-              borderWidth: 1,
-              paddingHorizontal: 16,
-              paddingVertical: 9,
-            }}
+            className={`rounded-full border px-4 py-[9px] ${
+              item === filter
+                ? 'border-[#116C0B] bg-[#116C0B]'
+                : 'border-[#E5E7EB] bg-white'
+            }`}
           >
             <Text
-              style={{
-                color: item === filter ? colors.surface : colors.textSecondary,
-                fontSize: 13,
-                fontWeight: '600',
-              }}
+              className={`text-[13px] font-semibold ${
+                item === filter ? 'text-white' : 'text-[#6B7280]'
+              }`}
             >
               {item}
             </Text>
@@ -2057,29 +1966,23 @@ function OrdersPage({
         {selectedOrder ? (
           <SafeAreaView
             edges={['bottom']}
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              marginTop: 'auto',
-              padding: 22,
-            }}
+            className="mt-auto rounded-t-3xl bg-white p-[22px]"
           >
-            <Text style={styles.eyebrow}>ORDER DETAILS</Text>
-            <Text style={styles.pageTitle}>{selectedOrder.name}</Text>
-            <Text style={styles.pageSubtitle}>Created at {selectedOrder.createdAt}</Text>
-            <View style={[styles.card, { marginTop: 18 }]}>
-              <Text style={styles.mutedText}>Order total</Text>
-              <Text style={[styles.pageTitle, { marginTop: 4 }]}>
+            <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">ORDER DETAILS</Text>
+            <Text className="mt-[5px] text-2xl font-bold text-[#012711]">{selectedOrder.name}</Text>
+            <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Created at {selectedOrder.createdAt}</Text>
+            <View className="mt-[18px] rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
+              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Order total</Text>
+              <Text className="mt-1 text-2xl font-bold text-[#012711]">
                 {formatCurrency(selectedOrder.amount || 0)}
               </Text>
-              <View style={{ alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 14 }}>
-                <Text style={styles.mutedText}>Status</Text>
+              <View className="mt-3.5 flex-row items-center gap-2">
+                <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Status</Text>
                 <StatusPill status={selectedOrder.status || 'Pending'} />
               </View>
             </View>
-            <Text style={[styles.fieldLabel, { marginTop: 18 }]}>Update status</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Text className="mb-2 mt-[18px] text-[13px] font-semibold text-[#012711]">Update status</Text>
+            <View className="flex-row flex-wrap gap-2">
               {(['Pending', 'Completed', 'Cancelled'] as const).map(status => (
                 <Pressable
                   accessibilityLabel={`Set order status to ${status}`}
@@ -2089,25 +1992,16 @@ function OrdersPage({
                     onUpdateOrderStatus(selectedOrder.id, status);
                     setSelectedOrder({ ...selectedOrder, status });
                   }}
-                  style={{
-                    backgroundColor:
-                      selectedOrder.status === status ? colors.primary : colors.background,
-                    borderColor: colors.border,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    paddingHorizontal: 14,
-                    paddingVertical: 9,
-                  }}
+                  className={`rounded-full border px-3.5 py-[9px] ${
+                    selectedOrder.status === status
+                      ? 'border-[#116C0B] bg-[#116C0B]'
+                      : 'border-[#E5E7EB] bg-[#F9FAFB]'
+                  }`}
                 >
                   <Text
-                    style={{
-                      color:
-                        selectedOrder.status === status
-                          ? colors.surface
-                          : colors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: '600',
-                    }}
+                    className={`text-[13px] font-semibold ${
+                      selectedOrder.status === status ? 'text-white' : 'text-[#6B7280]'
+                    }`}
                   >
                     {status}
                   </Text>
@@ -2118,9 +2012,9 @@ function OrdersPage({
               accessibilityLabel="Close order details"
               accessibilityRole="button"
               onPress={() => setSelectedOrder(null)}
-              style={{ alignItems: 'center', paddingVertical: 18 }}
+              className="items-center py-[18px]"
             >
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>Close details</Text>
+              <Text className="font-semibold text-[#116C0B]">Close details</Text>
             </Pressable>
           </SafeAreaView>
         ) : null}
@@ -2133,11 +2027,11 @@ function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => v
   const { width } = useWindowDimensions();
   const columns = width >= 700 ? 3 : width >= 420 ? 2 : 1;
   return (
-    <ScrollView contentContainerStyle={pageContentStyle}>
-      <Text style={styles.eyebrow}>TOOLS</Text>
-      <Text style={styles.pageTitle}>More</Text>
-      <Text style={styles.pageSubtitle}>Everything you need to run your business.</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 22 }}>
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">TOOLS</Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">More</Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Everything you need to run your business.</Text>
+      <View className="mt-[22px] flex-row flex-wrap gap-3">
         {moreFeatures.map(feature => {
           const Icon = feature.icon;
           return (
@@ -2146,26 +2040,19 @@ function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => v
               accessibilityRole="button"
               key={feature.title}
               onPress={() => onSelectFeature(feature.title)}
+              className={`min-h-[76px] flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] p-3.5 ${
+                columns === 1 ? 'w-full' : columns === 2 ? 'w-[48%]' : 'w-[31%]'
+              }`}
               style={({ pressed }) => ({
-                alignItems: 'center',
                 backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-                borderColor: colors.border,
-                borderRadius: 16,
-                borderWidth: 1,
-                flexDirection: 'row',
-                gap: 12,
-                minHeight: 76,
-                padding: 14,
-                width:
-                  columns === 1 ? '100%' : columns === 2 ? '48%' : '31%',
               })}
             >
-              <View style={styles.featureIcon}>
+              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
                 <Icon color={colors.primary} size={20} />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{feature.title}</Text>
-                <Text style={styles.smallMuted}>{feature.subtitle}</Text>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-[#012711]">{feature.title}</Text>
+                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{feature.subtitle}</Text>
               </View>
             </Pressable>
           );
@@ -2211,56 +2098,51 @@ function EntryForm({
     (!needsAmount || (amount.trim().length > 0 && Number.isFinite(amountValue) && amountValue >= 0));
 
   return (
-    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+    <View className="flex-1 justify-end">
       <Pressable
         accessibilityLabel={`Close ${action.label}`}
         onPress={onCancel}
-        style={{ ...overlayFill, backgroundColor: '#11182766', top: 0 }}
+        className="absolute bottom-0 left-0 right-0 top-0 bg-[#11182766]"
       />
       <SafeAreaView
         edges={['bottom']}
-        style={{
-          backgroundColor: colors.surface,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          padding: 22,
-        }}
+        className="rounded-t-3xl bg-white p-[22px]"
       >
-        <View style={{ alignItems: 'center', flexDirection: 'row', gap: 12 }}>
-          <View style={styles.featureIcon}>
+        <View className="flex-row items-center gap-3">
+          <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
             <Icon color={colors.primary} size={21} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sectionTitle}>{action.label}</Text>
-            <Text style={styles.smallMuted}>{action.description}</Text>
+          <View className="flex-1">
+            <Text className="text-base font-bold text-[#012711]">{action.label}</Text>
+            <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{action.description}</Text>
           </View>
           <Pressable accessibilityLabel="Close form" onPress={onCancel} hitSlop={8}>
-            <Text style={{ color: colors.textSecondary, fontSize: 24 }}>×</Text>
+            <Text className="text-2xl text-[#6B7280]">×</Text>
           </Pressable>
         </View>
-        <Text style={styles.fieldLabel}>Name or description</Text>
+        <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">Name or description</Text>
         <TextInput
           autoFocus
           onChangeText={setName}
           placeholder={action.placeholder}
           placeholderTextColor={colors.textSecondary}
-          style={styles.textInput}
+          className="min-h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-[14px] text-[15px] text-[#012711]"
           value={name}
         />
         {action.amountLabel ? (
           <>
-            <Text style={styles.fieldLabel}>{action.amountLabel}</Text>
+            <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">{action.amountLabel}</Text>
             <TextInput
               keyboardType="decimal-pad"
               onChangeText={value => setAmount(value.replace(',', '.'))}
               placeholder={action.amountPlaceholder}
               placeholderTextColor={colors.textSecondary}
-              style={styles.textInput}
+              className="min-h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-[14px] text-[15px] text-[#012711]"
               value={amount}
             />
           </>
         ) : null}
-        <Text style={[styles.smallMuted, { marginTop: 12 }]}>
+        <Text className="mt-3 text-[11px] leading-4 text-[#6B7280]">
           This draft is saved in this session only. Connect your business data service to sync it.
         </Text>
         <Pressable
@@ -2268,39 +2150,56 @@ function EntryForm({
           accessibilityRole="button"
           disabled={!canSave}
           onPress={() => onSave(name, needsAmount ? amountValue : undefined)}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            {
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginTop: 20,
-              minHeight: 48,
-              opacity: !canSave ? 0.45 : pressed ? 0.85 : 1,
-            },
-          ]}
+          className="mt-5 min-h-12 flex-row items-center justify-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
+          style={({ pressed }) => ({
+            opacity: !canSave ? 0.45 : pressed ? 0.85 : 1,
+          })}
         >
-          <Text style={styles.primaryButtonText}>Save {action.label.toLowerCase()}</Text>
+          <Text className="text-[13px] font-bold text-white">Save {action.label.toLowerCase()}</Text>
         </Pressable>
-        <Pressable onPress={onCancel} style={{ alignItems: 'center', paddingVertical: 14 }}>
-          <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Cancel</Text>
+        <Pressable onPress={onCancel} className="items-center py-3.5">
+          <Text className="text-sm text-[#6B7280]">Cancel</Text>
         </Pressable>
       </SafeAreaView>
     </View>
   );
 }
 
-function Sidebar({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
+function Sidebar({
+  fullWidth = false,
+  onClose,
+  onNavigate,
+}: {
+  fullWidth?: boolean;
+  onClose: () => void;
+  onNavigate: (tab: AppTab) => void;
+}) {
   return (
     <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRightColor: colors.border,
-        borderRightWidth: 1,
-        padding: 12,
-        width: 256,
-      }}
+      className={`${fullWidth ? 'w-full' : 'w-64'} flex-1 border-r border-[#E5E7EB] bg-white px-4 py-5`}
     >
-      <Text style={[styles.eyebrow, { marginHorizontal: 12, marginVertical: 12 }]}>
+      <View className="mb-5 flex-row items-center justify-between gap-3">
+        <View className="min-w-0 flex-1 flex-row items-center gap-3">
+          <Image
+            accessibilityLabel="Buy Food logo"
+            resizeMode="contain"
+            source={require('../images/buy-food-logo.png')}
+            className="h-12 w-12 shrink-0"
+          />
+          <Text className="flex-1 text-lg font-bold text-[#012711]">
+            Buy Food
+          </Text>
+        </View>
+        <Pressable
+          accessibilityLabel="Close sidebar navigation"
+          accessibilityRole="button"
+          onPress={onClose}
+          className="h-9 w-9 items-center justify-center rounded-full bg-[#F3F4F6]"
+        >
+          <Text className="text-2xl leading-7 text-[#6B7280]">×</Text>
+        </Pressable>
+      </View>
+      <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
         WORKSPACE
       </Text>
       <TabButtonLarge icon={HomeIcon} label="Home" onPress={() => onNavigate('home')} />
@@ -2322,20 +2221,18 @@ function TabButtonLarge({
 }) {
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="button"
       onPress={onPress}
+      className="w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
       style={({ pressed }) => ({
-        alignItems: 'center',
-        backgroundColor: pressed ? '#EFF6FF' : 'transparent',
-        borderRadius: 10,
-        flexDirection: 'row',
-        gap: 12,
-        minHeight: 48,
-        paddingHorizontal: 12,
+        backgroundColor: pressed ? '#EFF6FF' : colors.surface,
       })}
     >
-      <Icon color={colors.textSecondary} size={20} />
-      <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '500' }}>
+      <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F7EE]">
+        <Icon color={colors.primary} size={21} />
+      </View>
+      <Text className="flex-1 text-base font-semibold text-[#012711]">
         {label}
       </Text>
     </Pressable>
@@ -2352,11 +2249,11 @@ function PageShell({
   subtitle: string;
 }) {
   return (
-    <ScrollView contentContainerStyle={pageContentStyle}>
-      <Text style={styles.eyebrow}>WORKSPACE</Text>
-      <Text style={styles.pageTitle}>{title}</Text>
-      <Text style={styles.pageSubtitle}>{subtitle}</Text>
-      <View style={{ gap: 14, marginTop: 24 }}>{children}</View>
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">WORKSPACE</Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">{title}</Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">{subtitle}</Text>
+      <View className="mt-6 gap-3.5">{children}</View>
     </ScrollView>
   );
 }
@@ -2381,35 +2278,39 @@ function StatCard({
   const palette = statCardPalettes[tone];
   return (
     <View
-      style={[
-        styles.statCard,
-        { backgroundColor: palette.background, flexBasis: basis },
-      ]}
+      className="relative min-h-[175px] justify-between overflow-hidden rounded-2xl p-6"
+      style={{ backgroundColor: palette.background, flexBasis: basis }}
     >
-      <View style={styles.statCardTop}>
-        <View style={[styles.statCardIcon, { backgroundColor: palette.iconBackground }]}>
+      <View className="z-[1] flex-row items-center gap-[15px]">
+        <View
+          className="h-[60px] w-[60px] items-center justify-center rounded-xl"
+          style={{ backgroundColor: palette.iconBackground }}
+        >
           <Icon color="#FFFFFF" size={24} />
         </View>
-        <View style={styles.statCardCopy}>
-          <Text numberOfLines={1} style={styles.statCardLabel}>{label}</Text>
-          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.statCardValue}>
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="text-sm font-bold text-white">{label}</Text>
+          <Text adjustsFontSizeToFit numberOfLines={1} className="mt-1 text-[29px] font-extrabold text-white">
             {value}
           </Text>
         </View>
       </View>
-      <View style={styles.statCardFooter}>
-        <View style={styles.statCardDetail}>
-          <Text style={[styles.statCardBadge, { backgroundColor: palette.badgeBackground }]}>
+      <View className="z-[1] mt-[18px]">
+        <View className="max-w-[90%] flex-row items-center gap-[9px]">
+          <Text
+            className="overflow-hidden rounded-[7px] px-[7px] py-1 text-[11px] font-extrabold text-white"
+            style={{ backgroundColor: palette.badgeBackground }}
+          >
             {badge}
           </Text>
-          <Text numberOfLines={1} style={styles.statCardDetailText}>{detail}</Text>
+          <Text numberOfLines={1} className="text-xs font-semibold text-white opacity-[0.88]">{detail}</Text>
         </View>
       </View>
       <Svg
         accessibilityElementsHidden
         importantForAccessibility="no"
         pointerEvents="none"
-        style={styles.statCardWave}
+        className="absolute bottom-0 right-0 h-12 w-[122px] opacity-[0.95]"
         viewBox="0 0 120 32"
       >
         <Path
@@ -2439,16 +2340,10 @@ const statCardPalettes = {
 function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
   return (
     <View
-      style={{
-        alignItems: 'center',
-        backgroundColor: '#EFF6FF',
-        borderRadius: size / 2,
-        height: size,
-        justifyContent: 'center',
-        width: size,
-      }}
+      className="items-center justify-center rounded-full bg-[#EFF6FF]"
+      style={{ height: size, width: size }}
     >
-      <Text style={{ color: colors.primary, fontSize: size * 0.38, fontWeight: '700' }}>
+      <Text className="font-bold text-[#116C0B]" style={{ fontSize: size * 0.38 }}>
         {initial}
       </Text>
     </View>
@@ -2458,16 +2353,16 @@ function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
 function RecordRow({ record }: { record: LocalRecord }) {
   const title = quickActions.find(action => action.id === record.action)?.label || 'Activity';
   return (
-    <View style={[styles.card, { alignItems: 'center', flexDirection: 'row', gap: 12, marginBottom: 10 }]}>
-      <View style={styles.featureIcon}>
+    <View className="mb-2.5 flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
+      <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
         <ReceiptIcon color={colors.primary} size={18} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{record.name}</Text>
-        <Text style={styles.smallMuted}>{title} · {record.createdAt}</Text>
+      <View className="flex-1">
+        <Text className="text-sm font-semibold text-[#012711]">{record.name}</Text>
+        <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{title} · {record.createdAt}</Text>
       </View>
       {record.amount !== undefined ? (
-        <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
+        <Text className="text-sm font-bold text-[#012711]">
           {formatCurrency(record.amount)}
         </Text>
       ) : null}
@@ -2480,8 +2375,8 @@ function StatusPill({ status }: { status: NonNullable<LocalRecord['status']> }) 
   const tint = status === 'Pending' ? '#B45309' : status === 'Completed' ? '#15803D' : colors.error;
   const bg = status === 'Pending' ? '#FFFBEB' : status === 'Completed' ? '#F0FDF4' : '#FEF2F2';
   return (
-    <View style={{ backgroundColor: bg, borderRadius: 14, paddingHorizontal: 9, paddingVertical: 5 }}>
-      <Text style={{ color: tint, fontSize: 11, fontWeight: '600' }}>{status}</Text>
+    <View className="rounded-[14px] px-[9px] py-[5px]" style={{ backgroundColor: bg }}>
+      <Text className="text-[11px] font-semibold" style={{ color: tint }}>{status}</Text>
     </View>
   );
 }
@@ -2496,20 +2391,20 @@ function EmptyState({
   description: string;
 }) {
   return (
-    <View style={styles.emptyCard}>
-      <View style={styles.emptyIcon}>
+    <View className="items-center gap-1.5 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+      <View className="mb-1.5 h-[52px] w-[52px] items-center justify-center rounded-[26px] bg-[#EFF6FF]">
         <Icon color={colors.primary} size={24} />
       </View>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={[styles.mutedText, { textAlign: 'center' }]}>{description}</Text>
+      <Text className="text-sm font-semibold text-[#012711]">{title}</Text>
+      <Text className="mt-1 text-center text-[13px] leading-[19px] text-[#6B7280]">{description}</Text>
     </View>
   );
 }
 
 function TextButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={{ paddingVertical: 14 }}>
-      <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '600' }}>{label}</Text>
+    <Pressable accessibilityRole="button" onPress={onPress} className="py-3.5">
+      <Text className="text-sm font-semibold text-[#116C0B]">{label}</Text>
     </Pressable>
   );
 }
@@ -2520,261 +2415,5 @@ function formatCurrency(amount: number) {
     maximumFractionDigits: 2,
   })}`;
 }
-
-const pageContentStyle = {
-  alignSelf: 'center' as const,
-  maxWidth: 1100,
-  paddingHorizontal: 20,
-  paddingTop: 24,
-  paddingBottom: 28,
-  width: '100%' as const,
-};
-
-const styles = {
-  eyebrow: {
-    color: colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '700' as const,
-    letterSpacing: 1.2,
-  },
-  pageTitle: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '700' as const,
-    marginTop: 5,
-  },
-  pageSubtitle: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 4,
-  },
-  statsGrid: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    gap: 12,
-    marginTop: 20,
-  },
-  statCard: {
-    borderRadius: 16,
-    justifyContent: 'space-between' as const,
-    minHeight: 175,
-    overflow: 'hidden' as const,
-    padding: 24,
-    position: 'relative' as const,
-  },
-  statCardTop: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    gap: 15,
-    zIndex: 1,
-  },
-  statCardIcon: {
-    alignItems: 'center' as const,
-    borderRadius: 12,
-    height: 60,
-    justifyContent: 'center' as const,
-    width: 60,
-  },
-  statCardCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  statCardLabel: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700' as const,
-  },
-  statCardValue: {
-    color: '#FFFFFF',
-    fontSize: 29,
-    fontWeight: '800' as const,
-    marginTop: 4,
-  },
-  statCardFooter: {
-    marginTop: 18,
-    zIndex: 1,
-  },
-  statCardDetail: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    gap: 9,
-    maxWidth: '90%',
-  },
-  statCardBadge: {
-    borderRadius: 7,
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800' as const,
-    overflow: 'hidden' as const,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-  },
-  statCardDetailText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600' as const,
-    opacity: 0.88,
-  },
-  statCardWave: {
-    bottom: 0,
-    height: 48,
-    opacity: 0.95,
-    position: 'absolute' as const,
-    right: 0,
-    width: 122,
-  },
-  dashboardToolbar: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    justifyContent: 'space-between' as const,
-    marginTop: 18,
-    rowGap: 10,
-  },
-  errorBanner: {
-    alignItems: 'center' as const,
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: 'row' as const,
-    gap: 8,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  sectionHeader: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    marginBottom: 12,
-    marginTop: 28,
-  },
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '700' as const,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 18,
-  },
-  apiOrderRow: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    gap: 12,
-    marginBottom: 8,
-    padding: 14,
-  },
-  orderAmount: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '700' as const,
-  },
-  statusSummaryRow: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-  },
-  statusBarTrack: {
-    backgroundColor: colors.background,
-    borderRadius: 3,
-    height: 6,
-    marginTop: 7,
-    overflow: 'hidden' as const,
-  },
-  cardTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-  mutedText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 4,
-  },
-  smallMuted: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 3,
-  },
-  emptyCard: {
-    alignItems: 'center' as const,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 6,
-    padding: 24,
-  },
-  emptyIcon: {
-    alignItems: 'center' as const,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 26,
-    height: 52,
-    justifyContent: 'center' as const,
-    marginBottom: 6,
-    width: 52,
-  },
-  featureIcon: {
-    alignItems: 'center' as const,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    height: 42,
-    justifyContent: 'center' as const,
-    width: 42,
-  },
-  statIcon: {
-    alignItems: 'center' as const,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 10,
-    height: 34,
-    justifyContent: 'center' as const,
-    width: 34,
-  },
-  pageHeadingRow: {
-    alignItems: 'center' as const,
-    flexDirection: 'row' as const,
-    gap: 12,
-    marginTop: 4,
-  },
-  primaryButton: {
-    alignItems: 'center' as const,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    flexDirection: 'row' as const,
-    gap: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-  },
-  primaryButtonText: {
-    color: colors.surface,
-    fontSize: 13,
-    fontWeight: '700' as const,
-  },
-  fieldLabel: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '600' as const,
-    marginBottom: 8,
-    marginTop: 20,
-  },
-  textInput: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    color: colors.textPrimary,
-    fontSize: 15,
-    minHeight: 48,
-    paddingHorizontal: 14,
-  },
-};
 
 export default DashboardScreen;

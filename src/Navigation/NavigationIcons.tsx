@@ -1,5 +1,4 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { View } from 'react-native';
 
 type NavigationIconProps = {
   color: string;
@@ -63,9 +62,9 @@ export function HamburgerIcon({ color, size = 20 }: NavigationIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M4 6h16M4 12h16M4 18h16"
+        d="M4 5h16M4 12h9M4 19h16"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="3"
         strokeLinecap="round"
       />
     </Svg>
