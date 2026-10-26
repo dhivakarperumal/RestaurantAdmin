@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput } from 'react-native';
+import { Image, Text, TextInput, View } from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
 import DashboardScreen from '../src/Navigation/DashboardScreen';
@@ -8,6 +8,7 @@ import api from '../api';
 
 jest.mock('../api', () => ({
   __esModule: true,
+  API_BASE_URL: 'https://restaurant.qtechx.com/api',
   default: {
     get: jest.fn(() => Promise.resolve({ data: { data: [] } })),
   },
@@ -40,7 +41,9 @@ async function press(
 test('navigates tabs and creates a session invoice from billing', async () => {
   const renderer = await renderDashboard();
 
+  await press(renderer, 'Toggle sidebar');
   await press(renderer, 'Billing');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('WORKSPACE');
   expect(JSON.stringify(renderer.toJSON())).toContain('Invoice history');
   expect(JSON.stringify(renderer.toJSON())).toContain('No invoices yet');
 
@@ -59,6 +62,20 @@ test('navigates tabs and creates a session invoice from billing', async () => {
   expect(JSON.stringify(renderer.toJSON())).toContain('Invoice history');
   expect(JSON.stringify(renderer.toJSON())).toContain('Table 4');
   expect(renderer.root.findAllByType(TextInput)).toHaveLength(0);
+});
+
+test('opens the items screen from the bottom navigation', async () => {
+  const renderer = await renderDashboard();
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Items' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(
+    renderer.root.findAllByType(Text).some(node => node.props.children === 'All items'),
+  ).toBe(true);
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Search items' })).toBeTruthy();
 });
 
 test('adds an order and updates its status from the order details sheet', async () => {
@@ -99,21 +116,48 @@ test('renders the plus icon as visible horizontal and vertical strokes', async (
   expect(plusStroke.props.strokeWidth).toBe('3');
 });
 
-test('opens an add-items page from the plus tab without opening a popup', async () => {
+test('adds food from the plus tab to billing and creates an invoice', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) =>
+    Promise.resolve({
+      data: path === '/foods'
+        ? {
+            data: [{
+              food_id: 1,
+              food_name: 'Masala Dosa',
+              selling_price: 325,
+              food_images: [{ image_url: '/uploads/masala-dosa.jpg' }],
+            }],
+          }
+        : { data: [] },
+    }),
+  );
   const renderer = await renderDashboard();
   const addTab = renderer.root.findByProps({
     accessibilityLabel: 'Add',
   });
   expect(addTab.props.accessibilityRole).toBe('tab');
-  await press(renderer, 'Add');
-  expect(JSON.stringify(renderer.toJSON())).toContain('Add items');
-  expect(JSON.stringify(renderer.toJSON())).toContain('Create Invoice');
-  expect(JSON.stringify(renderer.toJSON())).toContain('Add Product');
-  expect(JSON.stringify(renderer.toJSON())).toContain('M12 5v14M5 12h14');
-  expect(JSON.stringify(renderer.toJSON())).not.toContain('What would you like to do?');
+  await ReactTestRenderer.act(async () => {
+    addTab.props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(JSON.stringify(renderer.toJSON())).toContain('Add food to billing');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Masala Dosa');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Masala Dosa image' })
+      .findByType(Image).props.source,
+  ).toEqual({
+    uri: 'https://restaurant.qtechx.com/uploads/masala-dosa.jpg',
+  });
 
-  await press(renderer, 'Add Product');
-  expect(renderer.root.findByProps({ placeholder: 'Product name' })).toBeTruthy();
+  await press(renderer, 'Add Masala Dosa to billing');
+  await press(renderer, 'View billing, 1 item');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Current bill');
+  expect(JSON.stringify(renderer.toJSON())).toContain('₹325.00');
+
+  await press(renderer, 'Create invoice from billing items');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Food billing - 1 item');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Current bill');
 });
 
 test('shows full-width sidebar navigation with icons and labels in the same row', async () => {
@@ -207,6 +251,10 @@ test('loads the restaurant POS dashboard snapshot and revenue reports', async ()
   });
 
   const output = JSON.stringify(renderer!.toJSON());
+  const summaryCards = renderer!.root.findAllByType(View).filter(
+    node => node.props.style?.height === 168,
+  );
+  expect(summaryCards).toHaveLength(8);
   expect(get).toHaveBeenCalledWith(
     '/orders/management',
     expect.objectContaining({ signal: expect.any(AbortSignal) }),

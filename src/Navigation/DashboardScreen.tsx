@@ -29,6 +29,9 @@ import {
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
+import Bills, { type BillFood } from '../Tabs/Bills';
+import Items from '../Tabs/Items';
+import { API_BASE_URL } from '../../api';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -36,7 +39,7 @@ type DashboardScreenProps = {
   onLogout: () => void;
 };
 
-type AppTab = 'home' | 'billing' | 'add' | 'orders' | 'more';
+type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' | 'more';
 type QuickActionId =
   | 'invoice'
   | 'order'
@@ -54,6 +57,12 @@ type LocalRecord = {
   amount?: number;
   createdAt: string;
   status?: 'Pending' | 'Completed' | 'Cancelled';
+};
+
+type BillingLineItem = {
+  id: string;
+  name: string;
+  amount: number;
 };
 
 type ApiOrder = {
@@ -106,6 +115,9 @@ type ApiCatalogItem = {
   name?: string;
   food_name?: string;
   food_images?: unknown;
+  image?: unknown;
+  image_url?: unknown;
+  food_image?: unknown;
   is_menu_visible?: boolean | number;
   status?: string;
   category?: string;
@@ -117,6 +129,9 @@ type ApiCatalogItem = {
   stock_quantity?: number | string;
   current_stock?: number | string;
   stock?: number | string;
+  price?: number | string;
+  selling_price?: number | string;
+  unit_price?: number | string;
   category_image?: string;
   created_at?: string;
   updated_at?: string;
@@ -312,6 +327,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const [billingItems, setBillingItems] = useState<BillingLineItem[]>([]);
   const [records, setRecords] = useState<LocalRecord[]>([]);
   const [logoutError, setLogoutError] = useState('');
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -564,6 +580,41 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     }
   };
 
+  const addFoodToBilling = (food: ApiCatalogItem) => {
+    const price = getCatalogItemPrice(food);
+    if (price === null) {
+      return;
+    }
+    setBillingItems(current => [
+      ...current,
+      {
+        id: `${food.food_id ?? food.name ?? food.food_name ?? 'food'}-${Date.now()}-${current.length}`,
+        name: getCatalogItemName(food),
+        amount: price,
+      },
+    ]);
+  };
+
+  const createInvoiceFromBillingItems = () => {
+    if (!billingItems.length) {
+      return;
+    }
+    setRecords(current => [
+      {
+        id: Date.now(),
+        action: 'invoice',
+        name: `Food billing - ${billingItems.length} ${billingItems.length === 1 ? 'item' : 'items'}`,
+        amount: billingItems.reduce((total, item) => total + item.amount, 0),
+        createdAt: new Date().toLocaleTimeString([], {
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+      },
+      ...current,
+    ]);
+    setBillingItems([]);
+  };
+
   const updateOrderStatus = (
     orderId: number,
     status: NonNullable<LocalRecord['status']>,
@@ -630,6 +681,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             <MainContent
               activeTab={activeTab}
               invoices={invoices}
+              billingItems={billingItems}
               orders={orders}
               records={records}
               dashboardData={dashboardData}
@@ -646,6 +698,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               userInitial={userInitial}
               userName={userName}
               onSelectAction={navigateToAction}
+              onAddFoodToBilling={addFoodToBilling}
+              onOpenBilling={() => navigateToTab('billing')}
+              onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
               onSelectFeature={setSelectedFeature}
               onUpdateOrderStatus={updateOrderStatus}
               onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
@@ -668,6 +723,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           <MainContent
             activeTab={activeTab}
             invoices={invoices}
+            billingItems={billingItems}
             orders={orders}
             records={records}
             dashboardData={dashboardData}
@@ -684,6 +740,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             userInitial={userInitial}
             userName={userName}
             onSelectAction={navigateToAction}
+            onAddFoodToBilling={addFoodToBilling}
+            onOpenBilling={() => navigateToTab('billing')}
+            onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
             onSelectFeature={setSelectedFeature}
             onUpdateOrderStatus={updateOrderStatus}
             onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
@@ -919,6 +978,72 @@ function getItemStock(item: ApiCatalogItem) {
   return Number(item.current_stock ?? item.stock_quantity ?? 0) || 0;
 }
 
+function getCatalogItemName(item: ApiCatalogItem) {
+  return (
+    item.food_name?.trim() ||
+    item.product_name?.trim() ||
+    item.productName?.trim() ||
+    item.name?.trim() ||
+    'Unnamed food'
+  );
+}
+
+function getCatalogItemPrice(item: ApiCatalogItem): number | null {
+  const price = Number(item.selling_price ?? item.price ?? item.unit_price);
+  return Number.isFinite(price) && price >= 0 ? price : null;
+}
+
+function getCatalogItemImage(item: ApiCatalogItem): string | undefined {
+  return resolveImageUri(
+    item.food_images ?? item.food_image ?? item.image_url ?? item.image,
+  );
+}
+
+function resolveImageUri(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const image = value.trim();
+    if (!image) {
+      return undefined;
+    }
+    if (image.startsWith('[') || image.startsWith('{')) {
+      try {
+        return resolveImageUri(JSON.parse(image) as unknown);
+      } catch {
+        return undefined;
+      }
+    }
+    if (/^(https?:|data:image\/|file:|content:)/i.test(image)) {
+      return image;
+    }
+    if (image.startsWith('//')) {
+      const protocol = API_BASE_URL.match(/^(https?:)/i)?.[1] || 'https:';
+      return `${protocol}${image}`;
+    }
+    const apiRoot = API_BASE_URL.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    const relativePath = image.replace(/^\.?\//, '');
+    return apiRoot ? `${apiRoot}/${relativePath}` : image;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const image = resolveImageUri(entry);
+      if (image) {
+        return image;
+      }
+    }
+    return undefined;
+  }
+  if (typeof value === 'object' && value !== null) {
+    const imageRecord = value as Record<string, unknown>;
+    for (const key of ['url', 'image_url', 'imageUrl', 'image', 'src', 'path']) {
+      const image = resolveImageUri(imageRecord[key]);
+      if (image) {
+        return image;
+      }
+    }
+  }
+  return undefined;
+}
+
 function readResponseRows<T>(payload: ApiListResponse<T> | unknown): T[] {
   if (Array.isArray(payload)) {
     return payload as T[];
@@ -971,6 +1096,7 @@ function getErrorMessage(error: unknown) {
 function MainContent({
   activeTab,
   invoices,
+  billingItems,
   orders,
   records,
   dashboardData,
@@ -987,6 +1113,9 @@ function MainContent({
   userInitial,
   userName,
   onSelectAction,
+  onAddFoodToBilling,
+  onOpenBilling,
+  onCreateInvoiceFromBillingItems,
   onSelectFeature,
   onUpdateOrderStatus,
   onRefreshDashboard,
@@ -996,6 +1125,7 @@ function MainContent({
 }: {
   activeTab: AppTab;
   invoices: LocalRecord[];
+  billingItems: BillingLineItem[];
   orders: LocalRecord[];
   records: LocalRecord[];
   dashboardData: DashboardData;
@@ -1012,6 +1142,9 @@ function MainContent({
   userInitial: string;
   userName: string;
   onSelectAction: (action: QuickActionId) => void;
+  onAddFoodToBilling: (food: ApiCatalogItem) => void;
+  onOpenBilling: () => void;
+  onCreateInvoiceFromBillingItems: () => void;
   onSelectFeature: (feature: string | null) => void;
   onUpdateOrderStatus: (
     orderId: number,
@@ -1082,7 +1215,14 @@ function MainContent({
   }
 
   if (activeTab === 'billing') {
-    return <BillingPage invoices={invoices} onCreateInvoice={() => onSelectAction('invoice')} />;
+    return (
+      <BillingPage
+        billingItems={billingItems}
+        invoices={invoices}
+        onCreateInvoice={() => onSelectAction('invoice')}
+        onCreateInvoiceFromBillingItems={onCreateInvoiceFromBillingItems}
+      />
+    );
   }
   if (activeTab === 'orders') {
     return (
@@ -1093,8 +1233,34 @@ function MainContent({
       />
     );
   }
+  if (activeTab === 'items') {
+    return <Items />;
+  }
   if (activeTab === 'add') {
-    return <AddItemsPage onSelectAction={onSelectAction} />;
+    return (
+      <Bills
+        foods={dashboardData.foods.map((food, index) => ({
+          id: String(food.food_id ?? `${getCatalogItemName(food)}-${index}`),
+          name: getCatalogItemName(food),
+          category: food.category_name || food.category || 'Uncategorized',
+          image: getCatalogItemImage(food),
+          price: getCatalogItemPrice(food),
+        }))}
+        billingItems={billingItems}
+        isLoading={isDashboardLoading}
+        error={dashboardError}
+        onAddFood={(selectedFood: BillFood) => {
+          const food = dashboardData.foods.find((item, index) =>
+            String(item.food_id ?? `${getCatalogItemName(item)}-${index}`) === selectedFood.id,
+          );
+          if (food) {
+            onAddFoodToBilling(food);
+          }
+        }}
+        onOpenBilling={onOpenBilling}
+        onRefresh={onRefreshDashboard}
+      />
+    );
   }
   if (activeTab === 'more') {
     return <MorePage onSelectFeature={onSelectFeature} />;
@@ -1116,48 +1282,6 @@ function MainContent({
       onSetCustomFrom={onSetCustomFrom}
       onSetCustomTo={onSetCustomTo}
     />
-  );
-}
-
-function AddItemsPage({
-  onSelectAction,
-}: {
-  onSelectAction: (action: QuickActionId) => void;
-}) {
-  return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">QUICK ENTRY</Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Add items</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
-        Choose what you would like to add to your restaurant.
-      </Text>
-      <View className="mt-[22px] gap-3">
-        {quickActions.map(action => {
-          const Icon = action.icon;
-          return (
-            <Pressable
-              accessibilityLabel={action.label}
-              accessibilityRole="button"
-              key={action.id}
-              onPress={() => onSelectAction(action.id)}
-              className="min-h-[76px] flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] px-3.5 py-3.5"
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-              })}
-            >
-              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-                <Icon color={colors.primary} size={21} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#012711]">{action.label}</Text>
-                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{action.description}</Text>
-              </View>
-              <PlusIcon color={colors.primary} size={18} />
-            </Pressable>
-          );
-        })}
-      </View>
-    </ScrollView>
   );
 }
 
@@ -1193,8 +1317,12 @@ function HomePage({
   onSetCustomTo: (date: string) => void;
 }) {
   const { width: screenWidth } = useWindowDimensions();
-  const summaryCardBasis =
-    screenWidth >= 1100 ? '23%' : screenWidth < 360 ? '100%' : '48%';
+  const summaryCardColumns = screenWidth >= 1100 ? 4 : screenWidth < 360 ? 1 : 2;
+  const summaryCardGap = screenWidth >= 1100 ? 16 : 12;
+  const summaryContentWidth = Math.min(screenWidth, 1440) - 40;
+  const summaryCardWidth =
+    (summaryContentWidth - summaryCardGap * (summaryCardColumns - 1)) /
+    summaryCardColumns;
   const filteredOrders = filterOrdersByPeriod(
     apiData.orders,
     dateFilter,
@@ -1417,8 +1545,10 @@ function HomePage({
       <View
         className="mt-5 flex-row flex-wrap"
         style={{
-          columnGap: screenWidth >= 1100 ? 16 : 12,
-          rowGap: screenWidth >= 1100 ? 20 : 12,
+          alignContent: 'flex-start',
+          alignItems: 'flex-start',
+          columnGap: summaryCardGap,
+          rowGap: summaryCardGap,
         }}
       >
         <StatCard
@@ -1427,7 +1557,7 @@ function HomePage({
           detail="in selected period"
           badge="PERIOD"
           tone="green"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={ChartIcon}
         />
         <StatCard
@@ -1436,7 +1566,7 @@ function HomePage({
           detail="in selected period"
           badge="PERIOD"
           tone="blue"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={OrdersIcon}
         />
         <StatCard
@@ -1445,7 +1575,7 @@ function HomePage({
           detail="active right now"
           badge="LIVE"
           tone="orange"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={OrdersIcon}
         />
         <StatCard
@@ -1454,7 +1584,7 @@ function HomePage({
           detail="in selected period"
           badge="PERIOD"
           tone="purple"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={ProductIcon}
         />
         <StatCard
@@ -1463,7 +1593,7 @@ function HomePage({
           detail="from all channels today"
           badge="TODAY"
           tone="cyan"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={PaymentIcon}
         />
         <StatCard
@@ -1472,7 +1602,7 @@ function HomePage({
           detail="from all channels today"
           badge="TODAY"
           tone="pink"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={OrdersIcon}
         />
         <StatCard
@@ -1481,7 +1611,7 @@ function HomePage({
           detail="registered customers"
           badge="TOTAL"
           tone="teal"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={CustomersIcon}
         />
         <StatCard
@@ -1490,7 +1620,7 @@ function HomePage({
           detail="needs attention"
           badge="STOCK"
           tone="red"
-          basis={summaryCardBasis}
+          width={summaryCardWidth}
           icon={ReceiptIcon}
         />
       </View>
@@ -1834,11 +1964,16 @@ function OrderStatusSummary({
 
 function BillingPage({
   invoices,
+  billingItems,
   onCreateInvoice,
+  onCreateInvoiceFromBillingItems,
 }: {
   invoices: LocalRecord[];
+  billingItems: BillingLineItem[];
   onCreateInvoice: () => void;
+  onCreateInvoiceFromBillingItems: () => void;
 }) {
+  const billingTotal = billingItems.reduce((total, item) => total + item.amount, 0);
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
       <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">SALES</Text>
@@ -1858,6 +1993,42 @@ function BillingPage({
           <Text className="text-[13px] font-bold text-white">New invoice</Text>
         </Pressable>
       </View>
+      {billingItems.length ? (
+        <View className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-base font-bold text-[#012711]">Current bill</Text>
+            <Text className="text-sm font-semibold text-[#6B7280]">
+              {billingItems.length} {billingItems.length === 1 ? 'item' : 'items'}
+            </Text>
+          </View>
+          <View className="mt-3 gap-2">
+            {billingItems.map(item => (
+              <View key={item.id} className="flex-row items-center justify-between gap-3">
+                <Text numberOfLines={1} className="flex-1 text-sm text-[#012711]">
+                  {item.name}
+                </Text>
+                <Text className="text-sm font-semibold text-[#012711]">
+                  {formatCurrency(item.amount)}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <View className="mt-4 flex-row items-center justify-between border-t border-[#E5E7EB] pt-3">
+            <Text className="font-bold text-[#012711]">Total</Text>
+            <Text className="text-base font-extrabold text-[#012711]">
+              {formatCurrency(billingTotal)}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Create invoice from billing items"
+            accessibilityRole="button"
+            onPress={onCreateInvoiceFromBillingItems}
+            className="mt-4 items-center rounded-xl bg-[#116C0B] px-4 py-3"
+          >
+            <Text className="font-bold text-white">Create invoice</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <View className="mb-3 mt-7 flex-row items-center justify-between">
         <Text className="text-base font-bold text-[#012711]">Invoice history</Text>
         <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{invoices.length} total</Text>
@@ -2071,7 +2242,7 @@ function BottomNavigation({
 }) {
   const tabs: BottomBarTab<AppTab>[] = [
     { key: 'home', label: 'Home', icon: color => <HomeIcon color={color} size={21} /> },
-    { key: 'billing', label: 'Billing', icon: color => <ReceiptIcon color={color} size={21} /> },
+    { key: 'items', label: 'Items', icon: color => <ProductIcon color={color} size={21} /> },
     { key: 'add', label: 'Add', icon: color => <PlusIcon color={color} size={21} /> },
     { key: 'orders', label: 'Orders', icon: color => <OrdersIcon color={color} size={21} /> },
     { key: 'more', label: 'More', icon: color => <MoreIcon color={color} size={21} /> },
@@ -2204,6 +2375,7 @@ function Sidebar({
       </Text>
       <TabButtonLarge icon={HomeIcon} label="Home" onPress={() => onNavigate('home')} />
       <TabButtonLarge icon={ReceiptIcon} label="Billing" onPress={() => onNavigate('billing')} />
+      <TabButtonLarge icon={ProductIcon} label="Items" onPress={() => onNavigate('items')} />
       <TabButtonLarge icon={OrdersIcon} label="Orders" onPress={() => onNavigate('orders')} />
       <TabButtonLarge icon={MoreIcon} label="More" onPress={() => onNavigate('more')} />
     </View>
@@ -2264,7 +2436,7 @@ function StatCard({
   detail,
   badge,
   tone,
-  basis,
+  width,
   icon: Icon,
 }: {
   label: string;
@@ -2272,38 +2444,40 @@ function StatCard({
   detail: string;
   badge: string;
   tone: 'green' | 'blue' | 'orange' | 'purple' | 'cyan' | 'pink' | 'teal' | 'red';
-  basis: `${number}%`;
+  width: number;
   icon: typeof ChartIcon;
 }) {
   const palette = statCardPalettes[tone];
   return (
     <View
-      className="relative min-h-[175px] justify-between overflow-hidden rounded-2xl p-6"
-      style={{ backgroundColor: palette.background, flexBasis: basis }}
+      className="relative justify-between overflow-hidden rounded-2xl p-4"
+      style={{ backgroundColor: palette.background, height: 168, width }}
     >
-      <View className="z-[1] flex-row items-center gap-[15px]">
+      <View className="z-[1] flex-row items-start justify-between gap-2">
         <View
-          className="h-[60px] w-[60px] items-center justify-center rounded-xl"
+          className="h-10 w-10 shrink-0 items-center justify-center rounded-xl"
           style={{ backgroundColor: palette.iconBackground }}
         >
-          <Icon color="#FFFFFF" size={24} />
+          <Icon color="#FFFFFF" size={20} />
         </View>
-        <View className="min-w-0 flex-1">
-          <Text numberOfLines={1} className="text-sm font-bold text-white">{label}</Text>
-          <Text adjustsFontSizeToFit numberOfLines={1} className="mt-1 text-[29px] font-extrabold text-white">
-            {value}
-          </Text>
-        </View>
+        <Text numberOfLines={2} className="min-w-0 flex-1 text-right text-xs font-bold leading-4 text-white">
+          {label}
+        </Text>
       </View>
-      <View className="z-[1] mt-[18px]">
-        <View className="max-w-[90%] flex-row items-center gap-[9px]">
+      <Text adjustsFontSizeToFit numberOfLines={1} className="z-[1] mt-3 text-[25px] font-extrabold text-white">
+        {value}
+      </Text>
+      <View className="z-[1] mt-3">
+        <View className="flex-row flex-wrap items-center gap-2">
           <Text
-            className="overflow-hidden rounded-[7px] px-[7px] py-1 text-[11px] font-extrabold text-white"
+            className="overflow-hidden rounded-[7px] px-[7px] py-1 text-[10px] font-extrabold text-white"
             style={{ backgroundColor: palette.badgeBackground }}
           >
             {badge}
           </Text>
-          <Text numberOfLines={1} className="text-xs font-semibold text-white opacity-[0.88]">{detail}</Text>
+          <Text numberOfLines={2} className="min-w-0 flex-1 text-[11px] font-semibold leading-4 text-white opacity-[0.88]">
+            {detail}
+          </Text>
         </View>
       </View>
       <Svg
