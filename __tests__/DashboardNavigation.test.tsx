@@ -116,6 +116,17 @@ test('opens an add-items page from the plus tab without opening a popup', async 
   expect(renderer.root.findByProps({ placeholder: 'Product name' })).toBeTruthy();
 });
 
+test('shows an empty page from the More tab', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'More');
+
+  const screen = JSON.stringify(renderer.toJSON());
+  expect(screen).not.toContain('TOOLS');
+  expect(screen).not.toContain('Everything you need to run your business.');
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Customers' })).toHaveLength(0);
+});
+
 test('shows full-width sidebar navigation with icons and labels in the same row', async () => {
   const renderer = await renderDashboard();
 

@@ -2023,43 +2023,8 @@ function OrdersPage({
   );
 }
 
-function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => void }) {
-  const { width } = useWindowDimensions();
-  const columns = width >= 700 ? 3 : width >= 420 ? 2 : 1;
-  return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">TOOLS</Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">More</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Everything you need to run your business.</Text>
-      <View className="mt-[22px] flex-row flex-wrap gap-3">
-        {moreFeatures.map(feature => {
-          const Icon = feature.icon;
-          return (
-            <Pressable
-              accessibilityLabel={feature.title}
-              accessibilityRole="button"
-              key={feature.title}
-              onPress={() => onSelectFeature(feature.title)}
-              className={`min-h-[76px] flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] p-3.5 ${
-                columns === 1 ? 'w-full' : columns === 2 ? 'w-[48%]' : 'w-[31%]'
-              }`}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-              })}
-            >
-              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-                <Icon color={colors.primary} size={20} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#012711]">{feature.title}</Text>
-                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{feature.subtitle}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-    </ScrollView>
-  );
+function MorePage() {
+  return <View className="flex-1" />;
 }
 
 function BottomNavigation({
