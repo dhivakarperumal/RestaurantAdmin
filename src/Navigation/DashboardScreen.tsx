@@ -1462,7 +1462,7 @@ function HomePage({
         </View>
       ) : null}
 
-      <View
+      {/* <View
         className="mt-5 flex-row flex-wrap"
         style={{
           columnGap: screenWidth >= 1100 ? 16 : 12,
@@ -1541,7 +1541,7 @@ function HomePage({
           basis={summaryCardBasis}
           icon={ReceiptIcon}
         />
-      </View>
+      </View> */}
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
         <Text className="text-base font-bold text-[#012711]">Sales overview</Text>
@@ -2147,14 +2147,14 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
       <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Employees</Text>
       <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Manage your restaurant staff and daily coverage.</Text>
 
-      <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
+      {/* <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
         <StatCard
           label="Total Staff"
           value={isLoading && !employees.length ? '—' : String(total)}
           detail="scheduled team members"
           badge="TEAM"
           tone="blue"
-          basis="32%"
+          basis="48%"
           icon={CustomersIcon}
         />
         <StatCard
@@ -2163,7 +2163,7 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
           detail="available now"
           badge="LIVE"
           tone="green"
-          basis="32%"
+          basis="48%"
           icon={HomeIcon}
         />
         <StatCard
@@ -2172,10 +2172,10 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
           detail="today’s coverage"
           badge="PLAN"
           tone="purple"
-          basis="32%"
+          basis="48%"
           icon={OrdersIcon}
         />
-      </View>
+      </View> */}
 
       <View className="mt-7 rounded-2xl border border-[#E5E7EB] bg-white p-4">
         <View className="flex-row flex-wrap items-center gap-2.5">
@@ -2575,7 +2575,14 @@ function StatCard({
   return (
     <View
       className="relative min-h-[175px] justify-between overflow-hidden rounded-2xl p-6"
-      style={{ backgroundColor: palette.background, flexBasis: basis }}
+      style={{
+        backgroundColor: palette.background,
+        flexBasis: basis,
+        width: basis,
+        maxWidth: '100%',
+        flexGrow: 0,
+        flexShrink: 0,
+      }}
     >
       <View className="z-[1] flex-row items-center gap-[15px]">
         <View
