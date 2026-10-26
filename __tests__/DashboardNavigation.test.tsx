@@ -736,8 +736,8 @@ test('loads employee details and submits edits to the employee endpoint', async 
 
 test('shows and hides employee passwords independently', async () => {
   const renderer = await renderDashboard();
-  await press(renderer, 'Employees');
   await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await press(renderer, 'Add new employee');
