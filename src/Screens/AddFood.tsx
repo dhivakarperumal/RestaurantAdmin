@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary, type Asset } from 'react-native-image-picker';
-import api from '../../api';
+import api, { API_BASE_URL } from '../../api';
 
 type FoodOption = {
   value: string;
@@ -45,6 +45,7 @@ type FoodForm = {
 
 type AddFoodProps = {
   actor?: string;
+  foodId?: string;
   onCancel: () => void;
   onSaved: () => void;
 };
@@ -124,6 +125,55 @@ function readRows(value: unknown): ApiRecord[] {
 
 function readText(value: unknown) {
   return typeof value === 'string' ? value : '';
+}
+
+function readImageEntries(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      return value.trim() ? [value] : [];
+    }
+  }
+  return value == null ? [] : [value];
+}
+
+function readImageUrl(value: unknown): string {
+  if (typeof value === 'string') {
+    const url = value.trim();
+    if (/^(https?:|data:image\/|file:|content:)/i.test(url)) return url;
+    const root = API_BASE_URL.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    return `${root}/${url.replace(/^\.?\//, '')}`;
+  }
+  if (isRecord(value)) {
+    return readImageUrl(value.url ?? value.image_url ?? value.image ?? value.src);
+  }
+  return '';
+}
+
+function readBoolean(value: unknown, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    if (/^(true|1|yes|active)$/i.test(value)) return true;
+    if (/^(false|0|no|inactive)$/i.test(value)) return false;
+  }
+  return fallback;
+}
+
+function readFoodRecord(payload: unknown): ApiRecord | null {
+  let current = payload;
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (!isRecord(current)) return null;
+    if (isRecord(current.data)) {
+      current = current.data;
+      continue;
+    }
+    return current;
+  }
+  return null;
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -292,13 +342,16 @@ function Section({
   );
 }
 
-function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
+function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }: AddFoodProps) {
+  const isEditMode = Boolean(existingFoodId);
   const [form, setForm] = useState<FoodForm>(initialForm);
   const [cuisines, setCuisines] = useState<ApiRecord[]>([]);
   const [categories, setCategories] = useState<ApiRecord[]>([]);
   const [foodId, setFoodId] = useState('');
+  const [isFoodLoaded, setIsFoodLoaded] = useState(!existingFoodId);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isMenuVisible, setIsMenuVisible] = useState(true);
   const [pageError, setPageError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [addons, setAddons] = useState<FoodAddon[]>([]);
@@ -315,7 +368,9 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
       const [cuisineResult, categoryResult, idResult] = await Promise.allSettled([
         api.get('/cuisines'),
         api.get('/categories'),
-        api.get('/foods/next-id'),
+        existingFoodId
+          ? api.get(`/foods/${encodeURIComponent(existingFoodId)}`)
+          : api.get('/foods/next-id'),
       ]);
 
       if (!isActive) {
@@ -335,13 +390,93 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
       }
       if (idResult.status === 'fulfilled') {
         const responseData = idResult.value.data;
-        setFoodId(
-          isRecord(responseData) && typeof responseData.data === 'string'
-            ? responseData.data
-            : '',
-        );
+        if (existingFoodId) {
+          const record = readFoodRecord(responseData);
+          if (!record) {
+            setPageError('Food details were not found.');
+          } else {
+            const id = readText(record.food_id) || existingFoodId;
+            setFoodId(id);
+            setForm({
+              foodName: readText(record.food_name ?? record.product_name ?? record.name),
+              cuisineId: String(record.cuisine_id ?? ''),
+              categoryId: String(record.category_id ?? ''),
+              subcategoryName: readText(record.subcategory_name),
+              mealType: readText(record.meal_type),
+              description: readText(record.description),
+              mrp: String(record.mrp ?? ''),
+              discount: String(record.discount ?? '0'),
+              rating: String(record.rating ?? '0'),
+              stockQuantity: String(record.stock_quantity ?? record.current_stock ?? '0'),
+              servingSize: readText(record.serving_size),
+              portionSize: readText(record.portion_size) || 'Full',
+              preparationTime: String(record.preparation_time ?? '0'),
+              availableTime: readText(record.available_time) || initialForm.availableTime,
+              foodType: readText(record.food_type) || 'Veg',
+              isSpicy: readBoolean(record.is_spicy),
+              isAvailable: readBoolean(record.is_available, true),
+              diningAvailable: readBoolean(record.dining_available, true),
+              takeawayAvailable: readBoolean(record.takeaway_available, true),
+              deliveryAvailable: readBoolean(record.delivery_available, true),
+              featured: readBoolean(record.featured),
+              status: readText(record.status) || 'Active',
+            });
+            setIsMenuVisible(readBoolean(record.is_menu_visible, true));
+            const imageEntries = readImageEntries(record.food_images ?? record.image);
+            const existingImages: FoodImage[] = imageEntries.flatMap((entry, index) => {
+              const url = typeof entry === 'string' ? entry : readImageUrl(entry);
+              const uri = readImageUrl(entry);
+              if (!url || !uri) return [];
+              return [{
+                id: `existing-${index}`,
+                uri,
+                url,
+                name: `food-image-${index + 1}`,
+                type: 'image/jpeg',
+                isUploading: false,
+              }];
+            });
+            setImages(existingImages);
+            setAddons(
+              readRows(record.addons).map((addon, index) => ({
+                id: String(addon.addon_id ?? addon.id ?? `addon-${index}`),
+                name: readText(addon.addon_name ?? addon.name),
+                price: String(addon.price ?? '0'),
+                status: readText(addon.status) || 'Active',
+              })),
+            );
+            setCustomizations(
+              readRows(record.customizations).map((customization, index) => ({
+                id: String(customization.id ?? `customization-${index}`),
+                name: readText(customization.name),
+                selectionType:
+                  readText(customization.selection_type).toLowerCase() === 'multiple'
+                    ? 'Multiple'
+                    : 'Single',
+                required: readBoolean(customization.required),
+                options: readRows(customization.options).map((option, optionIndex) => ({
+                  id: String(option.id ?? `option-${index}-${optionIndex}`),
+                  name: readText(option.name),
+                  price: String(option.price ?? '0'),
+                })),
+              })),
+            );
+            setIsFoodLoaded(true);
+          }
+        } else {
+          setFoodId(
+            isRecord(responseData) && typeof responseData.data === 'string'
+              ? responseData.data
+              : '',
+          );
+        }
       } else {
-        setPageError(errorMessage(idResult.reason, 'Unable to generate the food ID.'));
+        setPageError(
+          errorMessage(
+            idResult.reason,
+            existingFoodId ? 'Unable to load food details.' : 'Unable to generate the food ID.',
+          ),
+        );
       }
       if (failedLoads) {
         setPageError('Could not load cuisines or categories. Check the API and try again.');
@@ -358,7 +493,7 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [existingFoodId]);
 
   const selectedCategory = categories.find(
     category => String(category.category_id ?? category.id ?? '') === form.categoryId,
@@ -622,6 +757,7 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
       food_type: form.foodType,
       is_spicy: form.isSpicy,
       is_available: form.isAvailable,
+      is_menu_visible: isMenuVisible,
       dining_available: form.diningAvailable,
       takeaway_available: form.takeawayAvailable,
       delivery_available: form.deliveryAvailable,
@@ -645,7 +781,11 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
     };
 
     try {
-      await api.post('/foods', payload);
+      if (existingFoodId) {
+        await api.put(`/foods/${encodeURIComponent(existingFoodId)}`, payload);
+      } else {
+        await api.post('/foods', payload);
+      }
       onSaved();
     } catch (error) {
       setPageError(errorMessage(error, 'Unable to save food. Please try again.'));
@@ -667,9 +807,13 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
     <View className="flex-1 bg-[#F9FAFB]">
       <View className="flex-row items-center justify-between border-b border-[#E5E7EB] bg-white px-4 py-3">
         <View className="flex-1">
-          <Text className="text-xl font-bold text-[#012711]">Add Food</Text>
+          <Text className="text-xl font-bold text-[#012711]">
+            {isEditMode ? 'Edit Food' : 'Add Food'}
+          </Text>
           <Text className="mt-1 text-xs text-[#6B7280]">
-            Create a menu item with pricing and availability.
+            {isEditMode
+              ? 'Update this menu item and its availability.'
+              : 'Create a menu item with pricing and availability.'}
           </Text>
         </View>
         <Text className="ml-3 rounded-lg bg-[#F0F7EE] px-2.5 py-2 text-xs font-bold text-[#116C0B]">
@@ -1178,7 +1322,7 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
       </ScrollView>
       <View className="flex-row gap-3 border-t border-[#E5E7EB] bg-white px-4 py-3">
         <Pressable
-          accessibilityLabel="Cancel Add Food"
+          accessibilityLabel={isEditMode ? 'Cancel Edit Food' : 'Cancel Add Food'}
           accessibilityRole="button"
           disabled={isSaving}
           onPress={onCancel}
@@ -1187,12 +1331,17 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
           <Text className="font-semibold text-[#374151]">Cancel</Text>
         </Pressable>
         <Pressable
-          accessibilityLabel="Save Food"
+          accessibilityLabel={isEditMode ? 'Update Food' : 'Save Food'}
           accessibilityRole="button"
-          disabled={isSaving || isUploadingImages || images.some(image => !image.url)}
+          disabled={
+            isSaving ||
+            isUploadingImages ||
+            images.some(image => !image.url) ||
+            !isFoodLoaded
+          }
           onPress={handleSave}
           className={`h-12 flex-1 items-center justify-center rounded-xl ${
-            isSaving || isUploadingImages || images.some(image => !image.url)
+            isSaving || isUploadingImages || images.some(image => !image.url) || !isFoodLoaded
               ? 'bg-[#86A980]'
               : 'bg-[#FF5A00]'
           }`}
@@ -1200,7 +1349,9 @@ function AddFood({ actor = 'Admin', onCancel, onSaved }: AddFoodProps) {
           {isSaving ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text className="font-bold text-white">Save Food</Text>
+            <Text className="font-bold text-white">
+              {isEditMode ? 'Update Food' : 'Save Food'}
+            </Text>
           )}
         </Pressable>
       </View>

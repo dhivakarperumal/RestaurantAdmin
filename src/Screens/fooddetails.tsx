@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -15,6 +16,8 @@ type FoodRecord = Record<string, unknown>;
 type FoodDetailsProps = {
   foodId: string;
   onBack: () => void;
+  onEdit: () => void;
+  onDeleted: () => void;
 };
 
 function isRecord(value: unknown): value is FoodRecord {
@@ -115,11 +118,14 @@ function DetailSection({
   );
 }
 
-function FoodDetails({ foodId, onBack }: FoodDetailsProps) {
+function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
   const [food, setFood] = useState<FoodRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -159,6 +165,24 @@ function FoodDetails({ foodId, onBack }: FoodDetailsProps) {
     };
   }, [foodId, retry]);
 
+  const deleteFood = async () => {
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete(`/foods/${encodeURIComponent(foodId)}`);
+      setIsDeleteConfirmationOpen(false);
+      onDeleted();
+    } catch (deleteRequestError) {
+      setDeleteError(
+        isRecord(deleteRequestError) && typeof deleteRequestError.message === 'string'
+          ? deleteRequestError.message
+          : 'Unable to delete this food. Please try again.',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const images = readImageUrls(food?.food_images ?? food?.image);
   const addons = readRows(food?.addons);
   const customizations = readRows(food?.customizations);
@@ -176,12 +200,33 @@ function FoodDetails({ foodId, onBack }: FoodDetailsProps) {
         </Pressable>
         <View className="flex-1">
           <Text numberOfLines={1} className="text-lg font-bold text-[#012711]">
-            {food && !isLoading
-              ? displayText(food.food_name, 'Food details')
-              : 'Food details'}
+            Food details
           </Text>
           <Text className="text-xs text-[#6B7280]">{foodId}</Text>
         </View>
+        {!isLoading && !error && food ? (
+          <View className="flex-row gap-2">
+            <Pressable
+              accessibilityLabel={`Edit ${displayText(food.food_name, 'food')}`}
+              accessibilityRole="button"
+              onPress={onEdit}
+              className="rounded-xl bg-[#F0F7EE] px-3 py-2"
+            >
+              <Text className="font-semibold text-[#116C0B]">Edit</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`Delete ${displayText(food.food_name, 'food')}`}
+              accessibilityRole="button"
+              onPress={() => {
+                setDeleteError('');
+                setIsDeleteConfirmationOpen(true);
+              }}
+              className="rounded-xl bg-red-50 px-3 py-2"
+            >
+              <Text className="font-semibold text-red-700">Delete</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
 
       {isLoading ? (
@@ -331,6 +376,52 @@ function FoodDetails({ foodId, onBack }: FoodDetailsProps) {
           </DetailSection>
         </ScrollView>
       ) : null}
+      <Modal
+        animationType="fade"
+        onRequestClose={() => {
+          if (!isDeleting) setIsDeleteConfirmationOpen(false);
+        }}
+        transparent
+        visible={isDeleteConfirmationOpen}
+      >
+        <View className="flex-1 items-center justify-center bg-black/40 px-5">
+          <View className="w-full max-w-md rounded-2xl bg-white p-5">
+            <Text className="text-lg font-bold text-[#012711]">Delete food?</Text>
+            <Text className="mt-2 text-sm leading-5 text-[#6B7280]">
+              This will permanently remove {displayText(food?.food_name, 'this item')} from your menu.
+            </Text>
+            {deleteError ? (
+              <Text accessibilityRole="alert" className="mt-3 text-sm text-red-700">
+                {deleteError}
+              </Text>
+            ) : null}
+            <View className="mt-5 flex-row justify-end gap-3">
+              <Pressable
+                accessibilityLabel="Cancel delete food"
+                accessibilityRole="button"
+                disabled={isDeleting}
+                onPress={() => setIsDeleteConfirmationOpen(false)}
+                className="rounded-xl border border-[#D1D5DB] px-4 py-2.5"
+              >
+                <Text className="font-semibold text-[#374151]">Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Confirm delete food"
+                accessibilityRole="button"
+                disabled={isDeleting}
+                onPress={deleteFood}
+                className="min-w-20 items-center rounded-xl bg-red-600 px-4 py-2.5"
+              >
+                {isDeleting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text className="font-semibold text-white">Delete</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

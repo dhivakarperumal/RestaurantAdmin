@@ -11,6 +11,8 @@ jest.mock('../api', () => ({
   default: {
     get: jest.fn(),
     post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
@@ -282,6 +284,115 @@ test('opens a food details page using the food ID details endpoint', async () =>
     renderer!.root.findByProps({ accessibilityLabel: 'Back to items' }).props.onPress();
   });
   expect(hasText(renderer!, 'All items')).toBe(true);
+});
+
+test('opens the edit form with existing food values and updates the item', async () => {
+  const get = api.get as jest.Mock;
+  const put = api.put as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: [{ food_id: 'FOOD003', food_name: 'Masala Dosa' }],
+      });
+    }
+    if (path === '/foods/FOOD003') {
+      return Promise.resolve({
+        data: {
+          data: {
+            food_id: 'FOOD003',
+            food_name: 'Masala Dosa',
+            cuisine_id: 'CUS001',
+            cuisine_name: 'South Indian',
+            category_id: 'CAT001',
+            category_name: 'Breakfast',
+            subcategory_name: 'Dosa',
+            meal_type: 'Lunch',
+            mrp: '80',
+            discount: '0',
+          },
+        },
+      });
+    }
+    if (path === '/cuisines') {
+      return Promise.resolve({ data: { data: [{ cuisine_id: 'CUS001', cuisine_name: 'South Indian' }] } });
+    }
+    if (path === '/categories') {
+      return Promise.resolve({ data: { data: [{ category_id: 'CAT001', category_name: 'Breakfast', sub_categories: ['Dosa'] }] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  put.mockResolvedValue({ data: { success: true } });
+
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(<Items />);
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await flushListUpdates();
+
+  await ReactTestRenderer.act(async () => {
+    renderer!.root.findByProps({ accessibilityLabel: 'View details of Masala Dosa' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await flushListUpdates();
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Edit Masala Dosa' }).props.onPress();
+  });
+  await flushListUpdates();
+
+  expect(hasText(renderer!, 'Edit Food')).toBe(true);
+  expect(renderer!.root.findByProps({ accessibilityLabel: 'Food name' }).props.value).toBe('Masala Dosa');
+  await ReactTestRenderer.act(async () => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Update Food' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(put).toHaveBeenCalledWith(
+    '/foods/FOOD003',
+    expect.objectContaining({
+      food_id: 'FOOD003',
+      food_name: 'Masala Dosa',
+      cuisine_id: 'CUS001',
+      category_id: 'CAT001',
+    }),
+  );
+});
+
+test('confirms and deletes an item from its details page', async () => {
+  const get = api.get as jest.Mock;
+  const deleteRequest = api.delete as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({ data: [{ food_id: 'FOOD004', food_name: 'Veg Pulao' }] });
+    }
+    if (path === '/foods/FOOD004') {
+      return Promise.resolve({
+        data: { data: { food_id: 'FOOD004', food_name: 'Veg Pulao' } },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  deleteRequest.mockResolvedValue({ data: { success: true } });
+
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(<Items />);
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await flushListUpdates();
+  await ReactTestRenderer.act(async () => {
+    renderer!.root.findByProps({ accessibilityLabel: 'View details of Veg Pulao' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await flushListUpdates();
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Delete Veg Pulao' }).props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Confirm delete food' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(deleteRequest).toHaveBeenCalledWith('/foods/FOOD004');
 });
 
 test('filters items by item name and category', async () => {

@@ -145,6 +145,7 @@ function Items({
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const [isAddFoodOpen, setIsAddFoodOpen] = useState(false);
+  const [editingFoodId, setEditingFoodId] = useState<string | null>(null);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -206,10 +207,34 @@ function Items({
     );
   }
 
+  if (editingFoodId) {
+    return (
+      <AddFood
+        actor={actor}
+        foodId={editingFoodId}
+        onCancel={() => setEditingFoodId(null)}
+        onSaved={() => {
+          setEditingFoodId(null);
+          setSelectedFoodId(null);
+          setRetry(count => count + 1);
+        }}
+      />
+    );
+  }
+
   if (selectedFoodId) {
     return (
       <FoodDetails
         foodId={selectedFoodId}
+        onEdit={() => {
+          onFoodDetailsVisibilityChange?.(false);
+          setEditingFoodId(selectedFoodId);
+        }}
+        onDeleted={() => {
+          onFoodDetailsVisibilityChange?.(false);
+          setSelectedFoodId(null);
+          setRetry(count => count + 1);
+        }}
         onBack={() => {
           onFoodDetailsVisibilityChange?.(false);
           setSelectedFoodId(null);
