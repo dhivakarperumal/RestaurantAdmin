@@ -2,23 +2,41 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import colors from '../theme/colors';
 
-export type BottomBarTab = {
-  key: string;
+export type BottomBarTab<Key extends string = string> = {
+  key: Key;
   label: string;
   icon?: ReactNode | ((color: string) => ReactNode);
 };
 
-type BottombarProps = {
-  tabs: BottomBarTab[];
-  activeTab: string;
-  onTabPress: (key: string) => void;
+type BottombarProps<Key extends string> = {
+  tabs: BottomBarTab<Key>[];
+  activeTab: Key;
+  onTabPress: (key: Key) => void;
 };
 
-function Bottombar({ tabs, activeTab, onTabPress }: BottombarProps) {
+function Bottombar<Key extends string>({
+  tabs,
+  activeTab,
+  onTabPress,
+}: BottombarProps<Key>) {
   return (
     <View
-      className="flex-row items-center justify-around border-t pb-2 pt-2"
-      style={{ backgroundColor: colors.surface, borderTopColor: colors.border }}
+      accessibilityRole="tablist"
+      style={{
+        alignItems: 'center',
+        backgroundColor: colors.surface,
+        borderTopColor: colors.border,
+        borderTopWidth: 1,
+        elevation: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        minHeight: 68,
+        paddingHorizontal: 4,
+        shadowColor: '#111827',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      }}
     >
       {tabs.map(tab => {
         const isActive = tab.key === activeTab;
@@ -26,18 +44,29 @@ function Bottombar({ tabs, activeTab, onTabPress }: BottombarProps) {
 
         return (
           <Pressable
+            accessibilityLabel={tab.label}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             key={tab.key}
             onPress={() => onTabPress(tab.key)}
-            className="min-h-12 flex-1 flex-col items-center justify-center gap-1"
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              backgroundColor: pressed ? '#F3F7FF' : 'transparent',
+              borderRadius: 12,
+              flex: 1,
+              gap: 4,
+              justifyContent: 'center',
+              minHeight: 58,
+            })}
           >
             {typeof tab.icon === 'function' ? tab.icon(iconColor) : tab.icon}
             <Text
-              className={`text-xs ${isActive ? 'font-semibold' : ''}`}
               style={{
                 color: isActive ? colors.primary : colors.textSecondary,
+                fontSize: 10,
+                fontWeight: isActive ? '700' : '500',
               }}
+              numberOfLines={1}
             >
               {tab.label}
             </Text>

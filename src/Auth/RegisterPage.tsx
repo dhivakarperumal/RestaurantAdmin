@@ -244,7 +244,7 @@ function RegisterPage({ onRegister, onShowLogin }: RegisterPageProps) {
           onPress={() =>
             Alert.alert(
               'Terms and Conditions',
-              'By creating an account, you agree to use Life Ledger responsibly and keep your account credentials secure.',
+              'By creating an account, you agree to use your Buy Food account responsibly and keep your account credentials secure.',
             )
           }
           style={{ color: colors.primary, fontSize: 13, fontWeight: '700', marginLeft: 4 }}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   ScrollView,
   Text,
@@ -10,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import LoginPage, { type LoginValues } from './LoginPage';
 import RegisterPage, { type RegisterValues } from './RegisterPage';
-import { LedgerIcon } from './AuthIcons';
 
 type AuthScreenProps = {
   onLogin?: (values: LoginValues) => Promise<void>;
@@ -41,29 +41,17 @@ function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={{ alignItems: 'center', marginBottom: 27 }}>
-            <View
-              style={{
-                alignItems: 'center',
-                backgroundColor: colors.primary,
-                borderRadius: 19,
-                elevation: 3,
-                height: 64,
-                justifyContent: 'center',
-                marginBottom: 12,
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 5 },
-                shadowOpacity: 0.2,
-                shadowRadius: 10,
-                width: 64,
-              }}
-            >
-              <LedgerIcon color={colors.textOnPrimary} size={34} />
-            </View>
+            <Image
+              accessibilityLabel="Buy Food logo"
+              resizeMode="contain"
+              source={require('../images/buy-food-logo.png')}
+              style={{ height: 150, marginBottom: 12, width: 150 }}
+            />
             <Text style={{ color: colors.textPrimary, fontSize: 22, fontWeight: '800' }}>
-              Life Ledger
+              Restaurant Admin
             </Text>
             <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
-              A clearer view of your finances
+              Manage your restaurant from anywhere
             </Text>
           </View>
 

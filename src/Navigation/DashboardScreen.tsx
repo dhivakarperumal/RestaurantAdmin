@@ -27,6 +27,7 @@ import {
   ReceiptIcon,
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
+import Bottombar, { type BottomBarTab } from './Bottombar';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -34,7 +35,7 @@ type DashboardScreenProps = {
   onLogout: () => void;
 };
 
-type AppTab = 'home' | 'billing' | 'orders' | 'more';
+type AppTab = 'home' | 'billing' | 'add' | 'orders' | 'more';
 type QuickActionId =
   | 'invoice'
   | 'order'
@@ -306,7 +307,6 @@ const moreFeatures = [
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<AppTab>('home');
-  const [isQuickSheetOpen, setIsQuickSheetOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(null);
@@ -522,7 +522,6 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const navigateToAction = (action: QuickActionId) => {
     setSelectedAction(action);
     setSelectedFeature(null);
-    setIsQuickSheetOpen(false);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
   };
@@ -701,23 +700,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       <BottomNavigation
         activeTab={activeTab}
         onPressTab={navigateToTab}
-        onPressPlus={() => {
-          setSelectedAction(null);
-          setIsQuickSheetOpen(true);
-        }}
       />
-
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsQuickSheetOpen(false)}
-        transparent
-        visible={isQuickSheetOpen}
-      >
-        <QuickActionSheet
-          onClose={() => setIsQuickSheetOpen(false)}
-          onSelect={navigateToAction}
-        />
-      </Modal>
 
       {!isWide && isSidebarOpen ? (
         <View style={{ ...overlayFill, top: 72, zIndex: 30 }}>
@@ -1134,8 +1117,15 @@ function MainContent({
   }
   if (activeTab === 'orders') {
     return (
-      <OrdersPage orders={orders} onUpdateOrderStatus={onUpdateOrderStatus} />
+      <OrdersPage
+        orders={orders}
+        onAddOrder={() => onSelectAction('order')}
+        onUpdateOrderStatus={onUpdateOrderStatus}
+      />
     );
+  }
+  if (activeTab === 'add') {
+    return <AddItemsPage onSelectAction={onSelectAction} />;
   }
   if (activeTab === 'more') {
     return <MorePage onSelectFeature={onSelectFeature} />;
@@ -1157,6 +1147,55 @@ function MainContent({
       onSetCustomFrom={onSetCustomFrom}
       onSetCustomTo={onSetCustomTo}
     />
+  );
+}
+
+function AddItemsPage({
+  onSelectAction,
+}: {
+  onSelectAction: (action: QuickActionId) => void;
+}) {
+  return (
+    <ScrollView contentContainerStyle={pageContentStyle}>
+      <Text style={styles.eyebrow}>QUICK ENTRY</Text>
+      <Text style={styles.pageTitle}>Add items</Text>
+      <Text style={styles.pageSubtitle}>
+        Choose what you would like to add to your restaurant.
+      </Text>
+      <View style={{ gap: 12, marginTop: 22 }}>
+        {quickActions.map(action => {
+          const Icon = action.icon;
+          return (
+            <Pressable
+              accessibilityLabel={action.label}
+              accessibilityRole="button"
+              key={action.id}
+              onPress={() => onSelectAction(action.id)}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                backgroundColor: pressed ? '#F3F7FF' : colors.surface,
+                borderColor: colors.border,
+                borderRadius: 16,
+                borderWidth: 1,
+                flexDirection: 'row',
+                gap: 14,
+                minHeight: 76,
+                padding: 14,
+              })}
+            >
+              <View style={styles.featureIcon}>
+                <Icon color={colors.primary} size={21} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{action.label}</Text>
+                <Text style={styles.smallMuted}>{action.description}</Text>
+              </View>
+              <PlusIcon color={colors.primary} size={18} />
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -1925,9 +1964,11 @@ function BillingPage({
 
 function OrdersPage({
   orders,
+  onAddOrder,
   onUpdateOrderStatus,
 }: {
   orders: LocalRecord[];
+  onAddOrder: () => void;
   onUpdateOrderStatus: (
     orderId: number,
     status: NonNullable<LocalRecord['status']>,
@@ -1941,8 +1982,21 @@ function OrdersPage({
   return (
     <ScrollView contentContainerStyle={pageContentStyle}>
       <Text style={styles.eyebrow}>FULFILLMENT</Text>
-      <Text style={styles.pageTitle}>Orders</Text>
-      <Text style={styles.pageSubtitle}>Keep track of every customer order.</Text>
+      <View style={styles.pageHeadingRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.pageTitle}>Orders</Text>
+          <Text style={styles.pageSubtitle}>Keep track of every customer order.</Text>
+        </View>
+        <Pressable
+          accessibilityLabel="Add Order"
+          accessibilityRole="button"
+          onPress={onAddOrder}
+          style={({ pressed }) => [styles.primaryButton, { opacity: pressed ? 0.85 : 1 }]}
+        >
+          <PlusIcon color={colors.surface} size={18} />
+          <Text style={styles.primaryButtonText}>Add order</Text>
+        </Pressable>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -2124,221 +2178,18 @@ function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => v
 function BottomNavigation({
   activeTab,
   onPressTab,
-  onPressPlus,
 }: {
   activeTab: AppTab;
   onPressTab: (tab: AppTab) => void;
-  onPressPlus: () => void;
 }) {
-  return (
-    <View
-      style={{
-        alignItems: 'center',
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        borderTopWidth: 1,
-        elevation: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        minHeight: 68,
-        paddingHorizontal: 4,
-        shadowColor: '#111827',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      }}
-    >
-      <TabButton
-        active={activeTab === 'home'}
-        icon={HomeIcon}
-        label="Home"
-        onPress={() => onPressTab('home')}
-      />
-      <TabButton
-        active={activeTab === 'billing'}
-        icon={ReceiptIcon}
-        label="Billing"
-        onPress={() => onPressTab('billing')}
-      />
-      <Pressable
-        accessibilityLabel="Quick actions"
-        accessibilityRole="button"
-        onPress={onPressPlus}
-        style={({ pressed }) => ({
-          alignItems: 'center',
-          backgroundColor: pressed ? '#1D4ED8' : colors.primary,
-          borderColor: colors.surface,
-          borderRadius: 30,
-          borderWidth: 4,
-          elevation: 8,
-          height: 58,
-          justifyContent: 'center',
-          marginTop: -25,
-          position: 'relative',
-          zIndex: 10,
-          shadowColor: colors.primary,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.24,
-          shadowRadius: 7,
-          width: 58,
-        })}
-      >
-        <PlusIcon color={colors.textOnPrimary} size={30} />
-      </Pressable>
-      <TabButton
-        active={activeTab === 'orders'}
-        icon={OrdersIcon}
-        label="Orders"
-        onPress={() => onPressTab('orders')}
-      />
-      <TabButton
-        active={activeTab === 'more'}
-        icon={MoreIcon}
-        label="More"
-        onPress={() => onPressTab('more')}
-      />
-    </View>
-  );
-}
-
-function TabButton({
-  active,
-  icon: Icon,
-  label,
-  onPress,
-}: {
-  active: boolean;
-  icon: typeof HomeIcon;
-  label: string;
-  onPress: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const tint = active ? colors.primary : colors.textSecondary;
-  return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      onHoverIn={() => setHovered(true)}
-      onHoverOut={() => setHovered(false)}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        alignItems: 'center',
-        backgroundColor: pressed || hovered ? '#F3F7FF' : 'transparent',
-        borderRadius: 12,
-        flex: 1,
-        gap: 4,
-        justifyContent: 'center',
-        minHeight: 58,
-      })}
-    >
-      <Icon color={tint} size={21} />
-      <Text
-        numberOfLines={1}
-        style={{
-          color: tint,
-          fontSize: 10,
-          fontWeight: active ? '700' : '500',
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function QuickActionSheet({
-  onClose,
-  onSelect,
-}: {
-  onClose: () => void;
-  onSelect: (action: QuickActionId) => void;
-}) {
-  const { width } = useWindowDimensions();
-  const columns = width >= 600 ? 4 : 2;
-  return (
-    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-      <Pressable
-        accessibilityLabel="Close quick actions"
-        onPress={onClose}
-        style={{ ...overlayFill, backgroundColor: '#11182766', top: 0 }}
-      />
-      <SafeAreaView
-        edges={['bottom']}
-        style={{
-          backgroundColor: colors.surface,
-          borderTopLeftRadius: 26,
-          borderTopRightRadius: 26,
-          elevation: 24,
-          maxHeight: '82%',
-          paddingBottom: 8,
-          shadowColor: '#111827',
-          shadowOffset: { width: 0, height: -8 },
-          shadowOpacity: 0.16,
-          shadowRadius: 18,
-        }}
-      >
-        <View
-          style={{
-            alignSelf: 'center',
-            backgroundColor: colors.border,
-            borderRadius: 3,
-            height: 5,
-            marginTop: 10,
-            width: 38,
-          }}
-        />
-        <View style={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14 }}>
-          <Text style={styles.pageTitle}>Quick actions</Text>
-          <Text style={styles.pageSubtitle}>What would you like to do?</Text>
-        </View>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 18 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {quickActions.map(action => {
-              const Icon = action.icon;
-              return (
-                <Pressable
-                  accessibilityLabel={action.label}
-                  accessibilityRole="button"
-                  key={action.id}
-                  onPress={() => onSelect(action.id)}
-                  style={({ pressed }) => ({
-                    alignItems: 'center',
-                    backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-                    borderColor: colors.border,
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    marginBottom: 10,
-                    marginHorizontal: '1.5%',
-                    minHeight: 98,
-                    justifyContent: 'center',
-                    paddingHorizontal: 8,
-                    width: `${(100 - columns * 3) / columns}%`,
-                  })}
-                >
-                  <View style={styles.featureIcon}>
-                    <Icon color={colors.primary} size={21} />
-                  </View>
-                  <Text
-                    numberOfLines={2}
-                    style={{
-                      color: colors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: '600',
-                      marginTop: 9,
-                      textAlign: 'center',
-                    }}
-                  >
-                    {action.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
-  );
+  const tabs: BottomBarTab<AppTab>[] = [
+    { key: 'home', label: 'Home', icon: color => <HomeIcon color={color} size={21} /> },
+    { key: 'billing', label: 'Billing', icon: color => <ReceiptIcon color={color} size={21} /> },
+    { key: 'add', label: 'Add', icon: color => <PlusIcon color={color} size={21} /> },
+    { key: 'orders', label: 'Orders', icon: color => <OrdersIcon color={color} size={21} /> },
+    { key: 'more', label: 'More', icon: color => <MoreIcon color={color} size={21} /> },
+  ];
+  return <Bottombar tabs={tabs} activeTab={activeTab} onTabPress={onPressTab} />;
 }
 
 function EntryForm({

@@ -15,7 +15,8 @@ test('renders correctly', async () => {
 
   const renderedScreen = JSON.stringify(renderers[0].toJSON());
 
-  expect(renderedScreen).toContain('Life Ledger');
+  expect(renderedScreen).toContain('Buy Food logo');
+  expect(renderedScreen).toContain('Restaurant Admin');
   expect(renderedScreen).toContain('Welcome Back!');
   expect(renderedScreen).toContain('Email or Username');
   expect(renderedScreen).toContain('Password');

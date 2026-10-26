@@ -37,15 +37,14 @@ async function press(
   });
 }
 
-test('navigates tabs and creates a session invoice through quick actions', async () => {
+test('navigates tabs and creates a session invoice from billing', async () => {
   const renderer = await renderDashboard();
 
   await press(renderer, 'Billing');
   expect(JSON.stringify(renderer.toJSON())).toContain('Invoice history');
   expect(JSON.stringify(renderer.toJSON())).toContain('No invoices yet');
 
-  await press(renderer, 'Quick actions');
-  await press(renderer, 'Create Invoice');
+  await press(renderer, 'New invoice');
   const nameField = renderer.root.findByProps({
     placeholder: 'Customer or invoice name',
   });
@@ -67,7 +66,6 @@ test('adds an order and updates its status from the order details sheet', async 
 
   await press(renderer, 'Orders');
   expect(JSON.stringify(renderer.toJSON())).toContain('No orders');
-  await press(renderer, 'Quick actions');
   await press(renderer, 'Add Order');
 
   await ReactTestRenderer.act(() => {
@@ -101,13 +99,21 @@ test('renders the plus icon as visible horizontal and vertical strokes', async (
   expect(plusStroke.props.strokeWidth).toBe('3');
 });
 
-test('shows the quick-action plus button in the center of the bottom bar', async () => {
+test('opens an add-items page from the plus tab without opening a popup', async () => {
   const renderer = await renderDashboard();
-  const plusButton = renderer.root.findByProps({
-    accessibilityLabel: 'Quick actions',
+  const addTab = renderer.root.findByProps({
+    accessibilityLabel: 'Add',
   });
-  expect(plusButton.props.accessibilityRole).toBe('button');
+  expect(addTab.props.accessibilityRole).toBe('tab');
+  await press(renderer, 'Add');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Add items');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Create Invoice');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Add Product');
   expect(JSON.stringify(renderer.toJSON())).toContain('M12 5v14M5 12h14');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('What would you like to do?');
+
+  await press(renderer, 'Add Product');
+  expect(renderer.root.findByProps({ placeholder: 'Product name' })).toBeTruthy();
 });
 
 test('loads the restaurant POS dashboard snapshot and revenue reports', async () => {
