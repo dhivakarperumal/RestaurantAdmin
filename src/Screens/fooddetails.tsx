@@ -172,10 +172,14 @@ function FoodDetails({ foodId, onBack }: FoodDetailsProps) {
           onPress={onBack}
           className="h-10 w-10 items-center justify-center rounded-xl bg-[#F3F4F6]"
         >
-          <Text className="text-xl font-bold text-[#374151]">‹</Text>
+          <Text className="text-2xl font-bold text-[#374151]">←</Text>
         </Pressable>
-        <View>
-          <Text className="text-lg font-bold text-[#012711]">Food details</Text>
+        <View className="flex-1">
+          <Text numberOfLines={1} className="text-lg font-bold text-[#012711]">
+            {food && !isLoading
+              ? displayText(food.food_name, 'Food details')
+              : 'Food details'}
+          </Text>
           <Text className="text-xs text-[#6B7280]">{foodId}</Text>
         </View>
       </View>

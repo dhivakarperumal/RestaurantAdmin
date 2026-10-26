@@ -16,6 +16,7 @@ import colors from '../theme/colors';
 
 type ItemsProps = {
   actor?: string;
+  onFoodDetailsVisibilityChange?: (isVisible: boolean) => void;
 };
 
 type Item = {
@@ -134,7 +135,10 @@ function ItemSeparator() {
   return <View className="h-3" />;
 }
 
-function Items({ actor = 'Admin' }: ItemsProps) {
+function Items({
+  actor = 'Admin',
+  onFoodDetailsVisibilityChange,
+}: ItemsProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -206,7 +210,10 @@ function Items({ actor = 'Admin' }: ItemsProps) {
     return (
       <FoodDetails
         foodId={selectedFoodId}
-        onBack={() => setSelectedFoodId(null)}
+        onBack={() => {
+          onFoodDetailsVisibilityChange?.(false);
+          setSelectedFoodId(null);
+        }}
       />
     );
   }
@@ -308,7 +315,10 @@ function Items({ actor = 'Admin' }: ItemsProps) {
             <Pressable
               accessibilityLabel={`View details of ${getItemName(item)}`}
               accessibilityRole="button"
-              onPress={() => setSelectedFoodId(foodId)}
+              onPress={() => {
+                onFoodDetailsVisibilityChange?.(true);
+                setSelectedFoodId(foodId);
+              }}
               className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4"
             >
               {image ? (

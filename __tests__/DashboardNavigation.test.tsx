@@ -88,6 +88,52 @@ test('opens the items screen from the bottom navigation', async () => {
   expect(renderer.root.findByProps({ accessibilityLabel: 'Food name' })).toBeTruthy();
 });
 
+test('hides the dashboard header on food details and restores it on back', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: {
+          data: [{
+            food_id: 'FOOD002',
+            food_name: 'Idli Sambar',
+            final_price: '27.00',
+          }],
+        },
+      });
+    }
+    if (path === '/foods/FOOD002') {
+      return Promise.resolve({
+        data: {
+          data: {
+            food_id: 'FOOD002',
+            food_name: 'Idli Sambar',
+            final_price: '27.00',
+            food_images: [],
+          },
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  const renderer = await renderDashboard();
+  await press(renderer, 'Items');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+  await press(renderer, 'View details of Idli Sambar');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Toggle sidebar' })).toHaveLength(0);
+  expect(JSON.stringify(renderer.toJSON())).toContain('Idli Sambar');
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Back to items' })).toBeTruthy();
+
+  await press(renderer, 'Back to items');
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Toggle sidebar' })).toBeTruthy();
+});
+
 test('adds an order and updates its status from the order details sheet', async () => {
   const renderer = await renderDashboard();
 

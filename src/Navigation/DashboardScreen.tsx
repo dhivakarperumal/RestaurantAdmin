@@ -327,6 +327,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [activeTab, setActiveTab] = useState<AppTab>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isFoodDetailsOpen, setIsFoodDetailsOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [billingItems, setBillingItems] = useState<BillingLineItem[]>([]);
@@ -530,10 +531,19 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const navigateToTab = (tab: AppTab) => {
     setActiveTab(tab);
+    setIsFoodDetailsOpen(false);
     setSelectedAction(null);
     setSelectedFeature(null);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+  };
+
+  const handleFoodDetailsVisibilityChange = (isVisible: boolean) => {
+    setIsFoodDetailsOpen(isVisible);
+    if (isVisible) {
+      setIsSidebarOpen(false);
+      setIsNotificationsOpen(false);
+    }
   };
 
   const navigateToAction = (action: QuickActionId) => {
@@ -667,24 +677,26 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       edges={['top', 'bottom']}
       className="flex-1 bg-[#F9FAFB]"
     >
-      <TopHeader
-        user={user}
-        unreadNotifications={0}
-        onToggleSidebar={() => {
-          setIsNotificationsOpen(false);
-          setIsSidebarOpen(open => !open);
-        }}
-        onOpenNotifications={() => {
-          setIsSidebarOpen(false);
-          setIsNotificationsOpen(open => !open);
-        }}
-        onOpenProfile={() => {
-          setSelectedAction(null);
-          setSelectedFeature('Profile');
-          setActiveTab('more');
-        }}
-        onLogout={handleLogout}
-      />
+      {!isFoodDetailsOpen ? (
+        <TopHeader
+          user={user}
+          unreadNotifications={0}
+          onToggleSidebar={() => {
+            setIsNotificationsOpen(false);
+            setIsSidebarOpen(open => !open);
+          }}
+          onOpenNotifications={() => {
+            setIsSidebarOpen(false);
+            setIsNotificationsOpen(open => !open);
+          }}
+          onOpenProfile={() => {
+            setSelectedAction(null);
+            setSelectedFeature('Profile');
+            setActiveTab('more');
+          }}
+          onLogout={handleLogout}
+        />
+      ) : null}
 
       {isWide && isSidebarOpen ? (
         <View className="flex-1 flex-row">
@@ -715,6 +727,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               userEmail={userEmail}
               userInitial={userInitial}
               userName={userName}
+              onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
               onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -763,6 +776,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             userEmail={userEmail}
             userInitial={userInitial}
             userName={userName}
+            onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
             onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -1102,6 +1116,7 @@ function MainContent({
   userEmail,
   userInitial,
   userName,
+  onFoodDetailsVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
   onRemoveFoodFromBilling,
@@ -1134,6 +1149,7 @@ function MainContent({
   userEmail: string;
   userInitial: string;
   userName: string;
+  onFoodDetailsVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
@@ -1230,7 +1246,12 @@ function MainContent({
     );
   }
   if (activeTab === 'items') {
-    return <Items actor={userName} />;
+    return (
+      <Items
+        actor={userName}
+        onFoodDetailsVisibilityChange={onFoodDetailsVisibilityChange}
+      />
+    );
   }
   if (activeTab === 'add') {
     return (
