@@ -122,12 +122,17 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
     Promise.resolve({
       data: path === '/foods'
         ? {
-            data: [{
-              food_id: 1,
-              food_name: 'Masala Dosa',
-              selling_price: 325,
-              food_images: [{ image_url: '/uploads/masala-dosa.jpg' }],
-            }],
+            data: {
+              foods: [{
+                food_id: 1,
+                food_name: 'Masala Dosa',
+                selling_price: '325.00',
+                food_images: [{ image_url: '/uploads/masala-dosa.jpg' }],
+              }, {
+                food_id: 2,
+                food_name: 'Price Missing Food',
+              }],
+            },
           }
         : { data: [] },
     }),
@@ -143,12 +148,33 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
   });
   expect(JSON.stringify(renderer.toJSON())).toContain('Add food to billing');
   expect(JSON.stringify(renderer.toJSON())).toContain('Masala Dosa');
+  expect(get).toHaveBeenCalledWith(
+    '/foods',
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  );
   expect(
     renderer.root.findByProps({ accessibilityLabel: 'Masala Dosa image' })
       .findByType(Image).props.source,
   ).toEqual({
     uri: 'https://restaurant.qtechx.com/uploads/masala-dosa.jpg',
   });
+
+  await press(renderer, 'Add Price Missing Food to billing');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Price Missing Food');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Price needed');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Review bill' }).props.disabled,
+  ).toBe(true);
+  await press(renderer, 'Remove Price Missing Food from bill');
+
+  await press(renderer, 'Add Masala Dosa to billing');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Bill preview');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Masala Dosa');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Review bill');
+  expect(JSON.stringify(renderer.toJSON())).toContain('₹325.00');
+
+  await press(renderer, 'Remove Masala Dosa from bill');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Bill preview');
 
   await press(renderer, 'Add Masala Dosa to billing');
   await press(renderer, 'View billing, 1 item');

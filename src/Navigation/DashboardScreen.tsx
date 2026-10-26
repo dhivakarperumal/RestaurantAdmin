@@ -31,7 +31,6 @@ import TopHeader, { type HeaderUser } from './TopHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
 import Bills, { type BillFood } from '../Tabs/Bills';
 import Items from '../Tabs/Items';
-import { API_BASE_URL } from '../../api';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -62,7 +61,7 @@ type LocalRecord = {
 type BillingLineItem = {
   id: string;
   name: string;
-  amount: number;
+  amount: number | null;
 };
 
 type ApiOrder = {
@@ -420,9 +419,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               );
               break;
             case 'foods':
-              nextData.foods = readResponseRows<ApiCatalogItem>(
-                result.value.data as ApiListResponse<ApiCatalogItem>,
-              );
+              nextData.foods = readCatalogRows(result.value.data);
               break;
             case 'inventory':
               nextData.inventory = readResponseObject<ApiInventorySummary>(
@@ -580,31 +577,36 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     }
   };
 
-  const addFoodToBilling = (food: ApiCatalogItem) => {
-    const price = getCatalogItemPrice(food);
-    if (price === null) {
-      return;
-    }
+  const addFoodToBilling = (food: BillFood) => {
+    const price = food.price;
     setBillingItems(current => [
       ...current,
       {
-        id: `${food.food_id ?? food.name ?? food.food_name ?? 'food'}-${Date.now()}-${current.length}`,
-        name: getCatalogItemName(food),
+        id: `${food.id}-${Date.now()}-${current.length}`,
+        name: food.name,
         amount: price,
       },
     ]);
   };
 
+  const removeFoodFromBilling = (itemId: string) => {
+    setBillingItems(current => current.filter(item => item.id !== itemId));
+  };
+
   const createInvoiceFromBillingItems = () => {
-    if (!billingItems.length) {
+    if (!billingItems.length || billingItems.some(item => item.amount === null)) {
       return;
     }
+    const total = billingItems.reduce(
+      (sum, item) => sum + (item.amount ?? 0),
+      0,
+    );
     setRecords(current => [
       {
         id: Date.now(),
         action: 'invoice',
         name: `Food billing - ${billingItems.length} ${billingItems.length === 1 ? 'item' : 'items'}`,
-        amount: billingItems.reduce((total, item) => total + item.amount, 0),
+        amount: total,
         createdAt: new Date().toLocaleTimeString([], {
           hour: 'numeric',
           minute: '2-digit',
@@ -699,6 +701,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               userName={userName}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
+              onRemoveFoodFromBilling={removeFoodFromBilling}
               onOpenBilling={() => navigateToTab('billing')}
               onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
               onSelectFeature={setSelectedFeature}
@@ -741,6 +744,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             userName={userName}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
+            onRemoveFoodFromBilling={removeFoodFromBilling}
             onOpenBilling={() => navigateToTab('billing')}
             onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
             onSelectFeature={setSelectedFeature}
@@ -978,72 +982,6 @@ function getItemStock(item: ApiCatalogItem) {
   return Number(item.current_stock ?? item.stock_quantity ?? 0) || 0;
 }
 
-function getCatalogItemName(item: ApiCatalogItem) {
-  return (
-    item.food_name?.trim() ||
-    item.product_name?.trim() ||
-    item.productName?.trim() ||
-    item.name?.trim() ||
-    'Unnamed food'
-  );
-}
-
-function getCatalogItemPrice(item: ApiCatalogItem): number | null {
-  const price = Number(item.selling_price ?? item.price ?? item.unit_price);
-  return Number.isFinite(price) && price >= 0 ? price : null;
-}
-
-function getCatalogItemImage(item: ApiCatalogItem): string | undefined {
-  return resolveImageUri(
-    item.food_images ?? item.food_image ?? item.image_url ?? item.image,
-  );
-}
-
-function resolveImageUri(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    const image = value.trim();
-    if (!image) {
-      return undefined;
-    }
-    if (image.startsWith('[') || image.startsWith('{')) {
-      try {
-        return resolveImageUri(JSON.parse(image) as unknown);
-      } catch {
-        return undefined;
-      }
-    }
-    if (/^(https?:|data:image\/|file:|content:)/i.test(image)) {
-      return image;
-    }
-    if (image.startsWith('//')) {
-      const protocol = API_BASE_URL.match(/^(https?:)/i)?.[1] || 'https:';
-      return `${protocol}${image}`;
-    }
-    const apiRoot = API_BASE_URL.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
-    const relativePath = image.replace(/^\.?\//, '');
-    return apiRoot ? `${apiRoot}/${relativePath}` : image;
-  }
-  if (Array.isArray(value)) {
-    for (const entry of value) {
-      const image = resolveImageUri(entry);
-      if (image) {
-        return image;
-      }
-    }
-    return undefined;
-  }
-  if (typeof value === 'object' && value !== null) {
-    const imageRecord = value as Record<string, unknown>;
-    for (const key of ['url', 'image_url', 'imageUrl', 'image', 'src', 'path']) {
-      const image = resolveImageUri(imageRecord[key]);
-      if (image) {
-        return image;
-      }
-    }
-  }
-  return undefined;
-}
-
 function readResponseRows<T>(payload: ApiListResponse<T> | unknown): T[] {
   if (Array.isArray(payload)) {
     return payload as T[];
@@ -1051,6 +989,32 @@ function readResponseRows<T>(payload: ApiListResponse<T> | unknown): T[] {
   if (typeof payload === 'object' && payload !== null && 'data' in payload) {
     const rows = payload.data;
     return Array.isArray(rows) ? (rows as T[]) : [];
+  }
+  return [];
+}
+
+function readCatalogRows(payload: unknown, depth = 0): ApiCatalogItem[] {
+  if (depth > 4) {
+    return [];
+  }
+  if (Array.isArray(payload)) {
+    return payload.filter(
+      (item): item is ApiCatalogItem =>
+        typeof item === 'object' && item !== null,
+    );
+  }
+  if (typeof payload !== 'object' || payload === null) {
+    return [];
+  }
+
+  const response = payload as Record<string, unknown>;
+  for (const key of ['foods', 'items', 'data']) {
+    if (key in response) {
+      const rows = readCatalogRows(response[key], depth + 1);
+      if (rows.length > 0 || Array.isArray(response[key])) {
+        return rows;
+      }
+    }
   }
   return [];
 }
@@ -1114,6 +1078,7 @@ function MainContent({
   userName,
   onSelectAction,
   onAddFoodToBilling,
+  onRemoveFoodFromBilling,
   onOpenBilling,
   onCreateInvoiceFromBillingItems,
   onSelectFeature,
@@ -1142,7 +1107,8 @@ function MainContent({
   userInitial: string;
   userName: string;
   onSelectAction: (action: QuickActionId) => void;
-  onAddFoodToBilling: (food: ApiCatalogItem) => void;
+  onAddFoodToBilling: (food: BillFood) => void;
+  onRemoveFoodFromBilling: (itemId: string) => void;
   onOpenBilling: () => void;
   onCreateInvoiceFromBillingItems: () => void;
   onSelectFeature: (feature: string | null) => void;
@@ -1239,26 +1205,10 @@ function MainContent({
   if (activeTab === 'add') {
     return (
       <Bills
-        foods={dashboardData.foods.map((food, index) => ({
-          id: String(food.food_id ?? `${getCatalogItemName(food)}-${index}`),
-          name: getCatalogItemName(food),
-          category: food.category_name || food.category || 'Uncategorized',
-          image: getCatalogItemImage(food),
-          price: getCatalogItemPrice(food),
-        }))}
         billingItems={billingItems}
-        isLoading={isDashboardLoading}
-        error={dashboardError}
-        onAddFood={(selectedFood: BillFood) => {
-          const food = dashboardData.foods.find((item, index) =>
-            String(item.food_id ?? `${getCatalogItemName(item)}-${index}`) === selectedFood.id,
-          );
-          if (food) {
-            onAddFoodToBilling(food);
-          }
-        }}
+        onAddFood={onAddFoodToBilling}
+        onRemoveBillingItem={onRemoveFoodFromBilling}
         onOpenBilling={onOpenBilling}
-        onRefresh={onRefreshDashboard}
       />
     );
   }
@@ -1973,7 +1923,11 @@ function BillingPage({
   onCreateInvoice: () => void;
   onCreateInvoiceFromBillingItems: () => void;
 }) {
-  const billingTotal = billingItems.reduce((total, item) => total + item.amount, 0);
+  const billingHasUnpricedItems = billingItems.some(item => item.amount === null);
+  const billingTotal = billingItems.reduce(
+    (total, item) => total + (item.amount ?? 0),
+    0,
+  );
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
       <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">SALES</Text>
@@ -2008,7 +1962,7 @@ function BillingPage({
                   {item.name}
                 </Text>
                 <Text className="text-sm font-semibold text-[#012711]">
-                  {formatCurrency(item.amount)}
+                  {item.amount === null ? 'Price needed' : formatCurrency(item.amount)}
                 </Text>
               </View>
             ))}
@@ -2019,13 +1973,23 @@ function BillingPage({
               {formatCurrency(billingTotal)}
             </Text>
           </View>
+          {billingHasUnpricedItems ? (
+            <Text className="mt-2 text-xs text-[#B45309]">
+              Set a price for every item before creating the invoice.
+            </Text>
+          ) : null}
           <Pressable
             accessibilityLabel="Create invoice from billing items"
             accessibilityRole="button"
+            disabled={billingHasUnpricedItems}
             onPress={onCreateInvoiceFromBillingItems}
-            className="mt-4 items-center rounded-xl bg-[#116C0B] px-4 py-3"
+            className={`mt-4 items-center rounded-xl px-4 py-3 ${
+              billingHasUnpricedItems ? 'bg-[#D1D5DB]' : 'bg-[#116C0B]'
+            }`}
           >
-            <Text className="font-bold text-white">Create invoice</Text>
+            <Text className="font-bold text-white">
+              {billingHasUnpricedItems ? 'Price required' : 'Create invoice'}
+            </Text>
           </Pressable>
         </View>
       ) : null}
