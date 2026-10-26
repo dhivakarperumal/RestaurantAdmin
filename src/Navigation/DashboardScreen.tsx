@@ -29,6 +29,7 @@ import {
 import TopHeader, { type HeaderUser } from './TopHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
 import BannerManagementPage from '../Tabs/BannerManagement';
+import GalleryManagementPage from '../Tabs/GalleryManagement';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -291,6 +292,7 @@ const moreFeatures: {
   action?: QuickActionId;
 }[] = [
   { title: 'Banner Management', subtitle: 'Create and manage website banners', icon: ProductIcon },
+  { title: 'Gallery Management', subtitle: 'Organize albums and photos', icon: ProductIcon },
 ];
 
 const quickActionFeatureDetails: Record<
@@ -1042,6 +1044,9 @@ function MainContent({
   if (selectedFeature) {
     if (selectedFeature === 'Banner Management') {
       return <BannerManagementPage onBack={() => onSelectFeature(null)} />;
+    }
+    if (selectedFeature === 'Gallery Management') {
+      return <GalleryManagementPage onBack={() => onSelectFeature(null)} />;
     }
     if (selectedFeature === 'Profile') {
       return (

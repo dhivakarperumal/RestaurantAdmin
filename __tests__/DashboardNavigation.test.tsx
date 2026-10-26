@@ -168,6 +168,76 @@ test('opens banner management from the More tab', async () => {
   expect(renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' })).toBeTruthy();
 });
 
+test('opens Gallery Management below Banner Management and creates an album', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/gallery/next-id') {
+      return Promise.resolve({ data: { data: 'GAL004' } });
+    }
+    if (path === '/gallery') {
+      return Promise.resolve({
+        data: {
+          success: true,
+          data: [
+            {
+              album_id: 'GAL003',
+              title: 'Summer collection',
+              category: 'Photo Frames',
+              status: 'Active',
+              cover_image: '/uploads/summer.jpg',
+              photos: ['/uploads/photo-one.jpg'],
+              photo_count: 1,
+            },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+
+  const moreScreen = JSON.stringify(renderer.toJSON());
+  expect(moreScreen.indexOf('Banner Management')).toBeLessThan(
+    moreScreen.indexOf('Gallery Management'),
+  );
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Gallery Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'View gallery album Summer collection',
+    }),
+  ).toBeTruthy();
+  expect(get).toHaveBeenCalledWith('/gallery');
+
+  await press(renderer, 'Add gallery album');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Album title' }).props.onChangeText('New collection');
+    renderer.root
+      .findByProps({ placeholder: 'e.g. Photo Frames' })
+      .props.onChangeText('Canvas Prints');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create album' }).props.onPress();
+  });
+
+  expect(get).toHaveBeenCalledWith('/gallery/next-id');
+  expect(api.post).toHaveBeenCalledWith(
+    '/gallery',
+    expect.objectContaining({
+      album_id: 'GAL004',
+      title: 'New collection',
+      category: 'Canvas Prints',
+    }),
+  );
+});
+
 test('shows full-width sidebar navigation with icons and labels in the same row', async () => {
   const renderer = await renderDashboard();
 
