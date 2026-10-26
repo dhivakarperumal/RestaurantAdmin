@@ -101,6 +101,20 @@ type ApiUser = {
   role?: string;
 };
 
+type ApiEmployee = {
+  employee_id?: string | number;
+  full_name?: string;
+  employee_type?: string;
+  email?: string;
+  phone_number?: string;
+  status?: string;
+  current_status?: string;
+  available_for_delivery?: boolean | string | number;
+  today_shift_state?: string;
+  today_check_in?: string;
+  today_check_out?: string;
+};
+
 type ApiCatalogItem = {
   food_id?: string | number;
   product_name?: string;
@@ -2058,16 +2072,74 @@ function OrdersPage({
 }
 
 function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
-  const employees = [
-    { name: 'Maya Carter', role: 'Manager', email: 'maya@buyfood.com', phone: '+1 555 0148', shift: '08:00 - 17:00', status: 'On duty', hours: '8h' },
-    { name: 'Daniel Brooks', role: 'Chef', email: 'daniel@buyfood.com', phone: '+1 555 0151', shift: '10:00 - 19:00', status: 'On duty', hours: '9h' },
-    { name: 'Aisha Khan', role: 'Cashier', email: 'aisha@buyfood.com', phone: '+1 555 0162', shift: '09:00 - 18:00', status: 'Break', hours: '8h' },
-    { name: 'Lucas Reed', role: 'Support', email: 'lucas@buyfood.com', phone: '+1 555 0174', shift: '12:00 - 21:00', status: 'Off shift', hours: '0h' },
-  ];
+  const [employees, setEmployees] = useState<ApiEmployee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive' | 'Working' | 'Break' | 'Off shift'>('All');
+
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+
+    const loadEmployees = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        const response = await api.get('/employees', { signal: controller.signal });
+        const rows = readResponseRows<ApiEmployee>(response.data as ApiListResponse<ApiEmployee>);
+        if (isActive) {
+          setEmployees(rows);
+        }
+      } catch (apiError) {
+        if (isActive) {
+          setError(getErrorMessage(apiError));
+          setEmployees([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadEmployees();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, []);
+
+  const normalizeEmployeeStatus = (employee: ApiEmployee) => {
+    const status = String(employee.current_status || employee.status || '').trim();
+    if (status && !['Active', 'Inactive'].includes(status)) {
+      return status;
+    }
+    return employee.status || 'Active';
+  };
+
+  const filteredEmployees = employees.filter(employee => {
+    const searchValue = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      !searchValue ||
+      String(employee.full_name || '').toLowerCase().includes(searchValue) ||
+      String(employee.employee_type || '').toLowerCase().includes(searchValue) ||
+      String(employee.email || '').toLowerCase().includes(searchValue) ||
+      String(employee.phone_number || '').toLowerCase().includes(searchValue);
+
+    const matchesStatus =
+      statusFilter === 'All' ||
+      normalizeEmployeeStatus(employee).toLowerCase() === statusFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus;
+  });
 
   const total = employees.length;
-  const onDutyCount = employees.filter(employee => employee.status === 'On duty').length;
-  const filteredEmployees = employees;
+  const onDutyCount = employees.filter(employee => {
+    const normalized = normalizeEmployeeStatus(employee).toLowerCase();
+    return normalized === 'working' || normalized === 'on duty' || normalized === 'available';
+  }).length;
 
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
@@ -2078,7 +2150,7 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
       <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
         <StatCard
           label="Total Staff"
-          value={String(total)}
+          value={isLoading && !employees.length ? '—' : String(total)}
           detail="scheduled team members"
           badge="TEAM"
           tone="blue"
@@ -2087,7 +2159,7 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
         />
         <StatCard
           label="On Duty"
-          value={String(onDutyCount)}
+          value={isLoading && !employees.length ? '—' : String(onDutyCount)}
           detail="available now"
           badge="LIVE"
           tone="green"
@@ -2096,7 +2168,7 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
         />
         <StatCard
           label="Shift Hours"
-          value="42h"
+          value={isLoading && !employees.length ? '—' : '42h'}
           detail="today’s coverage"
           badge="PLAN"
           tone="purple"
@@ -2109,15 +2181,21 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
         <View className="flex-row flex-wrap items-center gap-2.5">
           <View className="min-w-[180px] flex-1 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5">
             <Text className="text-[11px] font-semibold text-[#6B7280]">Search employee</Text>
-            <Text className="mt-1 text-[13px] text-[#012711]">Name, role, email</Text>
-          </View>
-          <View className="min-w-[140px] rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5">
-            <Text className="text-[11px] font-semibold text-[#6B7280]">Department</Text>
-            <Text className="mt-1 text-[13px] text-[#012711]">All teams</Text>
+            <TextInput
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              placeholder="Name, role, email"
+              placeholderTextColor={colors.textSecondary}
+              className="mt-1 text-[13px] text-[#012711]"
+            />
           </View>
           <View className="min-w-[140px] rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5">
             <Text className="text-[11px] font-semibold text-[#6B7280]">Status</Text>
-            <Text className="mt-1 text-[13px] text-[#012711]">All</Text>
+            <TextInput
+              value={statusFilter}
+              editable={false}
+              className="mt-1 text-[13px] text-[#012711]"
+            />
           </View>
           <Pressable
             accessibilityLabel="Add new employee"
@@ -2127,61 +2205,108 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
             <Text className="text-[12px] font-semibold text-white">+ Add employee</Text>
           </Pressable>
         </View>
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          {(['All', 'Active', 'Inactive', 'Working'] as const).map(filter => (
+            <Pressable
+              accessibilityRole="button"
+              key={filter}
+              onPress={() => setStatusFilter(filter)}
+              className={`rounded-full border px-3 py-1.5 ${
+                statusFilter === filter
+                  ? 'border-[#116C0B] bg-[#116C0B]'
+                  : 'border-[#E5E7EB] bg-[#F9FAFB]'
+              }`}
+            >
+              <Text
+                className={`text-[11px] font-semibold ${
+                  statusFilter === filter ? 'text-white' : 'text-[#6B7280]'
+                }`}
+              >
+                {filter}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
+
+      {error ? (
+        <View className="mt-5 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
+          <Text className="text-[13px] font-medium text-[#991B1B]">{error}</Text>
+        </View>
+      ) : null}
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
         <Text className="text-base font-bold text-[#012711]">Team roster</Text>
         <Text className="text-[11px] text-[#6B7280]">{filteredEmployees.length} employees</Text>
       </View>
 
-      <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
-        {filteredEmployees.map(employee => (
-          <View
-            key={employee.name}
-            className="flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3"
-          >
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-[#E0F2FE]">
-              <Text className="text-sm font-bold text-[#0F172A]">
-                {employee.name
-                  .split(' ')
-                  .map(part => part[0])
-                  .slice(0, 2)
-                  .join('')}
-              </Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-[#012711]">{employee.name}</Text>
-              <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">{employee.role} • {employee.shift}</Text>
-              <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">{employee.email}</Text>
-            </View>
-            <View className="items-end">
-              <Text
-                className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                  employee.status === 'On duty'
-                    ? 'bg-[#DCFCE7] text-[#166534]'
-                    : employee.status === 'Break'
-                      ? 'bg-[#FEF3C7] text-[#92400E]'
-                      : 'bg-[#F3F4F6] text-[#4B5563]'
-                }`}
+      {isLoading && !employees.length ? (
+        <View className="min-h-[120px] items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+          <ActivityIndicator color={colors.primary} />
+          <Text className="text-[13px] text-[#6B7280]">Loading employees…</Text>
+        </View>
+      ) : filteredEmployees.length ? (
+        <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
+          {filteredEmployees.map(employee => {
+            const employeeStatus = normalizeEmployeeStatus(employee);
+            const statusClass =
+              employeeStatus.toLowerCase() === 'working' || employeeStatus.toLowerCase() === 'on duty' || employeeStatus.toLowerCase() === 'available'
+                ? 'bg-[#DCFCE7] text-[#166534]'
+                : employeeStatus.toLowerCase() === 'break'
+                  ? 'bg-[#FEF3C7] text-[#92400E]'
+                  : 'bg-[#F3F4F6] text-[#4B5563]';
+            const initials = String(employee.full_name || 'E')
+              .split(' ')
+              .map(part => part[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase();
+
+            return (
+              <View
+                key={String(employee.employee_id || employee.full_name || initials)}
+                className="flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3"
               >
-                {employee.status}
-              </Text>
-              <Text className="mt-2 text-[10px] font-medium text-[#6B7280]">{employee.hours}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-[#E0F2FE]">
+                  <Text className="text-sm font-bold text-[#0F172A]">{initials}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-[#012711]">{employee.full_name || 'Employee'}</Text>
+                  <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">
+                    {employee.employee_type || 'Staff'} • {employee.current_status || employee.status || 'Active'}
+                  </Text>
+                  <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">{employee.email || employee.phone_number || 'No contact added'}</Text>
+                </View>
+                <View className="items-end">
+                  <Text className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}>
+                    {employeeStatus}
+                  </Text>
+                  <Text className="mt-2 text-[10px] font-medium text-[#6B7280]">
+                    {employee.today_shift_state || employee.status || 'Active'}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View className="mt-1 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+          <Text className="text-[13px] text-[#6B7280]">
+            No employees match your current filter.
+          </Text>
+        </View>
+      )}
 
       <View className="mt-7 rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
         <Text className="text-base font-bold text-[#012711]">Contact directory</Text>
         <View className="mt-4 gap-3">
-          {employees.map(employee => (
-            <View key={`${employee.name}-contact`} className="flex-row items-center justify-between border-b border-[#E5E7EB] pb-2.5">
+          {employees.slice(0, 4).map(employee => (
+            <View key={`${employee.employee_id || employee.full_name}-contact`} className="flex-row items-center justify-between border-b border-[#E5E7EB] pb-2.5">
               <View>
-                <Text className="text-sm font-semibold text-[#012711]">{employee.name}</Text>
-                <Text className="text-[11px] text-[#6B7280]">{employee.role}</Text>
+                <Text className="text-sm font-semibold text-[#012711]">{employee.full_name || 'Employee'}</Text>
+                <Text className="text-[11px] text-[#6B7280]">{employee.employee_type || 'Staff'}</Text>
               </View>
-              <Text className="text-[11px] text-[#6B7280]">{employee.phone}</Text>
+              <Text className="text-[11px] text-[#6B7280]">{employee.phone_number || employee.email || '—'}</Text>
             </View>
           ))}
         </View>
