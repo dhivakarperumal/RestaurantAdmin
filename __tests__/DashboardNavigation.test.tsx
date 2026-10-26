@@ -636,4 +636,129 @@ test('shows employees returned in the backend employees response property', asyn
   const output = JSON.stringify(renderer.toJSON());
   expect(output).toContain('Jordan Lee');
   expect(output).toContain('Server');
-});
+}, 15000);
+
+test('creates an employee from the employee form', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation(() => Promise.resolve({ data: { employees: [] } }));
+  const post = api.post as jest.Mock;
+  const renderer = await renderDashboard();
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await press(renderer, 'Add new employee');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ accessibilityLabel: 'Full name' }).props.onChangeText('Taylor Morgan');
+    renderer.root.findByProps({ accessibilityLabel: 'Phone number' }).props.onChangeText('9876543210');
+    renderer.root.findByProps({ accessibilityLabel: 'Email' }).props.onChangeText('taylor@example.com');
+    renderer.root.findByProps({ accessibilityLabel: 'Street address' }).props.onChangeText('10 Main Street');
+    renderer.root.findByProps({ accessibilityLabel: 'Area / locality' }).props.onChangeText('Anna Nagar');
+    renderer.root.findByProps({ accessibilityLabel: 'City' }).props.onChangeText('Chennai');
+    renderer.root.findByProps({ accessibilityLabel: 'District' }).props.onChangeText('Chennai');
+    renderer.root.findByProps({ accessibilityLabel: 'State' }).props.onChangeText('Tamil Nadu');
+    renderer.root.findByProps({ accessibilityLabel: 'Pincode' }).props.onChangeText('600001');
+    renderer.root.findByProps({ accessibilityLabel: 'Basic salary' }).props.onChangeText('25000');
+    renderer.root.findByProps({ accessibilityLabel: 'Password' }).props.onChangeText('secure-pass');
+    renderer.root.findByProps({ accessibilityLabel: 'Confirm password' }).props.onChangeText('secure-pass');
+  });
+  await press(renderer, 'Cuisine type: South Indian');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Create employee' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(post).toHaveBeenCalledWith(
+    '/employees',
+    expect.anything(),
+    expect.objectContaining({
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  );
+}, 15000);
+
+test('loads employee details and submits edits to the employee endpoint', async () => {
+  const get = api.get as jest.Mock;
+  const employee = {
+    employee_id: 37,
+    full_name: 'Casey Rivers',
+    employee_type: 'Server',
+    email: 'casey@example.com',
+    phone_number: '9876543210',
+    status: 'Active',
+    address: '10 Main Street',
+    area_locality: 'Anna Nagar',
+    city: 'Chennai',
+    district: 'Chennai',
+    state: 'Tamil Nadu',
+    pincode: '600001',
+    basic_salary: 25000,
+  };
+  get.mockImplementation((path: string) => {
+    if (path === '/employees') {
+      return Promise.resolve({ data: { employees: [employee] } });
+    }
+    if (path === '/employees/37') {
+      return Promise.resolve({ data: { employee } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  const put = api.put as jest.Mock;
+  const renderer = await renderDashboard();
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await ReactTestRenderer.act(async () => {
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Edit employee Casey Rivers' })
+      .props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Full name' }).props.value,
+  ).toBe('Casey Rivers');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Save employee changes' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(put).toHaveBeenCalledWith(
+    '/employees/37',
+    expect.anything(),
+    expect.objectContaining({
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  );
+}, 15000);
+
+test('shows and hides employee passwords independently', async () => {
+  const renderer = await renderDashboard();
+  await press(renderer, 'Employees');
+  await ReactTestRenderer.act(async () => {
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await press(renderer, 'Add new employee');
+
+  const passwordField = renderer.root.findByProps({ accessibilityLabel: 'Password' });
+  const confirmPasswordField = renderer.root.findByProps({
+    accessibilityLabel: 'Confirm password',
+  });
+  expect(passwordField.props.secureTextEntry).toBe(true);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(true);
+
+  await press(renderer, 'Show password');
+  expect(passwordField.props.secureTextEntry).toBe(false);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(true);
+
+  await press(renderer, 'Show confirm password');
+  expect(passwordField.props.secureTextEntry).toBe(false);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(false);
+
+  await press(renderer, 'Hide password');
+  await press(renderer, 'Hide confirm password');
+  expect(passwordField.props.secureTextEntry).toBe(true);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(true);
+}, 15000);
