@@ -10,7 +10,10 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import colors from '../theme/colors';
 import {
@@ -30,8 +33,10 @@ import {
 import TopHeader, { type HeaderUser } from './TopHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
 import FloatingActionMenu from './FloatingActionMenu';
+import AddCategoryIcon from './AddCategoryIcon';
 import Bills, { type BillFood } from '../Tabs/Bills';
 import Items from '../Tabs/Items';
+import CategoriesScreen from '../Screens/Categories';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -304,36 +309,115 @@ const dashboardPeriods: { value: DashboardDateFilter; label: string }[] = [
 ];
 
 const moreFeatures = [
-  { title: 'Customers', subtitle: 'Customer list and details', icon: CustomersIcon, action: 'customer' as QuickActionId },
-  { title: 'Products & Inventory', subtitle: 'Products, prices, and stock', icon: ProductIcon, action: 'product' as QuickActionId },
-  { title: 'Suppliers & Purchases', subtitle: 'Supplier records and purchases', icon: MenuIcon, action: 'purchase' as QuickActionId },
-  { title: 'Payments & Expenses', subtitle: 'Track money in and out', icon: PaymentIcon, action: 'payment' as QuickActionId },
-  { title: 'Returns & Refunds', subtitle: 'Manage returned items and refunds', icon: ReceiptIcon },
-  { title: 'Pending Payments', subtitle: 'Review outstanding balances', icon: PaymentIcon },
-  { title: 'Reports & Analytics', subtitle: 'Business performance overview', icon: ChartIcon },
-  { title: 'Sales Reports', subtitle: 'Review sales over time', icon: ChartIcon },
-  { title: 'Profit & Revenue', subtitle: 'Revenue and profitability summary', icon: ChartIcon },
-  { title: 'Offers & Discounts', subtitle: 'Manage promotional offers', icon: ReceiptIcon },
-  { title: 'Staff & Employees', subtitle: 'Manage your team', icon: CustomersIcon },
-  { title: 'Branch Management', subtitle: 'Manage restaurant locations', icon: MenuIcon },
-  { title: 'Barcode Scanner', subtitle: 'Scan or look up products', icon: ProductIcon },
-  { title: 'Tax & GST Reports', subtitle: 'Review tax summaries', icon: ReceiptIcon },
+  {
+    title: 'Categories',
+    subtitle: 'Manage product categories',
+    icon: AddCategoryIcon,
+  },
+  {
+    title: 'Customers',
+    subtitle: 'Customer list and details',
+    icon: CustomersIcon,
+    action: 'customer' as QuickActionId,
+  },
+  {
+    title: 'Products & Inventory',
+    subtitle: 'Products, prices, and stock',
+    icon: ProductIcon,
+    action: 'product' as QuickActionId,
+  },
+  {
+    title: 'Suppliers & Purchases',
+    subtitle: 'Supplier records and purchases',
+    icon: MenuIcon,
+    action: 'purchase' as QuickActionId,
+  },
+  {
+    title: 'Payments & Expenses',
+    subtitle: 'Track money in and out',
+    icon: PaymentIcon,
+    action: 'payment' as QuickActionId,
+  },
+  {
+    title: 'Returns & Refunds',
+    subtitle: 'Manage returned items and refunds',
+    icon: ReceiptIcon,
+  },
+  {
+    title: 'Pending Payments',
+    subtitle: 'Review outstanding balances',
+    icon: PaymentIcon,
+  },
+  {
+    title: 'Reports & Analytics',
+    subtitle: 'Business performance overview',
+    icon: ChartIcon,
+  },
+  {
+    title: 'Sales Reports',
+    subtitle: 'Review sales over time',
+    icon: ChartIcon,
+  },
+  {
+    title: 'Profit & Revenue',
+    subtitle: 'Revenue and profitability summary',
+    icon: ChartIcon,
+  },
+  {
+    title: 'Offers & Discounts',
+    subtitle: 'Manage promotional offers',
+    icon: ReceiptIcon,
+  },
+  {
+    title: 'Staff & Employees',
+    subtitle: 'Manage your team',
+    icon: CustomersIcon,
+  },
+  {
+    title: 'Branch Management',
+    subtitle: 'Manage restaurant locations',
+    icon: MenuIcon,
+  },
+  {
+    title: 'Barcode Scanner',
+    subtitle: 'Scan or look up products',
+    icon: ProductIcon,
+  },
+  {
+    title: 'Tax & GST Reports',
+    subtitle: 'Review tax summaries',
+    icon: ReceiptIcon,
+  },
   { title: 'Notifications', subtitle: 'Review recent updates', icon: BellIcon },
-  { title: 'Backup & Restore', subtitle: 'Manage business data backups', icon: MenuIcon },
-  { title: 'Help & Support', subtitle: 'Get help with your account', icon: ProfileIcon },
+  {
+    title: 'Backup & Restore',
+    subtitle: 'Manage business data backups',
+    icon: MenuIcon,
+  },
+  {
+    title: 'Help & Support',
+    subtitle: 'Get help with your account',
+    icon: ProfileIcon,
+  },
   { title: 'Settings', subtitle: 'Manage app preferences', icon: MenuIcon },
 ];
 
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<AppTab>('home');
   const [itemsAddRequest, setItemsAddRequest] =
     useState<ItemsAddRequest | null>(null);
+  const [categoriesAddRequestId, setCategoriesAddRequestId] = useState<
+    number | null
+  >(null);
   const nextItemsAddRequestId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isFoodDetailsOpen, setIsFoodDetailsOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(null);
+  const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(
+    null,
+  );
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [billingItems, setBillingItems] = useState<BillingLineItem[]>([]);
   const [records, setRecords] = useState<LocalRecord[]>([]);
@@ -417,10 +501,11 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               );
               break;
             case 'kitchenOrders':
-              nextData.kitchenOrders = readResponsePropertyRows<ApiKitchenTicket>(
-                result.value.data,
-                'orders',
-              );
+              nextData.kitchenOrders =
+                readResponsePropertyRows<ApiKitchenTicket>(
+                  result.value.data,
+                  'orders',
+                );
               break;
             case 'users':
               nextData.users = readResponseRows<ApiUser>(
@@ -456,7 +541,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       if (failedEndpoints.length) {
         const failedNames = failedEndpoints.join(', ');
         const firstError = results.find(
-          (result): result is PromiseRejectedResult => result.status === 'rejected',
+          (result): result is PromiseRejectedResult =>
+            result.status === 'rejected',
         )?.reason;
         setDashboardError(
           `Could not load ${failedNames}. ${getErrorMessage(firstError)}`,
@@ -489,7 +575,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         ? { startDate: customFrom, endDate: customTo }
         : {}),
     };
-    const trend = dateFilter === 'year' || dateFilter === 'lastYear' ? 'year' : 'month';
+    const trend =
+      dateFilter === 'year' || dateFilter === 'lastYear' ? 'year' : 'month';
 
     Promise.allSettled([
       api.get('/revenue/summary', { params, signal: controller.signal }),
@@ -559,6 +646,17 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   };
 
   const openItemsAddForm = (action: ItemsAddRequest['action']) => {
+    if (action === 'category') {
+      nextItemsAddRequestId.current += 1;
+      setCategoriesAddRequestId(nextItemsAddRequestId.current);
+      setActiveTab('more');
+      setIsFoodDetailsOpen(false);
+      setSelectedAction(null);
+      setSelectedFeature('Categories');
+      setIsSidebarOpen(false);
+      setIsNotificationsOpen(false);
+      return;
+    }
     nextItemsAddRequestId.current += 1;
     setItemsAddRequest({
       id: nextItemsAddRequestId.current,
@@ -569,6 +667,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const handleItemsAddRequestHandled = (id: number) => {
     setItemsAddRequest(current => (current?.id === id ? null : current));
+  };
+
+  const handleCategoriesAddRequestHandled = (id: number) => {
+    setCategoriesAddRequestId(current => (current === id ? null : current));
   };
 
   const handleSaveAction = (name: string, amount?: number) => {
@@ -600,10 +702,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         selectedAction === 'customer'
           ? 'Customers'
           : selectedAction === 'product' || selectedAction === 'stock'
-            ? 'Products & Inventory'
-            : selectedAction === 'purchase'
-              ? 'Suppliers & Purchases'
-              : 'Payments & Expenses',
+          ? 'Products & Inventory'
+          : selectedAction === 'purchase'
+          ? 'Suppliers & Purchases'
+          : 'Payments & Expenses',
       );
     }
   };
@@ -629,7 +731,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       return;
     }
     setBillingItems(current =>
-      current.map(item => item.id === itemId ? { ...item, quantity } : item),
+      current.map(item => (item.id === itemId ? { ...item, quantity } : item)),
     );
   };
 
@@ -638,7 +740,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   };
 
   const createInvoiceFromBillingItems = () => {
-    if (!billingItems.length || billingItems.some(item => item.amount === null)) {
+    if (
+      !billingItems.length ||
+      billingItems.some(item => item.amount === null)
+    ) {
       return;
     }
     const total = billingItems.reduce(
@@ -649,7 +754,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       {
         id: Date.now(),
         action: 'invoice',
-        name: `Food billing - ${billingItems.length} ${billingItems.length === 1 ? 'item' : 'items'}`,
+        name: `Food billing - ${billingItems.length} ${
+          billingItems.length === 1 ? 'item' : 'items'
+        }`,
         amount: total,
         createdAt: new Date().toLocaleTimeString([], {
           hour: 'numeric',
@@ -692,7 +799,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   );
   return (
     <SafeAreaView
-      edges={['top', 'bottom']}
+      edges={isFoodDetailsOpen ? ['top', 'bottom'] : []}
       className="flex-1 bg-[#F9FAFB]"
     >
       {!isFoodDetailsOpen ? (
@@ -734,7 +841,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               records={records}
               dashboardData={dashboardData}
               dashboardReport={dashboardReport}
-              dashboardError={[dashboardError, reportError].filter(Boolean).join(' ')}
+              dashboardError={[dashboardError, reportError]
+                .filter(Boolean)
+                .join(' ')}
               isDashboardLoading={isDashboardLoading}
               isReportLoading={isReportLoading}
               dateFilter={dateFilter}
@@ -747,6 +856,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               userName={userName}
               itemsAddRequest={itemsAddRequest}
               onItemsAddRequestHandled={handleItemsAddRequestHandled}
+              categoriesAddRequestId={categoriesAddRequestId}
+              onCategoriesAddRequestHandled={handleCategoriesAddRequestHandled}
               onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
@@ -785,7 +896,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             records={records}
             dashboardData={dashboardData}
             dashboardReport={dashboardReport}
-            dashboardError={[dashboardError, reportError].filter(Boolean).join(' ')}
+            dashboardError={[dashboardError, reportError]
+              .filter(Boolean)
+              .join(' ')}
             isDashboardLoading={isDashboardLoading}
             isReportLoading={isReportLoading}
             dateFilter={dateFilter}
@@ -798,6 +911,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             userName={userName}
             itemsAddRequest={itemsAddRequest}
             onItemsAddRequestHandled={handleItemsAddRequestHandled}
+            categoriesAddRequestId={categoriesAddRequestId}
+            onCategoriesAddRequestHandled={handleCategoriesAddRequestHandled}
             onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
@@ -819,10 +934,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         </View>
       )}
 
-      <BottomNavigation
-        activeTab={activeTab}
-        onPressTab={navigateToTab}
-      />
+      <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       {!isWide && !isFoodDetailsOpen ? (
         <FloatingActionMenu
           onAddProduct={() => openItemsAddForm('product')}
@@ -840,7 +952,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           />
           <View
             className="absolute bottom-0 left-0 right-0 top-0 z-[1] w-full bg-white"
-            style={{ elevation: 12 }}
+            style={{ elevation: 12, paddingTop: insets.top }}
           >
             <Sidebar
               fullWidth
@@ -855,14 +967,19 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       ) : null}
 
       {isNotificationsOpen ? (
-        <View className="absolute bottom-0 left-0 right-0 top-[72px] z-[25]">
+        <View
+          className="absolute bottom-0 left-0 right-0 z-[25]"
+          style={{ top: insets.top + 70 }}
+        >
           <Pressable
             accessibilityLabel="Close notifications"
             onPress={() => setIsNotificationsOpen(false)}
             className="absolute bottom-0 left-0 right-0 top-0 bg-[#11182733]"
           />
           <View
-            className={`mt-2 w-[320px] max-w-[92%] self-end rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-xl ${width < 480 ? 'mx-3' : 'mx-6'}`}
+            className={`mt-2 w-[320px] max-w-[92%] self-end rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-xl ${
+              width < 480 ? 'mx-3' : 'mx-6'
+            }`}
             style={{ elevation: 10 }}
           >
             <View className="flex-row items-center gap-2.5">
@@ -913,12 +1030,9 @@ function getOrderDate(order: { order_date?: string; created_at?: string }) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function filterOrdersByPeriod<T extends { order_date?: string; created_at?: string }>(
-  orders: T[],
-  filter: DashboardDateFilter,
-  customFrom = '',
-  customTo = '',
-) {
+function filterOrdersByPeriod<
+  T extends { order_date?: string; created_at?: string },
+>(orders: T[], filter: DashboardDateFilter, customFrom = '', customTo = '') {
   if (filter === 'all') {
     return orders;
   }
@@ -992,11 +1106,7 @@ function isValidDateRange(from: string, to: string) {
   };
   const start = makeDate(from);
   const end = makeDate(to);
-  return (
-    start !== null &&
-    end !== null &&
-    end >= start
-  );
+  return start !== null && end !== null && end >= start;
 }
 
 function getDateFilterLabel(filter: DashboardDateFilter) {
@@ -1040,7 +1150,11 @@ function getItemStock(item: ApiCatalogItem) {
   if (variants.length) {
     let total = 0;
     for (const variant of variants) {
-      if (typeof variant !== 'object' || variant === null || !('stock' in variant)) {
+      if (
+        typeof variant !== 'object' ||
+        variant === null ||
+        !('stock' in variant)
+      ) {
         continue;
       }
       const stock = variant.stock;
@@ -1147,6 +1261,8 @@ function MainContent({
   userName,
   itemsAddRequest,
   onItemsAddRequestHandled,
+  categoriesAddRequestId,
+  onCategoriesAddRequestHandled,
   onFoodDetailsVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
@@ -1182,6 +1298,8 @@ function MainContent({
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
   onItemsAddRequestHandled: (id: number) => void;
+  categoriesAddRequestId: number | null;
+  onCategoriesAddRequestHandled: (id: number) => void;
   onFoodDetailsVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
@@ -1202,7 +1320,10 @@ function MainContent({
 }) {
   if (selectedAction) {
     return (
-      <PageShell title={selectedAction.label} subtitle={selectedAction.description}>
+      <PageShell
+        title={selectedAction.label}
+        subtitle={selectedAction.description}
+      >
         <Text className="text-sm text-[#6B7280]">
           Complete the form to add this item.
         </Text>
@@ -1211,14 +1332,27 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Categories') {
+      return (
+        <CategoriesScreen
+          addRequestId={categoriesAddRequestId}
+          onAddRequestHandled={onCategoriesAddRequestHandled}
+          onBack={() => onSelectFeature(null)}
+        />
+      );
+    }
     if (selectedFeature === 'Profile') {
       return (
         <PageShell title="Profile" subtitle="Your account details">
           <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
             <Avatar initial={userInitial} size={56} />
             <View className="flex-1">
-              <Text className="text-sm font-semibold text-[#012711]">{userName}</Text>
-              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{userEmail}</Text>
+              <Text className="text-sm font-semibold text-[#012711]">
+                {userName}
+              </Text>
+              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+                {userEmail}
+              </Text>
             </View>
           </View>
         </PageShell>
@@ -1238,8 +1372,8 @@ function MainContent({
             }
             accessibilityRole="button"
             onPress={() => onSelectAction(relatedAction)}
-              className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
-              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+            className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
             <PlusIcon color={colors.surface} size={18} />
             <Text className="text-[13px] font-bold text-white">
@@ -1254,7 +1388,10 @@ function MainContent({
               : 'Manage your account details and preferences.'}
           </Text>
         </View>
-        <TextButton label="Back to More" onPress={() => onSelectFeature(null)} />
+        <TextButton
+          label="Back to More"
+          onPress={() => onSelectFeature(null)}
+        />
       </PageShell>
     );
   }
@@ -1356,7 +1493,8 @@ function HomePage({
   onSetCustomTo: (date: string) => void;
 }) {
   const { width: screenWidth } = useWindowDimensions();
-  const summaryCardColumns = screenWidth >= 1100 ? 4 : screenWidth < 360 ? 1 : 2;
+  const summaryCardColumns =
+    screenWidth >= 1100 ? 4 : screenWidth < 360 ? 1 : 2;
   const summaryCardGap = screenWidth >= 1100 ? 16 : 12;
   const summaryContentWidth = Math.min(screenWidth, 1440) - 40;
   const summaryCardWidth =
@@ -1380,17 +1518,26 @@ function HomePage({
     filteredOrders
       .filter(order =>
         ['delivered', 'completed', 'served'].includes(
-          String(order.order_status || '').trim().toLowerCase(),
+          String(order.order_status || '')
+            .trim()
+            .toLowerCase(),
         ),
       )
       .reduce((total, order) => total + Number(order.total_amount || 0), 0) +
     filteredBills
-      .filter(bill => String(bill.status || '').trim().toLowerCase() === 'paid')
+      .filter(
+        bill =>
+          String(bill.status || '')
+            .trim()
+            .toLowerCase() === 'paid',
+      )
       .reduce((total, bill) => total + Number(bill.grand_total || 0), 0);
   const localRevenue = records
     .filter(record => record.action === 'invoice')
     .reduce((total, record) => total + (record.amount || 0), 0);
-  const sales = Number(report.summary?.totalRevenue ?? apiRevenue + localRevenue);
+  const sales = Number(
+    report.summary?.totalRevenue ?? apiRevenue + localRevenue,
+  );
   const localOrders = records.filter(record => record.action === 'order');
   const reportOrderCount = report.statuses.reduce(
     (total, status) => total + Number(status.count || 0),
@@ -1400,50 +1547,78 @@ function HomePage({
     (report.statuses.length
       ? reportOrderCount
       : filteredOrders.length + filteredBills.length) + localOrders.length;
-  const customerCount = apiData.users.filter(
-    user => ['user', 'customer'].includes(String(user.role || '').trim().toLowerCase()),
+  const customerCount = apiData.users.filter(user =>
+    ['user', 'customer'].includes(
+      String(user.role || '')
+        .trim()
+        .toLowerCase(),
+    ),
   ).length;
   const catalogItems = apiData.foods;
   const lowStockItems = catalogItems.filter(
     (item: ApiCatalogItem) => getItemStock(item) <= 15,
   );
-  const lowStockCount = Number(apiData.inventory.lowStock ?? lowStockItems.length);
+  const lowStockCount = Number(
+    apiData.inventory.lowStock ?? lowStockItems.length,
+  );
   const todayRevenue =
     todayOrders
       .filter(order =>
         ['delivered', 'completed', 'served'].includes(
-          String(order.order_status || '').trim().toLowerCase(),
+          String(order.order_status || '')
+            .trim()
+            .toLowerCase(),
         ),
       )
       .reduce((total, order) => total + Number(order.total_amount || 0), 0) +
     todayBills
-      .filter(bill => String(bill.status || '').trim().toLowerCase() === 'paid')
+      .filter(
+        bill =>
+          String(bill.status || '')
+            .trim()
+            .toLowerCase() === 'paid',
+      )
       .reduce((total, bill) => total + Number(bill.grand_total || 0), 0);
   const todayOrderCount = todayOrders.length + todayBills.length;
   const pendingOrderCount = report.statuses.length
     ? report.statuses
         .filter(status =>
           ['pending', 'placed', 'preparing', 'ready'].includes(
-            String(status.status || '').trim().toLowerCase(),
+            String(status.status || '')
+              .trim()
+              .toLowerCase(),
           ),
         )
         .reduce((total, status) => total + Number(status.count || 0), 0)
     : filteredOrders.filter(order =>
-        ['pending', 'placed', 'confirmed', 'preparing', 'processing', 'ready'].includes(
-          String(order.order_status || '').trim().toLowerCase(),
+        [
+          'pending',
+          'placed',
+          'confirmed',
+          'preparing',
+          'processing',
+          'ready',
+        ].includes(
+          String(order.order_status || '')
+            .trim()
+            .toLowerCase(),
         ),
       ).length;
   const completedOrderCount = report.statuses.length
     ? report.statuses
         .filter(status =>
           ['delivered', 'completed', 'served'].includes(
-            String(status.status || '').trim().toLowerCase(),
+            String(status.status || '')
+              .trim()
+              .toLowerCase(),
           ),
         )
         .reduce((total, status) => total + Number(status.count || 0), 0)
     : filteredOrders.filter(order =>
         ['delivered', 'completed', 'served'].includes(
-          String(order.order_status || '').trim().toLowerCase(),
+          String(order.order_status || '')
+            .trim()
+            .toLowerCase(),
         ),
       ).length;
   const kitchenTicketsByBill = new Map<string, ApiKitchenTicket[]>();
@@ -1462,7 +1637,9 @@ function HomePage({
     { name: string; quantity: number; revenue: number }
   >();
   const addTopItem = (item: ApiOrderItem) => {
-    const id = String(item.food_id || item.food_name || item.product_name || 'item');
+    const id = String(
+      item.food_id || item.food_name || item.product_name || 'item',
+    );
     const name = item.food_name || item.product_name || 'Menu item';
     const quantity = Number(item.quantity || 0);
     const revenue = Number(
@@ -1474,16 +1651,21 @@ function HomePage({
     topItems.set(id, current);
   };
   filteredOrders
-    .filter(order => String(order.order_status || '').toLowerCase() === 'delivered')
+    .filter(
+      order => String(order.order_status || '').toLowerCase() === 'delivered',
+    )
     .forEach(order => (order.items || []).forEach(addTopItem));
   filteredBills
     .filter(bill => String(bill.status || '').toLowerCase() === 'paid')
     .forEach(bill => {
-      const tickets = kitchenTicketsByBill.get(String(bill.bill_id || '')) || [];
+      const tickets =
+        kitchenTicketsByBill.get(String(bill.bill_id || '')) || [];
       if (
         tickets.length &&
         tickets.every(ticket =>
-          ['served', 'delivered'].includes(String(ticket.status || '').toLowerCase()),
+          ['served', 'delivered'].includes(
+            String(ticket.status || '').toLowerCase(),
+          ),
         )
       ) {
         tickets.forEach(ticket => (ticket.items || []).forEach(addTopItem));
@@ -1509,36 +1691,44 @@ function HomePage({
     records.length > 0;
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">OVERVIEW</Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Good day, {userName}</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Here’s your restaurant at a glance.</Text>
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+        OVERVIEW
+      </Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+        Good day, {userName}
+      </Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+        Here’s your restaurant at a glance.
+      </Text>
 
       <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
-        <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Store performance</Text>
+        <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+          Store performance
+        </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-1.5">
-          {dashboardPeriods.map(({ value: filter, label }) => (
-            <Pressable
-              accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: dateFilter === filter }}
-              key={filter}
-              onPress={() => onSetDateFilter(filter)}
-              className={`rounded-2xl border px-2.5 py-[7px] ${
-                dateFilter === filter
-                  ? 'border-[#116C0B] bg-[#116C0B]'
-                  : 'border-[#E5E7EB] bg-white'
-              }`}
-            >
-              <Text
-                className={`text-[11px] font-semibold ${
-                  dateFilter === filter ? 'text-white' : 'text-[#6B7280]'
+            {dashboardPeriods.map(({ value: filter, label }) => (
+              <Pressable
+                accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: dateFilter === filter }}
+                key={filter}
+                onPress={() => onSetDateFilter(filter)}
+                className={`rounded-2xl border px-2.5 py-[7px] ${
+                  dateFilter === filter
+                    ? 'border-[#116C0B] bg-[#116C0B]'
+                    : 'border-[#E5E7EB] bg-white'
                 }`}
               >
-                {label}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  className={`text-[11px] font-semibold ${
+                    dateFilter === filter ? 'text-white' : 'text-[#6B7280]'
+                  }`}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
         </ScrollView>
       </View>
@@ -1574,9 +1764,7 @@ function HomePage({
             onPress={onRefresh}
             className="px-2 py-1.5"
           >
-            <Text className="text-xs font-bold text-[#116C0B]">
-              Retry
-            </Text>
+            <Text className="text-xs font-bold text-[#116C0B]">Retry</Text>
           </Pressable>
         </View>
       ) : null}
@@ -1665,8 +1853,12 @@ function HomePage({
       </View>
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
-        <Text className="text-base font-bold text-[#012711]">Sales overview</Text>
-        <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{getDateFilterLabel(dateFilter)}</Text>
+        <Text className="text-base font-bold text-[#012711]">
+          Sales overview
+        </Text>
+        <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+          {getDateFilterLabel(dateFilter)}
+        </Text>
       </View>
       {isReportLoading && !report.trend.length ? (
         <View className="min-h-[72px] items-center gap-1.5 rounded-2xl border border-[#E5E7EB] bg-white p-6">
@@ -1677,7 +1869,9 @@ function HomePage({
       )}
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
-        <Text className="text-base font-bold text-[#012711]">Recent orders</Text>
+        <Text className="text-base font-bold text-[#012711]">
+          Recent orders
+        </Text>
         <Pressable
           accessibilityLabel="Refresh dashboard"
           accessibilityRole="button"
@@ -1693,7 +1887,9 @@ function HomePage({
       {isLoading && !hasAnyData ? (
         <View className="min-h-[120px] items-center gap-1.5 rounded-2xl border border-[#E5E7EB] bg-white p-6">
           <ActivityIndicator color={colors.primary} />
-          <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Loading your store data…</Text>
+          <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+            Loading your store data…
+          </Text>
         </View>
       ) : recentApiOrders.length || localOrders.length ? (
         <>
@@ -1703,9 +1899,11 @@ function HomePage({
               order={order}
             />
           ))}
-          {localOrders.slice(0, Math.max(0, 5 - recentApiOrders.length)).map(record => (
-            <RecordRow key={`local-${record.id}`} record={record} />
-          ))}
+          {localOrders
+            .slice(0, Math.max(0, 5 - recentApiOrders.length))
+            .map(record => (
+              <RecordRow key={`local-${record.id}`} record={record} />
+            ))}
         </>
       ) : (
         <EmptyState
@@ -1728,7 +1926,9 @@ function HomePage({
       />
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
-        <Text className="text-base font-bold text-[#012711]">Top-selling items</Text>
+        <Text className="text-base font-bold text-[#012711]">
+          Top-selling items
+        </Text>
       </View>
       {topSellingItems.length ? (
         topSellingItems.map(item => (
@@ -1740,10 +1940,16 @@ function HomePage({
               <ProductIcon color={colors.primary} size={18} />
             </View>
             <View className="ml-3 flex-1">
-              <Text className="text-sm font-semibold text-[#012711]">{item.name}</Text>
-              <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{item.quantity} sold</Text>
+              <Text className="text-sm font-semibold text-[#012711]">
+                {item.name}
+              </Text>
+              <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+                {item.quantity} sold
+              </Text>
             </View>
-            <Text className="text-[13px] font-bold text-[#012711]">{formatCurrency(item.revenue)}</Text>
+            <Text className="text-[13px] font-bold text-[#012711]">
+              {formatCurrency(item.revenue)}
+            </Text>
           </View>
         ))
       ) : (
@@ -1757,7 +1963,9 @@ function HomePage({
       {apiData.categories.length ? (
         <>
           <View className="mb-3 mt-7 flex-row items-center justify-between">
-            <Text className="text-base font-bold text-[#012711]">Food categories</Text>
+            <Text className="text-base font-bold text-[#012711]">
+              Food categories
+            </Text>
           </View>
           <View className="mt-5 flex-row flex-wrap gap-3">
             {apiData.categories.slice(0, 8).map((category, index) => (
@@ -1769,7 +1977,9 @@ function HomePage({
                 <Text className="text-sm font-semibold text-[#012711]">
                   {category.category_name || 'Category'}
                 </Text>
-                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{category.status || 'Available'}</Text>
+                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+                  {category.status || 'Available'}
+                </Text>
               </View>
             ))}
           </View>
@@ -1779,28 +1989,34 @@ function HomePage({
       {lowStockCount > 0 ? (
         <>
           <View className="mb-3 mt-7 flex-row items-center justify-between">
-            <Text className="text-base font-bold text-[#012711]">Low stock alerts</Text>
-            <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{lowStockCount} items</Text>
+            <Text className="text-base font-bold text-[#012711]">
+              Low stock alerts
+            </Text>
+            <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+              {lowStockCount} items
+            </Text>
           </View>
           {lowStockItems.slice(0, 5).map((item: ApiCatalogItem, index) => (
-              <View
-                key={`${item.name || item.product_name || 'item'}-${index}`}
-                className="mb-2 flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
-              >
-                <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-                  <ProductIcon color={colors.warning} size={18} />
-                </View>
-                <View className="ml-3 flex-1">
-                  <Text className="text-sm font-semibold text-[#012711]">
-                    {item.food_name || item.product_name || item.name || 'Food'}
-                  </Text>
-                  <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">Stock is running low</Text>
-                </View>
-                <Text className="text-[13px] font-bold text-[#F59E0B]">
-                  {getItemStock(item)} left
+            <View
+              key={`${item.name || item.product_name || 'item'}-${index}`}
+              className="mb-2 flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
+            >
+              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
+                <ProductIcon color={colors.warning} size={18} />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-sm font-semibold text-[#012711]">
+                  {item.food_name || item.product_name || item.name || 'Food'}
+                </Text>
+                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+                  Stock is running low
                 </Text>
               </View>
-            ))}
+              <Text className="text-[13px] font-bold text-[#F59E0B]">
+                {getItemStock(item)} left
+              </Text>
+            </View>
+          ))}
         </>
       ) : null}
     </ScrollView>
@@ -1837,10 +2053,7 @@ function SalesOverview({
   });
   const days = trend.length
     ? trend.slice(-7).map((entry, index) => ({
-        label:
-          entry.label ||
-          entry.date ||
-          `Period ${index + 1}`,
+        label: entry.label || entry.date || `Period ${index + 1}`,
         value: Number(entry.revenue || 0),
       }))
     : fallbackDays;
@@ -1850,21 +2063,21 @@ function SalesOverview({
     <View className="rounded-2xl border border-[#E5E7EB] bg-white px-[18px] pb-[14px] pt-[18px]">
       <View className="h-[124px] flex-row justify-around">
         {days.map(day => (
-          <View
-            key={day.label}
-            className="flex-1 items-center justify-end"
-          >
+          <View key={day.label} className="flex-1 items-center justify-end">
             <View
-              accessibilityLabel={`${day.label} sales ${formatCurrency(day.value)}`}
+              accessibilityLabel={`${day.label} sales ${formatCurrency(
+                day.value,
+              )}`}
               className="w-[55%] max-w-6 rounded-[5px]"
               style={{
                 backgroundColor: day.value ? colors.primary : '#E5E7EB',
-                height: Math.max(day.value ? 8 : 4, (day.value / maxValue) * 88),
+                height: Math.max(
+                  day.value ? 8 : 4,
+                  (day.value / maxValue) * 88,
+                ),
               }}
             />
-            <Text className="mt-2 text-[10px] text-[#6B7280]">
-              {day.label}
-            </Text>
+            <Text className="mt-2 text-[10px] text-[#6B7280]">{day.label}</Text>
           </View>
         ))}
       </View>
@@ -1887,10 +2100,17 @@ function ApiOrderRow({ order }: { order: ApiOrder }) {
         <OrdersIcon color={colors.primary} size={18} />
       </View>
       <View className="flex-1">
-        <Text className="text-sm font-semibold text-[#012711]">{orderName}</Text>
+        <Text className="text-sm font-semibold text-[#012711]">
+          {orderName}
+        </Text>
         <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
           {order.customer_name || 'Customer'}
-          {date ? ` · ${date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` : ''}
+          {date
+            ? ` · ${date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+              })}`
+            : ''}
         </Text>
       </View>
       <View className="items-end gap-1.5">
@@ -1903,7 +2123,9 @@ function ApiOrderRow({ order }: { order: ApiOrder }) {
   );
 }
 
-function normalizeOrderStatus(status: string): NonNullable<LocalRecord['status']> {
+function normalizeOrderStatus(
+  status: string,
+): NonNullable<LocalRecord['status']> {
   const normalized = status.toLowerCase();
   if (['delivered', 'completed', 'shipped'].includes(normalized)) {
     return 'Completed';
@@ -1928,12 +2150,12 @@ function OrderStatusSummary({
         const color = ['delivered', 'served', 'completed'].includes(normalized)
           ? '#15803D'
           : ['cancelled', 'canceled'].includes(normalized)
-            ? colors.error
-            : ['pending', 'placed'].includes(normalized)
-              ? colors.warning
-              : ['ready', 'preparing', 'processing'].includes(normalized)
-                ? colors.info
-                : colors.textSecondary;
+          ? colors.error
+          : ['pending', 'placed'].includes(normalized)
+          ? colors.warning
+          : ['ready', 'preparing', 'processing'].includes(normalized)
+          ? colors.info
+          : colors.textSecondary;
         return { label: status, count: Number(entry.count || 0), color };
       })
     : [
@@ -1948,13 +2170,19 @@ function OrderStatusSummary({
       const status = (order.order_status || 'other').trim().toLowerCase();
       const category = ['delivered', 'completed'].includes(status)
         ? 'Delivered'
-        : ['processing', 'packing', 'ready', 'out for delivery', 'out_for_delivery'].includes(status)
-          ? 'Processing'
-          : status === 'shipped'
-            ? 'Shipped'
-            : ['cancelled', 'canceled'].includes(status)
-              ? 'Cancelled'
-              : 'Other';
+        : [
+            'processing',
+            'packing',
+            'ready',
+            'out for delivery',
+            'out_for_delivery',
+          ].includes(status)
+        ? 'Processing'
+        : status === 'shipped'
+        ? 'Shipped'
+        : ['cancelled', 'canceled'].includes(status)
+        ? 'Cancelled'
+        : 'Other';
       const entry = statuses.find(item => item.label === category);
       if (entry) {
         entry.count += 1;
@@ -1962,7 +2190,10 @@ function OrderStatusSummary({
     });
   }
   const total =
-    reportStatuses.reduce((sum, status) => sum + Number(status.count || 0), 0) ||
+    reportStatuses.reduce(
+      (sum, status) => sum + Number(status.count || 0),
+      0,
+    ) ||
     orders.length ||
     1;
   return (
@@ -1975,7 +2206,9 @@ function OrderStatusSummary({
                 className="h-2 w-2 rounded"
                 style={{ backgroundColor: status.color }}
               />
-              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{status.label}</Text>
+              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+                {status.label}
+              </Text>
             </View>
             <Text className="text-sm font-semibold text-[#012711]">
               {status.count} ({Math.round((status.count / total) * 100)}%)
@@ -2012,18 +2245,26 @@ function BillingPage({
   onCreateInvoice: () => void;
   onCreateInvoiceFromBillingItems: () => void;
 }) {
-  const billingHasUnpricedItems = billingItems.some(item => item.amount === null);
+  const billingHasUnpricedItems = billingItems.some(
+    item => item.amount === null,
+  );
   const billingTotal = billingItems.reduce(
     (total, item) => total + (item.amount ?? 0) * item.quantity,
     0,
   );
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">SALES</Text>
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+        SALES
+      </Text>
       <View className="mt-1 flex-row items-center gap-3">
         <View className="flex-1">
-          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Billing</Text>
-          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Create and review invoices.</Text>
+          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+            Billing
+          </Text>
+          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+            Create and review invoices.
+          </Text>
         </View>
         <Pressable
           accessibilityLabel="New invoice"
@@ -2039,15 +2280,24 @@ function BillingPage({
       {billingItems.length ? (
         <View className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-4">
           <View className="flex-row items-center justify-between">
-            <Text className="text-base font-bold text-[#012711]">Current bill</Text>
+            <Text className="text-base font-bold text-[#012711]">
+              Current bill
+            </Text>
             <Text className="text-sm font-semibold text-[#6B7280]">
-              {billingItems.length} {billingItems.length === 1 ? 'item' : 'items'}
+              {billingItems.length}{' '}
+              {billingItems.length === 1 ? 'item' : 'items'}
             </Text>
           </View>
           <View className="mt-3 gap-2">
             {billingItems.map(item => (
-              <View key={item.id} className="flex-row items-center justify-between gap-3">
-                <Text numberOfLines={1} className="flex-1 text-sm text-[#012711]">
+              <View
+                key={item.id}
+                className="flex-row items-center justify-between gap-3"
+              >
+                <Text
+                  numberOfLines={1}
+                  className="flex-1 text-sm text-[#012711]"
+                >
                   {item.name}
                 </Text>
                 <Text className="text-sm font-semibold text-[#012711]">
@@ -2085,8 +2335,12 @@ function BillingPage({
         </View>
       ) : null}
       <View className="mb-3 mt-7 flex-row items-center justify-between">
-        <Text className="text-base font-bold text-[#012711]">Invoice history</Text>
-        <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{invoices.length} total</Text>
+        <Text className="text-base font-bold text-[#012711]">
+          Invoice history
+        </Text>
+        <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+          {invoices.length} total
+        </Text>
       </View>
       {invoices.length ? (
         invoices.map(invoice => <RecordRow key={invoice.id} record={invoice} />)
@@ -2113,18 +2367,26 @@ function OrdersPage({
     status: NonNullable<LocalRecord['status']>,
   ) => void;
 }) {
-  const [filter, setFilter] = useState<'All' | 'Pending' | 'Completed' | 'Cancelled'>('All');
+  const [filter, setFilter] = useState<
+    'All' | 'Pending' | 'Completed' | 'Cancelled'
+  >('All');
   const [selectedOrder, setSelectedOrder] = useState<LocalRecord | null>(null);
   const filters = ['All', 'Pending', 'Completed', 'Cancelled'] as const;
   const filteredOrders =
     filter === 'All' ? orders : orders.filter(order => order.status === filter);
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">FULFILLMENT</Text>
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+        FULFILLMENT
+      </Text>
       <View className="mt-1 flex-row items-center gap-3">
         <View className="flex-1">
-          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Orders</Text>
-          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Keep track of every customer order.</Text>
+          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+            Orders
+          </Text>
+          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+            Keep track of every customer order.
+          </Text>
         </View>
         <Pressable
           accessibilityLabel="Add Order"
@@ -2179,7 +2441,9 @@ function OrdersPage({
       ) : (
         <EmptyState
           icon={OrdersIcon}
-          title={`No ${filter === 'All' ? '' : `${filter.toLowerCase()} `}orders`}
+          title={`No ${
+            filter === 'All' ? '' : `${filter.toLowerCase()} `
+          }orders`}
           description="Orders you add will show up here."
         />
       )}
@@ -2194,20 +2458,32 @@ function OrdersPage({
             edges={['bottom']}
             className="mt-auto rounded-t-3xl bg-white p-[22px]"
           >
-            <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">ORDER DETAILS</Text>
-            <Text className="mt-[5px] text-2xl font-bold text-[#012711]">{selectedOrder.name}</Text>
-            <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Created at {selectedOrder.createdAt}</Text>
+            <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+              ORDER DETAILS
+            </Text>
+            <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+              {selectedOrder.name}
+            </Text>
+            <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+              Created at {selectedOrder.createdAt}
+            </Text>
             <View className="mt-[18px] rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
-              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Order total</Text>
+              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+                Order total
+              </Text>
               <Text className="mt-1 text-2xl font-bold text-[#012711]">
                 {formatCurrency(selectedOrder.amount || 0)}
               </Text>
               <View className="mt-3.5 flex-row items-center gap-2">
-                <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">Status</Text>
+                <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+                  Status
+                </Text>
                 <StatusPill status={selectedOrder.status || 'Pending'} />
               </View>
             </View>
-            <Text className="mb-2 mt-[18px] text-[13px] font-semibold text-[#012711]">Update status</Text>
+            <Text className="mb-2 mt-[18px] text-[13px] font-semibold text-[#012711]">
+              Update status
+            </Text>
             <View className="flex-row flex-wrap gap-2">
               {(['Pending', 'Completed', 'Cancelled'] as const).map(status => (
                 <Pressable
@@ -2226,7 +2502,9 @@ function OrdersPage({
                 >
                   <Text
                     className={`text-[13px] font-semibold ${
-                      selectedOrder.status === status ? 'text-white' : 'text-[#6B7280]'
+                      selectedOrder.status === status
+                        ? 'text-white'
+                        : 'text-[#6B7280]'
                     }`}
                   >
                     {status}
@@ -2240,7 +2518,9 @@ function OrdersPage({
               onPress={() => setSelectedOrder(null)}
               className="items-center py-[18px]"
             >
-              <Text className="font-semibold text-[#116C0B]">Close details</Text>
+              <Text className="font-semibold text-[#116C0B]">
+                Close details
+              </Text>
             </Pressable>
           </SafeAreaView>
         ) : null}
@@ -2249,14 +2529,22 @@ function OrdersPage({
   );
 }
 
-function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => void }) {
+function MorePage({
+  onSelectFeature,
+}: {
+  onSelectFeature: (feature: string) => void;
+}) {
   const { width } = useWindowDimensions();
   const columns = width >= 700 ? 3 : width >= 420 ? 2 : 1;
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">TOOLS</Text>
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+        TOOLS
+      </Text>
       <Text className="mt-[5px] text-2xl font-bold text-[#012711]">More</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Everything you need to run your business.</Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+        Everything you need to run your business.
+      </Text>
       <View className="mt-[22px] flex-row flex-wrap gap-3">
         {moreFeatures.map(feature => {
           const Icon = feature.icon;
@@ -2277,8 +2565,12 @@ function MorePage({ onSelectFeature }: { onSelectFeature: (feature: string) => v
                 <Icon color={colors.primary} size={20} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#012711]">{feature.title}</Text>
-                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{feature.subtitle}</Text>
+                <Text className="text-sm font-semibold text-[#012711]">
+                  {feature.title}
+                </Text>
+                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+                  {feature.subtitle}
+                </Text>
               </View>
             </Pressable>
           );
@@ -2296,13 +2588,35 @@ function BottomNavigation({
   onPressTab: (tab: AppTab) => void;
 }) {
   const tabs: BottomBarTab<AppTab>[] = [
-    { key: 'home', label: 'Home', icon: color => <HomeIcon color={color} size={21} /> },
-    { key: 'items', label: 'Items', icon: color => <ProductIcon color={color} size={21} /> },
-    { key: 'add', label: 'Add', icon: color => <PlusIcon color={color} size={21} /> },
-    { key: 'orders', label: 'Orders', icon: color => <OrdersIcon color={color} size={21} /> },
-    { key: 'more', label: 'More', icon: color => <MoreIcon color={color} size={21} /> },
+    {
+      key: 'home',
+      label: 'Home',
+      icon: color => <HomeIcon color={color} size={21} />,
+    },
+    {
+      key: 'items',
+      label: 'Items',
+      icon: color => <ProductIcon color={color} size={21} />,
+    },
+    {
+      key: 'add',
+      label: 'Add',
+      icon: color => <PlusIcon color={color} size={21} />,
+    },
+    {
+      key: 'orders',
+      label: 'Orders',
+      icon: color => <OrdersIcon color={color} size={21} />,
+    },
+    {
+      key: 'more',
+      label: 'More',
+      icon: color => <MoreIcon color={color} size={21} />,
+    },
   ];
-  return <Bottombar tabs={tabs} activeTab={activeTab} onTabPress={onPressTab} />;
+  return (
+    <Bottombar tabs={tabs} activeTab={activeTab} onTabPress={onPressTab} />
+  );
 }
 
 function EntryForm({
@@ -2321,7 +2635,10 @@ function EntryForm({
   const needsAmount = Boolean(action.amountLabel);
   const canSave =
     name.trim().length > 0 &&
-    (!needsAmount || (amount.trim().length > 0 && Number.isFinite(amountValue) && amountValue >= 0));
+    (!needsAmount ||
+      (amount.trim().length > 0 &&
+        Number.isFinite(amountValue) &&
+        amountValue >= 0));
 
   return (
     <View className="flex-1 justify-end">
@@ -2339,14 +2656,24 @@ function EntryForm({
             <Icon color={colors.primary} size={21} />
           </View>
           <View className="flex-1">
-            <Text className="text-base font-bold text-[#012711]">{action.label}</Text>
-            <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{action.description}</Text>
+            <Text className="text-base font-bold text-[#012711]">
+              {action.label}
+            </Text>
+            <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+              {action.description}
+            </Text>
           </View>
-          <Pressable accessibilityLabel="Close form" onPress={onCancel} hitSlop={8}>
+          <Pressable
+            accessibilityLabel="Close form"
+            onPress={onCancel}
+            hitSlop={8}
+          >
             <Text className="text-2xl text-[#6B7280]">×</Text>
           </Pressable>
         </View>
-        <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">Name or description</Text>
+        <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">
+          Name or description
+        </Text>
         <TextInput
           autoFocus
           onChangeText={setName}
@@ -2357,7 +2684,9 @@ function EntryForm({
         />
         {action.amountLabel ? (
           <>
-            <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">{action.amountLabel}</Text>
+            <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">
+              {action.amountLabel}
+            </Text>
             <TextInput
               keyboardType="decimal-pad"
               onChangeText={value => setAmount(value.replace(',', '.'))}
@@ -2369,7 +2698,8 @@ function EntryForm({
           </>
         ) : null}
         <Text className="mt-3 text-[11px] leading-4 text-[#6B7280]">
-          This draft is saved in this session only. Connect your business data service to sync it.
+          This draft is saved in this session only. Connect your business data
+          service to sync it.
         </Text>
         <Pressable
           accessibilityLabel={`Save ${action.label}`}
@@ -2381,7 +2711,9 @@ function EntryForm({
             opacity: !canSave ? 0.45 : pressed ? 0.85 : 1,
           })}
         >
-          <Text className="text-[13px] font-bold text-white">Save {action.label.toLowerCase()}</Text>
+          <Text className="text-[13px] font-bold text-white">
+            Save {action.label.toLowerCase()}
+          </Text>
         </Pressable>
         <Pressable onPress={onCancel} className="items-center py-3.5">
           <Text className="text-sm text-[#6B7280]">Cancel</Text>
@@ -2402,7 +2734,9 @@ function Sidebar({
 }) {
   return (
     <View
-      className={`${fullWidth ? 'w-full' : 'w-64'} flex-1 border-r border-[#E5E7EB] bg-white px-4 py-5`}
+      className={`${
+        fullWidth ? 'w-full' : 'w-64'
+      } flex-1 border-r border-[#E5E7EB] bg-white px-4 py-5`}
     >
       <View className="mb-5 flex-row items-center justify-between gap-3">
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
@@ -2428,11 +2762,31 @@ function Sidebar({
       <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
         WORKSPACE
       </Text>
-      <TabButtonLarge icon={HomeIcon} label="Home" onPress={() => onNavigate('home')} />
-      <TabButtonLarge icon={ReceiptIcon} label="Billing" onPress={() => onNavigate('billing')} />
-      <TabButtonLarge icon={ProductIcon} label="Items" onPress={() => onNavigate('items')} />
-      <TabButtonLarge icon={OrdersIcon} label="Orders" onPress={() => onNavigate('orders')} />
-      <TabButtonLarge icon={MoreIcon} label="More" onPress={() => onNavigate('more')} />
+      <TabButtonLarge
+        icon={HomeIcon}
+        label="Home"
+        onPress={() => onNavigate('home')}
+      />
+      <TabButtonLarge
+        icon={ReceiptIcon}
+        label="Billing"
+        onPress={() => onNavigate('billing')}
+      />
+      <TabButtonLarge
+        icon={ProductIcon}
+        label="Items"
+        onPress={() => onNavigate('items')}
+      />
+      <TabButtonLarge
+        icon={OrdersIcon}
+        label="Orders"
+        onPress={() => onNavigate('orders')}
+      />
+      <TabButtonLarge
+        icon={MoreIcon}
+        label="More"
+        onPress={() => onNavigate('more')}
+      />
     </View>
   );
 }
@@ -2477,9 +2831,15 @@ function PageShell({
 }) {
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">WORKSPACE</Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">{title}</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">{subtitle}</Text>
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+        WORKSPACE
+      </Text>
+      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+        {title}
+      </Text>
+      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+        {subtitle}
+      </Text>
       <View className="mt-6 gap-3.5">{children}</View>
     </ScrollView>
   );
@@ -2498,7 +2858,15 @@ function StatCard({
   value: string;
   detail: string;
   badge: string;
-  tone: 'green' | 'blue' | 'orange' | 'purple' | 'cyan' | 'pink' | 'teal' | 'red';
+  tone:
+    | 'green'
+    | 'blue'
+    | 'orange'
+    | 'purple'
+    | 'cyan'
+    | 'pink'
+    | 'teal'
+    | 'red';
   width: number;
   icon: typeof ChartIcon;
 }) {
@@ -2515,11 +2883,18 @@ function StatCard({
         >
           <Icon color="#FFFFFF" size={20} />
         </View>
-        <Text numberOfLines={2} className="min-w-0 flex-1 text-right text-xs font-bold leading-4 text-white">
+        <Text
+          numberOfLines={2}
+          className="min-w-0 flex-1 text-right text-xs font-bold leading-4 text-white"
+        >
           {label}
         </Text>
       </View>
-      <Text adjustsFontSizeToFit numberOfLines={1} className="z-[1] mt-3 text-[25px] font-extrabold text-white">
+      <Text
+        adjustsFontSizeToFit
+        numberOfLines={1}
+        className="z-[1] mt-3 text-[25px] font-extrabold text-white"
+      >
         {value}
       </Text>
       <View className="z-[1] mt-3">
@@ -2530,7 +2905,10 @@ function StatCard({
           >
             {badge}
           </Text>
-          <Text numberOfLines={2} className="min-w-0 flex-1 text-[11px] font-semibold leading-4 text-white opacity-[0.88]">
+          <Text
+            numberOfLines={2}
+            className="min-w-0 flex-1 text-[11px] font-semibold leading-4 text-white opacity-[0.88]"
+          >
             {detail}
           </Text>
         </View>
@@ -2556,14 +2934,46 @@ function StatCard({
 }
 
 const statCardPalettes = {
-  green: { background: '#20C463', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
-  blue: { background: '#3B82F6', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
-  orange: { background: '#F59E0B', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
-  purple: { background: '#8B5CF6', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
-  cyan: { background: '#06B6D4', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
-  pink: { background: '#EC4899', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
-  teal: { background: '#14B8A6', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
-  red: { background: '#F43F5E', iconBackground: '#FFFFFF33', badgeBackground: '#FFFFFF33' },
+  green: {
+    background: '#20C463',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
+  blue: {
+    background: '#3B82F6',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
+  orange: {
+    background: '#F59E0B',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
+  purple: {
+    background: '#8B5CF6',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
+  cyan: {
+    background: '#06B6D4',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
+  pink: {
+    background: '#EC4899',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
+  teal: {
+    background: '#14B8A6',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
+  red: {
+    background: '#F43F5E',
+    iconBackground: '#FFFFFF33',
+    badgeBackground: '#FFFFFF33',
+  },
 } as const;
 
 function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
@@ -2572,7 +2982,10 @@ function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
       className="items-center justify-center rounded-full bg-[#EFF6FF]"
       style={{ height: size, width: size }}
     >
-      <Text className="font-bold text-[#116C0B]" style={{ fontSize: size * 0.38 }}>
+      <Text
+        className="font-bold text-[#116C0B]"
+        style={{ fontSize: size * 0.38 }}
+      >
         {initial}
       </Text>
     </View>
@@ -2580,15 +2993,21 @@ function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
 }
 
 function RecordRow({ record }: { record: LocalRecord }) {
-  const title = quickActions.find(action => action.id === record.action)?.label || 'Activity';
+  const title =
+    quickActions.find(action => action.id === record.action)?.label ||
+    'Activity';
   return (
     <View className="mb-2.5 flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
       <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
         <ReceiptIcon color={colors.primary} size={18} />
       </View>
       <View className="flex-1">
-        <Text className="text-sm font-semibold text-[#012711]">{record.name}</Text>
-        <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">{title} · {record.createdAt}</Text>
+        <Text className="text-sm font-semibold text-[#012711]">
+          {record.name}
+        </Text>
+        <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
+          {title} · {record.createdAt}
+        </Text>
       </View>
       {record.amount !== undefined ? (
         <Text className="text-sm font-bold text-[#012711]">
@@ -2600,12 +3019,31 @@ function RecordRow({ record }: { record: LocalRecord }) {
   );
 }
 
-function StatusPill({ status }: { status: NonNullable<LocalRecord['status']> }) {
-  const tint = status === 'Pending' ? '#B45309' : status === 'Completed' ? '#15803D' : colors.error;
-  const bg = status === 'Pending' ? '#FFFBEB' : status === 'Completed' ? '#F0FDF4' : '#FEF2F2';
+function StatusPill({
+  status,
+}: {
+  status: NonNullable<LocalRecord['status']>;
+}) {
+  const tint =
+    status === 'Pending'
+      ? '#B45309'
+      : status === 'Completed'
+      ? '#15803D'
+      : colors.error;
+  const bg =
+    status === 'Pending'
+      ? '#FFFBEB'
+      : status === 'Completed'
+      ? '#F0FDF4'
+      : '#FEF2F2';
   return (
-    <View className="rounded-[14px] px-[9px] py-[5px]" style={{ backgroundColor: bg }}>
-      <Text className="text-[11px] font-semibold" style={{ color: tint }}>{status}</Text>
+    <View
+      className="rounded-[14px] px-[9px] py-[5px]"
+      style={{ backgroundColor: bg }}
+    >
+      <Text className="text-[11px] font-semibold" style={{ color: tint }}>
+        {status}
+      </Text>
     </View>
   );
 }
@@ -2625,12 +3063,20 @@ function EmptyState({
         <Icon color={colors.primary} size={24} />
       </View>
       <Text className="text-sm font-semibold text-[#012711]">{title}</Text>
-      <Text className="mt-1 text-center text-[13px] leading-[19px] text-[#6B7280]">{description}</Text>
+      <Text className="mt-1 text-center text-[13px] leading-[19px] text-[#6B7280]">
+        {description}
+      </Text>
     </View>
   );
 }
 
-function TextButton({ label, onPress }: { label: string; onPress: () => void }) {
+function TextButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} className="py-3.5">
       <Text className="text-sm font-semibold text-[#116C0B]">{label}</Text>

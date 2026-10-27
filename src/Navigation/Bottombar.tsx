@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 
 export type BottomBarTab<Key extends string = string> = {
@@ -19,6 +20,8 @@ function Bottombar<Key extends string>({
   activeTab,
   onTabPress,
 }: BottombarProps<Key>) {
+  const insets = useSafeAreaInsets();
+
   return (
     <View
       accessibilityRole="tablist"
@@ -30,7 +33,9 @@ function Bottombar<Key extends string>({
         elevation: 12,
         flexDirection: 'row',
         justifyContent: 'space-around',
-        minHeight: 68,
+        minHeight: 62 + insets.bottom,
+        paddingBottom: Math.max(insets.bottom, 6),
+        paddingTop: 4,
         paddingHorizontal: 4,
         shadowColor: '#111827',
         shadowOffset: { width: 0, height: -3 },
@@ -56,7 +61,7 @@ function Bottombar<Key extends string>({
               flex: 1,
               gap: 4,
               justifyContent: 'center',
-              minHeight: 58,
+              minHeight: 54,
             })}
           >
             {typeof tab.icon === 'function' ? tab.icon(iconColor) : tab.icon}

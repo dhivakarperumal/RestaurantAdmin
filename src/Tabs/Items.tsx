@@ -1,14 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
   Modal,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import api, { API_BASE_URL } from '../../api';
 import { PlusIcon, ProductIcon } from '../Navigation/NavigationIcons';
 import AddFood from '../Screens/AddFood';
@@ -76,8 +86,13 @@ function readItems(payload: unknown): Item[] {
 }
 
 function getItemName(item: Item) {
-  return item.food_name?.trim() || item.product_name?.trim() ||
-    item.productName?.trim() || item.name?.trim() || 'Unnamed item';
+  return (
+    item.food_name?.trim() ||
+    item.product_name?.trim() ||
+    item.productName?.trim() ||
+    item.name?.trim() ||
+    'Unnamed item'
+  );
 }
 
 function getItemImage(value: unknown): string | undefined {
@@ -134,7 +149,7 @@ function ItemThumbnail({ name, uri }: { name: string; uri?: string }) {
 
   if (!uri || hasLoadError) {
     return (
-      <View className="h-16 w-16 items-center justify-center rounded-xl bg-[#F0F7EE]">
+      <View className="h-16 w-16 items-center justify-center rounded-xl bg-[#F0F7EE] border border-[#DCE8D8]">
         <ProductIcon color={colors.primary} size={25} />
       </View>
     );
@@ -145,7 +160,7 @@ function ItemThumbnail({ name, uri }: { name: string; uri?: string }) {
       accessibilityLabel={`${name} image`}
       onError={() => setHasLoadError(true)}
       source={{ uri }}
-      className="h-16 w-16 rounded-xl bg-[#F3F4F6]"
+      className="h-16 w-16 rounded-xl bg-[#F3F4F6] border border-[#E5E7EB]"
       resizeMode="cover"
     />
   );
@@ -180,6 +195,26 @@ function ItemSeparator() {
   return <View className="h-3" />;
 }
 
+function ItemSkeleton({ animOpacity }: { animOpacity: Animated.Value }) {
+  return (
+    <Animated.View
+      style={{ opacity: animOpacity }}
+      className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm"
+    >
+      <View className="h-16 w-16 rounded-xl bg-[#E5E7EB]" />
+      <View className="min-w-0 flex-1 gap-2">
+        <View className="h-4 w-3/4 rounded-md bg-[#E5E7EB]" />
+        <View className="h-3 w-1/2 rounded-md bg-[#F3F4F6]" />
+        <View className="h-3 w-1/3 rounded-md bg-[#F3F4F6]" />
+      </View>
+      <View className="items-end gap-2">
+        <View className="h-4 w-14 rounded-md bg-[#E5E7EB]" />
+        <View className="h-5 w-16 rounded-full bg-[#F3F4F6]" />
+      </View>
+    </Animated.View>
+  );
+}
+
 function Items({
   actor = 'Admin',
   pendingAddRequest = null,
@@ -201,6 +236,64 @@ function Items({
   const [isSavingEntity, setIsSavingEntity] = useState(false);
   const [editingFoodId, setEditingFoodId] = useState<string | null>(null);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+
+  // Pulse animations
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseRing = useRef(new Animated.Value(0)).current;
+  const skeletonPulse = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const pulseLoop = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1100,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(pulseRing, {
+            toValue: 1,
+            duration: 2200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseRing, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    );
+    pulseLoop.start();
+    return () => pulseLoop.stop();
+  }, [pulseAnim, pulseRing]);
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const skeletonLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonPulse, {
+          toValue: 0.85,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+        Animated.timing(skeletonPulse, {
+          toValue: 0.4,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    skeletonLoop.start();
+    return () => skeletonLoop.stop();
+  }, [isLoading, skeletonPulse]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -247,6 +340,16 @@ function Items({
         .includes(query),
     );
   }, [items, search]);
+
+  const availableCount = useMemo(
+    () => items.filter(i => getItemStatus(i) !== 'Hidden').length,
+    [items],
+  );
+
+  const hiddenCount = useMemo(
+    () => items.filter(i => getItemStatus(i) === 'Hidden').length,
+    [items],
+  );
 
   const closeEntityForm = () => {
     if (isSavingEntity) return;
@@ -367,7 +470,28 @@ function Items({
   }
 
   return (
-    <View className="flex-1 bg-[#F9FAFB]">
+    <View className="relative flex-1 bg-[#F8FAFC]">
+      {/* Ambient background decorative light glow */}
+      <Svg
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+        width="100%"
+        height="100%"
+      >
+        <Defs>
+          <LinearGradient id="pageGlow1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#116C0B" stopOpacity="0.08" />
+            <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+          </LinearGradient>
+          <LinearGradient id="pageGlow2" x1="100%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor="#FC5805" stopOpacity="0.05" />
+            <Stop offset="100%" stopColor="#FC5805" stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Circle cx="94%" cy="8%" r="180" fill="url(#pageGlow1)" />
+        <Circle cx="6%" cy="28%" r="150" fill="url(#pageGlow2)" />
+      </Svg>
+
       <FlatList
         data={filteredItems}
         keyExtractor={(item, index) =>
@@ -376,58 +500,213 @@ function Items({
         contentContainerStyle={{
           alignSelf: 'center',
           maxWidth: 900,
-          padding: 20,
-          paddingBottom: 100,
+          padding: 16,
+          paddingBottom: 110,
           width: '100%',
         }}
         ItemSeparatorComponent={ItemSeparator}
         ListHeaderComponent={
           <View className="mb-5 gap-4">
-            <View>
-              <Text className="text-xs font-bold tracking-widest text-[#6B7280]">
-                MENU MANAGEMENT
-              </Text>
-              <View className="mt-2 flex-row items-end justify-between gap-3">
-                <View className="flex-1">
-                  <Text className="text-2xl font-extrabold text-[#012711]">
-                    All items
-                  </Text>
-                  <Text className="mt-1 text-sm text-[#6B7280]">
-                    {items.length} {items.length === 1 ? 'item' : 'items'} in your menu
+            {/* Hero Banner Card with Gradient Background & Live Pulse */}
+            <View className="relative overflow-hidden rounded-3xl border border-[#0A4418] bg-[#052E10] p-5 shadow-lg">
+              <Svg
+                pointerEvents="none"
+                style={StyleSheet.absoluteFill}
+                width="100%"
+                height="100%"
+                preserveAspectRatio="none"
+              >
+                <Defs>
+                  <LinearGradient
+                    id="itemsHeroGrad"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <Stop offset="0%" stopColor="#052E10" stopOpacity="1" />
+                    <Stop offset="45%" stopColor="#0B4D1A" stopOpacity="1" />
+                    <Stop offset="100%" stopColor="#147524" stopOpacity="1" />
+                  </LinearGradient>
+                  <LinearGradient
+                    id="heroGlow"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <Stop offset="0%" stopColor="#81C238" stopOpacity="0.25" />
+                    <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+                  </LinearGradient>
+                </Defs>
+                <Rect
+                  x="0"
+                  y="0"
+                  width="100%"
+                  height="100%"
+                  fill="url(#itemsHeroGrad)"
+                />
+                <Circle cx="90%" cy="20%" r="130" fill="url(#heroGlow)" />
+                <Path
+                  d="M-30 55 Q 80 15, 200 48 T 460 32 T 720 52"
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.07)"
+                  strokeWidth="1.5"
+                />
+              </Svg>
+
+              {/* Header top badges: Category tag + Live Pulse Beacon */}
+              <View className="flex-row items-center justify-between">
+                <View className="rounded-md border border-emerald-300/30 bg-emerald-400/20 px-2 py-0.5">
+                  <Text className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-200">
+                    Menu Management
                   </Text>
                 </View>
-                <Pressable
-                  accessibilityLabel="Refresh items"
-                  accessibilityRole="button"
-                  disabled={isLoading}
-                  onPress={() => setRetry(count => count + 1)}
-                  className="rounded-xl bg-[#116C0B] px-4 py-2.5"
-                >
-                  <Text className="font-semibold text-white">
-                    {isLoading ? 'Loading' : 'Refresh'}
+
+                {/* Live Pulse Indicator */}
+                <View className="flex-row items-center gap-2 rounded-full border border-white/15 bg-black/25 px-2.5 py-1">
+                  <View className="relative h-2.5 w-2.5 items-center justify-center">
+                    <Animated.View
+                      style={{
+                        position: 'absolute',
+                        width: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        backgroundColor: '#22C55E',
+                        opacity: pulseRing.interpolate({
+                          inputRange: [0, 0.7, 1],
+                          outputRange: [0.7, 0.2, 0],
+                        }),
+                        transform: [
+                          {
+                            scale: pulseRing.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0.8, 2.2],
+                            }),
+                          },
+                        ],
+                      }}
+                    />
+                    <View className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                  </View>
+                  <Text className="text-[10px] font-extrabold tracking-wider text-emerald-100">
+                    ACTIVE MENU
                   </Text>
-                </Pressable>
+                </View>
+              </View>
+
+              {/* Title & Refresh Button */}
+              <View className="mt-3.5 flex-row items-end justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="text-2xl font-black tracking-tight text-white">
+                    All Menu Items
+                  </Text>
+                  <Text className="mt-0.5 text-xs text-emerald-100/80">
+                    {items.length} {items.length === 1 ? 'item' : 'items'}{' '}
+                    configured in your restaurant
+                  </Text>
+                </View>
+
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                  <Pressable
+                    accessibilityLabel="Refresh items"
+                    accessibilityRole="button"
+                    disabled={isLoading}
+                    onPress={() => setRetry(count => count + 1)}
+                    className="flex-row items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-3.5 py-2 shadow-sm"
+                    style={({ pressed }) => ({
+                      backgroundColor: pressed
+                        ? 'rgba(255, 255, 255, 0.28)'
+                        : 'rgba(255, 255, 255, 0.16)',
+                    })}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text className="text-xs font-bold text-white">
+                        Refresh
+                      </Text>
+                    )}
+                  </Pressable>
+                </Animated.View>
+              </View>
+
+              {/* Stats Chips Row */}
+              <View className="mt-4 flex-row gap-2.5">
+                <View className="flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2">
+                  <Text className="text-[10px] font-semibold uppercase tracking-wider text-emerald-200">
+                    Total
+                  </Text>
+                  <Text className="mt-0.5 text-lg font-black text-white">
+                    {items.length}
+                  </Text>
+                </View>
+
+                <View className="flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2">
+                  <Text className="text-[10px] font-semibold uppercase tracking-wider text-emerald-200">
+                    Available
+                  </Text>
+                  <Text className="mt-0.5 text-lg font-black text-emerald-300">
+                    {availableCount}
+                  </Text>
+                </View>
+
+                <View className="flex-1 rounded-xl border border-white/10 bg-white/10 px-3 py-2">
+                  <Text className="text-[10px] font-semibold uppercase tracking-wider text-emerald-200">
+                    Hidden
+                  </Text>
+                  <Text className="mt-0.5 text-lg font-black text-white/80">
+                    {hiddenCount}
+                  </Text>
+                </View>
               </View>
             </View>
-            <TextInput
-              accessibilityLabel="Search items"
-              className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-              onChangeText={setSearch}
-              placeholder="Search items or categories"
-              placeholderTextColor={colors.textSecondary}
-              value={search}
-            />
+
+            {/* Search Input Bar with Icon */}
+            <View className="flex-row items-center rounded-2xl border border-[#E2E8F0] bg-white px-4 py-1.5 shadow-sm">
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                <Path
+                  d="m21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
+                  stroke="#9CA3AF"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+              <TextInput
+                accessibilityLabel="Search items"
+                className="ml-2 flex-1 py-2 text-base text-[#012711]"
+                onChangeText={setSearch}
+                placeholder="Search items or categories..."
+                placeholderTextColor={colors.textSecondary}
+                value={search}
+              />
+              {search.trim().length > 0 ? (
+                <Pressable
+                  accessibilityLabel="Clear search"
+                  onPress={() => setSearch('')}
+                  className="h-6 w-6 items-center justify-center rounded-full bg-[#F3F4F6]"
+                >
+                  <Text className="text-xs font-bold text-[#6B7280]">×</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
         }
         ListEmptyComponent={
           isLoading ? (
-            <View className="items-center gap-3 py-12">
-              <ActivityIndicator color={colors.primary} />
-              <Text className="text-sm text-[#6B7280]">Loading menu items...</Text>
+            <View className="gap-3 py-2">
+              <ItemSkeleton animOpacity={skeletonPulse} />
+              <ItemSkeleton animOpacity={skeletonPulse} />
+              <ItemSkeleton animOpacity={skeletonPulse} />
+              <ItemSkeleton animOpacity={skeletonPulse} />
             </View>
           ) : error ? (
-            <View className="items-center gap-3 rounded-2xl border border-[#FECACA] bg-white p-6">
-              <Text accessibilityRole="alert" className="text-center text-sm text-[#DC2626]">
+            <View className="items-center gap-3 rounded-2xl border border-[#FECACA] bg-white p-6 shadow-sm">
+              <Text
+                accessibilityRole="alert"
+                className="text-center text-sm font-medium text-[#DC2626]"
+              >
                 {error}
               </Text>
               <Pressable
@@ -440,8 +719,8 @@ function Items({
               </Pressable>
             </View>
           ) : (
-            <View className="items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-8">
-              <ProductIcon color={colors.textSecondary} size={28} />
+            <View className="items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-sm">
+              <ProductIcon color={colors.textSecondary} size={30} />
               <Text className="text-base font-bold text-[#012711]">
                 {search.trim() ? 'No matching items' : 'No items found'}
               </Text>
@@ -466,6 +745,8 @@ function Items({
           const price = getItemPrice(item);
           const category = item.category_name || item.category;
           const foodId = String(item.food_id ?? item.id ?? '');
+          const isHidden = getItemStatus(item) === 'Hidden';
+
           return (
             <Pressable
               accessibilityLabel={`View details of ${getItemName(item)}`}
@@ -474,48 +755,85 @@ function Items({
                 onFoodDetailsVisibilityChange?.(true);
                 setSelectedFoodId(foodId);
               }}
-              className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+              className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm"
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? '#F9FAFB' : '#FFFFFF',
+                transform: [{ scale: pressed ? 0.99 : 1 }],
+              })}
             >
               <ItemThumbnail name={name} uri={image} />
               <View className="min-w-0 flex-1 gap-1">
-                <Text numberOfLines={1} className="text-base font-bold text-[#012711]">
+                <Text
+                  numberOfLines={1}
+                  className="text-base font-bold text-[#012711]"
+                >
                   {name}
                 </Text>
-                <Text numberOfLines={1} className="text-sm text-[#6B7280]">
+                <Text numberOfLines={1} className="text-xs text-[#6B7280]">
                   {category || 'Uncategorized'}
                 </Text>
-                <Text className="text-xs text-[#6B7280]">
+                <Text className="text-[11px] text-[#9CA3AF]">
                   {stock === null ? 'Stock not set' : `${stock} in stock`}
                 </Text>
               </View>
               <View className="items-end gap-2">
                 {price ? (
-                  <Text className="font-bold text-[#012711]">{price}</Text>
+                  <Text className="text-base font-extrabold text-[#116C0B]">
+                    {price}
+                  </Text>
                 ) : null}
-                <Text
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    getItemStatus(item) === 'Hidden'
-                      ? 'bg-[#F3F4F6] text-[#6B7280]'
-                      : 'bg-[#F0F7EE] text-[#116C0B]'
+                <View
+                  className={`flex-row items-center rounded-full px-2.5 py-1 ${
+                    isHidden
+                      ? 'bg-[#F3F4F6]'
+                      : 'border border-[#DCE8D8] bg-[#F0F7EE]'
                   }`}
                 >
-                  {getItemStatus(item)}
-                </Text>
+                  {!isHidden ? (
+                    <View className="mr-1.5 h-1.5 w-1.5 rounded-full bg-[#116C0B]" />
+                  ) : null}
+                  <Text
+                    className={`text-xs font-bold ${
+                      isHidden ? 'text-[#6B7280]' : 'text-[#116C0B]'
+                    }`}
+                  >
+                    {getItemStatus(item)}
+                  </Text>
+                </View>
               </View>
             </Pressable>
           );
         }}
       />
+
       {showAddButton ? (
-        <Pressable
-          accessibilityLabel="Add item"
-          accessibilityRole="button"
-          onPress={() => setIsAddMenuOpen(true)}
-          className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            right: 20,
+            transform: [{ scale: pulseAnim }],
+            elevation: 8,
+            shadowColor: '#116C0B',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 8,
+          }}
         >
-          <PlusIcon color="#FFFFFF" size={24} />
-        </Pressable>
+          <Pressable
+            accessibilityLabel="Add item"
+            accessibilityRole="button"
+            onPress={() => setIsAddMenuOpen(true)}
+            className="h-14 w-14 items-center justify-center rounded-full bg-[#116C0B]"
+            style={({ pressed }) => ({
+              backgroundColor: pressed ? '#0B4D1A' : '#116C0B',
+            })}
+          >
+            <PlusIcon color="#FFFFFF" size={24} />
+          </Pressable>
+        </Animated.View>
       ) : null}
+
       <Modal
         animationType="fade"
         onRequestClose={() => setIsAddMenuOpen(false)}
@@ -528,7 +846,9 @@ function Items({
           onPress={() => setIsAddMenuOpen(false)}
         >
           <View className="gap-3 rounded-t-3xl bg-white px-5 pb-8 pt-5">
-            <Text className="mb-1 text-lg font-bold text-[#012711]">Add to menu</Text>
+            <Text className="mb-1 text-lg font-bold text-[#012711]">
+              Add to menu
+            </Text>
             <Pressable
               accessibilityLabel="Add Food"
               accessibilityRole="button"
@@ -559,6 +879,7 @@ function Items({
           </View>
         </Pressable>
       </Modal>
+
       <Modal
         animationType="fade"
         onRequestClose={closeEntityForm}
@@ -571,11 +892,15 @@ function Items({
               {addEntityType === 'category' ? 'Add Category' : 'Add Cuisine'}
             </Text>
             <TextInput
-              accessibilityLabel={addEntityType === 'category' ? 'Category name' : 'Cuisine name'}
+              accessibilityLabel={
+                addEntityType === 'category' ? 'Category name' : 'Cuisine name'
+              }
               autoCapitalize="words"
               className="mt-4 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
               onChangeText={setEntityName}
-              placeholder={addEntityType === 'category' ? 'Category name' : 'Cuisine name'}
+              placeholder={
+                addEntityType === 'category' ? 'Category name' : 'Cuisine name'
+              }
               placeholderTextColor="#9CA3AF"
               value={entityName}
             />
@@ -591,7 +916,10 @@ function Items({
               />
             ) : null}
             {entityError ? (
-              <Text accessibilityRole="alert" className="mt-3 text-sm text-red-700">
+              <Text
+                accessibilityRole="alert"
+                className="mt-3 text-sm text-red-700"
+              >
                 {entityError}
               </Text>
             ) : null}
@@ -606,7 +934,11 @@ function Items({
                 <Text className="font-semibold text-[#374151]">Cancel</Text>
               </Pressable>
               <Pressable
-                accessibilityLabel={addEntityType === 'category' ? 'Save Category' : 'Save Cuisine'}
+                accessibilityLabel={
+                  addEntityType === 'category'
+                    ? 'Save Category'
+                    : 'Save Cuisine'
+                }
                 accessibilityRole="button"
                 disabled={isSavingEntity}
                 onPress={saveEntity}

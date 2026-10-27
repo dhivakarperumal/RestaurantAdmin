@@ -2,11 +2,21 @@ import { useState } from 'react';
 import {
   Image,
   Pressable,
+  StatusBar,
+  StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import colors from '../theme/colors';
 import {
   BellIcon,
@@ -29,6 +39,8 @@ type TopHeaderProps = {
   onOpenProfile: () => void;
   onLogout: () => void;
 };
+
+const HEADER_HEIGHT = 70;
 
 function getUserName(user: HeaderUser | null) {
   return user?.name?.trim() || user?.username?.trim() || 'Restaurant Admin';
@@ -53,9 +65,14 @@ function IconButton({
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       onPress={onPress}
-      className={`h-11 w-11 items-center justify-center rounded-xl ${className ?? ''}`}
+      className={`h-10 w-10 items-center justify-center rounded-xl border border-white/20 ${className ?? ''}`}
       style={({ pressed }) => ({
-        backgroundColor: pressed || isHovered ? '#F3F4F6' : 'transparent',
+        backgroundColor:
+          pressed
+            ? 'rgba(255, 255, 255, 0.24)'
+            : isHovered
+            ? 'rgba(255, 255, 255, 0.18)'
+            : 'rgba(255, 255, 255, 0.12)',
       })}
     >
       {children}
@@ -71,6 +88,7 @@ function TopHeader({
   onOpenProfile,
   onLogout,
 }: TopHeaderProps) {
+  const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
@@ -94,42 +112,100 @@ function TopHeader({
 
   return (
     <View
-      className="relative z-10 h-[72px] border-b border-[#E5E7EB] bg-white shadow-sm"
+      className="relative z-10 overflow-visible"
+      style={{
+        paddingTop: insets.top,
+        backgroundColor: '#052E10',
+        elevation: 8,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.22,
+        shadowRadius: 10,
+      }}
     >
+      <StatusBar barStyle="light-content" />
+
+      {/* Modern gradient & ambient glow background */}
+      <Svg
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+      >
+        <Defs>
+          <LinearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#052E10" stopOpacity="1" />
+            <Stop offset="45%" stopColor="#0B4D1A" stopOpacity="1" />
+            <Stop offset="100%" stopColor="#147524" stopOpacity="1" />
+          </LinearGradient>
+          <LinearGradient id="glowG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#81C238" stopOpacity="0.26" />
+            <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+          </LinearGradient>
+          <LinearGradient id="accentG" x1="100%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor="#FC5805" stopOpacity="0.18" />
+            <Stop offset="100%" stopColor="#FC5805" stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#headerGrad)" />
+        <Circle cx="88%" cy="25%" r="120" fill="url(#glowG)" />
+        <Circle cx="12%" cy="85%" r="90" fill="url(#accentG)" />
+        <Path
+          d="M-40 65 Q 110 20, 260 55 T 560 38 T 860 62"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.06)"
+          strokeWidth="1.5"
+        />
+      </Svg>
+
+      {/* Header main content bar */}
       <View
-        className={`flex-1 flex-row items-center justify-between ${compact ? 'px-3' : 'px-6'}`}
+        style={{ height: HEADER_HEIGHT }}
+        className={`flex-row items-center justify-between ${compact ? 'px-3' : 'px-5'}`}
       >
         <View className="flex-1 flex-row items-center">
           <IconButton
             accessibilityLabel="Toggle sidebar"
             onPress={onToggleSidebar}
-            className={compact ? 'mr-2' : 'mr-4'}
+            className={compact ? 'mr-2' : 'mr-3'}
           >
-            <HamburgerIcon color={colors.textPrimary} size={22} />
+            <HamburgerIcon color="#FFFFFF" size={20} />
           </IconButton>
-          <Image
-            accessibilityLabel="Buy Food logo"
-            resizeMode="contain"
-            source={require('../images/buy-food-logo.png')}
-            className="h-10 w-10"
-          />
-          <Text
-            numberOfLines={1}
-            className={`ml-2.5 font-bold text-[#012711] ${compact ? 'text-[15px]' : 'text-lg'}`}
-          >
-            Buy Food
-          </Text>
+
+          <View className="h-10 w-10 items-center justify-center rounded-xl border border-white/30 bg-white shadow-sm overflow-hidden">
+            <Image
+              accessibilityLabel="Buy Food logo"
+              resizeMode="contain"
+              source={require('../images/buy-food-logo.png')}
+              className="h-8 w-8"
+            />
+          </View>
+
+          <View className="ml-2.5 flex-row items-center">
+            <Text
+              numberOfLines={1}
+              className={`font-extrabold tracking-tight text-white ${compact ? 'text-[16px]' : 'text-[19px]'}`}
+            >
+              Buy Food
+            </Text>
+            <View className="ml-2 rounded-md border border-emerald-300/30 bg-emerald-400/20 px-1.5 py-0.5">
+              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-200">
+                Admin
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <View className="flex-row items-center gap-2">
+        <View className="flex-row items-center gap-2.5">
           <IconButton
             accessibilityLabel={`Notifications, ${badgeCount} unread`}
             onPress={onOpenNotifications}
           >
             <View>
-              <BellIcon color={colors.textSecondary} size={21} />
+              <BellIcon color="#FFFFFF" size={20} />
               {badgeCount > 0 ? (
-                <View className="absolute -right-[9px] -top-2 h-[18px] min-w-[18px] items-center justify-center rounded-full border-[1.5px] border-white bg-[#DC2626] px-1">
+                <View className="absolute -right-[9px] -top-2 h-[18px] min-w-[18px] items-center justify-center rounded-full border-[1.5px] border-[#0B4D1A] bg-[#EF4444] px-1">
                   <Text className="text-[10px] font-bold text-white">
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </Text>
@@ -137,6 +213,7 @@ function TopHeader({
               ) : null}
             </View>
           </IconButton>
+
           <Pressable
             accessibilityLabel={`Open profile menu for ${userName}`}
             accessibilityRole="button"
@@ -144,62 +221,86 @@ function TopHeader({
             onHoverIn={() => setIsAvatarHovered(true)}
             onHoverOut={() => setIsAvatarHovered(false)}
             onPress={() => setIsProfileOpen(open => !open)}
-            className={`h-[42px] w-[42px] items-center justify-center rounded-full border ${isProfileOpen ? 'border-[#116C0B]' : 'border-[#DBEAFE]'}`}
+            className={`relative h-10 w-10 items-center justify-center rounded-xl border ${
+              isProfileOpen
+                ? 'border-emerald-300 bg-white shadow-md'
+                : 'border-white/40 bg-white/95'
+            }`}
             style={({ pressed }) => ({
               backgroundColor:
-                pressed || isAvatarHovered ? '#DBEAFE' : '#EFF6FF',
+                pressed || isAvatarHovered
+                  ? '#FFFFFF'
+                  : isProfileOpen
+                  ? '#FFFFFF'
+                  : 'rgba(255, 255, 255, 0.95)',
             })}
           >
-            <Text className="text-base font-bold text-[#116C0B]">
+            <Text className="text-[16px] font-black text-[#0B4D1A]">
               {initial}
             </Text>
+            <View className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-[#0B4D1A] bg-[#22C55E]" />
           </Pressable>
         </View>
       </View>
 
+      {/* Subtle bottom highlight divider */}
+      <View className="h-px w-full bg-white/10" />
+
+      {/* Profile menu dropdown */}
       {isProfileOpen ? (
         <View
           accessibilityViewIsModal
-          className="absolute left-0 right-0 top-[72px] z-20"
-          style={{ height: Math.max(0, height - 72) }}
+          className="absolute left-0 right-0 z-20"
+          style={{
+            top: insets.top + HEADER_HEIGHT,
+            height: Math.max(0, height - (insets.top + HEADER_HEIGHT)),
+          }}
         >
           <Pressable
             accessibilityLabel="Close profile menu"
             onPress={() => setIsProfileOpen(false)}
-            className="absolute inset-0"
+            className="absolute inset-0 bg-black/25"
           />
           <View
-            className={`z-[21] w-[300px] max-w-[92%] self-end overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-xl ${compact ? 'mx-3' : 'mx-6'}`}
+            className={`z-[21] w-[310px] max-w-[92%] self-end overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl ${
+              compact ? 'mx-3 mt-2' : 'mx-5 mt-2'
+            }`}
+            style={{ elevation: 16 }}
           >
-            <View
-              className="flex-row items-center gap-3 bg-[#F9FAFB] px-4 py-4"
-            >
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#EFF6FF]">
-                <Text className="text-[17px] font-bold text-[#116C0B]">
+            <View className="flex-row items-center gap-3 border-b border-[#DCE8D8] bg-[#F0F7EE] px-4 py-4">
+              <View className="h-11 w-11 items-center justify-center rounded-xl border border-[#DCE8D8] bg-white shadow-sm">
+                <Text className="text-[17px] font-black text-[#116C0B]">
                   {initial}
                 </Text>
               </View>
               <View className="min-w-0 flex-1">
+                <View className="flex-row items-center gap-1.5">
+                  <Text
+                    numberOfLines={1}
+                    className="text-sm font-bold text-[#012711]"
+                  >
+                    {userName}
+                  </Text>
+                  <View className="rounded-full bg-[#116C0B]/10 px-1.5 py-0.5">
+                    <Text className="text-[9px] font-bold text-[#116C0B]">
+                      Admin
+                    </Text>
+                  </View>
+                </View>
                 <Text
                   numberOfLines={1}
-                  className="text-sm font-bold text-[#012711]"
+                  className="mt-[2px] text-xs text-[#6B7280]"
                 >
-                  {userName}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  className="mt-[3px] text-xs text-[#6B7280]"
-                >
-                  {user?.email?.trim() || ' '}
+                  {user?.email?.trim() || 'admin@buyfood.com'}
                 </Text>
               </View>
             </View>
-            <View className="h-px bg-[#E5E7EB]" />
             <MenuAction
               icon={<ProfileIcon color={colors.textSecondary} size={18} />}
               label="Profile"
               onPress={openProfile}
             />
+            <View className="h-px bg-[#F3F4F6]" />
             <MenuAction
               icon={<LogoutIcon color={colors.error} size={18} />}
               label="Logout"

@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Text, TextInput, View } from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import DashboardScreen from '../src/Navigation/DashboardScreen';
 import { PlusIcon } from '../src/Navigation/NavigationIcons';
 import api from '../api';
@@ -29,13 +30,21 @@ afterEach(() => {
 
 async function renderDashboard() {
   let renderer: ReactTestRenderer.ReactTestRenderer;
-  await ReactTestRenderer.act(() => {
+  await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
-      <DashboardScreen
-        user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
-        onLogout={jest.fn()}
-      />,
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 400, height: 800 },
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <DashboardScreen
+          user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
+          onLogout={jest.fn()}
+        />
+      </SafeAreaProvider>,
     );
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   mountedDashboards.push(renderer!);
   return renderer!;
@@ -46,9 +55,7 @@ async function press(
   accessibilityLabel: string,
 ) {
   await ReactTestRenderer.act(() => {
-    renderer.root
-      .findByProps({ accessibilityLabel })
-      .props.onPress();
+    renderer.root.findByProps({ accessibilityLabel }).props.onPress();
   });
 }
 
@@ -87,37 +94,35 @@ test('opens the items screen from the bottom navigation', async () => {
   });
 
   expect(
-    renderer.root.findAllByType(Text).some(node => node.props.children === 'All items'),
+    renderer.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'All items'),
   ).toBe(true);
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Search items' })).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Search items' }),
+  ).toBeTruthy();
   await press(renderer, 'Open quick actions');
   await press(renderer, 'Add Product');
   await ReactTestRenderer.act(
-    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+    () => new Promise<void>(resolve => setTimeout(resolve, 60)),
   );
   expect(JSON.stringify(renderer.toJSON())).toContain('Add Food');
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Food name' })).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Food name' }),
+  ).toBeTruthy();
 });
 
-test('opens the existing category and customer forms from the FAB menu', async () => {
+test('opens category management from the More tab', async () => {
   const renderer = await renderDashboard();
 
-  await press(renderer, 'Open quick actions');
-  await press(renderer, 'Dismiss quick actions');
+  await press(renderer, 'More');
+  await press(renderer, 'Categories');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 60)),
+  );
   expect(
-    renderer.root.findByProps({ accessibilityLabel: 'Open quick actions' }).props
-      .accessibilityState.expanded,
-  ).toBe(false);
-
-  await press(renderer, 'Open quick actions');
-  await press(renderer, 'Add Category');
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Category name' })).toBeTruthy();
-
-  await press(renderer, 'Cancel add');
-  await press(renderer, 'Open quick actions');
-  await press(renderer, 'Add Cusions');
-  expect(renderer.root.findByProps({ placeholder: 'Customer name' })).toBeTruthy();
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Save Add Customer' })).toBeTruthy();
+    renderer.root.findByProps({ accessibilityLabel: 'Search categories' }),
+  ).toBeTruthy();
 });
 
 test('hides the dashboard header on food details and restores it on back', async () => {
@@ -126,11 +131,13 @@ test('hides the dashboard header on food details and restores it on back', async
     if (path === '/foods') {
       return Promise.resolve({
         data: {
-          data: [{
-            food_id: 'FOOD002',
-            food_name: 'Idli Sambar',
-            final_price: '27.00',
-          }],
+          data: [
+            {
+              food_id: 'FOOD002',
+              food_name: 'Idli Sambar',
+              final_price: '27.00',
+            },
+          ],
         },
       });
     }
@@ -158,12 +165,18 @@ test('hides the dashboard header on food details and restores it on back', async
     () => new Promise<void>(resolve => setTimeout(resolve, 0)),
   );
 
-  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Toggle sidebar' })).toHaveLength(0);
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'Toggle sidebar' }),
+  ).toHaveLength(0);
   expect(JSON.stringify(renderer.toJSON())).toContain('Idli Sambar');
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Back to items' })).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Back to items' }),
+  ).toBeTruthy();
 
   await press(renderer, 'Back to items');
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Toggle sidebar' })).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Toggle sidebar' }),
+  ).toBeTruthy();
 });
 
 test('adds an order and updates its status from the order details sheet', async () => {
@@ -177,7 +190,9 @@ test('adds an order and updates its status from the order details sheet', async 
     renderer.root
       .findByProps({ placeholder: 'Order or customer name' })
       .props.onChangeText('Order 1001');
-    renderer.root.findByProps({ placeholder: '0.00' }).props.onChangeText('840');
+    renderer.root
+      .findByProps({ placeholder: '0.00' })
+      .props.onChangeText('840');
   });
   await press(renderer, 'Save Add Order');
   await press(renderer, 'Orders');
@@ -193,9 +208,7 @@ test('adds an order and updates its status from the order details sheet', async 
 test('renders the plus icon as visible horizontal and vertical strokes', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
-    renderer = ReactTestRenderer.create(
-      <PlusIcon color="#FFFFFF" size={27} />,
-    );
+    renderer = ReactTestRenderer.create(<PlusIcon color="#FFFFFF" size={27} />);
   });
 
   const plusStroke = renderer!.root.findByType(Path);
@@ -208,37 +221,45 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
   const get = api.get as jest.Mock;
   get.mockImplementation((path: string) =>
     Promise.resolve({
-      data: path === '/foods'
-        ? {
-            data: {
-              products: [{
-                food_id: 1,
-                food_name: 'Masala Dosa',
-                selling_price: '325.00',
-                description: 'Crispy rice and lentil crepe with potato masala',
-                stock_quantity: 8,
-                status: 'Available',
-                size_variants: [{ size_name: 'Regular', selling_price: 325 }],
-                food_images: [{ image_url: '/uploads/masala-dosa.jpg' }],
-              }, {
-                food_id: 2,
-                food_name: 'Price Missing Food',
-              }, {
-                id: 45,
-                food_id: 'FOOD043',
-                food_name: 'Pineapple Fried Rice',
-                cuisine_id: 'CUS011',
-                cuisine_name: 'Thai',
-                category_name: 'Main Course',
-                subcategory_name: 'Rice',
-                mrp: '324.00',
-                discount: '21.00',
-                final_price: '255.96',
-                image_url: '/uploads/pineapple-fried-rice.jpg',
-              }],
-            },
-          }
-        : { data: [] },
+      data:
+        path === '/foods'
+          ? {
+              data: {
+                products: [
+                  {
+                    food_id: 1,
+                    food_name: 'Masala Dosa',
+                    selling_price: '325.00',
+                    description:
+                      'Crispy rice and lentil crepe with potato masala',
+                    stock_quantity: 8,
+                    status: 'Available',
+                    size_variants: [
+                      { size_name: 'Regular', selling_price: 325 },
+                    ],
+                    food_images: [{ image_url: '/uploads/masala-dosa.jpg' }],
+                  },
+                  {
+                    food_id: 2,
+                    food_name: 'Price Missing Food',
+                  },
+                  {
+                    id: 45,
+                    food_id: 'FOOD043',
+                    food_name: 'Pineapple Fried Rice',
+                    cuisine_id: 'CUS011',
+                    cuisine_name: 'Thai',
+                    category_name: 'Main Course',
+                    subcategory_name: 'Rice',
+                    mrp: '324.00',
+                    discount: '21.00',
+                    final_price: '255.96',
+                    image_url: '/uploads/pineapple-fried-rice.jpg',
+                  },
+                ],
+              },
+            }
+          : { data: [] },
     }),
   );
   const renderer = await renderDashboard();
@@ -252,7 +273,9 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
   });
   expect(JSON.stringify(renderer.toJSON())).toContain('Add food to billing');
   expect(JSON.stringify(renderer.toJSON())).toContain('Masala Dosa');
-  expect(JSON.stringify(renderer.toJSON())).toContain('Crispy rice and lentil crepe');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Crispy rice and lentil crepe',
+  );
   expect(JSON.stringify(renderer.toJSON())).toContain('Regular · ₹325.00');
   expect(JSON.stringify(renderer.toJSON())).toContain('8 in stock · Available');
   expect(JSON.stringify(renderer.toJSON())).toContain('Pineapple Fried Rice');
@@ -263,7 +286,8 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
     expect.objectContaining({ signal: expect.any(AbortSignal) }),
   );
   expect(
-    renderer.root.findByProps({ accessibilityLabel: 'Masala Dosa image' })
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Masala Dosa image' })
       .findByType(Image).props.source,
   ).toEqual({
     uri: 'https://restaurant.qtechx.com/uploads/masala-dosa.jpg',
@@ -285,14 +309,16 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
   expect(JSON.stringify(renderer.toJSON())).toContain('Invoice / Bill');
   expect(JSON.stringify(renderer.toJSON())).toContain('Subtotal');
   expect(
-    renderer.root.findByProps({ accessibilityLabel: 'Send bill' }).props.disabled,
+    renderer.root.findByProps({ accessibilityLabel: 'Send bill' }).props
+      .disabled,
   ).toBe(true);
   expect(
     renderer.root.findAllByProps({ accessibilityLabel: 'Back to food items' }),
   ).toHaveLength(0);
   await press(renderer, 'Decrease Price Missing Food quantity');
   expect(
-    renderer.root.findByProps({ accessibilityLabel: 'Send bill' }).props.disabled,
+    renderer.root.findByProps({ accessibilityLabel: 'Send bill' }).props
+      .disabled,
   ).toBe(false);
   await press(renderer, 'Decrease Pineapple Fried Rice quantity');
   await press(renderer, 'Increase Masala Dosa quantity');
@@ -359,25 +385,31 @@ test('loads the restaurant POS dashboard snapshot and revenue reports', async ()
   get.mockImplementation((path: string) => {
     const today = new Date().toISOString();
     const dataByPath: Record<string, unknown> = {
-      '/orders/management': { data: [
-        {
-          order_id: 'ORD-12',
-          customer_name: 'Alex Morgan',
-          order_status: 'Processing',
-          total_amount: 1450,
-          order_date: today,
-        },
-      ] },
+      '/orders/management': {
+        data: [
+          {
+            order_id: 'ORD-12',
+            customer_name: 'Alex Morgan',
+            order_status: 'Processing',
+            total_amount: 1450,
+            order_date: today,
+          },
+        ],
+      },
       '/table-bills': { bills: [{ bill_id: 4, status: 'active' }] },
       '/kitchen-orders': { orders: [] },
       '/users': { data: [{ role: 'customer' }, { role: 'admin' }] },
-      '/foods': { data: [
-        {
-          food_name: 'House Blend',
-          size_variants: [{ stock: 4 }],
-        },
-      ] },
-      '/inventory/dashboard': { data: { lowStock: 1, pendingKitchenRequests: 2 } },
+      '/foods': {
+        data: [
+          {
+            food_name: 'House Blend',
+            size_variants: [{ stock: 4 }],
+          },
+        ],
+      },
+      '/inventory/dashboard': {
+        data: { lowStock: 1, pendingKitchenRequests: 2 },
+      },
       '/inventory/kitchen-requests': { data: [] },
       '/categories': { data: [{ category_name: 'Coffee', status: 'Active' }] },
       '/revenue/summary': { data: { totalRevenue: 1450 } },
@@ -391,18 +423,25 @@ test('loads the restaurant POS dashboard snapshot and revenue reports', async ()
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
-      <DashboardScreen
-        user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
-        onLogout={jest.fn()}
-      />,
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 400, height: 800 },
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <DashboardScreen
+          user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
+          onLogout={jest.fn()}
+        />
+      </SafeAreaProvider>,
     );
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
   const output = JSON.stringify(renderer!.toJSON());
-  const summaryCards = renderer!.root.findAllByType(View).filter(
-    node => node.props.style?.height === 168,
-  );
+  const summaryCards = renderer!.root
+    .findAllByType(View)
+    .filter(node => node.props.style?.height === 168);
   expect(summaryCards).toHaveLength(8);
   expect(get).toHaveBeenCalledWith(
     '/orders/management',
@@ -418,7 +457,10 @@ test('loads the restaurant POS dashboard snapshot and revenue reports', async ()
   );
   expect(get).toHaveBeenCalledWith('/foods', expect.any(Object));
   expect(get).toHaveBeenCalledWith('/inventory/dashboard', expect.any(Object));
-  expect(get).toHaveBeenCalledWith('/inventory/kitchen-requests', expect.any(Object));
+  expect(get).toHaveBeenCalledWith(
+    '/inventory/kitchen-requests',
+    expect.any(Object),
+  );
   expect(get).toHaveBeenCalledWith('/categories', expect.any(Object));
   expect(get).toHaveBeenCalledWith(
     '/revenue/summary',
@@ -465,10 +507,17 @@ test('keeps available dashboard sections visible when one POS endpoint fails', a
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
     renderer = ReactTestRenderer.create(
-      <DashboardScreen
-        user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
-        onLogout={jest.fn()}
-      />,
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 400, height: 800 },
+          insets: { top: 0, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <DashboardScreen
+          user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
+          onLogout={jest.fn()}
+        />
+      </SafeAreaProvider>,
     );
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });

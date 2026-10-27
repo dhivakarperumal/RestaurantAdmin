@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
 import { CustomersIcon, PlusIcon, ProductIcon } from './NavigationIcons';
 import AddCategoryIcon from './AddCategoryIcon';
@@ -27,6 +22,7 @@ function FloatingActionMenu({
   onAddCategory,
   onAddCustomers,
 }: FloatingActionMenuProps) {
+  const insets = useSafeAreaInsets();
   const [isOpen, setIsOpen] = useState(false);
   const pulseScale = useRef(new Animated.Value(1)).current;
   const menuProgress = useRef(new Animated.Value(0)).current;
@@ -55,33 +51,26 @@ function FloatingActionMenu({
 
   useEffect(() => {
     menuAnimation.current?.stop();
-    const animation = Animated.timing(menuProgress, {
+    menuAnimation.current = Animated.timing(menuProgress, {
       toValue: isOpen ? 1 : 0,
-      duration: isOpen ? 220 : 160,
+      duration: 220,
+      isInteraction: false,
       useNativeDriver: true,
     });
-    menuAnimation.current = animation;
-    animation.start();
+    menuAnimation.current.start();
   }, [isOpen, menuProgress]);
 
-  useEffect(
-    () => () => {
-      menuAnimation.current?.stop();
-      pulseScale.stopAnimation();
-      menuProgress.stopAnimation();
-    },
-    [menuProgress, pulseScale],
-  );
-
-  const handleAction = (action: (typeof menuActions)[number]['label']) => {
+  const handleAction = (label: (typeof menuActions)[number]['label']) => {
     setIsOpen(false);
-    if (action === 'Add Product') {
+    if (label === 'Add Product') {
       onAddProduct();
-    } else if (action === 'Add Category') {
-      onAddCategory();
-    } else {
-      onAddCustomers();
+      return;
     }
+    if (label === 'Add Category') {
+      onAddCategory();
+      return;
+    }
+    onAddCustomers();
   };
 
   const iconRotation = menuProgress.interpolate({
@@ -97,7 +86,7 @@ function FloatingActionMenu({
           accessibilityRole="button"
           onPress={() => setIsOpen(false)}
           style={{
-            bottom: 68,
+            bottom: 64 + insets.bottom,
             left: 0,
             position: 'absolute',
             right: 0,
@@ -111,7 +100,7 @@ function FloatingActionMenu({
         importantForAccessibility={isOpen ? 'auto' : 'no-hide-descendants'}
         pointerEvents={isOpen ? 'auto' : 'none'}
         style={{
-          bottom: 148,
+          bottom: 144 + insets.bottom,
           gap: 10,
           position: 'absolute',
           right: 20,
@@ -182,7 +171,7 @@ function FloatingActionMenu({
 
       <Animated.View
         style={{
-          bottom: 82,
+          bottom: 78 + insets.bottom,
           position: 'absolute',
           right: 20,
           transform: [{ scale: pulseScale }],
@@ -190,7 +179,9 @@ function FloatingActionMenu({
         }}
       >
         <Pressable
-          accessibilityLabel={isOpen ? 'Close quick actions' : 'Open quick actions'}
+          accessibilityLabel={
+            isOpen ? 'Close quick actions' : 'Open quick actions'
+          }
           accessibilityRole="button"
           accessibilityState={{ expanded: isOpen }}
           onPress={() => setIsOpen(open => !open)}
