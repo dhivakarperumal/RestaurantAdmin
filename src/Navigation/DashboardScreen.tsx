@@ -2121,17 +2121,29 @@ function HomePage({
     apiData.bills.length > 0 ||
     apiData.kitchenOrders.length > 0 ||
     records.length > 0;
+  const currentHour = new Date().getHours();
+  const greeting =
+    currentHour < 12
+      ? 'Good morning'
+      : currentHour < 17
+      ? 'Good afternoon'
+      : 'Good evening';
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
-        OVERVIEW
-      </Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
-        Good day, {userName}
-      </Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
-        Here’s your restaurant at a glance.
-      </Text>
+      <View className="flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5">
+        <View className="mr-3 h-10 w-1 rounded-full bg-[#116C0B]" />
+        <View className="flex-1">
+          <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
+            OVERVIEW
+          </Text>
+          <Text className="mt-0.5 text-xl font-bold text-[#012711]">
+            {greeting}, {userName}
+          </Text>
+          <Text className="mt-0.5 text-xs leading-[18px] text-[#6B7280]">
+            Here’s your restaurant at a glance.
+          </Text>
+        </View>
+      </View>
 
       <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
         <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
