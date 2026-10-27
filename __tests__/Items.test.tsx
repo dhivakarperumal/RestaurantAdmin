@@ -236,15 +236,14 @@ test('FAB menu can add a category with optional subcategories', async () => {
   });
 });
 
-test('FAB menu can add a cuisine', async () => {
+test('FAB menu opens the dedicated cuisine page instead of a popup', async () => {
   const get = api.get as jest.Mock;
-  const postRequest = api.post as jest.Mock;
+  const onAddCuisine = jest.fn();
   get.mockResolvedValue({ data: { data: [] } });
-  postRequest.mockResolvedValue({ data: { success: true } });
 
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
-    renderer = ReactTestRenderer.create(<Items />);
+    renderer = ReactTestRenderer.create(<Items onAddCuisine={onAddCuisine} />);
     await Promise.resolve();
   });
   await flushListUpdates();
@@ -255,15 +254,11 @@ test('FAB menu can add a cuisine', async () => {
   await ReactTestRenderer.act(() => {
     renderer!.root.findByProps({ accessibilityLabel: 'Add Cuisine' }).props.onPress();
   });
-  await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Cuisine name' }).props.onChangeText('Thai');
-  });
-  await ReactTestRenderer.act(async () => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Save Cuisine' }).props.onPress();
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-  });
 
-  expect(postRequest).toHaveBeenCalledWith('/cuisines', { cuisine_name: 'Thai' });
+  expect(onAddCuisine).toHaveBeenCalledTimes(1);
+  expect(
+    renderer!.root.findAllByProps({ accessibilityLabel: 'Cuisine name' }),
+  ).toHaveLength(0);
 });
 
 test('opens a food details page using the food ID details endpoint', async () => {

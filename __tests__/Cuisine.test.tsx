@@ -19,7 +19,9 @@ afterEach(() => {
 async function renderCuisine() {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
-    renderer = ReactTestRenderer.create(<Cuisine onBack={jest.fn()} />);
+    renderer = ReactTestRenderer.create(
+      <Cuisine onAddCuisine={jest.fn()} onBack={jest.fn()} />,
+    );
     await Promise.resolve();
   });
   return renderer!;
@@ -84,4 +86,29 @@ test('retries a 304 response with a fresh cache key', async () => {
       .some(node => node.props.children === 'Mexican'),
   ).toBe(true);
   ReactTestRenderer.act(() => renderer.unmount());
+});
+
+test('opens the dedicated cuisine form from the cuisines page', async () => {
+  const onAddCuisine = jest.fn();
+  (api.get as jest.Mock).mockResolvedValue({
+    data: { success: true, data: [] },
+  });
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <Cuisine onAddCuisine={onAddCuisine} onBack={jest.fn()} />,
+    );
+    await Promise.resolve();
+  });
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Add cuisine' })
+      .props.onPress();
+  });
+
+  expect(onAddCuisine).toHaveBeenCalledTimes(1);
+  ReactTestRenderer.act(() => renderer!.unmount());
 });

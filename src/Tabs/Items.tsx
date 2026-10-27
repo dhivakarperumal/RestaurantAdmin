@@ -29,6 +29,7 @@ type ItemsProps = {
   actor?: string;
   pendingAddRequest?: { id: number; action: 'product' | 'category' } | null;
   onAddRequestHandled?: (id: number) => void;
+  onAddCuisine?: () => void;
   onFoodDetailsVisibilityChange?: (isVisible: boolean) => void;
   showAddButton?: boolean;
 };
@@ -59,7 +60,7 @@ type Item = {
   image?: unknown;
 };
 
-type AddEntityType = 'category' | 'cuisine';
+type AddEntityType = 'category';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -219,6 +220,7 @@ function Items({
   actor = 'Admin',
   pendingAddRequest = null,
   onAddRequestHandled,
+  onAddCuisine,
   onFoodDetailsVisibilityChange,
   showAddButton = true,
 }: ItemsProps) {
@@ -386,25 +388,21 @@ function Items({
   const saveEntity = async () => {
     const name = entityName.trim();
     if (!name || !addEntityType) {
-      setEntityError(`Enter a ${addEntityType || 'category or cuisine'} name.`);
+      setEntityError('Enter a category name.');
       return;
     }
 
     setIsSavingEntity(true);
     setEntityError('');
     try {
-      if (addEntityType === 'category') {
-        const subCategories = subcategoryNames
-          .split(',')
-          .map(subcategory => subcategory.trim())
-          .filter(Boolean);
-        await api.post('/categories', {
-          category_name: name,
-          sub_categories: subCategories,
-        });
-      } else {
-        await api.post('/cuisines', { cuisine_name: name });
-      }
+      const subCategories = subcategoryNames
+        .split(',')
+        .map(subcategory => subcategory.trim())
+        .filter(Boolean);
+      await api.post('/categories', {
+        category_name: name,
+        sub_categories: subCategories,
+      });
       setAddEntityType(null);
       setEntityName('');
       setSubcategoryNames('');
@@ -871,7 +869,10 @@ function Items({
             <Pressable
               accessibilityLabel="Add Cuisine"
               accessibilityRole="button"
-              onPress={() => openEntityForm('cuisine')}
+              onPress={() => {
+                setIsAddMenuOpen(false);
+                onAddCuisine?.();
+              }}
               className="rounded-xl bg-[#F9FAFB] px-4 py-3.5"
             >
               <Text className="font-semibold text-[#012711]">Add Cuisine</Text>
@@ -889,32 +890,26 @@ function Items({
         <View className="flex-1 items-center justify-center bg-black/40 px-5">
           <View className="w-full max-w-md rounded-2xl bg-white p-5">
             <Text className="text-lg font-bold text-[#012711]">
-              {addEntityType === 'category' ? 'Add Category' : 'Add Cuisine'}
+              Add Category
             </Text>
             <TextInput
-              accessibilityLabel={
-                addEntityType === 'category' ? 'Category name' : 'Cuisine name'
-              }
+              accessibilityLabel="Category name"
               autoCapitalize="words"
               className="mt-4 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
               onChangeText={setEntityName}
-              placeholder={
-                addEntityType === 'category' ? 'Category name' : 'Cuisine name'
-              }
+              placeholder="Category name"
               placeholderTextColor="#9CA3AF"
               value={entityName}
             />
-            {addEntityType === 'category' ? (
-              <TextInput
-                accessibilityLabel="Subcategories"
-                autoCapitalize="words"
-                className="mt-3 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
-                onChangeText={setSubcategoryNames}
-                placeholder="Subcategories (comma-separated, optional)"
-                placeholderTextColor="#9CA3AF"
-                value={subcategoryNames}
-              />
-            ) : null}
+            <TextInput
+              accessibilityLabel="Subcategories"
+              autoCapitalize="words"
+              className="mt-3 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+              onChangeText={setSubcategoryNames}
+              placeholder="Subcategories (comma-separated, optional)"
+              placeholderTextColor="#9CA3AF"
+              value={subcategoryNames}
+            />
             {entityError ? (
               <Text
                 accessibilityRole="alert"
@@ -934,11 +929,7 @@ function Items({
                 <Text className="font-semibold text-[#374151]">Cancel</Text>
               </Pressable>
               <Pressable
-                accessibilityLabel={
-                  addEntityType === 'category'
-                    ? 'Save Category'
-                    : 'Save Cuisine'
-                }
+                accessibilityLabel="Save Category"
                 accessibilityRole="button"
                 disabled={isSavingEntity}
                 onPress={saveEntity}

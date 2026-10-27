@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -47,6 +47,7 @@ import Items from '../Tabs/Items';
 import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
 import CuisineScreen from '../Screens/Cuisine';
+import AddCuisineScreen from '../Screens/AddCuisine';
 import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
@@ -496,6 +497,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     null,
   );
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const cuisineReturnFeature = useRef<string | null>(null);
   const [billingItems, setBillingItems] = useState<BillingLineItem[]>([]);
   const [records, setRecords] = useState<LocalRecord[]>([]);
   const [logoutError, setLogoutError] = useState('');
@@ -740,6 +742,20 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsNotificationsOpen(false);
   };
 
+  const openAddCuisinePage = (returnFeature: string | null) => {
+    cuisineReturnFeature.current = returnFeature;
+    setSelectedAction(null);
+    setSelectedFeature('AddCuisine');
+    setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
+  };
+
+  const closeAddCuisinePage = () => {
+    const returnFeature = cuisineReturnFeature.current;
+    cuisineReturnFeature.current = null;
+    setSelectedFeature(returnFeature);
+  };
+
   const handleItemsAddRequestHandled = (id: number) => {
     setItemsAddRequest(current => (current?.id === id ? null : current));
   };
@@ -927,6 +943,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               userName={userName}
               itemsAddRequest={itemsAddRequest}
               onItemsAddRequestHandled={handleItemsAddRequestHandled}
+              onOpenAddCuisine={openAddCuisinePage}
+              onCloseAddCuisine={closeAddCuisinePage}
               onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
@@ -980,6 +998,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             userName={userName}
             itemsAddRequest={itemsAddRequest}
             onItemsAddRequestHandled={handleItemsAddRequestHandled}
+            onOpenAddCuisine={openAddCuisinePage}
+            onCloseAddCuisine={closeAddCuisinePage}
             onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
@@ -1347,6 +1367,8 @@ function MainContent({
   userName,
   itemsAddRequest,
   onItemsAddRequestHandled,
+  onOpenAddCuisine,
+  onCloseAddCuisine,
   onFoodDetailsVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
@@ -1382,6 +1404,8 @@ function MainContent({
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
   onItemsAddRequestHandled: (id: number) => void;
+  onOpenAddCuisine: (returnFeature: string | null) => void;
+  onCloseAddCuisine: () => void;
   onFoodDetailsVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
@@ -1415,7 +1439,15 @@ function MainContent({
 
   if (selectedFeature) {
     if (selectedFeature === 'Cuisines') {
-      return <CuisineScreen onBack={() => onSelectFeature(null)} />;
+      return (
+        <CuisineScreen
+          onAddCuisine={() => onOpenAddCuisine('Cuisines')}
+          onBack={() => onSelectFeature(null)}
+        />
+      );
+    }
+    if (selectedFeature === 'AddCuisine') {
+      return <AddCuisineScreen onBack={onCloseAddCuisine} />;
     }
     if (selectedFeature === 'Categories') {
       return (
@@ -1532,6 +1564,7 @@ function MainContent({
         actor={userName}
         pendingAddRequest={itemsAddRequest}
         onAddRequestHandled={onItemsAddRequestHandled}
+        onAddCuisine={() => onOpenAddCuisine(null)}
         onFoodDetailsVisibilityChange={onFoodDetailsVisibilityChange}
         showAddButton={false}
       />
@@ -1979,7 +2012,12 @@ function HomePage({
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
-        <SalesOverview orders={filteredOrders} trend={report.trend} />
+        <SalesOverview
+          orders={apiData.orders}
+          bills={apiData.bills}
+          filteredOrders={filteredOrders}
+          trend={report.trend}
+        />
       )}
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
@@ -2137,69 +2175,483 @@ function HomePage({
   );
 }
 
-function SalesOverview({
-  orders,
-  trend,
-}: {
-  orders: ApiOrder[];
-  trend: ApiRevenueTrend[];
-}) {
-  const revenueByDay = new Map<string, number>();
+type SalesFilterMode = 'daily' | 'weekly' | 'monthly';
+
+type SalesBarItem = {
+  key: string;
+  label: string;
+  sublabel: string;
+  fullLabel: string;
+  revenue: number;
+  orderCount: number;
+};
+
+function formatCompactCurrency(amount: number): string {
+  if (amount >= 10000000) {
+    return `₹${(amount / 10000000).toFixed(1)}Cr`;
+  }
+  if (amount >= 100000) {
+    return `₹${(amount / 100000).toFixed(1)}L`;
+  }
+  if (amount >= 1000) {
+    return `₹${(amount / 1000).toFixed(1)}k`;
+  }
+  return `₹${Math.round(amount)}`;
+}
+
+function computeSalesData(
+  mode: SalesFilterMode,
+  orders: ApiOrder[],
+  bills: ApiBill[],
+  trend: ApiRevenueTrend[],
+): SalesBarItem[] {
+  const now = new Date();
+
+  type Transaction = {
+    date: Date;
+    amount: number;
+  };
+
+  const transactions: Transaction[] = [];
+
   orders.forEach(order => {
-    const date = getOrderDate(order);
-    if (!date) {
+    const status = String(order.order_status || '').trim().toLowerCase();
+    if (['cancelled', 'canceled'].includes(status)) {
       return;
     }
-    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    revenueByDay.set(
-      key,
-      (revenueByDay.get(key) || 0) + Number(order.total_amount || 0),
-    );
+    const d = getOrderDate(order);
+    if (!d) return;
+    const amt = Number(order.total_amount || 0);
+    if (amt >= 0) {
+      transactions.push({ date: d, amount: amt });
+    }
   });
-  const fallbackDays = Array.from({ length: 7 }, (_, offset) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - offset));
-    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    return {
-      label: date.toLocaleDateString('en-IN', { weekday: 'short' }),
-      value: revenueByDay.get(key) || 0,
-    };
+
+  bills.forEach(bill => {
+    const status = String(bill.status || '').trim().toLowerCase();
+    if (['cancelled', 'canceled'].includes(status)) {
+      return;
+    }
+    const d = getOrderDate(bill);
+    if (!d) return;
+    const amt = Number(bill.grand_total || 0);
+    if (amt >= 0) {
+      transactions.push({ date: d, amount: amt });
+    }
   });
-  const days = trend.length
-    ? trend.slice(-7).map((entry, index) => ({
-        label: entry.label || entry.date || `Period ${index + 1}`,
-        value: Number(entry.revenue || 0),
-      }))
-    : fallbackDays;
-  const maxValue = Math.max(...days.map(day => day.value), 1);
+
+  const hasTransactions = transactions.length > 0;
+
+  if (mode === 'daily') {
+    const items: SalesBarItem[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+
+      const shortDay = d.toLocaleDateString('en-IN', { weekday: 'short' });
+      const dayNum = String(d.getDate());
+      const fullLabel =
+        i === 0
+          ? `Today (${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})`
+          : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+
+      let revenue = 0;
+      let orderCount = 0;
+
+      if (hasTransactions) {
+        transactions.forEach(t => {
+          const time = t.date.getTime();
+          if (time >= start && time <= end) {
+            revenue += t.amount;
+            orderCount += 1;
+          }
+        });
+      }
+
+      items.push({
+        key: `daily-${i}`,
+        label: shortDay,
+        sublabel: dayNum,
+        fullLabel,
+        revenue,
+        orderCount,
+      });
+    }
+
+    if (!hasTransactions && trend.length > 0) {
+      const slice = trend.slice(-7);
+      return slice.map((t, idx) => ({
+        key: `trend-d-${idx}`,
+        label: t.label || t.date || `Day ${idx + 1}`,
+        sublabel: '',
+        fullLabel: t.label || t.date || `Period ${idx + 1}`,
+        revenue: Number(t.revenue || 0),
+        orderCount: Number(t.orders || 0),
+      }));
+    }
+
+    return items;
+  }
+
+  if (mode === 'weekly') {
+    const items: SalesBarItem[] = [];
+    for (let w = 3; w >= 0; w--) {
+      const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (w * 7), 23, 59, 59, 999);
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (w * 7 + 6), 0, 0, 0, 0);
+
+      const startMs = weekStart.getTime();
+      const endMs = weekEnd.getTime();
+
+      const startMonth = weekStart.toLocaleDateString('en-IN', { month: 'short' });
+      const endMonth = weekEnd.toLocaleDateString('en-IN', { month: 'short' });
+      const sublabel = `${weekStart.getDate()}-${weekEnd.getDate()} ${endMonth}`;
+      const label = w === 0 ? 'This Wk' : `Wk ${4 - w}`;
+      const fullLabel =
+        w === 0
+          ? `This Week (${weekStart.getDate()} ${startMonth} - ${weekEnd.getDate()} ${endMonth})`
+          : `Week ${4 - w} (${weekStart.getDate()} ${startMonth} - ${weekEnd.getDate()} ${endMonth})`;
+
+      let revenue = 0;
+      let orderCount = 0;
+
+      if (hasTransactions) {
+        transactions.forEach(t => {
+          const time = t.date.getTime();
+          if (time >= startMs && time <= endMs) {
+            revenue += t.amount;
+            orderCount += 1;
+          }
+        });
+      }
+
+      items.push({
+        key: `weekly-${w}`,
+        label,
+        sublabel,
+        fullLabel,
+        revenue,
+        orderCount,
+      });
+    }
+
+    return items;
+  }
+
+  // mode === 'monthly'
+  const items: SalesBarItem[] = [];
+  for (let m = 5; m >= 0; m--) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    const startMs = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1, 0, 0, 0, 0).getTime();
+    const endMs = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+
+    const shortMonth = monthDate.toLocaleDateString('en-IN', { month: 'short' });
+    const fullYear = monthDate.getFullYear();
+    const sublabel = `'${String(fullYear).slice(-2)}`;
+    const fullLabel = monthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+    let revenue = 0;
+    let orderCount = 0;
+
+    if (hasTransactions) {
+      transactions.forEach(t => {
+        const time = t.date.getTime();
+        if (time >= startMs && time <= endMs) {
+          revenue += t.amount;
+          orderCount += 1;
+        }
+      });
+    }
+
+    items.push({
+      key: `monthly-${m}`,
+      label: shortMonth,
+      sublabel,
+      fullLabel,
+      revenue,
+      orderCount,
+    });
+  }
+
+  if (!hasTransactions && trend.length > 0) {
+    const slice = trend.slice(-6);
+    return slice.map((t, idx) => ({
+      key: `trend-m-${idx}`,
+      label: t.label || t.date || `M${idx + 1}`,
+      sublabel: '',
+      fullLabel: t.label || t.date || `Month ${idx + 1}`,
+      revenue: Number(t.revenue || 0),
+      orderCount: Number(t.orders || 0),
+    }));
+  }
+
+  return items;
+}
+
+function SalesOverview({
+  orders = [],
+  bills = [],
+  filteredOrders,
+  trend = [],
+}: {
+  orders?: ApiOrder[];
+  bills?: ApiBill[];
+  filteredOrders?: ApiOrder[];
+  trend?: ApiRevenueTrend[];
+}) {
+  const [filterMode, setFilterMode] = useState<SalesFilterMode>('daily');
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  const dataset = useMemo(
+    () => computeSalesData(filterMode, orders, bills, trend),
+    [filterMode, orders, bills, trend],
+  );
+
+  const activeIndex =
+    selectedIndex !== null && selectedIndex >= 0 && selectedIndex < dataset.length
+      ? selectedIndex
+      : dataset.length - 1;
+
+  const activeItem = dataset[activeIndex] || dataset[0] || {
+    key: 'empty',
+    label: '',
+    sublabel: '',
+    fullLabel: 'No data',
+    revenue: 0,
+    orderCount: 0,
+  };
+
+  const totalRevenue = useMemo(
+    () => dataset.reduce((sum, item) => sum + item.revenue, 0),
+    [dataset],
+  );
+
+  const avgRevenue = useMemo(
+    () => (dataset.length > 0 ? Math.round(totalRevenue / dataset.length) : 0),
+    [dataset, totalRevenue],
+  );
+
+  const peakItem = useMemo(() => {
+    if (dataset.length === 0) return null;
+    return dataset.reduce((max, item) => (item.revenue > max.revenue ? item : max), dataset[0]);
+  }, [dataset]);
+
+  const maxRevenue = Math.max(...dataset.map(item => item.revenue), 1);
+  const chartHeight = 110;
+
+  const barWidth =
+    filterMode === 'weekly' ? 36 : filterMode === 'monthly' ? 26 : 20;
 
   return (
-    <View className="rounded-2xl border border-[#E5E7EB] bg-white px-[18px] pb-[14px] pt-[18px]">
-      <View className="h-[124px] flex-row justify-around">
-        {days.map(day => (
-          <View key={day.label} className="flex-1 items-center justify-end">
-            <View
-              accessibilityLabel={`${day.label} sales ${formatCurrency(
-                day.value,
-              )}`}
-              className="w-[55%] max-w-6 rounded-[5px]"
-              style={{
-                backgroundColor: day.value ? colors.primary : '#E5E7EB',
-                height: Math.max(
-                  day.value ? 8 : 4,
-                  (day.value / maxValue) * 88,
-                ),
-              }}
-            />
-            <Text className="mt-2 text-[10px] text-[#6B7280]">{day.label}</Text>
+    <View className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+      {/* Top Header with title and segmented filter */}
+      <View className="flex-row items-center justify-between pb-3 border-b border-[#F3F4F6]">
+        <View className="flex-row items-center gap-2">
+          <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#F0FDF4] border border-[#DCFCE7]">
+            <ChartIcon color="#116C0B" size={16} />
           </View>
-        ))}
+          <View>
+            <Text className="text-sm font-bold text-[#012711]">Sales Overview</Text>
+            <Text className="text-[10px] text-[#6B7280]">
+              {filterMode === 'daily'
+                ? 'Past 7 Days'
+                : filterMode === 'weekly'
+                ? 'Past 4 Weeks'
+                : 'Past 6 Months'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Segmented Filter Pills */}
+        <View className="flex-row items-center rounded-xl bg-[#F3F4F6] p-1">
+          {(['daily', 'weekly', 'monthly'] as const).map(mode => {
+            const isActive = filterMode === mode;
+            const title =
+              mode === 'daily' ? 'Daily' : mode === 'weekly' ? 'Weekly' : 'Monthly';
+            return (
+              <Pressable
+                key={mode}
+                onPress={() => {
+                  setFilterMode(mode);
+                  setSelectedIndex(null);
+                }}
+                className={`rounded-lg px-2.5 py-1 ${
+                  isActive ? 'bg-[#116C0B] shadow-sm' : ''
+                }`}
+              >
+                <Text
+                  className={`text-[11px] font-semibold ${
+                    isActive ? 'text-white' : 'text-[#6B7280]'
+                  }`}
+                >
+                  {title}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
-      {orders.length === 0 ? (
-        <Text className="mt-[3px] text-center text-[11px] leading-4 text-[#6B7280]">
-          No sales are recorded for this period yet.
+
+      {/* Selected Period Spotlight Card */}
+      <View className="mt-3.5 mb-2 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] p-3 flex-row items-center justify-between">
+        <View className="flex-1 pr-2">
+          <Text className="text-[11px] font-medium text-[#166534]">
+            {activeItem.fullLabel}
+          </Text>
+          <Text className="text-xl font-extrabold text-[#012711] mt-0.5">
+            {formatCurrency(activeItem.revenue)}
+          </Text>
+        </View>
+        <View className="items-end gap-1">
+          <View className="rounded-full bg-[#DCFCE7] px-2.5 py-0.5">
+            <Text className="text-[10px] font-bold text-[#166534]">
+              {activeItem.orderCount} {activeItem.orderCount === 1 ? 'order' : 'orders'}
+            </Text>
+          </View>
+          {peakItem && peakItem.revenue > 0 && activeItem.revenue === peakItem.revenue ? (
+            <Text className="text-[10px] font-semibold text-[#D97706]">
+              ★ Peak Period
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      {/* Chart Canvas */}
+      <View className="h-[155px] flex-row items-end justify-between px-1 pt-4">
+        {dataset.map((item, index) => {
+          const isSelected = index === activeIndex;
+          const barHeight =
+            item.revenue > 0
+              ? Math.max(12, Math.round((item.revenue / maxRevenue) * chartHeight))
+              : 6;
+
+          return (
+            <Pressable
+              key={item.key}
+              onPress={() => setSelectedIndex(index)}
+              className="flex-1 items-center justify-end"
+            >
+              {/* Tooltip bubble above selected bar */}
+              {isSelected ? (
+                <View className="mb-1 items-center">
+                  <View className="rounded bg-[#012711] px-1.5 py-0.5 shadow-sm">
+                    <Text className="text-[9px] font-bold text-white">
+                      {formatCompactCurrency(item.revenue)}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderLeftWidth: 3,
+                      borderRightWidth: 3,
+                      borderTopWidth: 3,
+                      borderLeftColor: 'transparent',
+                      borderRightColor: 'transparent',
+                      borderTopColor: '#012711',
+                    }}
+                  />
+                </View>
+              ) : (
+                <View className="h-5" />
+              )}
+
+              {/* Bar Rect */}
+              <View
+                style={{
+                  width: barWidth,
+                  height: barHeight,
+                  borderTopLeftRadius: 6,
+                  borderTopRightRadius: 6,
+                  borderBottomLeftRadius: 2,
+                  borderBottomRightRadius: 2,
+                  backgroundColor: isSelected
+                    ? '#0B4D1A'
+                    : item.revenue > 0
+                    ? '#116C0B'
+                    : '#E5E7EB',
+                  shadowColor: isSelected ? '#116C0B' : 'transparent',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isSelected ? 0.35 : 0,
+                  shadowRadius: 4,
+                  elevation: isSelected ? 3 : 0,
+                }}
+              />
+
+              {/* Labels */}
+              <View className="mt-2 items-center">
+                <Text
+                  className={`text-center text-[10px] ${
+                    isSelected
+                      ? 'font-bold text-[#116C0B]'
+                      : item.revenue > 0
+                      ? 'font-semibold text-[#374151]'
+                      : 'font-normal text-[#9CA3AF]'
+                  }`}
+                >
+                  {item.label}
+                </Text>
+                {item.sublabel ? (
+                  <Text
+                    className={`text-[9px] ${
+                      isSelected ? 'font-medium text-[#116C0B]' : 'text-[#9CA3AF]'
+                    }`}
+                  >
+                    {item.sublabel}
+                  </Text>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Empty State message if no sales */}
+      {totalRevenue === 0 && (
+        <Text className="mt-2 text-center text-[11px] leading-4 text-[#9CA3AF]">
+          No recorded sales in this period.
         </Text>
-      ) : null}
+      )}
+
+      {/* Footer Summary Stats */}
+      <View className="mt-3.5 pt-3 border-t border-[#F3F4F6] flex-row items-center justify-between">
+        <View className="flex-1">
+          <Text className="text-[10px] uppercase tracking-wider font-semibold text-[#6B7280]">
+            Total
+          </Text>
+          <Text className="text-xs font-bold text-[#012711] mt-0.5">
+            {formatCurrency(totalRevenue)}
+          </Text>
+        </View>
+
+        <View className="h-6 w-[1px] bg-[#E5E7EB] mx-1.5" />
+
+        <View className="flex-1">
+          <Text className="text-[10px] uppercase tracking-wider font-semibold text-[#6B7280]">
+            {filterMode === 'daily'
+              ? 'Daily Avg'
+              : filterMode === 'weekly'
+              ? 'Weekly Avg'
+              : 'Monthly Avg'}
+          </Text>
+          <Text className="text-xs font-bold text-[#012711] mt-0.5">
+            {formatCurrency(avgRevenue)}
+          </Text>
+        </View>
+
+        <View className="h-6 w-[1px] bg-[#E5E7EB] mx-1.5" />
+
+        <View className="flex-1">
+          <Text className="text-[10px] uppercase tracking-wider font-semibold text-[#6B7280]">
+            Peak
+          </Text>
+          <Text className="text-xs font-bold text-[#16803D] mt-0.5" numberOfLines={1}>
+            {peakItem && peakItem.revenue > 0
+              ? `${peakItem.label} (${formatCompactCurrency(peakItem.revenue)})`
+              : '—'}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }

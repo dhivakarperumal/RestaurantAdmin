@@ -148,7 +148,16 @@ test('opens the cuisines list from the More tab', async () => {
     renderer.root.findByProps({ accessibilityLabel: 'Search cuisines' }),
   ).toBeTruthy();
   expect(JSON.stringify(renderer.toJSON())).toContain('All Cuisines');
-});
+  await press(renderer, 'Add cuisine');
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Add Cuisine');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Cuisine name' }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Cuisine ID' }),
+  ).toBeTruthy();
+}, 15000);
 
 test('opens the dedicated Add Category page from the Items FAB', async () => {
   const renderer = await renderDashboard();

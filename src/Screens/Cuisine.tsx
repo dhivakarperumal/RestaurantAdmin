@@ -23,6 +23,7 @@ type CuisineRecord = {
 };
 
 type CuisineProps = {
+  onAddCuisine: () => void;
   onBack: () => void;
 };
 
@@ -80,7 +81,7 @@ function isFeatured(value: CuisineRecord['featured']) {
   return value === true || value === 1 || value === '1' || value === 'true';
 }
 
-function Cuisine({ onBack }: CuisineProps) {
+function Cuisine({ onAddCuisine, onBack }: CuisineProps) {
   const [cuisines, setCuisines] = useState<CuisineRecord[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -182,6 +183,14 @@ function Cuisine({ onBack }: CuisineProps) {
           <Text className="mt-1 text-sm text-[#6B7280]">
             {cuisines.length} {cuisines.length === 1 ? 'cuisine' : 'cuisines'}
           </Text>
+          <Pressable
+            accessibilityLabel="Add cuisine"
+            accessibilityRole="button"
+            onPress={onAddCuisine}
+            className="mt-4 self-start rounded-xl bg-[#116C0B] px-4 py-3"
+          >
+            <Text className="font-semibold text-white">+ Add Cuisine</Text>
+          </Pressable>
         </View>
 
         <TextInput
