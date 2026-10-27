@@ -396,6 +396,26 @@ const moreFeatures = [
     icon: MenuIcon,
   },
   {
+    title: 'Printer Setup',
+    subtitle: 'Configure receipt and kitchen printers',
+    icon: ReceiptIcon,
+  },
+  {
+    title: 'Banner Management',
+    subtitle: 'Create and manage website banners',
+    icon: MenuIcon,
+  },
+  {
+    title: 'Gallery Management',
+    subtitle: 'Manage website photo galleries',
+    icon: MenuIcon,
+  },
+  {
+    title: 'Review Management',
+    subtitle: 'Manage customer ratings and reviews',
+    icon: CustomersIcon,
+  },
+  {
     title: 'Customers',
     subtitle: 'Customer list and details',
     icon: CustomersIcon,
