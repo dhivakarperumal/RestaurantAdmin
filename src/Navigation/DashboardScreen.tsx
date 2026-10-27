@@ -1752,12 +1752,13 @@ function HomePage({
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const [summaryGridWidth, setSummaryGridWidth] = useState(0);
-  const measuredGridWidth = summaryGridWidth || Math.max(0, screenWidth - 40);
+  const measuredGridWidth = summaryGridWidth || Math.max(0, screenWidth - 48);
   const summaryCardColumns = measuredGridWidth >= 1060 ? 4 : 2;
-  const summaryCardGap = measuredGridWidth >= 1060 ? 16 : 12;
-  const summaryCardWidth =
+  const summaryCardGap = measuredGridWidth >= 1060 ? 16 : 10;
+  const summaryCardWidth = Math.floor(
     (measuredGridWidth - summaryCardGap * (summaryCardColumns - 1)) /
-    summaryCardColumns;
+      summaryCardColumns,
+  );
   const filteredOrders = filterOrdersByPeriod(
     apiData.orders,
     dateFilter,
@@ -2040,6 +2041,7 @@ function HomePage({
           alignItems: 'flex-start',
           columnGap: summaryCardGap,
           rowGap: summaryCardGap,
+          overflow: 'hidden',
         }}
       >
         <StatCard
@@ -4718,6 +4720,8 @@ function StatCard({
       style={{
         minHeight: 188,
         width,
+        maxWidth: width,
+        flexShrink: 0,
         shadowColor: palette.shadow,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.32,
@@ -4759,10 +4763,10 @@ function StatCard({
       </Svg>
 
       {/* Top Row: Frosted Glass Icon Squircle + Status Badge */}
-      <View className="z-[1] flex-row items-center justify-between gap-1">
+      <View className="z-[1] flex-row items-start justify-between" style={{ overflow: 'hidden' }}>
         <View
           className="h-10 w-10 items-center justify-center rounded-2xl border border-white/30"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)', flexShrink: 0 }}
         >
           <Icon color="#FFFFFF" size={20} />
         </View>
@@ -4772,13 +4776,16 @@ function StatCard({
           style={{
             backgroundColor: 'rgba(0, 0, 0, 0.25)',
             flexShrink: 1,
+            flexGrow: 0,
+            maxWidth: '60%',
           }}
         >
           {isLive ? (
-            <View className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" />
+            <View className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" style={{ flexShrink: 0 }} />
           ) : null}
           <Text
             numberOfLines={1}
+            ellipsizeMode="tail"
             className="text-[9px] font-black uppercase tracking-wide text-white"
           >
             {badge}
