@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -29,6 +29,7 @@ import {
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
+import FloatingActionMenu from './FloatingActionMenu';
 import Bills, { type BillFood } from '../Tabs/Bills';
 import Items from '../Tabs/Items';
 import api from '../../api';
@@ -39,6 +40,7 @@ type DashboardScreenProps = {
 };
 
 type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' | 'more';
+type ItemsAddRequest = { id: number; action: 'product' | 'category' };
 type QuickActionId =
   | 'invoice'
   | 'order'
@@ -325,6 +327,9 @@ const moreFeatures = [
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<AppTab>('home');
+  const [itemsAddRequest, setItemsAddRequest] =
+    useState<ItemsAddRequest | null>(null);
+  const nextItemsAddRequestId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isFoodDetailsOpen, setIsFoodDetailsOpen] = useState(false);
@@ -553,6 +558,19 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsNotificationsOpen(false);
   };
 
+  const openItemsAddForm = (action: ItemsAddRequest['action']) => {
+    nextItemsAddRequestId.current += 1;
+    setItemsAddRequest({
+      id: nextItemsAddRequestId.current,
+      action,
+    });
+    navigateToTab('items');
+  };
+
+  const handleItemsAddRequestHandled = (id: number) => {
+    setItemsAddRequest(current => (current?.id === id ? null : current));
+  };
+
   const handleSaveAction = (name: string, amount?: number) => {
     if (!selectedAction) {
       return;
@@ -727,6 +745,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               userEmail={userEmail}
               userInitial={userInitial}
               userName={userName}
+              itemsAddRequest={itemsAddRequest}
+              onItemsAddRequestHandled={handleItemsAddRequestHandled}
               onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
@@ -776,6 +796,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             userEmail={userEmail}
             userInitial={userInitial}
             userName={userName}
+            itemsAddRequest={itemsAddRequest}
+            onItemsAddRequestHandled={handleItemsAddRequestHandled}
             onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
@@ -801,6 +823,13 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         activeTab={activeTab}
         onPressTab={navigateToTab}
       />
+      {!isWide && !isFoodDetailsOpen ? (
+        <FloatingActionMenu
+          onAddProduct={() => openItemsAddForm('product')}
+          onAddCategory={() => openItemsAddForm('category')}
+          onAddCustomers={() => navigateToAction('customer')}
+        />
+      ) : null}
 
       {!isWide && isSidebarOpen ? (
         <View className="absolute bottom-0 left-0 right-0 top-0 z-[30]">
@@ -1116,6 +1145,8 @@ function MainContent({
   userEmail,
   userInitial,
   userName,
+  itemsAddRequest,
+  onItemsAddRequestHandled,
   onFoodDetailsVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
@@ -1149,6 +1180,8 @@ function MainContent({
   userEmail: string;
   userInitial: string;
   userName: string;
+  itemsAddRequest: ItemsAddRequest | null;
+  onItemsAddRequestHandled: (id: number) => void;
   onFoodDetailsVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
@@ -1249,7 +1282,10 @@ function MainContent({
     return (
       <Items
         actor={userName}
+        pendingAddRequest={itemsAddRequest}
+        onAddRequestHandled={onItemsAddRequestHandled}
         onFoodDetailsVisibilityChange={onFoodDetailsVisibilityChange}
+        showAddButton={false}
       />
     );
   }

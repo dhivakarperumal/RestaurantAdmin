@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Modal,
   Pressable,
   Text,
   TextInput,
@@ -16,7 +17,10 @@ import colors from '../theme/colors';
 
 type ItemsProps = {
   actor?: string;
+  pendingAddRequest?: { id: number; action: 'product' | 'category' } | null;
+  onAddRequestHandled?: (id: number) => void;
   onFoodDetailsVisibilityChange?: (isVisible: boolean) => void;
+  showAddButton?: boolean;
 };
 
 type Item = {
@@ -44,6 +48,8 @@ type Item = {
   image_url?: unknown;
   image?: unknown;
 };
+
+type AddEntityType = 'category' | 'cuisine';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -176,7 +182,10 @@ function ItemSeparator() {
 
 function Items({
   actor = 'Admin',
+  pendingAddRequest = null,
+  onAddRequestHandled,
   onFoodDetailsVisibilityChange,
+  showAddButton = true,
 }: ItemsProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [search, setSearch] = useState('');
@@ -184,6 +193,12 @@ function Items({
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const [isAddFoodOpen, setIsAddFoodOpen] = useState(false);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const [addEntityType, setAddEntityType] = useState<AddEntityType | null>(null);
+  const [entityName, setEntityName] = useState('');
+  const [subcategoryNames, setSubcategoryNames] = useState('');
+  const [entityError, setEntityError] = useState('');
+  const [isSavingEntity, setIsSavingEntity] = useState(false);
   const [editingFoodId, setEditingFoodId] = useState<string | null>(null);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
 
@@ -232,6 +247,75 @@ function Items({
         .includes(query),
     );
   }, [items, search]);
+
+  const closeEntityForm = () => {
+    if (isSavingEntity) return;
+    setAddEntityType(null);
+    setEntityName('');
+    setSubcategoryNames('');
+    setEntityError('');
+  };
+
+  const openEntityForm = (type: AddEntityType) => {
+    setIsAddMenuOpen(false);
+    setEntityName('');
+    setSubcategoryNames('');
+    setEntityError('');
+    setAddEntityType(type);
+  };
+
+  useEffect(() => {
+    if (!pendingAddRequest) {
+      return;
+    }
+    setIsAddMenuOpen(false);
+    if (pendingAddRequest.action === 'product') {
+      setIsAddFoodOpen(true);
+    } else {
+      setEntityName('');
+      setSubcategoryNames('');
+      setEntityError('');
+      setAddEntityType('category');
+    }
+    onAddRequestHandled?.(pendingAddRequest.id);
+  }, [pendingAddRequest, onAddRequestHandled]);
+
+  const saveEntity = async () => {
+    const name = entityName.trim();
+    if (!name || !addEntityType) {
+      setEntityError(`Enter a ${addEntityType || 'category or cuisine'} name.`);
+      return;
+    }
+
+    setIsSavingEntity(true);
+    setEntityError('');
+    try {
+      if (addEntityType === 'category') {
+        const subCategories = subcategoryNames
+          .split(',')
+          .map(subcategory => subcategory.trim())
+          .filter(Boolean);
+        await api.post('/categories', {
+          category_name: name,
+          sub_categories: subCategories,
+        });
+      } else {
+        await api.post('/cuisines', { cuisine_name: name });
+      }
+      setAddEntityType(null);
+      setEntityName('');
+      setSubcategoryNames('');
+      setRetry(count => count + 1);
+    } catch (saveError) {
+      setEntityError(
+        isRecord(saveError) && typeof saveError.message === 'string'
+          ? saveError.message
+          : `Unable to add ${addEntityType}. Please try again.`,
+      );
+    } finally {
+      setIsSavingEntity(false);
+    }
+  };
 
   if (isAddFoodOpen) {
     return (
@@ -422,14 +506,122 @@ function Items({
           );
         }}
       />
-      <Pressable
-        accessibilityLabel="Add item"
-        accessibilityRole="button"
-        onPress={() => setIsAddFoodOpen(true)}
-        className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
+      {showAddButton ? (
+        <Pressable
+          accessibilityLabel="Add item"
+          accessibilityRole="button"
+          onPress={() => setIsAddMenuOpen(true)}
+          className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
+        >
+          <PlusIcon color="#FFFFFF" size={24} />
+        </Pressable>
+      ) : null}
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setIsAddMenuOpen(false)}
+        transparent
+        visible={isAddMenuOpen}
       >
-        <PlusIcon color="#FFFFFF" size={24} />
-      </Pressable>
+        <Pressable
+          accessibilityLabel="Close add menu"
+          className="flex-1 justify-end bg-black/30"
+          onPress={() => setIsAddMenuOpen(false)}
+        >
+          <View className="gap-3 rounded-t-3xl bg-white px-5 pb-8 pt-5">
+            <Text className="mb-1 text-lg font-bold text-[#012711]">Add to menu</Text>
+            <Pressable
+              accessibilityLabel="Add Food"
+              accessibilityRole="button"
+              onPress={() => {
+                setIsAddMenuOpen(false);
+                setIsAddFoodOpen(true);
+              }}
+              className="rounded-xl bg-[#F0F7EE] px-4 py-3.5"
+            >
+              <Text className="font-semibold text-[#116C0B]">Add Food</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Add Category"
+              accessibilityRole="button"
+              onPress={() => openEntityForm('category')}
+              className="rounded-xl bg-[#F9FAFB] px-4 py-3.5"
+            >
+              <Text className="font-semibold text-[#012711]">Add Category</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Add Cuisine"
+              accessibilityRole="button"
+              onPress={() => openEntityForm('cuisine')}
+              className="rounded-xl bg-[#F9FAFB] px-4 py-3.5"
+            >
+              <Text className="font-semibold text-[#012711]">Add Cuisine</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+      <Modal
+        animationType="fade"
+        onRequestClose={closeEntityForm}
+        transparent
+        visible={addEntityType !== null}
+      >
+        <View className="flex-1 items-center justify-center bg-black/40 px-5">
+          <View className="w-full max-w-md rounded-2xl bg-white p-5">
+            <Text className="text-lg font-bold text-[#012711]">
+              {addEntityType === 'category' ? 'Add Category' : 'Add Cuisine'}
+            </Text>
+            <TextInput
+              accessibilityLabel={addEntityType === 'category' ? 'Category name' : 'Cuisine name'}
+              autoCapitalize="words"
+              className="mt-4 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+              onChangeText={setEntityName}
+              placeholder={addEntityType === 'category' ? 'Category name' : 'Cuisine name'}
+              placeholderTextColor="#9CA3AF"
+              value={entityName}
+            />
+            {addEntityType === 'category' ? (
+              <TextInput
+                accessibilityLabel="Subcategories"
+                autoCapitalize="words"
+                className="mt-3 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+                onChangeText={setSubcategoryNames}
+                placeholder="Subcategories (comma-separated, optional)"
+                placeholderTextColor="#9CA3AF"
+                value={subcategoryNames}
+              />
+            ) : null}
+            {entityError ? (
+              <Text accessibilityRole="alert" className="mt-3 text-sm text-red-700">
+                {entityError}
+              </Text>
+            ) : null}
+            <View className="mt-5 flex-row justify-end gap-3">
+              <Pressable
+                accessibilityLabel="Cancel add"
+                accessibilityRole="button"
+                disabled={isSavingEntity}
+                onPress={closeEntityForm}
+                className="rounded-xl border border-[#D1D5DB] px-4 py-2.5"
+              >
+                <Text className="font-semibold text-[#374151]">Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel={addEntityType === 'category' ? 'Save Category' : 'Save Cuisine'}
+                accessibilityRole="button"
+                disabled={isSavingEntity}
+                onPress={saveEntity}
+                className="min-w-20 items-center rounded-xl bg-[#116C0B] px-4 py-2.5"
+              >
+                {isSavingEntity ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text className="font-semibold text-white">Save</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

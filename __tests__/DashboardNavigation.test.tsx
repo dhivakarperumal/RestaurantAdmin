@@ -18,6 +18,15 @@ jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(),
 }));
 
+const mountedDashboards: ReactTestRenderer.ReactTestRenderer[] = [];
+
+afterEach(() => {
+  ReactTestRenderer.act(() => {
+    mountedDashboards.forEach(renderer => renderer.unmount());
+    mountedDashboards.length = 0;
+  });
+});
+
 async function renderDashboard() {
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {
@@ -28,6 +37,7 @@ async function renderDashboard() {
       />,
     );
   });
+  mountedDashboards.push(renderer!);
   return renderer!;
 }
 
@@ -80,12 +90,34 @@ test('opens the items screen from the bottom navigation', async () => {
     renderer.root.findAllByType(Text).some(node => node.props.children === 'All items'),
   ).toBe(true);
   expect(renderer.root.findByProps({ accessibilityLabel: 'Search items' })).toBeTruthy();
-  await press(renderer, 'Add item');
+  await press(renderer, 'Open quick actions');
+  await press(renderer, 'Add Product');
   await ReactTestRenderer.act(
     () => new Promise<void>(resolve => setTimeout(resolve, 0)),
   );
   expect(JSON.stringify(renderer.toJSON())).toContain('Add Food');
   expect(renderer.root.findByProps({ accessibilityLabel: 'Food name' })).toBeTruthy();
+});
+
+test('opens the existing category and customer forms from the FAB menu', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'Open quick actions');
+  await press(renderer, 'Dismiss quick actions');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Open quick actions' }).props
+      .accessibilityState.expanded,
+  ).toBe(false);
+
+  await press(renderer, 'Open quick actions');
+  await press(renderer, 'Add Category');
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Category name' })).toBeTruthy();
+
+  await press(renderer, 'Cancel add');
+  await press(renderer, 'Open quick actions');
+  await press(renderer, 'Add Cusions');
+  expect(renderer.root.findByProps({ placeholder: 'Customer name' })).toBeTruthy();
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Save Add Customer' })).toBeTruthy();
 });
 
 test('hides the dashboard header on food details and restores it on back', async () => {
