@@ -1027,7 +1027,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         <FloatingActionMenu
           onAddProduct={openItemsAddForm}
           onAddCategory={openAddCategoryPage}
-          onAddCustomers={() => navigateToAction('customer')}
+          onAddCuisine={() => openAddCuisinePage(null)}
         />
       ) : null}
 
