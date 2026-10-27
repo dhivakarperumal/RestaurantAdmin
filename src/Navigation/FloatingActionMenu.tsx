@@ -15,25 +15,25 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 import colors from '../theme/colors';
-import { CustomersIcon, PlusIcon, ProductIcon } from './NavigationIcons';
+import { MenuIcon, PlusIcon, ProductIcon } from './NavigationIcons';
 import AddCategoryIcon from './AddCategoryIcon';
 
 type FloatingActionMenuProps = {
   onAddProduct: () => void;
   onAddCategory: () => void;
-  onAddCustomers: () => void;
+  onAddCuisine: () => void;
 };
 
 const menuActions = [
   { label: 'Add Product', Icon: ProductIcon, color: colors.primary },
   { label: 'Add Category', Icon: AddCategoryIcon, color: colors.secondary },
-  { label: 'Add Cusions', Icon: CustomersIcon, color: colors.info },
+  { label: 'Add Cuisine', Icon: MenuIcon, color: colors.info },
 ] as const;
 
 function FloatingActionMenu({
   onAddProduct,
   onAddCategory,
-  onAddCustomers,
+  onAddCuisine,
 }: FloatingActionMenuProps) {
   const insets = useSafeAreaInsets();
   const [isOpen, setIsOpen] = useState(false);
@@ -83,7 +83,7 @@ function FloatingActionMenu({
       onAddCategory();
       return;
     }
-    onAddCustomers();
+    onAddCuisine();
   };
 
   const iconRotation = menuProgress.interpolate({

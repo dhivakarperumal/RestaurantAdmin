@@ -174,6 +174,20 @@ test('opens the dedicated Add Category page from the Items FAB', async () => {
   ).toBeTruthy();
 });
 
+test('opens the dedicated Add Cuisine page from the Items FAB', async () => {
+  const renderer = await renderDashboard();
+  await press(renderer, 'Items');
+  await press(renderer, 'Open quick actions');
+  await press(renderer, 'Add Cuisine');
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Cuisine name' }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Cuisine ID' }),
+  ).toBeTruthy();
+}, 15000);
+
 test('hides the dashboard header on food details and restores it on back', async () => {
   const get = api.get as jest.Mock;
   get.mockImplementation((path: string) => {
