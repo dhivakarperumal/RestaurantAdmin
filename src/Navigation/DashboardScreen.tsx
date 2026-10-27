@@ -1751,12 +1751,13 @@ function HomePage({
   onSetCustomTo: (date: string) => void;
 }) {
   const { width: screenWidth } = useWindowDimensions();
+  const [summaryGridWidth, setSummaryGridWidth] = useState(0);
+  const measuredGridWidth = summaryGridWidth || Math.max(0, screenWidth - 40);
   const summaryCardColumns =
-    screenWidth >= 1100 ? 4 : screenWidth < 360 ? 1 : 2;
-  const summaryCardGap = screenWidth >= 1100 ? 16 : 12;
-  const summaryContentWidth = Math.min(screenWidth, 1440) - 40;
+    measuredGridWidth >= 1060 ? 4 : measuredGridWidth < 320 ? 1 : 2;
+  const summaryCardGap = measuredGridWidth >= 1060 ? 16 : 12;
   const summaryCardWidth =
-    (summaryContentWidth - summaryCardGap * (summaryCardColumns - 1)) /
+    (measuredGridWidth - summaryCardGap * (summaryCardColumns - 1)) /
     summaryCardColumns;
   const filteredOrders = filterOrdersByPeriod(
     apiData.orders,
@@ -2029,6 +2030,12 @@ function HomePage({
 
       <View
         className="mt-5 flex-row flex-wrap"
+        onLayout={event => {
+          const nextWidth = Math.round(event.nativeEvent.layout.width);
+          setSummaryGridWidth(current =>
+            current === nextWidth ? current : nextWidth,
+          );
+        }}
         style={{
           alignContent: 'flex-start',
           alignItems: 'flex-start',

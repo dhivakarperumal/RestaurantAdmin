@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Alert,
+  Dimensions,
   Image,
   TextInput,
   View,
@@ -1146,6 +1147,11 @@ test('loads the restaurant POS dashboard snapshot and revenue reports', async ()
     .findAllByType(View)
     .filter(node => node.props.style?.minHeight === 188);
   expect(summaryCards).toHaveLength(8);
+  expect(
+    summaryCards[0].props.style.width +
+      summaryCards[1].props.style.width +
+      12,
+  ).toBeLessThanOrEqual(Dimensions.get('window').width - 40);
   expect(get).toHaveBeenCalledWith(
     '/orders/management',
     expect.objectContaining({ signal: expect.any(AbortSignal) }),
