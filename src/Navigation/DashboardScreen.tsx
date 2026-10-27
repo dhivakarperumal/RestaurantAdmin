@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Modal,
   Pressable,
@@ -910,13 +911,34 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     activeTab === 'more' && selectedFeature !== null && !selectedActionDetails;
   const moreFeatureBack = () => {
     if (selectedFeature === 'AddCategory') {
+      setActiveTab('more');
       setSelectedFeature('Categories');
     } else if (selectedFeature === 'AddCuisine') {
+      setActiveTab('more');
       closeAddCuisinePage();
     } else {
+      setActiveTab('more');
+      setSelectedAction(null);
       setSelectedFeature(null);
     }
   };
+
+  useEffect(() => {
+    if (!isMoreFeatureOpen) {
+      return undefined;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        moreFeatureBack();
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [isMoreFeatureOpen, selectedFeature]);
+
   return (
     <SafeAreaView
       edges={

@@ -142,6 +142,15 @@ test('opens category management from the More tab', async () => {
   expect(renderer.root.findByType(SafeAreaView).props.edges).toEqual([
     'bottom',
   ]);
+
+  await press(renderer, 'Back to More');
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Open Categories' }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Toggle sidebar' }),
+  ).toBeTruthy();
 });
 
 test('opens the cuisines list from the More tab', async () => {
