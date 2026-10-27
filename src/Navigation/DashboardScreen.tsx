@@ -4603,16 +4603,20 @@ type StatTone =
   | 'teal'
   | 'red';
 
-const statCardColors: Record<StatTone, { iconBg: string; iconColor: string }> = {
-  green:  { iconBg: '#DCFCE7', iconColor: '#15803D' },
-  blue:   { iconBg: '#DBEAFE', iconColor: '#1D4ED8' },
-  orange: { iconBg: '#FFEDD5', iconColor: '#C2410C' },
-  purple: { iconBg: '#EDE9FE', iconColor: '#7C3AED' },
-  cyan:   { iconBg: '#CFFAFE', iconColor: '#0E7490' },
-  pink:   { iconBg: '#FCE7F3', iconColor: '#BE185D' },
-  teal:   { iconBg: '#CCFBF1', iconColor: '#0F766E' },
-  red:    { iconBg: '#FEE2E2', iconColor: '#DC2626' },
+const statCardGradients: Record<
+  StatTone,
+  { grad1: string; grad2: string; grad3: string; glow: string; accent: string }
+> = {
+  green:  { grad1: '#052E10', grad2: '#0B4D1A', grad3: '#147524', glow: '#81C238', accent: '#22C55E' },
+  blue:   { grad1: '#0B1E4D', grad2: '#1230A0', grad3: '#1D4ED8', glow: '#60A5FA', accent: '#3B82F6' },
+  orange: { grad1: '#431407', grad2: '#9A3412', grad3: '#C2410C', glow: '#FB923C', accent: '#F97316' },
+  purple: { grad1: '#2E1065', grad2: '#5B21B6', grad3: '#7C3AED', glow: '#A78BFA', accent: '#8B5CF6' },
+  cyan:   { grad1: '#083344', grad2: '#0E7490', grad3: '#0891B2', glow: '#22D3EE', accent: '#06B6D4' },
+  pink:   { grad1: '#500724', grad2: '#9D174D', grad3: '#BE185D', glow: '#F472B6', accent: '#EC4899' },
+  teal:   { grad1: '#042F2E', grad2: '#0F766E', grad3: '#0D9488', glow: '#2DD4BF', accent: '#14B8A6' },
+  red:    { grad1: '#450A0A', grad2: '#991B1B', grad3: '#DC2626', glow: '#F87171', accent: '#EF4444' },
 };
+
 function StatCard({
   label,
   value,
@@ -4629,114 +4633,161 @@ function StatCard({
   icon: typeof ChartIcon;
 }) {
   const isLive = badge === 'LIVE';
-  const colors = statCardColors[tone];
+  const g = statCardGradients[tone];
+  const gradId = `scg_${tone}`;
+  const glowId = `scglow_${tone}`;
+  const accentId = `scacc_${tone}`;
+
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 14,
-        minHeight: 150,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-        elevation: 3,
-        justifyContent: 'space-between',
+        borderRadius: 18,
+        minHeight: 155,
+        overflow: 'hidden',
+        shadowColor: g.grad1,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.45,
+        shadowRadius: 14,
+        elevation: 10,
       }}
     >
-      {/* Top: icon + badge */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            backgroundColor: colors.iconBg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Icon color={colors.iconColor} size={18} />
+      {/* Gradient background via SVG */}
+      <Svg
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+      >
+        <Defs>
+          <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={g.grad1} stopOpacity="1" />
+            <Stop offset="50%" stopColor={g.grad2} stopOpacity="1" />
+            <Stop offset="100%" stopColor={g.grad3} stopOpacity="1" />
+          </LinearGradient>
+          <LinearGradient id={glowId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={g.glow} stopOpacity="0.28" />
+            <Stop offset="100%" stopColor={g.glow} stopOpacity="0" />
+          </LinearGradient>
+          <LinearGradient id={accentId} x1="100%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor={g.accent} stopOpacity="0.18" />
+            <Stop offset="100%" stopColor={g.accent} stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradId})`} />
+        <Circle cx="80%" cy="25%" r="70" fill={`url(#${glowId})`} />
+        <Circle cx="10%" cy="80%" r="55" fill={`url(#${accentId})`} />
+        <Circle cx="60%" cy="70%" r="50" fill={`url(#${glowId})`} />
+      </Svg>
+
+      {/* Card content */}
+      <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
+        {/* Top row: icon box + badge */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: 'rgba(255,255,255,0.18)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.22)',
+            }}
+          >
+            <Icon color="#FFFFFF" size={19} />
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              backgroundColor: 'rgba(0,0,0,0.30)',
+              borderRadius: 999,
+              paddingHorizontal: 9,
+              paddingVertical: 4,
+            }}
+          >
+            {isLive ? (
+              <View
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: 4,
+                  backgroundColor: '#FFC107',
+                }}
+              />
+            ) : null}
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 9,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                letterSpacing: 0.8,
+              }}
+            >
+              {badge}
+            </Text>
+          </View>
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            backgroundColor: isLive ? '#FEF3C7' : '#F3F4F6',
-            borderRadius: 999,
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-          }}
-        >
-          {isLive ? (
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' }} />
-          ) : null}
+
+        {/* Value + label */}
+        <View style={{ marginTop: 14 }}>
+          <Text
+            adjustsFontSizeToFit
+            numberOfLines={1}
+            style={{
+              fontSize: 26,
+              fontWeight: '800',
+              color: '#FFFFFF',
+              letterSpacing: -0.5,
+            }}
+          >
+            {value}
+          </Text>
           <Text
             numberOfLines={1}
             style={{
-              fontSize: 9,
+              marginTop: 3,
+              fontSize: 10,
               fontWeight: '700',
-              color: isLive ? '#92400E' : '#6B7280',
-              letterSpacing: 0.5,
+              color: 'rgba(255,255,255,0.75)',
+              letterSpacing: 1.1,
+              textTransform: 'uppercase',
             }}
           >
-            {badge}
+            {label}
           </Text>
         </View>
-      </View>
 
-      {/* Value + label */}
-      <View style={{ marginTop: 12 }}>
-        <Text
-          adjustsFontSizeToFit
-          numberOfLines={1}
+        {/* Bottom divider + detail */}
+        <View
           style={{
-            fontSize: 22,
-            fontWeight: '800',
-            color: '#111827',
-            letterSpacing: -0.5,
+            marginTop: 12,
+            borderTopWidth: 1,
+            borderTopColor: 'rgba(255,255,255,0.20)',
+            paddingTop: 8,
           }}
         >
-          {value}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={{
-            marginTop: 2,
-            fontSize: 11,
-            fontWeight: '600',
-            color: '#6B7280',
-            letterSpacing: 0.3,
-          }}
-        >
-          {label}
-        </Text>
-      </View>
-
-      {/* Bottom detail */}
-      <View
-        style={{
-          marginTop: 10,
-          borderTopWidth: 1,
-          borderTopColor: '#F3F4F6',
-          paddingTop: 8,
-        }}
-      >
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '500' }}
-        >
-          {detail}
-        </Text>
+          <Text
+            numberOfLines={1}
+            style={{
+              fontSize: 10,
+              color: 'rgba(255,255,255,0.60)',
+              fontWeight: '500',
+            }}
+          >
+            {detail}
+          </Text>
+        </View>
       </View>
     </View>
   );
 }
+
 
 function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
   return (
