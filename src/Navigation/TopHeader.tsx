@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Image,
   Pressable,
   StatusBar,
@@ -112,7 +113,15 @@ function TopHeader({
 
   const logout = () => {
     setIsProfileOpen(false);
-    onLogout();
+    Alert.alert(
+      'Log out?',
+      'Are you sure you want to log out of your account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log out', style: 'destructive', onPress: onLogout },
+      ],
+      { cancelable: true },
+    );
   };
 
   return (
