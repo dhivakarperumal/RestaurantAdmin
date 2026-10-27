@@ -6,7 +6,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -16,14 +15,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient,
-  Path,
-  Rect,
-  Stop,
-} from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import colors from '../theme/colors';
 import {
   BellIcon,
@@ -4611,64 +4603,16 @@ type StatTone =
   | 'teal'
   | 'red';
 
-type StatPalette = {
-  gradient: [string, string, string];
-  glow: string;
-  shadow: string;
-  sparkline: string;
+const statCardColors: Record<StatTone, { iconBg: string; iconColor: string }> = {
+  green:  { iconBg: '#DCFCE7', iconColor: '#15803D' },
+  blue:   { iconBg: '#DBEAFE', iconColor: '#1D4ED8' },
+  orange: { iconBg: '#FFEDD5', iconColor: '#C2410C' },
+  purple: { iconBg: '#EDE9FE', iconColor: '#7C3AED' },
+  cyan:   { iconBg: '#CFFAFE', iconColor: '#0E7490' },
+  pink:   { iconBg: '#FCE7F3', iconColor: '#BE185D' },
+  teal:   { iconBg: '#CCFBF1', iconColor: '#0F766E' },
+  red:    { iconBg: '#FEE2E2', iconColor: '#DC2626' },
 };
-
-const statCardPalettes: Record<StatTone, StatPalette> = {
-  green: {
-    gradient: ['#052E10', '#0B4D1A', '#137A29'],
-    glow: '#81C238',
-    shadow: '#052E10',
-    sparkline: 'M2 20 C 14 20, 20 8, 32 12 C 44 16, 52 4, 68 2',
-  },
-  blue: {
-    gradient: ['#0B2545', '#134074', '#1D63B8'],
-    glow: '#60A5FA',
-    shadow: '#0B2545',
-    sparkline: 'M2 18 C 16 18, 24 10, 36 13 C 46 15, 54 6, 68 3',
-  },
-  orange: {
-    gradient: ['#431407', '#9A3412', '#EA580C'],
-    glow: '#FDBA74',
-    shadow: '#431407',
-    sparkline: 'M2 19 C 14 16, 26 21, 38 12 C 48 16, 56 7, 68 4',
-  },
-  purple: {
-    gradient: ['#2E1065', '#581C87', '#7C3AED'],
-    glow: '#C4B5FD',
-    shadow: '#2E1065',
-    sparkline: 'M2 20 C 16 19, 26 10, 36 14 C 48 9, 56 5, 68 2',
-  },
-  cyan: {
-    gradient: ['#042F2E', '#0E7490', '#0891B2'],
-    glow: '#67E8F9',
-    shadow: '#042F2E',
-    sparkline: 'M2 18 C 14 18, 24 9, 36 12 C 48 15, 54 6, 68 3',
-  },
-  pink: {
-    gradient: ['#4C0519', '#9F1239', '#E11D48'],
-    glow: '#FDA4AF',
-    shadow: '#4C0519',
-    sparkline: 'M2 19 C 14 17, 26 9, 38 14 C 50 8, 56 5, 68 2',
-  },
-  teal: {
-    gradient: ['#062D24', '#0D5C4B', '#0D9488'],
-    glow: '#5EEAD4',
-    shadow: '#062D24',
-    sparkline: 'M2 18 C 16 20, 26 8, 38 13 C 48 8, 56 6, 68 3',
-  },
-  red: {
-    gradient: ['#450A0A', '#991B1B', '#DC2626'],
-    glow: '#FCA5A5',
-    shadow: '#450A0A',
-    sparkline: 'M2 16 C 14 18, 26 20, 38 13 C 50 17, 56 10, 68 5',
-  },
-};
-
 function StatCard({
   label,
   value,
@@ -4684,131 +4628,78 @@ function StatCard({
   tone: StatTone;
   icon: typeof ChartIcon;
 }) {
-  const palette = statCardPalettes[tone];
-  const isLive = tone === 'orange' || badge === 'LIVE';
-  const gradId = `statGrad_${tone}`;
-  const glowId = `statGlow_${tone}`;
-
+  const isLive = badge === 'LIVE';
+  const colors = statCardColors[tone];
   return (
     <View
       style={{
-        minHeight: 188,
         flex: 1,
-        borderRadius: 24,
-        overflow: 'hidden',
-        padding: 16,
-        justifyContent: 'space-between',
-        shadowColor: palette.shadow,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.32,
-        shadowRadius: 10,
-        elevation: 6,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 14,
+        minHeight: 150,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 3,
+        justifyContent: 'space-between',
       }}
     >
-      {/* SVG Gradient Background */}
-      <Svg
-        pointerEvents="none"
-        style={StyleSheet.absoluteFill}
-        width="100%"
-        height="100%"
-        preserveAspectRatio="none"
-      >
-        <Defs>
-          <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={palette.gradient[0]} stopOpacity="1" />
-            <Stop offset="50%" stopColor={palette.gradient[1]} stopOpacity="1" />
-            <Stop offset="100%" stopColor={palette.gradient[2]} stopOpacity="1" />
-          </LinearGradient>
-          <LinearGradient id={glowId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={palette.glow} stopOpacity="0.35" />
-            <Stop offset="100%" stopColor={palette.glow} stopOpacity="0" />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradId})`} />
-        <Circle cx="88%" cy="18%" r="70" fill={`url(#${glowId})`} />
-        <Path
-          d="M-20 40 Q 40 10, 100 35 T 220 25"
-          fill="none"
-          stroke="rgba(255, 255, 255, 0.1)"
-          strokeWidth="1.2"
-        />
-      </Svg>
-
-      {/* Badge — absolutely pinned to top-right, always inside card */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 4,
-          backgroundColor: 'rgba(0, 0, 0, 0.28)',
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.2)',
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-          zIndex: 2,
-          maxWidth: '55%',
-        }}
-      >
-        {isLive ? (
-          <View
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: '#F59E0B',
-            }}
-          />
-        ) : null}
-        <Text
-          numberOfLines={1}
+      {/* Top: icon + badge */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
           style={{
-            fontSize: 9,
-            fontWeight: '900',
-            color: '#FFFFFF',
-            letterSpacing: 0.8,
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            backgroundColor: colors.iconBg,
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {badge}
-        </Text>
+          <Icon color={colors.iconColor} size={18} />
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            backgroundColor: isLive ? '#FEF3C7' : '#F3F4F6',
+            borderRadius: 999,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+          }}
+        >
+          {isLive ? (
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' }} />
+          ) : null}
+          <Text
+            numberOfLines={1}
+            style={{
+              fontSize: 9,
+              fontWeight: '700',
+              color: isLive ? '#92400E' : '#6B7280',
+              letterSpacing: 0.5,
+            }}
+          >
+            {badge}
+          </Text>
+        </View>
       </View>
 
-      {/* Icon — top-left */}
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 14,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'rgba(255, 255, 255, 0.18)',
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.3)',
-          zIndex: 1,
-          marginTop: 2,
-        }}
-      >
-        <Icon color="#FFFFFF" size={20} />
-      </View>
-
-      {/* Metric Value + Label */}
-      <View style={{ zIndex: 1, marginVertical: 4 }}>
+      {/* Value + label */}
+      <View style={{ marginTop: 12 }}>
         <Text
           adjustsFontSizeToFit
           numberOfLines={1}
           style={{
-            fontSize: 24,
-            fontWeight: '900',
-            color: '#FFFFFF',
+            fontSize: 22,
+            fontWeight: '800',
+            color: '#111827',
             letterSpacing: -0.5,
-            textShadowColor: 'rgba(0,0,0,0.25)',
-            textShadowOffset: { width: 0, height: 1 },
-            textShadowRadius: 3,
           }}
         >
           {value}
@@ -4818,50 +4709,30 @@ function StatCard({
           style={{
             marginTop: 2,
             fontSize: 11,
-            fontWeight: '700',
-            color: 'rgba(255,255,255,0.85)',
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
+            fontWeight: '600',
+            color: '#6B7280',
+            letterSpacing: 0.3,
           }}
         >
           {label}
         </Text>
       </View>
 
-      {/* Bottom: detail + sparkline */}
+      {/* Bottom detail */}
       <View
         style={{
-          zIndex: 1,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          marginTop: 10,
           borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.1)',
+          borderTopColor: '#F3F4F6',
           paddingTop: 8,
         }}
       >
         <Text
           numberOfLines={1}
-          style={{
-            flex: 1,
-            fontSize: 11,
-            fontWeight: '500',
-            color: 'rgba(255,255,255,0.75)',
-            marginRight: 4,
-          }}
+          style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '500' }}
         >
           {detail}
         </Text>
-        <Svg width={48} height={18} viewBox="0 0 70 22" fill="none">
-          <Path
-            d={palette.sparkline}
-            stroke="#FFFFFF"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.55}
-          />
-        </Svg>
       </View>
     </View>
   );
