@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -1803,7 +1804,17 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-5">
+    <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={() => { void fetchReservations(); }}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
+      contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-5"
+    >
       <View className="mb-4">
         <Pressable
           accessibilityLabel="Back to More"
@@ -2144,7 +2155,17 @@ function HomePage({
       ? 'Good afternoon'
       : 'Good evening';
   return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6">
+    <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
+      contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6"
+    >
       <View className="flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5">
         <View className="mr-3 h-10 w-1 rounded-full bg-[#116C0B]" />
         <View className="flex-1">

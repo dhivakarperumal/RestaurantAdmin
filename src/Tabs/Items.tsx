@@ -6,6 +6,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -492,6 +493,14 @@ function Items({
 
       <FlatList
         data={filteredItems}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => setRetry(current => current + 1)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
         keyExtractor={(item, index) =>
           String(item.food_id ?? item.id ?? `${getItemName(item)}-${index}`)
         }

@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -265,6 +266,14 @@ function BannerManagementPage({
   return (
     <>
       <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => { void loadBanners(); }}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
         contentContainerClassName="mx-auto w-full max-w-[1100px] gap-5 px-5 pb-8 pt-6"
         keyboardShouldPersistTaps="handled"
       >

@@ -4,6 +4,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -250,6 +251,14 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
         </View>
       ) : food ? (
         <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={() => setRetry(count => count + 1)}
+              colors={['#116C0B']}
+              tintColor="#116C0B"
+            />
+          }
           contentContainerStyle={{ alignSelf: 'center', maxWidth: 900, padding: 16, width: '100%' }}
         >
           {images.length ? (

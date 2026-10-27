@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -161,6 +162,14 @@ function Cuisine({
   return (
     <View className="flex-1 bg-[#F8FAF8]">
       <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => setRefreshKey(current => current + 1)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
         contentContainerStyle={{
           alignSelf: 'center',
           gap: 16,
