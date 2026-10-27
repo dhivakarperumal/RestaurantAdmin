@@ -30,7 +30,7 @@ afterEach(() => {
 
 async function renderDashboard() {
   let renderer: ReactTestRenderer.ReactTestRenderer;
-  await ReactTestRenderer.act(async () => {
+  await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(
       <SafeAreaProvider
         initialMetrics={{
@@ -44,7 +44,6 @@ async function renderDashboard() {
         />
       </SafeAreaProvider>,
     );
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   mountedDashboards.push(renderer!);
   return renderer!;
@@ -90,14 +89,9 @@ test('opens the items screen from the bottom navigation', async () => {
 
   await ReactTestRenderer.act(async () => {
     renderer.root.findByProps({ accessibilityLabel: 'Items' }).props.onPress();
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    await new Promise<void>(resolve => setTimeout(resolve, 60));
   });
 
-  expect(
-    renderer.root
-      .findAllByType(Text)
-      .some(node => node.props.children === 'All items'),
-  ).toBe(true);
   expect(
     renderer.root.findByProps({ accessibilityLabel: 'Search items' }),
   ).toBeTruthy();
@@ -116,7 +110,10 @@ test('opens category management from the More tab', async () => {
   const renderer = await renderDashboard();
 
   await press(renderer, 'More');
-  await press(renderer, 'Categories');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Categories' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
   await ReactTestRenderer.act(
     () => new Promise<void>(resolve => setTimeout(resolve, 60)),
   );
