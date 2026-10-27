@@ -33,7 +33,7 @@ import {
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import MoreInnerHeader from './MoreInnerHeader';
-import Bottombar, { type BottomBarTab } from './Bottombar';
+import { BottomNavigation, type AppTab } from './Bottombar';
 import FloatingActionMenu from './FloatingActionMenu';
 import AddCategoryIcon from './AddCategoryIcon';
 import Bills, { type BillFood } from '../Tabs/Bills';
@@ -57,7 +57,6 @@ type DashboardScreenProps = {
   onLogout: () => void;
 };
 
-type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' | 'more';
 type ItemsAddRequest = { id: number; action: 'product' };
 type QuickActionId =
   | 'invoice'
@@ -435,74 +434,22 @@ const moreFeatures: MoreFeature[] = [
     icon: ProductIcon,
     action: 'product' as QuickActionId,
   },
-  {
-    title: 'Suppliers & Purchases',
-    subtitle: 'Supplier records and purchases',
-    icon: MenuIcon,
-    action: 'purchase' as QuickActionId,
-  },
-  {
-    title: 'Payments & Expenses',
-    subtitle: 'Track money in and out',
-    icon: PaymentIcon,
-    action: 'payment' as QuickActionId,
-  },
-  {
-    title: 'Returns & Refunds',
-    subtitle: 'Manage returned items and refunds',
-    icon: ReceiptIcon,
-  },
-  {
-    title: 'Pending Payments',
-    subtitle: 'Review outstanding balances',
-    icon: PaymentIcon,
-  },
+
   {
     title: 'Reports & Analytics',
     subtitle: 'Business performance overview',
     icon: ChartIcon,
   },
-  {
-    title: 'Sales Reports',
-    subtitle: 'Review sales over time',
-    icon: ChartIcon,
-  },
-  {
-    title: 'Profit & Revenue',
-    subtitle: 'Revenue and profitability summary',
-    icon: ChartIcon,
-  },
-  {
-    title: 'Offers & Discounts',
-    subtitle: 'Manage promotional offers',
-    icon: ReceiptIcon,
-  },
+
+  
   {
     title: 'Staff & Employees',
     subtitle: 'Manage your team',
     icon: CustomersIcon,
   },
-  {
-    title: 'Branch Management',
-    subtitle: 'Manage restaurant locations',
-    icon: MenuIcon,
-  },
-  {
-    title: 'Barcode Scanner',
-    subtitle: 'Scan or look up products',
-    icon: ProductIcon,
-  },
-  {
-    title: 'Tax & GST Reports',
-    subtitle: 'Review tax summaries',
-    icon: ReceiptIcon,
-  },
-  { title: 'Notifications', subtitle: 'Review recent updates', icon: BellIcon },
-  {
-    title: 'Backup & Restore',
-    subtitle: 'Manage business data backups',
-    icon: MenuIcon,
-  },
+
+ 
+
   {
     title: 'Help & Support',
     subtitle: 'Get help with your account',
@@ -513,7 +460,7 @@ const moreFeatures: MoreFeature[] = [
     subtitle: 'View your account details',
     icon: ProfileIcon,
   },
-  { title: 'Settings', subtitle: 'Manage app preferences', icon: MenuIcon },
+  
 ];
 
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
@@ -1022,6 +969,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           <Sidebar
             onClose={() => setIsSidebarOpen(false)}
             onNavigate={navigateFromSidebar}
+            features={moreFeatures}
+            onSelectFeature={navigateToMoreFeature}
           />
           <View className="flex-1">
             <MainContent
@@ -1153,6 +1102,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               fullWidth
               onClose={() => setIsSidebarOpen(false)}
               onNavigate={navigateFromSidebar}
+              features={moreFeatures}
+              onSelectFeature={navigateToMoreFeature}
             />
           </View>
         </View>
@@ -4336,45 +4287,6 @@ function EmployeeChoiceField({
   );
 }
 
-function BottomNavigation({
-  activeTab,
-  onPressTab,
-}: {
-  activeTab: AppTab;
-  onPressTab: (tab: AppTab) => void;
-}) {
-  const tabs: BottomBarTab<AppTab>[] = [
-    {
-      key: 'home',
-      label: 'Home',
-      icon: color => <HomeIcon color={color} size={21} />,
-    },
-    {
-      key: 'items',
-      label: 'Items',
-      icon: color => <ProductIcon color={color} size={21} />,
-    },
-    {
-      key: 'add',
-      label: 'Add',
-      icon: color => <PlusIcon color={color} size={21} />,
-    },
-    {
-      key: 'orders',
-      label: 'Orders',
-      icon: color => <OrdersIcon color={color} size={21} />,
-    },
-    {
-      key: 'more',
-      label: 'More',
-      icon: color => <MoreIcon color={color} size={21} />,
-    },
-  ];
-  return (
-    <Bottombar tabs={tabs} activeTab={activeTab} onTabPress={onPressTab} />
-  );
-}
-
 function EntryForm({
   action,
   onCancel,
@@ -4483,11 +4395,17 @@ function Sidebar({
   fullWidth = false,
   onClose,
   onNavigate,
+  features,
+  onSelectFeature,
 }: {
   fullWidth?: boolean;
   onClose: () => void;
   onNavigate: (tab: AppTab) => void;
+  features: MoreFeature[];
+  onSelectFeature: (feature: string) => void;
 }) {
+  const [isMoreExpanded, setIsMoreExpanded] = useState(false);
+
   return (
     <View
       className={`${
@@ -4515,34 +4433,81 @@ function Sidebar({
           <Text className="text-2xl leading-7 text-[#6B7280]">×</Text>
         </Pressable>
       </View>
-      <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
-        WORKSPACE
-      </Text>
-      <TabButtonLarge
-        icon={HomeIcon}
-        label="Home"
-        onPress={() => onNavigate('home')}
-      />
-      <TabButtonLarge
-        icon={ReceiptIcon}
-        label="Billing"
-        onPress={() => onNavigate('billing')}
-      />
-      <TabButtonLarge
-        icon={ProductIcon}
-        label="Items"
-        onPress={() => onNavigate('items')}
-      />
-      <TabButtonLarge
-        icon={OrdersIcon}
-        label="Orders"
-        onPress={() => onNavigate('orders')}
-      />
-      <TabButtonLarge
-        icon={MoreIcon}
-        label="More"
-        onPress={() => onNavigate('more')}
-      />
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="pb-5"
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
+          WORKSPACE
+        </Text>
+        <TabButtonLarge
+          icon={HomeIcon}
+          label="Home"
+          onPress={() => onNavigate('home')}
+        />
+        <TabButtonLarge
+          icon={ReceiptIcon}
+          label="Billing"
+          onPress={() => onNavigate('billing')}
+        />
+        <TabButtonLarge
+          icon={ProductIcon}
+          label="Items"
+          onPress={() => onNavigate('items')}
+        />
+        <TabButtonLarge
+          icon={OrdersIcon}
+          label="Orders"
+          onPress={() => onNavigate('orders')}
+        />
+        <Pressable
+          accessibilityLabel="More"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isMoreExpanded }}
+          onPress={() => setIsMoreExpanded(expanded => !expanded)}
+          className="w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
+          style={({ pressed }) => ({
+            backgroundColor: pressed ? '#EFF6FF' : colors.surface,
+          })}
+        >
+          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F7EE]">
+            <MoreIcon color={colors.primary} size={21} />
+          </View>
+          <Text className="flex-1 text-base font-semibold text-[#012711]">
+            More
+          </Text>
+          <Text className="px-2 text-sm text-[#6B7280]">
+            {isMoreExpanded ? '⌃' : '⌄'}
+          </Text>
+        </Pressable>
+        {isMoreExpanded ? (
+          <View className="ml-4 mt-1 gap-1 border-l border-[#E5E7EB] pl-2">
+            {features.map(feature => {
+              const Icon = feature.icon;
+              return (
+                <Pressable
+                  accessibilityLabel={`Open ${feature.title}`}
+                  accessibilityRole="button"
+                  key={feature.title}
+                  onPress={() => onSelectFeature(feature.title)}
+                  className="min-h-12 w-full flex-row items-center gap-3 rounded-xl px-3 py-2"
+                  style={({ pressed }) => ({
+                    backgroundColor: pressed ? '#F3F7FF' : colors.surface,
+                  })}
+                >
+                  <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0F7EE]">
+                    <Icon color={colors.primary} size={17} />
+                  </View>
+                  <Text className="flex-1 text-sm font-medium text-[#012711]">
+                    {feature.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }

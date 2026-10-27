@@ -2,12 +2,21 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
+import {
+  HomeIcon,
+  MoreIcon,
+  OrdersIcon,
+  PlusIcon,
+  ProductIcon,
+} from './NavigationIcons';
 
 export type BottomBarTab<Key extends string = string> = {
   key: Key;
   label: string;
   icon?: ReactNode | ((color: string) => ReactNode);
 };
+
+export type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' | 'more';
 
 type BottombarProps<Key extends string> = {
   tabs: BottomBarTab<Key>[];
@@ -79,6 +88,46 @@ function Bottombar<Key extends string>({
         );
       })}
     </View>
+  );
+}
+
+export function BottomNavigation({
+  activeTab,
+  onPressTab,
+}: {
+  activeTab: AppTab;
+  onPressTab: (tab: AppTab) => void;
+}) {
+  const tabs: BottomBarTab<AppTab>[] = [
+    {
+      key: 'home',
+      label: 'Home',
+      icon: color => <HomeIcon color={color} size={21} />,
+    },
+    {
+      key: 'items',
+      label: 'Items',
+      icon: color => <ProductIcon color={color} size={21} />,
+    },
+    {
+      key: 'add',
+      label: 'Add',
+      icon: color => <PlusIcon color={color} size={21} />,
+    },
+    {
+      key: 'orders',
+      label: 'Orders',
+      icon: color => <OrdersIcon color={color} size={21} />,
+    },
+    {
+      key: 'more',
+      label: 'More',
+      icon: color => <MoreIcon color={color} size={21} />,
+    },
+  ];
+
+  return (
+    <Bottombar tabs={tabs} activeTab={activeTab} onTabPress={onPressTab} />
   );
 }
 

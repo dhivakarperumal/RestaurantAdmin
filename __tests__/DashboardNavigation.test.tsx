@@ -1360,12 +1360,19 @@ test('sidebar menu items navigate to their page and dismiss the sidebar', async 
     ordersMenuItem!.props.onPress();
   });
 
-  const screen = JSON.stringify(renderer.toJSON());
-  expect(screen).toContain('Keep track of every customer order.');
-  expect(screen).not.toContain('WORKSPACE');
+  expect(
+    renderer.root.findByProps({
+      placeholder: 'Search order #, customer, phone, food...',
+    }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findAllByProps({
+      accessibilityLabel: 'Close sidebar navigation',
+    }),
+  ).toHaveLength(0);
 });
 
-test('sidebar More opens all feature cards on the main page', async () => {
+test('sidebar More expands all feature links and opens the selected page', async () => {
   const renderer = await renderDashboard();
   await press(renderer, 'Toggle sidebar');
 
@@ -1425,6 +1432,16 @@ test('sidebar More opens all feature cards on the main page', async () => {
     renderer.root.findByProps({
       accessibilityLabel: 'Open Review Management',
     }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Close sidebar navigation',
+    }),
+  ).toBeTruthy();
+
+  await press(renderer, 'Open Tables');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Search tables' }),
   ).toBeTruthy();
   expect(
     renderer.root.findAllByProps({
