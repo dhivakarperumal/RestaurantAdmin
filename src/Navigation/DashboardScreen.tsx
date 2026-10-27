@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -73,20 +73,6 @@ type LocalRecord = {
   amount?: number;
   createdAt: string;
   status?: 'Pending' | 'Completed' | 'Cancelled';
-};
-
-type ReservationStatus = 'Pending' | 'Confirmed' | 'Declined' | 'Cancelled';
-
-type ReservationRecord = {
-  id: string;
-  customer: string;
-  phone: string;
-  table: string;
-  date: string;
-  time: string;
-  guests: number;
-  status: ReservationStatus;
-  notes?: string;
 };
 
 type BillingLineItem = {
@@ -398,11 +384,6 @@ const moreFeatures = [
     title: 'Categories',
     subtitle: 'Manage product categories',
     icon: AddCategoryIcon,
-  },
-  {
-    title: 'Reservations',
-    subtitle: 'Manage table bookings and guest requests',
-    icon: ReceiptIcon,
   },
   {
     title: 'Cuisines',
@@ -1531,9 +1512,6 @@ function MainContent({
   }
 
   if (selectedFeature) {
-    if (selectedFeature === 'Reservations') {
-      return <ReservationScreen onBack={() => onSelectFeature(null)} />;
-    }
     if (selectedFeature === 'Cuisines') {
       return (
         <CuisineScreen
@@ -1733,6 +1711,8 @@ function MainContent({
   );
 }
 
+<<<<<<< Updated upstream
+=======
 type ReservationApiRecord = {
   reservation_id: string;
   user_id?: string;
@@ -1750,13 +1730,6 @@ type ReservationApiRecord = {
   created_at?: string;
 };
 
-type AvailableReservationTable = {
-  table_id: string;
-  table_number: string;
-  no_of_seats?: number;
-  image_url?: string;
-};
-
 const reservationStatusStyles: Record<ReservationStatus, string> = {
   Pending: 'border-amber-200 bg-amber-50 text-amber-700',
   Confirmed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -1766,23 +1739,9 @@ const reservationStatusStyles: Record<ReservationStatus, string> = {
 
 function ReservationScreen({ onBack }: { onBack: () => void }) {
   const [reservations, setReservations] = useState<ReservationApiRecord[]>([]);
-  const [availableTables, setAvailableTables] = useState<AvailableReservationTable[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<'All' | ReservationStatus>('All');
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [form, setForm] = useState({
-    customer: '',
-    email: '',
-    phone: '',
-    tableId: '',
-    tableLabel: '',
-    date: new Date().toISOString().slice(0, 10),
-    time: '19:00',
-    guests: '2',
-    notes: '',
-  });
 
   const fetchReservations = useCallback(async () => {
     setIsLoading(true);
@@ -1805,48 +1764,6 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
     void fetchReservations();
   }, [fetchReservations]);
 
-  const refreshAvailableTables = useCallback(async (dateValue?: string, timeValue?: string, guestsValue?: string) => {
-    const date = (dateValue || form.date).trim();
-    const time = (timeValue || form.time).trim();
-    const guests = Number(guestsValue || form.guests || 0);
-    if (!date || !time || !Number.isInteger(guests) || guests < 1) {
-      setAvailableTables([]);
-      return;
-    }
-
-    try {
-      const { data } = await api.get('/reservations/available-tables', {
-        params: { date, time, guests },
-      });
-      const nextTables: AvailableReservationTable[] = Array.isArray(data?.tables)
-        ? (data.tables as AvailableReservationTable[])
-        : [];
-      setAvailableTables(nextTables);
-      if (nextTables.length && !form.tableId) {
-        setForm(current => ({
-          ...current,
-          tableId: nextTables[0].table_id,
-          tableLabel: nextTables[0].table_number,
-        }));
-      }
-      if (form.tableId && !nextTables.some(table => table.table_id === form.tableId)) {
-        setForm(current => ({
-          ...current,
-          tableId: nextTables[0]?.table_id || '',
-          tableLabel: nextTables[0]?.table_number || '',
-        }));
-      }
-    } catch {
-      setAvailableTables([]);
-    }
-  }, [form.date, form.guests, form.tableId, form.time]);
-
-  useEffect(() => {
-    if (isFormOpen) {
-      void refreshAvailableTables();
-    }
-  }, [isFormOpen, refreshAvailableTables]);
-
   const visibleReservations = useMemo(() => {
     return [...reservations]
       .filter(reservation =>
@@ -1858,55 +1775,6 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
         return leftValue - rightValue;
       });
   }, [reservations, selectedStatus]);
-
-  const submitReservation = async () => {
-    const customer = form.customer.trim();
-    const email = form.email.trim();
-    const phone = form.phone.trim();
-    const guests = Number(form.guests);
-    if (!customer || !email || !phone || !form.tableId || !form.date || !form.time || !Number.isInteger(guests) || guests < 1) {
-      setErrorMessage('Please complete all reservation details before submitting.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorMessage('');
-    try {
-      const { data } = await api.post('/reservations', {
-        name: customer,
-        email,
-        phone,
-        table_id: form.tableId,
-        date: form.date,
-        time: form.time,
-        guests,
-        notes: form.notes.trim(),
-      });
-      if (!data?.success) {
-        throw new Error(data?.message || 'Reservation could not be created.');
-      }
-      setForm({
-        customer: '',
-        email: '',
-        phone: '',
-        tableId: '',
-        tableLabel: '',
-        date: new Date().toISOString().slice(0, 10),
-        time: '19:00',
-        guests: '2',
-        notes: '',
-      });
-      setAvailableTables([]);
-      setIsFormOpen(false);
-      setSelectedStatus('All');
-      await fetchReservations();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Reservation could not be created.';
-      setErrorMessage(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const updateStatus = async (id: string, status: ReservationStatus) => {
     setErrorMessage('');
@@ -1921,22 +1789,13 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-5">
-      <View className="mb-4 flex-row items-center justify-between gap-3">
+      <View className="mb-4">
         <Pressable
           accessibilityLabel="Back to More"
           onPress={onBack}
           className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2"
         >
           <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Create a reservation"
-          onPress={() => setIsFormOpen(value => !value)}
-          className="rounded-xl bg-[#FF5A00] px-4 py-2.5"
-        >
-          <Text className="text-sm font-semibold text-white">
-            {isFormOpen ? 'Close form' : 'New reservation'}
-          </Text>
         </Pressable>
       </View>
 
@@ -1953,110 +1812,6 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
       {errorMessage ? (
         <View className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
           <Text className="text-xs font-medium text-red-700">{errorMessage}</Text>
-        </View>
-      ) : null}
-
-      {isFormOpen ? (
-        <View className="mt-5 gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4">
-          <Text className="text-base font-bold text-[#012711]">Create reservation</Text>
-          <View className="flex-row flex-wrap gap-3">
-            <TextInput
-              value={form.customer}
-              onChangeText={value => setForm(current => ({ ...current, customer: value }))}
-              placeholder="Customer name"
-              className="min-w-[180px] flex-1 rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#111827]"
-            />
-            <TextInput
-              value={form.email}
-              onChangeText={value => setForm(current => ({ ...current, email: value }))}
-              placeholder="Email"
-              keyboardType="email-address"
-              className="min-w-[180px] flex-1 rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#111827]"
-            />
-          </View>
-          <View className="flex-row flex-wrap gap-3">
-            <TextInput
-              value={form.phone}
-              onChangeText={value => setForm(current => ({ ...current, phone: value }))}
-              placeholder="Phone"
-              keyboardType="phone-pad"
-              className="min-w-[180px] flex-1 rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#111827]"
-            />
-            <TextInput
-              value={form.guests}
-              onChangeText={value => setForm(current => ({ ...current, guests: value }))}
-              placeholder="Guests"
-              keyboardType="number-pad"
-              className="min-w-[110px] w-[110px] rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#111827]"
-            />
-          </View>
-          <View className="flex-row flex-wrap gap-3">
-            <TextInput
-              value={form.date}
-              onChangeText={value => {
-                setForm(current => ({ ...current, date: value }));
-                void refreshAvailableTables(value, form.time, form.guests);
-              }}
-              placeholder="Date"
-              className="min-w-[150px] flex-1 rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#111827]"
-            />
-            <TextInput
-              value={form.time}
-              onChangeText={value => {
-                setForm(current => ({ ...current, time: value }));
-                void refreshAvailableTables(form.date, value, form.guests);
-              }}
-              placeholder="Time"
-              className="min-w-[120px] flex-1 rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#111827]"
-            />
-          </View>
-
-          {availableTables.length ? (
-            <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                Available tables
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {availableTables.map((table: { table_id: string; table_number: string; no_of_seats?: number; image_url?: string }) => (
-                  <Pressable
-                    key={table.table_id}
-                    onPress={() => setForm(current => ({ ...current, tableId: table.table_id, tableLabel: table.table_number }))}
-                    className={`rounded-xl border px-3 py-2 ${
-                      form.tableId === table.table_id
-                        ? 'border-[#116C0B] bg-[#E8F5E9]'
-                        : 'border-[#E5E7EB] bg-white'
-                    }`}
-                  >
-                    <Text className="text-xs font-semibold text-[#012711]">
-                      {table.table_number}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ) : (
-            <Text className="text-xs text-[#6B7280]">
-              No tables available yet for that date, time, and guest count.
-            </Text>
-          )}
-
-          <TextInput
-            value={form.notes}
-            onChangeText={value => setForm(current => ({ ...current, notes: value }))}
-            placeholder="Special request or note"
-            multiline
-            className="min-h-[90px] rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#111827]"
-          />
-          <Pressable
-            accessibilityLabel="Save reservation"
-            onPress={() => { void submitReservation(); }}
-            disabled={isSubmitting}
-            className="mt-1 self-start rounded-xl bg-[#116C0B] px-4 py-2.5 disabled:opacity-60"
-          >
-            <Text className="text-sm font-semibold text-white">
-              {isSubmitting ? 'Saving...' : 'Save reservation'}
-            </Text>
-          </Pressable>
         </View>
       ) : null}
 
@@ -2144,6 +1899,7 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
+>>>>>>> Stashed changes
 function HomePage({
   apiData,
   report,
