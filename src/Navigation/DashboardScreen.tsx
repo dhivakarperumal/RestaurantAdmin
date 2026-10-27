@@ -1939,6 +1939,7 @@ function HomePage({
   onSetCustomTo: (date: string) => void;
 }) {
   const summaryCardGap = 10;
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
   const filteredOrders = filterOrdersByPeriod(
     apiData.orders,
     dateFilter,
@@ -2156,33 +2157,65 @@ function HomePage({
         <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
           Store performance
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-1.5">
-            {dashboardPeriods.map(({ value: filter, label }) => (
-              <Pressable
-                accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: dateFilter === filter }}
-                key={filter}
-                onPress={() => onSetDateFilter(filter)}
-                className={`rounded-2xl border px-2.5 py-[7px] ${
-                  dateFilter === filter
-                    ? 'border-[#116C0B] bg-[#116C0B]'
-                    : 'border-[#E5E7EB] bg-white'
-                }`}
-              >
-                <Text
-                  className={`text-[11px] font-semibold ${
-                    dateFilter === filter ? 'text-white' : 'text-[#6B7280]'
+        <Pressable
+          accessibilityLabel={`Date range: ${dashboardPeriods.find(period => period.value === dateFilter)?.label || 'Select'}`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isDateFilterOpen }}
+          onPress={() => setIsDateFilterOpen(true)}
+          className="min-w-[142px] flex-row items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5"
+        >
+          <Text className="text-[12px] font-semibold text-[#012711]">
+            {dashboardPeriods.find(period => period.value === dateFilter)?.label || 'Select range'}
+          </Text>
+          <Text className="ml-3 text-xs text-[#6B7280]">⌄</Text>
+        </Pressable>
+      </View>
+      <Modal
+        visible={isDateFilterOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsDateFilterOpen(false)}
+      >
+        <Pressable
+          accessibilityLabel="Close date range options"
+          onPress={() => setIsDateFilterOpen(false)}
+          className="flex-1 justify-center bg-black/30 px-8"
+        >
+          <Pressable
+            onPress={event => event.stopPropagation()}
+            className="max-h-[75%] rounded-2xl border border-[#E5E7EB] bg-white p-2"
+          >
+            <Text className="px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B7280]">
+              Select date range
+            </Text>
+            <ScrollView>
+              {dashboardPeriods.map(({ value: filter, label }) => (
+                <Pressable
+                  accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: dateFilter === filter }}
+                  key={filter}
+                  onPress={() => {
+                    onSetDateFilter(filter);
+                    setIsDateFilterOpen(false);
+                  }}
+                  className={`rounded-xl px-3 py-3 ${
+                    dateFilter === filter ? 'bg-[#E8F5E9]' : 'bg-white'
                   }`}
                 >
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
+                  <Text
+                    className={`text-sm font-semibold ${
+                      dateFilter === filter ? 'text-[#116C0B]' : 'text-[#374151]'
+                    }`}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
       {dateFilter === 'custom' ? (
         <View className="mb-3.5 flex-row gap-2">
           <TextInput
