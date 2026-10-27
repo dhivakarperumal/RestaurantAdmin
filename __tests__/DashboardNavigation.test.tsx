@@ -13,7 +13,6 @@ jest.mock('../api', () => ({
   default: {
     get: jest.fn(() => Promise.resolve({ data: { data: [] } })),
   },
-  API_BASE_URL: 'https://example.com/api',
 }));
 
 jest.mock('react-native-image-picker', () => ({

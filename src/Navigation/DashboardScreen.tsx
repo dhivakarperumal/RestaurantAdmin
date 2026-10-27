@@ -26,6 +26,7 @@ import {
   OrdersIcon,
   PaymentIcon,
   PlusIcon,
+  ProfileIcon,
   ProductIcon,
   ReceiptIcon,
 } from './NavigationIcons';
@@ -348,6 +349,16 @@ const quickActions: QuickAction[] = [
     icon: ProductIcon,
   },
 ];
+
+const quickActionFeatureDetails: Record<
+  string,
+  { subtitle: string; action: QuickActionId }
+> = Object.fromEntries(
+  quickActions.map(({ id, label, description }) => [
+    label,
+    { subtitle: description, action: id },
+  ]),
+);
 
 const dashboardPeriods: { value: DashboardDateFilter; label: string }[] = [
   { value: 'today', label: 'Today' },
@@ -989,7 +1000,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       )}
 
       <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
-      {!isWide && !isFoodDetailsOpen ? (
+      {!isWide && activeTab === 'items' && !isFoodDetailsOpen ? (
         <FloatingActionMenu
           onAddProduct={() => openItemsAddForm('product')}
           onAddCategory={() => openItemsAddForm('category')}
@@ -1867,7 +1878,7 @@ function HomePage({
         </View>
       ) : null}
 
-      {/* <View
+      <View
         className="mt-5 flex-row flex-wrap"
         style={{
           alignContent: 'flex-start',
@@ -1948,7 +1959,7 @@ function HomePage({
           width={summaryCardWidth}
           icon={ReceiptIcon}
         />
-      </View> */}
+      </View>
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
         <Text className="text-base font-bold text-[#012711]">
@@ -3738,7 +3749,6 @@ function MorePage({
       <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
         Everything you need to run your business.
       </Text>
-      <View className="mt-[22px] flex-row flex-wrap gap-3">
       <View className="mt-[22px]">
         {moreFeatures.map(feature => {
           const Icon = feature.icon;
@@ -4040,6 +4050,57 @@ function PageShell({
   );
 }
 
+const statCardPalettes = {
+  green: {
+    accent: '#116C0B',
+    lightBg: '#F0F7EE',
+    lightBorder: '#DCE8D8',
+    sparkline: 'M2 18 C 12 18, 18 6, 28 10 C 38 14, 44 4, 58 2',
+  },
+  blue: {
+    accent: '#2563EB',
+    lightBg: '#EFF6FF',
+    lightBorder: '#BFDBFE',
+    sparkline: 'M2 16 C 14 16, 20 8, 30 11 C 38 13, 46 5, 58 3',
+  },
+  orange: {
+    accent: '#D97706',
+    lightBg: '#FFFBEB',
+    lightBorder: '#FDE68A',
+    sparkline: 'M2 17 C 12 14, 22 19, 32 10 C 40 14, 48 6, 58 4',
+  },
+  purple: {
+    accent: '#7C3AED',
+    lightBg: '#F5F3FF',
+    lightBorder: '#DDD6FE',
+    sparkline: 'M2 18 C 14 17, 22 9, 30 12 C 40 8, 48 4, 58 2',
+  },
+  cyan: {
+    accent: '#0891B2',
+    lightBg: '#ECFEFF',
+    lightBorder: '#A5F3FC',
+    sparkline: 'M2 16 C 12 16, 20 7, 30 10 C 40 13, 46 5, 58 3',
+  },
+  pink: {
+    accent: '#DB2777',
+    lightBg: '#FDF2F8',
+    lightBorder: '#FBCFE8',
+    sparkline: 'M2 17 C 12 15, 22 8, 32 12 C 42 7, 48 4, 58 2',
+  },
+  teal: {
+    accent: '#0D9488',
+    lightBg: '#F0FDFA',
+    lightBorder: '#99F6E4',
+    sparkline: 'M2 16 C 14 18, 22 7, 32 11 C 40 7, 48 5, 58 3',
+  },
+  red: {
+    accent: '#DC2626',
+    lightBg: '#FEF2F2',
+    lightBorder: '#FECACA',
+    sparkline: 'M2 14 C 12 16, 22 18, 32 12 C 42 16, 48 9, 58 5',
+  },
+} as const;
+
 function StatCard({
   label,
   value,
@@ -4066,110 +4127,119 @@ function StatCard({
   icon: typeof ChartIcon;
 }) {
   const palette = statCardPalettes[tone];
+  const isLive = tone === 'orange' || badge === 'LIVE';
+
   return (
     <View
-      className="relative justify-between overflow-hidden rounded-2xl p-4"
-      style={{ backgroundColor: palette.background, height: 168, width }}
+      className="relative justify-between overflow-hidden rounded-2xl bg-white p-4 shadow-sm"
+      style={{
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        minHeight: 162,
+        width,
+        shadowColor: '#111827',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+      }}
     >
-      <View className="z-[1] flex-row items-start justify-between gap-2">
+      {/* Top 3px Colored Accent Line */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          backgroundColor: palette.accent,
+        }}
+      />
+
+      {/* Decorative subtle ambient corner glow */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -12,
+          right: -12,
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: palette.lightBg,
+          opacity: 0.8,
+        }}
+      />
+
+      {/* Top Row: Icon squircle + Badge */}
+      <View className="z-[1] flex-row items-center justify-between">
         <View
-          className="h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          style={{ backgroundColor: palette.iconBackground }}
+          className="h-10 w-10 items-center justify-center rounded-xl border"
+          style={{
+            backgroundColor: palette.lightBg,
+            borderColor: palette.lightBorder,
+          }}
         >
-          <Icon color="#FFFFFF" size={20} />
+          <Icon color={palette.accent} size={20} />
         </View>
+
+        <View
+          className="flex-row items-center gap-1.5 rounded-full border px-2.5 py-0.5"
+          style={{
+            backgroundColor: palette.lightBg,
+            borderColor: palette.lightBorder,
+          }}
+        >
+          {isLive ? (
+            <View className="h-1.5 w-1.5 rounded-full bg-[#D97706]" />
+          ) : null}
+          <Text
+            className="text-[10px] font-extrabold tracking-wider"
+            style={{ color: palette.accent }}
+          >
+            {badge}
+          </Text>
+        </View>
+      </View>
+
+      {/* Middle Row: Value + Label */}
+      <View className="z-[1] my-2">
         <Text
-          numberOfLines={2}
-          className="min-w-0 flex-1 text-right text-xs font-bold leading-4 text-white"
+          adjustsFontSizeToFit
+          numberOfLines={1}
+          className="text-2xl font-black tracking-tight text-[#012711]"
+        >
+          {value}
+        </Text>
+        <Text
+          numberOfLines={1}
+          className="mt-0.5 text-xs font-semibold text-[#6B7280]"
         >
           {label}
         </Text>
       </View>
-      <Text
-        adjustsFontSizeToFit
-        numberOfLines={1}
-        className="z-[1] mt-3 text-[25px] font-extrabold text-white"
-      >
-        {value}
-      </Text>
-      <View className="z-[1] mt-3">
-        <View className="flex-row flex-wrap items-center gap-2">
-          <Text
-            className="overflow-hidden rounded-[7px] px-[7px] py-1 text-[10px] font-extrabold text-white"
-            style={{ backgroundColor: palette.badgeBackground }}
-          >
-            {badge}
-          </Text>
-          <Text
-            numberOfLines={2}
-            className="min-w-0 flex-1 text-[11px] font-semibold leading-4 text-white opacity-[0.88]"
-          >
-            {detail}
-          </Text>
-        </View>
+
+      {/* Bottom Row: Detail text + Micro SVG Sparkline */}
+      <View className="z-[1] flex-row items-center justify-between border-t border-[#F3F4F6] pt-2">
+        <Text
+          numberOfLines={1}
+          className="min-w-0 flex-1 text-[11px] font-medium text-[#9CA3AF]"
+        >
+          {detail}
+        </Text>
+        <Svg width={48} height={16} viewBox="0 0 60 20" fill="none">
+          <Path
+            d={palette.sparkline}
+            stroke={palette.accent}
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
       </View>
-      <Svg
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        pointerEvents="none"
-        className="absolute bottom-0 right-0 h-12 w-[122px] opacity-[0.95]"
-        viewBox="0 0 120 32"
-      >
-        <Path
-          d="M1 22 C18 14 31 14 49 22 S82 31 119 2"
-          fill="none"
-          stroke="#FFFFFF"
-          strokeLinecap="round"
-          strokeWidth="2.5"
-          opacity={0.4}
-        />
-      </Svg>
     </View>
   );
 }
-
-const statCardPalettes = {
-  green: {
-    background: '#20C463',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-  blue: {
-    background: '#3B82F6',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-  orange: {
-    background: '#F59E0B',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-  purple: {
-    background: '#8B5CF6',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-  cyan: {
-    background: '#06B6D4',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-  pink: {
-    background: '#EC4899',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-  teal: {
-    background: '#14B8A6',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-  red: {
-    background: '#F43F5E',
-    iconBackground: '#FFFFFF33',
-    badgeBackground: '#FFFFFF33',
-  },
-} as const;
 
 function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
   return (
