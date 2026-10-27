@@ -8,7 +8,10 @@ import {
 } from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from 'react-native-safe-area-context';
 import DashboardScreen from '../src/Navigation/DashboardScreen';
 import { PlusIcon } from '../src/Navigation/NavigationIcons';
 import api from '../api';
@@ -136,6 +139,9 @@ test('opens category management from the More tab', async () => {
   expect(
     renderer.root.findByProps({ accessibilityLabel: 'Search categories' }),
   ).toBeTruthy();
+  expect(renderer.root.findByType(SafeAreaView).props.edges).toEqual([
+    'bottom',
+  ]);
 });
 
 test('opens the cuisines list from the More tab', async () => {

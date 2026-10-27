@@ -919,7 +919,13 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   };
   return (
     <SafeAreaView
-      edges={isFoodDetailsOpen ? ['top', 'bottom'] : []}
+      edges={
+        isFoodDetailsOpen
+          ? ['top', 'bottom']
+          : isMoreFeatureOpen
+          ? ['bottom']
+          : []
+      }
       className="flex-1 bg-[#F9FAFB]"
     >
       {!isFoodDetailsOpen && !isMoreFeatureOpen ? (

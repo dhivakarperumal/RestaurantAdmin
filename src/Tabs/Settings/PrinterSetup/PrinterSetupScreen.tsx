@@ -51,7 +51,7 @@ export default function PrinterSetupScreen({
   if (loading) {
     return (
       <SafeAreaView
-        edges={showHeader ? ['top', 'bottom'] : ['bottom']}
+        edges={showHeader ? ['top', 'bottom'] : []}
         className="flex-1 items-center justify-center bg-[#F8FAFC]"
       >
         <ActivityIndicator size="large" color="#116C0B" />
@@ -62,7 +62,7 @@ export default function PrinterSetupScreen({
 
   return (
     <SafeAreaView
-      edges={showHeader ? ['top', 'bottom'] : ['bottom']}
+      edges={showHeader ? ['top', 'bottom'] : []}
       className="flex-1 bg-[#F8FAFC]"
     >
       {showHeader ? (
