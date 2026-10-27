@@ -442,6 +442,38 @@ test('opens banner management from the More tab', async () => {
   expect(renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' })).toBeTruthy();
 });
 
+test('shows printer, banner, gallery, and review tools in More and opens printer setup', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'More');
+
+  for (const feature of [
+    'Printer Setup',
+    'Banner Management',
+    'Gallery Management',
+    'Review Management',
+  ]) {
+    expect(
+      renderer.root.findByProps({ accessibilityLabel: `Open ${feature}` }),
+    ).toBeTruthy();
+  }
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Printer Setup',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Printer Configuration');
+  await press(renderer, 'Go back');
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }),
+  ).toBeTruthy();
+});
+
 test('opens Gallery Management below Banner Management and creates an album', async () => {
   const get = api.get as jest.Mock;
   get.mockImplementation((path: string) => {
