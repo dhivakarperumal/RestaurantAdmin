@@ -48,6 +48,8 @@ import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
 import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen';
 import TablesScreen from '../Screens/Tables';
+import CustomersScreen from '../Screens/Customers';
+import MorePage, { type MoreFeature } from '../Tabs/More';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -380,7 +382,12 @@ const dashboardPeriods: { value: DashboardDateFilter; label: string }[] = [
   { value: 'custom', label: 'Custom' },
 ];
 
-const moreFeatures = [
+const moreFeatures: MoreFeature[] = [
+  {
+    title: 'Orders Management',
+    subtitle: 'View and manage customer orders',
+    icon: OrdersIcon,
+  },
   {
     title: 'Categories',
     subtitle: 'Manage product categories',
@@ -499,6 +506,11 @@ const moreFeatures = [
   {
     title: 'Help & Support',
     subtitle: 'Get help with your account',
+    icon: ProfileIcon,
+  },
+  {
+    title: 'Profile',
+    subtitle: 'View your account details',
     icon: ProfileIcon,
   },
   { title: 'Settings', subtitle: 'Manage app preferences', icon: MenuIcon },
@@ -737,6 +749,14 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setSelectedFeature(feature);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+  };
+
+  const navigateFromSidebar = (tab: AppTab) => {
+    if (tab === 'more') {
+      navigateToMoreFeature(null);
+      return;
+    }
+    navigateToTab(tab);
   };
 
   const handleFoodDetailsVisibilityChange = (isVisible: boolean) => {
@@ -1001,10 +1021,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         <View className="flex-1 flex-row">
           <Sidebar
             onClose={() => setIsSidebarOpen(false)}
-            onNavigate={tab => {
-              navigateToTab(tab);
-              setIsSidebarOpen(false);
-            }}
+            onNavigate={navigateFromSidebar}
           />
           <View className="flex-1">
             <MainContent
@@ -1135,10 +1152,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             <Sidebar
               fullWidth
               onClose={() => setIsSidebarOpen(false)}
-              onNavigate={tab => {
-                navigateToTab(tab);
-                setIsSidebarOpen(false);
-              }}
+              onNavigate={navigateFromSidebar}
             />
           </View>
         </View>
@@ -1531,6 +1545,14 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Customers') {
+      return (
+        <CustomersScreen
+          onBack={() => onSelectFeature(null)}
+          showBackButton={false}
+        />
+      );
+    }
     if (selectedFeature === 'Tables') {
       return (
         <TablesScreen
@@ -1643,24 +1665,25 @@ function MainContent({
       moreFeatures.find(item => item.title === selectedFeature) ||
       quickActionFeatureDetails[selectedFeature];
     const relatedAction = feature?.action;
+    const relatedQuickAction = quickActions.find(
+      action => action.id === relatedAction,
+    );
     return (
       <PageShell
         title={selectedFeature}
         subtitle={feature?.subtitle || 'Business tools and account options'}
       >
-        {relatedAction ? (
+        {relatedQuickAction ? (
           <Pressable
-            accessibilityLabel={
-              quickActions.find(action => action.id === relatedAction)?.label
-            }
+            accessibilityLabel={relatedQuickAction.label}
             accessibilityRole="button"
-            onPress={() => onSelectAction(relatedAction)}
+            onPress={() => onSelectAction(relatedQuickAction.id)}
             className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
             style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
             <PlusIcon color={colors.surface} size={18} />
             <Text className="text-[13px] font-bold text-white">
-              {quickActions.find(action => action.id === relatedAction)?.label}
+              {relatedQuickAction.label}
             </Text>
           </Pressable>
         ) : null}
@@ -1717,7 +1740,12 @@ function MainContent({
     );
   }
   if (activeTab === 'more') {
-    return <MorePage onSelectFeature={onSelectFeature} />;
+    return (
+      <MorePage
+        features={moreFeatures}
+        onSelectFeature={onSelectFeature}
+      />
+    );
   }
   return (
     <HomePage
@@ -4305,54 +4333,6 @@ function EmployeeChoiceField({
         })}
       </View>
     </View>
-  );
-}
-
-function MorePage({
-  onSelectFeature,
-}: {
-  onSelectFeature: (feature: string) => void;
-}) {
-  return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-        TOOLS
-      </Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">More</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
-        Everything you need to run your business.
-      </Text>
-      <View className="mt-[22px]">
-        {moreFeatures.map(feature => {
-          const Icon = feature.icon;
-          return (
-            <Pressable
-              accessibilityLabel={`Open ${feature.title}`}
-              accessibilityRole="button"
-              key={feature.title}
-              onPress={() => onSelectFeature(feature.title)}
-              className="min-h-[76px] w-full flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-              })}
-            >
-              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-                <Icon color={colors.primary} size={20} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#012711]">
-                  {feature.title}
-                </Text>
-                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
-                  {feature.subtitle}
-                </Text>
-              </View>
-              <Text className="text-xl text-[#9CA3AF]">›</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </ScrollView>
   );
 }
 

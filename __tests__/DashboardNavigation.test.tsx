@@ -1365,6 +1365,134 @@ test('sidebar menu items navigate to their page and dismiss the sidebar', async 
   expect(screen).not.toContain('WORKSPACE');
 });
 
+test('sidebar More opens all feature cards on the main page', async () => {
+  const renderer = await renderDashboard();
+  await press(renderer, 'Toggle sidebar');
+
+  const sidebarMore = renderer.root
+    .findAllByProps({ accessibilityLabel: 'More' })
+    .find(item => item.props.accessibilityRole === 'button');
+  expect(sidebarMore).toBeTruthy();
+  await ReactTestRenderer.act(() => sidebarMore!.props.onPress());
+
+  const moreCardLabels = new Set(
+    renderer.root
+      .findAll(node => {
+        const label = node.props.accessibilityLabel;
+        return typeof label === 'string' && label.startsWith('Open ');
+      })
+      .map(node => node.props.accessibilityLabel as string),
+  );
+  expect(moreCardLabels.size).toBe(28);
+  for (const feature of [
+    'Orders Management',
+    'Categories',
+    'Cuisines',
+    'Tables',
+    'Printer Setup',
+    'Banner Management',
+    'Gallery Management',
+    'Review Management',
+    'Staff & Employees',
+    'Profile',
+  ]) {
+    expect(moreCardLabels).toContain(`Open ${feature}`);
+  }
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Categories',
+    }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Open Tables' }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Banner Management',
+    }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Printer Setup',
+    }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Gallery Management',
+    }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findAllByProps({
+      accessibilityLabel: 'Close sidebar navigation',
+    }),
+  ).toHaveLength(0);
+}, 15000);
+
+test('More cards open Orders Management and Profile', async () => {
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  await press(renderer, 'Open Orders Management');
+  expect(
+    renderer.root.findByProps({
+      placeholder: 'Search order #, customer, phone, food...',
+    }),
+  ).toBeTruthy();
+
+  await press(renderer, 'Back to More');
+  await press(renderer, 'Open Profile');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Your account details');
+}, 15000);
+
+test('Customers card loads customer records from GET /users', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) =>
+    Promise.resolve({
+      data:
+        path === '/users'
+          ? {
+              data: {
+                users: [
+                  {
+                    user_id: 'customer-1',
+                    full_name: 'Jamie Customer',
+                    email: 'jamie@example.com',
+                    phone_number: '555-0101',
+                    role: 'customer',
+                  },
+                  {
+                    user_id: 'admin-1',
+                    full_name: 'Restaurant Admin',
+                    role: 'admin',
+                  },
+                ],
+              },
+            }
+          : { data: [] },
+    }),
+  );
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  await press(renderer, 'Open Customers');
+  await ReactTestRenderer.act(
+    async () => new Promise<void>(resolve => setTimeout(resolve, 10)),
+  );
+
+  expect(get).toHaveBeenCalledWith(
+    '/users',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
+  expect(hasText(renderer, 'Jamie Customer')).toBe(true);
+  expect(hasText(renderer, 'jamie@example.com')).toBe(true);
+  expect(hasText(renderer, '555-0101')).toBe(true);
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Restaurant Admin');
+}, 15000);
+
 test('loads the restaurant POS dashboard snapshot and revenue reports', async () => {
   const get = api.get as jest.Mock;
   get.mockImplementation((path: string) => {
