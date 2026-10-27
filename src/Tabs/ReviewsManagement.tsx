@@ -190,9 +190,11 @@ function makeUuid() {
 function ReviewsManagementPage({
   currentUser,
   onBack,
+  showBackButton = true,
 }: {
   currentUser: string;
   onBack: () => void;
+  showBackButton?: boolean;
 }) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [foods, setFoods] = useState<CatalogFood[]>([]);
@@ -523,14 +525,16 @@ function ReviewsManagementPage({
       >
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            <Pressable
-              accessibilityLabel="Back to More"
-              accessibilityRole="button"
-              onPress={onBack}
-              className="mb-3 self-start py-1"
-            >
-              <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
-            </Pressable>
+            {showBackButton ? (
+              <Pressable
+                accessibilityLabel="Back to More"
+                accessibilityRole="button"
+                onPress={onBack}
+                className="mb-3 self-start py-1"
+              >
+                <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
+              </Pressable>
+            ) : null}
             <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
               CUSTOMER FEEDBACK
             </Text>

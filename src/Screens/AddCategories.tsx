@@ -24,6 +24,7 @@ type CategoryForm = {
 
 type AddCategoriesProps = {
   onBack: () => void;
+  showBackButton?: boolean;
 };
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -85,7 +86,10 @@ function resolveImageUrl(value: string) {
   return `${apiRoot}/${value.replace(/^\/+/, '')}`;
 }
 
-function AddCategories({ onBack }: AddCategoriesProps) {
+function AddCategories({
+  onBack,
+  showBackButton = true,
+}: AddCategoriesProps) {
   const [form, setForm] = useState<CategoryForm>(INITIAL_FORM);
   const [subcategoryInput, setSubcategoryInput] = useState('');
   const [isLoadingId, setIsLoadingId] = useState(true);
@@ -251,16 +255,18 @@ function AddCategories({ onBack }: AddCategoriesProps) {
         }}
       >
         <View className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-          <Pressable
-            accessibilityLabel="Back to categories"
-            accessibilityRole="button"
-            onPress={onBack}
-            className="self-start rounded-lg py-1"
-          >
-            <Text className="text-sm font-semibold text-[#116C0B]">
-              ‹ Back to categories
-            </Text>
-          </Pressable>
+          {showBackButton ? (
+            <Pressable
+              accessibilityLabel="Back to categories"
+              accessibilityRole="button"
+              onPress={onBack}
+              className="self-start rounded-lg py-1"
+            >
+              <Text className="text-sm font-semibold text-[#116C0B]">
+                ‹ Back to categories
+              </Text>
+            </Pressable>
+          ) : null}
           <Text className="mt-3 text-2xl font-extrabold text-[#012711]">
             Add Category
           </Text>

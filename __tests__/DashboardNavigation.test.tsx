@@ -452,7 +452,13 @@ test('shows printer, banner, gallery, and review tools in More and opens printer
   });
 
   expect(JSON.stringify(renderer.toJSON())).toContain('Printer Configuration');
-  await press(renderer, 'Go back');
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'More' }),
+  ).toHaveLength(0);
+  await press(renderer, 'Back to More');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'More' }),
+  ).toBeTruthy();
   expect(
     renderer.root.findByProps({
       accessibilityLabel: 'Open Review Management',
