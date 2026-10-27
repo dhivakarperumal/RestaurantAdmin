@@ -48,6 +48,7 @@ import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
 import CuisineScreen from '../Screens/Cuisine';
 import AddCuisineScreen from '../Screens/AddCuisine';
+import OrdersScreen from '../Screens/Orders';
 import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
@@ -1462,6 +1463,15 @@ function MainContent({
         <AddCategoriesScreen onBack={() => onSelectFeature('Categories')} />
       );
     }
+    if (selectedFeature === 'Orders' || selectedFeature === 'Orders Management') {
+      return (
+        <OrdersScreen
+          onBack={() => onSelectFeature(null)}
+          onAddOrder={() => onSelectAction('order')}
+        />
+      );
+    }
+
     if (selectedFeature === 'Printer Setup') {
       return <PrinterSetupScreen onBack={() => onSelectFeature(null)} />;
     }
@@ -1551,10 +1561,8 @@ function MainContent({
   }
   if (activeTab === 'orders') {
     return (
-      <OrdersPage
-        orders={orders}
+      <OrdersScreen
         onAddOrder={() => onSelectAction('order')}
-        onUpdateOrderStatus={onUpdateOrderStatus}
       />
     );
   }
