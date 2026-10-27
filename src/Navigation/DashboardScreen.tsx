@@ -1750,15 +1750,7 @@ function HomePage({
   onSetCustomFrom: (date: string) => void;
   onSetCustomTo: (date: string) => void;
 }) {
-  const { width: screenWidth } = useWindowDimensions();
-  const [summaryGridWidth, setSummaryGridWidth] = useState(0);
-  const measuredGridWidth = summaryGridWidth || Math.max(0, screenWidth - 48);
-  const summaryCardColumns = measuredGridWidth >= 1060 ? 4 : 2;
-  const summaryCardGap = measuredGridWidth >= 1060 ? 16 : 10;
-  const summaryCardWidth = Math.floor(
-    (measuredGridWidth - summaryCardGap * (summaryCardColumns - 1)) /
-      summaryCardColumns,
-  );
+  const summaryCardGap = 10;
   const filteredOrders = filterOrdersByPeriod(
     apiData.orders,
     dateFilter,
@@ -2028,94 +2020,79 @@ function HomePage({
         </View>
       ) : null}
 
-      <View
-        className="mt-5 flex-row flex-wrap"
-        onLayout={event => {
-          const nextWidth = Math.round(event.nativeEvent.layout.width);
-          setSummaryGridWidth(current =>
-            current === nextWidth ? current : nextWidth,
-          );
-        }}
-        style={{
-          alignContent: 'flex-start',
-          alignItems: 'flex-start',
-          columnGap: summaryCardGap,
-          rowGap: summaryCardGap,
-          overflow: 'hidden',
-        }}
-      >
-        <StatCard
-          label="Total Revenue"
-          value={isLoading && !hasAnyData ? '—' : formatCurrency(sales)}
-          detail="in selected period"
-          badge="PERIOD"
-          tone="green"
-          width={summaryCardWidth}
-          icon={ChartIcon}
-        />
-        <StatCard
-          label="Total Orders"
-          value={isLoading && !hasAnyData ? '—' : String(orderCount)}
-          detail="in selected period"
-          badge="PERIOD"
-          tone="blue"
-          width={summaryCardWidth}
-          icon={OrdersIcon}
-        />
-        <StatCard
-          label="Pending Orders"
-          value={isLoading && !hasAnyData ? '—' : String(pendingOrderCount)}
-          detail="active right now"
-          badge="LIVE"
-          tone="orange"
-          width={summaryCardWidth}
-          icon={OrdersIcon}
-        />
-        <StatCard
-          label="Completed Orders"
-          value={isLoading && !hasAnyData ? '—' : String(completedOrderCount)}
-          detail="in selected period"
-          badge="PERIOD"
-          tone="purple"
-          width={summaryCardWidth}
-          icon={ProductIcon}
-        />
-        <StatCard
-          label="Today’s Revenue"
-          value={isLoading && !hasAnyData ? '—' : formatCurrency(todayRevenue)}
-          detail="from all channels today"
-          badge="TODAY"
-          tone="cyan"
-          width={summaryCardWidth}
-          icon={PaymentIcon}
-        />
-        <StatCard
-          label="Today’s Orders"
-          value={isLoading && !hasAnyData ? '—' : String(todayOrderCount)}
-          detail="from all channels today"
-          badge="TODAY"
-          tone="pink"
-          width={summaryCardWidth}
-          icon={OrdersIcon}
-        />
-        <StatCard
-          label="Total Customers"
-          value={isLoading && !hasAnyData ? '—' : String(customerCount)}
-          detail="registered customers"
-          badge="TOTAL"
-          tone="teal"
-          width={summaryCardWidth}
-          icon={CustomersIcon}
-        />
-        <StatCard
-          label="Low Stock Items"
-          value={isLoading && !hasAnyData ? '—' : String(lowStockCount)}
-          detail="needs attention"
-          badge="STOCK"
-          tone="red"
-          width={summaryCardWidth}
-          icon={ReceiptIcon}
-        />
+      <View className="mt-5" style={{ gap: summaryCardGap }}>
+        <View style={{ flexDirection: 'row', gap: summaryCardGap }}>
+          <StatCard
+            label="Total Revenue"
+            value={isLoading && !hasAnyData ? '-' : formatCurrency(sales)}
+            detail="in selected period"
+            badge="PERIOD"
+            tone="green"
+            icon={ChartIcon}
+          />
+          <StatCard
+            label="Total Orders"
+            value={isLoading && !hasAnyData ? '-' : String(orderCount)}
+            detail="in selected period"
+            badge="PERIOD"
+            tone="blue"
+            icon={OrdersIcon}
+          />
+        </View>
+        <View style={{ flexDirection: 'row', gap: summaryCardGap }}>
+          <StatCard
+            label="Pending Orders"
+            value={isLoading && !hasAnyData ? '-' : String(pendingOrderCount)}
+            detail="active right now"
+            badge="LIVE"
+            tone="orange"
+            icon={OrdersIcon}
+          />
+          <StatCard
+            label="Completed Orders"
+            value={isLoading && !hasAnyData ? '-' : String(completedOrderCount)}
+            detail="in selected period"
+            badge="PERIOD"
+            tone="purple"
+            icon={ProductIcon}
+          />
+        </View>
+        <View style={{ flexDirection: 'row', gap: summaryCardGap }}>
+          <StatCard
+            label="Today's Revenue"
+            value={isLoading && !hasAnyData ? '-' : formatCurrency(todayRevenue)}
+            detail="from all channels today"
+            badge="TODAY"
+            tone="cyan"
+            icon={PaymentIcon}
+          />
+          <StatCard
+            label="Today's Orders"
+            value={isLoading && !hasAnyData ? '-' : String(todayOrderCount)}
+            detail="from all channels today"
+            badge="TODAY"
+            tone="pink"
+            icon={OrdersIcon}
+          />
+        </View>
+        <View style={{ flexDirection: 'row', gap: summaryCardGap }}>
+          <StatCard
+            label="Total Customers"
+            value={isLoading && !hasAnyData ? '-' : String(customerCount)}
+            detail="registered customers"
+            badge="TOTAL"
+            tone="teal"
+            icon={CustomersIcon}
+          />
+          <StatCard
+            label="Low Stock Items"
+            value={isLoading && !hasAnyData ? '-' : String(lowStockCount)}
+            detail="needs attention"
+            badge="STOCK"
+            tone="red"
+            icon={ReceiptIcon}
+          />
+        </View>
       </View>
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
@@ -4698,7 +4675,6 @@ function StatCard({
   detail,
   badge,
   tone,
-  width,
   icon: Icon,
 }: {
   label: string;
@@ -4706,7 +4682,6 @@ function StatCard({
   detail: string;
   badge: string;
   tone: StatTone;
-  width: number;
   icon: typeof ChartIcon;
 }) {
   const palette = statCardPalettes[tone];
@@ -4716,12 +4691,13 @@ function StatCard({
 
   return (
     <View
-      className="relative justify-between overflow-hidden rounded-3xl p-4 shadow-lg"
       style={{
         minHeight: 188,
-        width,
-        maxWidth: width,
-        flexShrink: 0,
+        flex: 1,
+        borderRadius: 24,
+        overflow: 'hidden',
+        padding: 16,
+        justifyContent: 'space-between',
         shadowColor: palette.shadow,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.32,
@@ -4731,7 +4707,7 @@ function StatCard({
         borderColor: 'rgba(255, 255, 255, 0.2)',
       }}
     >
-      {/* SVG Multi-Stop Gradient Background */}
+      {/* SVG Gradient Background */}
       <Svg
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
@@ -4751,9 +4727,7 @@ function StatCard({
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradId})`} />
-        {/* Ambient Corner Light Glow */}
         <Circle cx="88%" cy="18%" r="70" fill={`url(#${glowId})`} />
-        {/* Subtle decorative background wave */}
         <Path
           d="M-20 40 Q 40 10, 100 35 T 220 25"
           fill="none"
@@ -4762,45 +4736,77 @@ function StatCard({
         />
       </Svg>
 
-      {/* Top Row: Frosted Glass Icon Squircle + Status Badge */}
-      <View className="z-[1] flex-row items-start justify-between" style={{ overflow: 'hidden' }}>
-        <View
-          className="h-10 w-10 items-center justify-center rounded-2xl border border-white/30"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)', flexShrink: 0 }}
-        >
-          <Icon color="#FFFFFF" size={20} />
-        </View>
-
-        <View
-          className="min-w-0 flex-row items-center gap-1 rounded-full border border-white/20 px-1.5 py-0.5"
+      {/* Badge — absolutely pinned to top-right, always inside card */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          backgroundColor: 'rgba(0, 0, 0, 0.28)',
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.2)',
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+          zIndex: 2,
+          maxWidth: '55%',
+        }}
+      >
+        {isLive ? (
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: '#F59E0B',
+            }}
+          />
+        ) : null}
+        <Text
+          numberOfLines={1}
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.25)',
-            flexShrink: 1,
-            flexGrow: 0,
-            maxWidth: '60%',
+            fontSize: 9,
+            fontWeight: '900',
+            color: '#FFFFFF',
+            letterSpacing: 0.8,
           }}
         >
-          {isLive ? (
-            <View className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" style={{ flexShrink: 0 }} />
-          ) : null}
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            className="text-[9px] font-black uppercase tracking-wide text-white"
-          >
-            {badge}
-          </Text>
-        </View>
+          {badge}
+        </Text>
       </View>
 
-      {/* Middle Row: Big Bold Metric Value + Label */}
-      <View className="z-[1] my-1">
+      {/* Icon — top-left */}
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.18)',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.3)',
+          zIndex: 1,
+          marginTop: 2,
+        }}
+      >
+        <Icon color="#FFFFFF" size={20} />
+      </View>
+
+      {/* Metric Value + Label */}
+      <View style={{ zIndex: 1, marginVertical: 4 }}>
         <Text
           adjustsFontSizeToFit
           numberOfLines={1}
-          className="text-[25px] font-black tracking-tight text-white"
           style={{
-            textShadowColor: 'rgba(0, 0, 0, 0.25)',
+            fontSize: 24,
+            fontWeight: '900',
+            color: '#FFFFFF',
+            letterSpacing: -0.5,
+            textShadowColor: 'rgba(0,0,0,0.25)',
             textShadowOffset: { width: 0, height: 1 },
             textShadowRadius: 3,
           }}
@@ -4809,22 +4815,44 @@ function StatCard({
         </Text>
         <Text
           numberOfLines={1}
-          className="mt-0.5 text-xs font-bold uppercase tracking-wider text-white/85"
+          style={{
+            marginTop: 2,
+            fontSize: 11,
+            fontWeight: '700',
+            color: 'rgba(255,255,255,0.85)',
+            letterSpacing: 0.6,
+            textTransform: 'uppercase',
+          }}
         >
           {label}
         </Text>
       </View>
 
-      {/* Bottom Row: Detail Caption + Frosted SVG Sparkline */}
-      <View className="z-[1] flex-row items-center justify-between border-t border-white/10 pt-2">
+      {/* Bottom: detail + sparkline */}
+      <View
+        style={{
+          zIndex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.1)',
+          paddingTop: 8,
+        }}
+      >
         <Text
           numberOfLines={1}
-          className="min-w-0 flex-1 text-[11px] font-medium text-white/75"
-          style={{ flexShrink: 1 }}
+          style={{
+            flex: 1,
+            fontSize: 11,
+            fontWeight: '500',
+            color: 'rgba(255,255,255,0.75)',
+            marginRight: 4,
+          }}
         >
           {detail}
         </Text>
-        <Svg width={54} height={18} viewBox="0 0 70 22" fill="none">
+        <Svg width={48} height={18} viewBox="0 0 70 22" fill="none">
           <Path
             d={palette.sparkline}
             stroke="#FFFFFF"
