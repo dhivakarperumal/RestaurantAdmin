@@ -25,6 +25,7 @@ type CuisineRecord = {
 type CuisineProps = {
   onAddCuisine: () => void;
   onBack: () => void;
+  showBackButton?: boolean;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -81,7 +82,11 @@ function isFeatured(value: CuisineRecord['featured']) {
   return value === true || value === 1 || value === '1' || value === 'true';
 }
 
-function Cuisine({ onAddCuisine, onBack }: CuisineProps) {
+function Cuisine({
+  onAddCuisine,
+  onBack,
+  showBackButton = true,
+}: CuisineProps) {
   const [cuisines, setCuisines] = useState<CuisineRecord[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -167,16 +172,18 @@ function Cuisine({ onAddCuisine, onBack }: CuisineProps) {
         keyboardShouldPersistTaps="handled"
       >
         <View className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-          <Pressable
-            accessibilityLabel="Back to More"
-            accessibilityRole="button"
-            onPress={onBack}
-            className="self-start rounded-lg py-1"
-          >
-            <Text className="text-sm font-semibold text-[#116C0B]">
-              ‹ Back to More
-            </Text>
-          </Pressable>
+          {showBackButton ? (
+            <Pressable
+              accessibilityLabel="Back to More"
+              accessibilityRole="button"
+              onPress={onBack}
+              className="self-start rounded-lg py-1"
+            >
+              <Text className="text-sm font-semibold text-[#116C0B]">
+                ‹ Back to More
+              </Text>
+            </Pressable>
+          ) : null}
           <Text className="mt-3 text-2xl font-extrabold text-[#012711]">
             All Cuisines
           </Text>

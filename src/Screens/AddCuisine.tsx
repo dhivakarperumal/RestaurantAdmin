@@ -24,6 +24,7 @@ type CuisineForm = {
 
 type AddCuisineProps = {
   onBack: () => void;
+  showBackButton?: boolean;
 };
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -87,7 +88,10 @@ function resolveImageUrl(value: string) {
   return `${apiRoot}/${value.replace(/^\/+/, '')}`;
 }
 
-function AddCuisine({ onBack }: AddCuisineProps) {
+function AddCuisine({
+  onBack,
+  showBackButton = true,
+}: AddCuisineProps) {
   const [form, setForm] = useState<CuisineForm>(INITIAL_FORM);
   const [isLoadingId, setIsLoadingId] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -236,16 +240,18 @@ function AddCuisine({ onBack }: AddCuisineProps) {
         }}
       >
         <View className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-          <Pressable
-            accessibilityLabel="Back to cuisines"
-            accessibilityRole="button"
-            onPress={onBack}
-            className="self-start rounded-lg py-1"
-          >
-            <Text className="text-sm font-semibold text-[#116C0B]">
-              ‹ Back
-            </Text>
-          </Pressable>
+          {showBackButton ? (
+            <Pressable
+              accessibilityLabel="Back to cuisines"
+              accessibilityRole="button"
+              onPress={onBack}
+              className="self-start rounded-lg py-1"
+            >
+              <Text className="text-sm font-semibold text-[#116C0B]">
+                ‹ Back
+              </Text>
+            </Pressable>
+          ) : null}
           <Text className="mt-3 text-2xl font-extrabold text-[#012711]">
             Add Cuisine
           </Text>

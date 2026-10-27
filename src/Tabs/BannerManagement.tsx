@@ -67,7 +67,13 @@ function toBanner(value: Record<string, unknown>): Banner {
   };
 }
 
-function BannerManagementPage({ onBack }: { onBack: () => void }) {
+function BannerManagementPage({
+  onBack,
+  showBackButton = true,
+}: {
+  onBack: () => void;
+  showBackButton?: boolean;
+}) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -264,14 +270,16 @@ function BannerManagementPage({ onBack }: { onBack: () => void }) {
       >
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            <Pressable
-              accessibilityLabel="Back to More"
-              accessibilityRole="button"
-              onPress={onBack}
-              className="mb-3 self-start py-1"
-            >
-              <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
-            </Pressable>
+            {showBackButton ? (
+              <Pressable
+                accessibilityLabel="Back to More"
+                accessibilityRole="button"
+                onPress={onBack}
+                className="mb-3 self-start py-1"
+              >
+                <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
+              </Pressable>
+            ) : null}
             <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
               WEBSITE CONTENT
             </Text>

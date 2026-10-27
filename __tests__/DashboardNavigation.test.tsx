@@ -8,7 +8,10 @@ import {
 } from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from 'react-native-safe-area-context';
 import DashboardScreen from '../src/Navigation/DashboardScreen';
 import { PlusIcon } from '../src/Navigation/NavigationIcons';
 import api from '../api';
@@ -134,7 +137,9 @@ test('opens category management from the More tab', async () => {
 
   await press(renderer, 'More');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Categories' }).props.onPress();
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Categories',
+    }).props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await ReactTestRenderer.act(
@@ -142,6 +147,18 @@ test('opens category management from the More tab', async () => {
   );
   expect(
     renderer.root.findByProps({ accessibilityLabel: 'Search categories' }),
+  ).toBeTruthy();
+  expect(renderer.root.findByType(SafeAreaView).props.edges).toEqual([
+    'bottom',
+  ]);
+
+  await press(renderer, 'Back to More');
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Open Categories' }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Toggle sidebar' }),
   ).toBeTruthy();
 });
 
@@ -475,7 +492,13 @@ test('shows printer, banner, gallery, and review tools in More and opens printer
   });
 
   expect(JSON.stringify(renderer.toJSON())).toContain('Printer Configuration');
-  await press(renderer, 'Go back');
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'More' }),
+  ).toHaveLength(0);
+  await press(renderer, 'Back to More');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'More' }),
+  ).toBeTruthy();
   expect(
     renderer.root.findByProps({
       accessibilityLabel: 'Open Review Management',

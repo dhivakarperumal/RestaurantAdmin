@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Modal,
   Pressable,
@@ -39,6 +40,7 @@ import {
   ReceiptIcon,
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
+import MoreInnerHeader from './MoreInnerHeader';
 import Bottombar, { type BottomBarTab } from './Bottombar';
 import FloatingActionMenu from './FloatingActionMenu';
 import AddCategoryIcon from './AddCategoryIcon';
@@ -905,12 +907,50 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const selectedActionDetails = quickActions.find(
     action => action.id === selectedAction,
   );
+  const isMoreFeatureOpen =
+    activeTab === 'more' && selectedFeature !== null && !selectedActionDetails;
+  const moreFeatureBack = () => {
+    if (selectedFeature === 'AddCategory') {
+      setActiveTab('more');
+      setSelectedFeature('Categories');
+    } else if (selectedFeature === 'AddCuisine') {
+      setActiveTab('more');
+      closeAddCuisinePage();
+    } else {
+      setActiveTab('more');
+      setSelectedAction(null);
+      setSelectedFeature(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!isMoreFeatureOpen) {
+      return undefined;
+    }
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        moreFeatureBack();
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [isMoreFeatureOpen, selectedFeature]);
+
   return (
     <SafeAreaView
-      edges={isFoodDetailsOpen ? ['top', 'bottom'] : []}
+      edges={
+        isFoodDetailsOpen
+          ? ['top', 'bottom']
+          : isMoreFeatureOpen
+          ? ['bottom']
+          : []
+      }
       className="flex-1 bg-[#F9FAFB]"
     >
-      {!isFoodDetailsOpen ? (
+      {!isFoodDetailsOpen && !isMoreFeatureOpen ? (
         <TopHeader
           user={user}
           unreadNotifications={0}
@@ -928,6 +968,25 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             setActiveTab('more');
           }}
           onLogout={handleLogout}
+        />
+      ) : null}
+      {!isFoodDetailsOpen && isMoreFeatureOpen ? (
+        <MoreInnerHeader
+          title={
+            selectedFeature === 'AddCategory'
+              ? 'Add Category'
+              : selectedFeature === 'AddCuisine'
+              ? 'Add Cuisine'
+              : selectedFeature ?? 'More'
+          }
+          destination={
+            selectedFeature === 'AddCategory'
+              ? 'Categories'
+              : selectedFeature === 'AddCuisine'
+              ? 'Cuisines'
+              : 'More'
+          }
+          onBack={moreFeatureBack}
         />
       ) : null}
 
@@ -1042,7 +1101,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         </View>
       )}
 
-      <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
+      {!isMoreFeatureOpen ? (
+        <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
+      ) : null}
       {!isWide && activeTab === 'items' && !isFoodDetailsOpen ? (
         <FloatingActionMenu
           onAddProduct={openItemsAddForm}
@@ -1464,23 +1525,33 @@ function MainContent({
         <CuisineScreen
           onAddCuisine={() => onOpenAddCuisine('Cuisines')}
           onBack={() => onSelectFeature(null)}
+          showBackButton={false}
         />
       );
     }
     if (selectedFeature === 'AddCuisine') {
-      return <AddCuisineScreen onBack={onCloseAddCuisine} />;
+      return (
+        <AddCuisineScreen
+          onBack={onCloseAddCuisine}
+          showBackButton={false}
+        />
+      );
     }
     if (selectedFeature === 'Categories') {
       return (
         <CategoriesScreen
           onAddCategory={() => onSelectFeature('AddCategory')}
           onBack={() => onSelectFeature(null)}
+          showBackButton={false}
         />
       );
     }
     if (selectedFeature === 'AddCategory') {
       return (
-        <AddCategoriesScreen onBack={() => onSelectFeature('Categories')} />
+        <AddCategoriesScreen
+          onBack={() => onSelectFeature('Categories')}
+          showBackButton={false}
+        />
       );
     }
     if (selectedFeature === 'Orders' || selectedFeature === 'Orders Management') {
@@ -1493,19 +1564,35 @@ function MainContent({
     }
 
     if (selectedFeature === 'Printer Setup') {
-      return <PrinterSetupScreen onBack={() => onSelectFeature(null)} />;
+      return (
+        <PrinterSetupScreen
+          onBack={() => onSelectFeature(null)}
+          showHeader={false}
+        />
+      );
     }
     if (selectedFeature === 'Banner Management') {
-      return <BannerManagementPage onBack={() => onSelectFeature(null)} />;
+      return (
+        <BannerManagementPage
+          onBack={() => onSelectFeature(null)}
+          showBackButton={false}
+        />
+      );
     }
     if (selectedFeature === 'Gallery Management') {
-      return <GalleryManagementPage onBack={() => onSelectFeature(null)} />;
+      return (
+        <GalleryManagementPage
+          onBack={() => onSelectFeature(null)}
+          showBackButton={false}
+        />
+      );
     }
     if (selectedFeature === 'Review Management') {
       return (
         <ReviewsManagementPage
           currentUser={userName}
           onBack={() => onSelectFeature(null)}
+          showBackButton={false}
         />
       );
     }
@@ -1564,10 +1651,6 @@ function MainContent({
               : 'Manage your account details and preferences.'}
           </Text>
         </View>
-        <TextButton
-          label="Back to More"
-          onPress={() => onSelectFeature(null)}
-        />
       </PageShell>
     );
   }

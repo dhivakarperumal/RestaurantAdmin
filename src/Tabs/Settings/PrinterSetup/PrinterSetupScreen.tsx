@@ -23,9 +23,13 @@ const PAPER_SIZES: PaperSize[] = ['58mm', '80mm', 'A4'];
 
 type PrinterSetupScreenProps = {
   onBack: () => void;
+  showHeader?: boolean;
 };
 
-export default function PrinterSetupScreen({ onBack }: PrinterSetupScreenProps) {
+export default function PrinterSetupScreen({
+  onBack,
+  showHeader = true,
+}: PrinterSetupScreenProps) {
   const { settings, setSettings, loading, saving, fetchError, save } = usePrinterSettings();
 
   const update = useCallback(
@@ -46,7 +50,10 @@ export default function PrinterSetupScreen({ onBack }: PrinterSetupScreenProps) 
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-[#F8FAFC]">
+      <SafeAreaView
+        edges={showHeader ? ['top', 'bottom'] : []}
+        className="flex-1 items-center justify-center bg-[#F8FAFC]"
+      >
         <ActivityIndicator size="large" color="#116C0B" />
         <Text className="mt-3 text-sm text-[#6B7280]">Loading printer settings...</Text>
       </SafeAreaView>
@@ -54,26 +61,30 @@ export default function PrinterSetupScreen({ onBack }: PrinterSetupScreenProps) 
   }
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-[#F8FAFC]">
-      {/* ── Header ── */}
-      <View className="flex-row items-center gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3">
-        <Pressable
-          onPress={onBack}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="h-9 w-9 items-center justify-center rounded-xl bg-[#F1F5F9]"
-        >
-          <ArrowLeftIcon size={18} />
-        </Pressable>
-        <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF]">
-          <PrinterIcon size={20} color="#116C0B" />
+    <SafeAreaView
+      edges={showHeader ? ['top', 'bottom'] : []}
+      className="flex-1 bg-[#F8FAFC]"
+    >
+      {showHeader ? (
+        <View className="flex-row items-center gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3">
+          <Pressable
+            onPress={onBack}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            className="h-9 w-9 items-center justify-center rounded-xl bg-[#F1F5F9]"
+          >
+            <ArrowLeftIcon size={18} />
+          </Pressable>
+          <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF]">
+            <PrinterIcon size={20} color="#116C0B" />
+          </View>
+          <View>
+            <Text className="text-base font-bold text-[#0F172A]">Printer Setup</Text>
+            <Text className="text-[11px] text-[#6B7280]">Configure receipt and kitchen printers</Text>
+          </View>
         </View>
-        <View>
-          <Text className="text-base font-bold text-[#0F172A]">Printer Setup</Text>
-          <Text className="text-[11px] text-[#6B7280]">Configure receipt and kitchen printers</Text>
-        </View>
-      </View>
+      ) : null}
 
       {/* ── Body ── */}
       <ScrollView

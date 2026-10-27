@@ -45,6 +45,7 @@ type CategoryForm = {
 type CategoriesProps = {
   onAddCategory: () => void;
   onBack: () => void;
+  showBackButton?: boolean;
 };
 
 type ViewMode = 'cards' | 'table';
@@ -192,6 +193,7 @@ function CategoryImage({ name, uri }: { name: string; uri?: string }) {
 function Categories({
   onAddCategory,
   onBack,
+  showBackButton = true,
 }: CategoriesProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [foods, setFoods] = useState<Food[]>([]);
@@ -689,16 +691,18 @@ function Categories({
           <View className="mb-4 gap-4">
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
-                <Pressable
-                  accessibilityLabel="Back to More"
-                  accessibilityRole="button"
-                  onPress={onBack}
-                  className="self-start rounded-lg px-1 py-1"
-                >
-                  <Text className="text-xs font-semibold text-[#116C0B]">
-                    ‹ Back to More
-                  </Text>
-                </Pressable>
+                {showBackButton ? (
+                  <Pressable
+                    accessibilityLabel="Back to More"
+                    accessibilityRole="button"
+                    onPress={onBack}
+                    className="self-start rounded-lg px-1 py-1"
+                  >
+                    <Text className="text-xs font-semibold text-[#116C0B]">
+                      ‹ Back to More
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <Text className="mt-2 text-2xl font-extrabold text-[#012711]">
                   Categories
                 </Text>
