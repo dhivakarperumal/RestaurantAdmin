@@ -33,7 +33,7 @@ import {
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import MoreInnerHeader from './MoreInnerHeader';
-import Bottombar, { type BottomBarTab } from './Bottombar';
+import { BottomNavigation, type AppTab } from './Bottombar';
 import FloatingActionMenu from './FloatingActionMenu';
 import AddCategoryIcon from './AddCategoryIcon';
 import Bills, { type BillFood } from '../Tabs/Bills';
@@ -47,6 +47,9 @@ import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
 import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen';
+import TablesScreen from '../Screens/Tables';
+import CustomersScreen from '../Screens/Customers';
+import MorePage, { type MoreFeature } from '../Tabs/More';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -54,7 +57,6 @@ type DashboardScreenProps = {
   onLogout: () => void;
 };
 
-type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' | 'more';
 type ItemsAddRequest = { id: number; action: 'product' };
 type QuickActionId =
   | 'invoice'
@@ -379,7 +381,12 @@ const dashboardPeriods: { value: DashboardDateFilter; label: string }[] = [
   { value: 'custom', label: 'Custom' },
 ];
 
-const moreFeatures = [
+const moreFeatures: MoreFeature[] = [
+  {
+    title: 'Orders Management',
+    subtitle: 'View and manage customer orders',
+    icon: OrdersIcon,
+  },
   {
     title: 'Categories',
     subtitle: 'Manage product categories',
@@ -388,6 +395,11 @@ const moreFeatures = [
   {
     title: 'Cuisines',
     subtitle: 'View restaurant cuisines',
+    icon: MenuIcon,
+  },
+  {
+    title: 'Tables',
+    subtitle: 'Manage restaurant tables and seating',
     icon: MenuIcon,
   },
   {
@@ -422,80 +434,33 @@ const moreFeatures = [
     icon: ProductIcon,
     action: 'product' as QuickActionId,
   },
-  {
-    title: 'Suppliers & Purchases',
-    subtitle: 'Supplier records and purchases',
-    icon: MenuIcon,
-    action: 'purchase' as QuickActionId,
-  },
-  {
-    title: 'Payments & Expenses',
-    subtitle: 'Track money in and out',
-    icon: PaymentIcon,
-    action: 'payment' as QuickActionId,
-  },
-  {
-    title: 'Returns & Refunds',
-    subtitle: 'Manage returned items and refunds',
-    icon: ReceiptIcon,
-  },
-  {
-    title: 'Pending Payments',
-    subtitle: 'Review outstanding balances',
-    icon: PaymentIcon,
-  },
+
   {
     title: 'Reports & Analytics',
     subtitle: 'Business performance overview',
     icon: ChartIcon,
   },
-  {
-    title: 'Sales Reports',
-    subtitle: 'Review sales over time',
-    icon: ChartIcon,
-  },
-  {
-    title: 'Profit & Revenue',
-    subtitle: 'Revenue and profitability summary',
-    icon: ChartIcon,
-  },
-  {
-    title: 'Offers & Discounts',
-    subtitle: 'Manage promotional offers',
-    icon: ReceiptIcon,
-  },
+
+  
   {
     title: 'Staff & Employees',
     subtitle: 'Manage your team',
     icon: CustomersIcon,
   },
-  {
-    title: 'Branch Management',
-    subtitle: 'Manage restaurant locations',
-    icon: MenuIcon,
-  },
-  {
-    title: 'Barcode Scanner',
-    subtitle: 'Scan or look up products',
-    icon: ProductIcon,
-  },
-  {
-    title: 'Tax & GST Reports',
-    subtitle: 'Review tax summaries',
-    icon: ReceiptIcon,
-  },
-  { title: 'Notifications', subtitle: 'Review recent updates', icon: BellIcon },
-  {
-    title: 'Backup & Restore',
-    subtitle: 'Manage business data backups',
-    icon: MenuIcon,
-  },
+
+ 
+
   {
     title: 'Help & Support',
     subtitle: 'Get help with your account',
     icon: ProfileIcon,
   },
-  { title: 'Settings', subtitle: 'Manage app preferences', icon: MenuIcon },
+  {
+    title: 'Profile',
+    subtitle: 'View your account details',
+    icon: ProfileIcon,
+  },
+  
 ];
 
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
@@ -722,6 +687,23 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setSelectedFeature(null);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+  };
+
+  const navigateToMoreFeature = (feature: string | null) => {
+    setActiveTab('more');
+    setIsFoodDetailsOpen(false);
+    setSelectedAction(null);
+    setSelectedFeature(feature);
+    setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
+  };
+
+  const navigateFromSidebar = (tab: AppTab) => {
+    if (tab === 'more') {
+      navigateToMoreFeature(null);
+      return;
+    }
+    navigateToTab(tab);
   };
 
   const handleFoodDetailsVisibilityChange = (isVisible: boolean) => {
@@ -986,10 +968,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         <View className="flex-1 flex-row">
           <Sidebar
             onClose={() => setIsSidebarOpen(false)}
-            onNavigate={tab => {
-              navigateToTab(tab);
-              setIsSidebarOpen(false);
-            }}
+            onNavigate={navigateFromSidebar}
+            features={moreFeatures}
+            onSelectFeature={navigateToMoreFeature}
           />
           <View className="flex-1">
             <MainContent
@@ -1011,6 +992,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               selectedAction={selectedActionDetails}
               selectedFeature={selectedFeature}
               userEmail={userEmail}
+              userId={String(user?.user_id ?? user?.id ?? '')}
               userInitial={userInitial}
               userName={userName}
               itemsAddRequest={itemsAddRequest}
@@ -1028,7 +1010,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
                 createInvoiceFromBillingItems();
                 navigateToTab('billing');
               }}
-              onSelectFeature={setSelectedFeature}
+              onSelectFeature={navigateToMoreFeature}
               onUpdateOrderStatus={updateOrderStatus}
               onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
               onSetDateFilter={setDateFilter}
@@ -1066,6 +1048,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             selectedAction={selectedActionDetails}
             selectedFeature={selectedFeature}
             userEmail={userEmail}
+            userId={String(user?.user_id ?? user?.id ?? '')}
             userInitial={userInitial}
             userName={userName}
             itemsAddRequest={itemsAddRequest}
@@ -1083,7 +1066,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               createInvoiceFromBillingItems();
               navigateToTab('billing');
             }}
-            onSelectFeature={setSelectedFeature}
+            onSelectFeature={navigateToMoreFeature}
             onUpdateOrderStatus={updateOrderStatus}
             onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
             onSetDateFilter={setDateFilter}
@@ -1118,10 +1101,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             <Sidebar
               fullWidth
               onClose={() => setIsSidebarOpen(false)}
-              onNavigate={tab => {
-                navigateToTab(tab);
-                setIsSidebarOpen(false);
-              }}
+              onNavigate={navigateFromSidebar}
+              features={moreFeatures}
+              onSelectFeature={navigateToMoreFeature}
             />
           </View>
         </View>
@@ -1437,6 +1419,7 @@ function MainContent({
   selectedAction,
   selectedFeature,
   userEmail,
+  userId,
   userInitial,
   userName,
   itemsAddRequest,
@@ -1474,6 +1457,7 @@ function MainContent({
   selectedAction?: QuickAction;
   selectedFeature: string | null;
   userEmail: string;
+  userId: string;
   userInitial: string;
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
@@ -1512,6 +1496,23 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Customers') {
+      return (
+        <CustomersScreen
+          onBack={() => onSelectFeature(null)}
+          showBackButton={false}
+        />
+      );
+    }
+    if (selectedFeature === 'Tables') {
+      return (
+        <TablesScreen
+          onBack={() => onSelectFeature(null)}
+          showBackButton={false}
+          userId={userId}
+        />
+      );
+    }
     if (selectedFeature === 'Cuisines') {
       return (
         <CuisineScreen
@@ -1615,24 +1616,25 @@ function MainContent({
       moreFeatures.find(item => item.title === selectedFeature) ||
       quickActionFeatureDetails[selectedFeature];
     const relatedAction = feature?.action;
+    const relatedQuickAction = quickActions.find(
+      action => action.id === relatedAction,
+    );
     return (
       <PageShell
         title={selectedFeature}
         subtitle={feature?.subtitle || 'Business tools and account options'}
       >
-        {relatedAction ? (
+        {relatedQuickAction ? (
           <Pressable
-            accessibilityLabel={
-              quickActions.find(action => action.id === relatedAction)?.label
-            }
+            accessibilityLabel={relatedQuickAction.label}
             accessibilityRole="button"
-            onPress={() => onSelectAction(relatedAction)}
+            onPress={() => onSelectAction(relatedQuickAction.id)}
             className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
             style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
             <PlusIcon color={colors.surface} size={18} />
             <Text className="text-[13px] font-bold text-white">
-              {quickActions.find(action => action.id === relatedAction)?.label}
+              {relatedQuickAction.label}
             </Text>
           </Pressable>
         ) : null}
@@ -1689,7 +1691,12 @@ function MainContent({
     );
   }
   if (activeTab === 'more') {
-    return <MorePage onSelectFeature={onSelectFeature} />;
+    return (
+      <MorePage
+        features={moreFeatures}
+        onSelectFeature={onSelectFeature}
+      />
+    );
   }
   return (
     <HomePage
@@ -4469,93 +4476,6 @@ function EmployeeChoiceField({
   );
 }
 
-function MorePage({
-  onSelectFeature,
-}: {
-  onSelectFeature: (feature: string) => void;
-}) {
-  return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
-      <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-        TOOLS
-      </Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">More</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
-        Everything you need to run your business.
-      </Text>
-      <View className="mt-[22px]">
-        {moreFeatures.map(feature => {
-          const Icon = feature.icon;
-          return (
-            <Pressable
-              accessibilityLabel={`Open ${feature.title}`}
-              accessibilityRole="button"
-              key={feature.title}
-              onPress={() => onSelectFeature(feature.title)}
-              className="min-h-[76px] w-full flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-              })}
-            >
-              <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-                <Icon color={colors.primary} size={20} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#012711]">
-                  {feature.title}
-                </Text>
-                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
-                  {feature.subtitle}
-                </Text>
-              </View>
-              <Text className="text-xl text-[#9CA3AF]">›</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </ScrollView>
-  );
-}
-
-function BottomNavigation({
-  activeTab,
-  onPressTab,
-}: {
-  activeTab: AppTab;
-  onPressTab: (tab: AppTab) => void;
-}) {
-  const tabs: BottomBarTab<AppTab>[] = [
-    {
-      key: 'home',
-      label: 'Home',
-      icon: color => <HomeIcon color={color} size={21} />,
-    },
-    {
-      key: 'items',
-      label: 'Items',
-      icon: color => <ProductIcon color={color} size={21} />,
-    },
-    {
-      key: 'add',
-      label: 'Add',
-      icon: color => <PlusIcon color={color} size={21} />,
-    },
-    {
-      key: 'orders',
-      label: 'Orders',
-      icon: color => <OrdersIcon color={color} size={21} />,
-    },
-    {
-      key: 'more',
-      label: 'More',
-      icon: color => <MoreIcon color={color} size={21} />,
-    },
-  ];
-  return (
-    <Bottombar tabs={tabs} activeTab={activeTab} onTabPress={onPressTab} />
-  );
-}
-
 function EntryForm({
   action,
   onCancel,
@@ -4664,11 +4584,17 @@ function Sidebar({
   fullWidth = false,
   onClose,
   onNavigate,
+  features,
+  onSelectFeature,
 }: {
   fullWidth?: boolean;
   onClose: () => void;
   onNavigate: (tab: AppTab) => void;
+  features: MoreFeature[];
+  onSelectFeature: (feature: string) => void;
 }) {
+  const [isMoreExpanded, setIsMoreExpanded] = useState(false);
+
   return (
     <View
       className={`${
@@ -4696,34 +4622,81 @@ function Sidebar({
           <Text className="text-2xl leading-7 text-[#6B7280]">×</Text>
         </Pressable>
       </View>
-      <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
-        WORKSPACE
-      </Text>
-      <TabButtonLarge
-        icon={HomeIcon}
-        label="Home"
-        onPress={() => onNavigate('home')}
-      />
-      <TabButtonLarge
-        icon={ReceiptIcon}
-        label="Billing"
-        onPress={() => onNavigate('billing')}
-      />
-      <TabButtonLarge
-        icon={ProductIcon}
-        label="Items"
-        onPress={() => onNavigate('items')}
-      />
-      <TabButtonLarge
-        icon={OrdersIcon}
-        label="Orders"
-        onPress={() => onNavigate('orders')}
-      />
-      <TabButtonLarge
-        icon={MoreIcon}
-        label="More"
-        onPress={() => onNavigate('more')}
-      />
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="pb-5"
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
+          WORKSPACE
+        </Text>
+        <TabButtonLarge
+          icon={HomeIcon}
+          label="Home"
+          onPress={() => onNavigate('home')}
+        />
+        <TabButtonLarge
+          icon={ReceiptIcon}
+          label="Billing"
+          onPress={() => onNavigate('billing')}
+        />
+        <TabButtonLarge
+          icon={ProductIcon}
+          label="Items"
+          onPress={() => onNavigate('items')}
+        />
+        <TabButtonLarge
+          icon={OrdersIcon}
+          label="Orders"
+          onPress={() => onNavigate('orders')}
+        />
+        <Pressable
+          accessibilityLabel="More"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isMoreExpanded }}
+          onPress={() => setIsMoreExpanded(expanded => !expanded)}
+          className="w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
+          style={({ pressed }) => ({
+            backgroundColor: pressed ? '#EFF6FF' : colors.surface,
+          })}
+        >
+          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F7EE]">
+            <MoreIcon color={colors.primary} size={21} />
+          </View>
+          <Text className="flex-1 text-base font-semibold text-[#012711]">
+            More
+          </Text>
+          <Text className="px-2 text-sm text-[#6B7280]">
+            {isMoreExpanded ? '⌃' : '⌄'}
+          </Text>
+        </Pressable>
+        {isMoreExpanded ? (
+          <View className="ml-4 mt-1 gap-1 border-l border-[#E5E7EB] pl-2">
+            {features.map(feature => {
+              const Icon = feature.icon;
+              return (
+                <Pressable
+                  accessibilityLabel={`Open ${feature.title}`}
+                  accessibilityRole="button"
+                  key={feature.title}
+                  onPress={() => onSelectFeature(feature.title)}
+                  className="min-h-12 w-full flex-row items-center gap-3 rounded-xl px-3 py-2"
+                  style={({ pressed }) => ({
+                    backgroundColor: pressed ? '#F3F7FF' : colors.surface,
+                  })}
+                >
+                  <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0F7EE]">
+                    <Icon color={colors.primary} size={17} />
+                  </View>
+                  <Text className="flex-1 text-sm font-medium text-[#012711]">
+                    {feature.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
