@@ -1,5 +1,9 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from 'react-native-safe-area-context';
 import { Path } from 'react-native-svg';
 import { HamburgerIcon } from '../src/Navigation/NavigationIcons';
 import TopHeader from '../src/Navigation/TopHeader';
@@ -28,20 +32,29 @@ test('opens and dismisses the profile menu and connects its actions', async () =
 
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(
-      <TopHeader
-        user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
-        unreadNotifications={4}
-        onToggleSidebar={onToggleSidebar}
-        onOpenNotifications={onOpenNotifications}
-        onOpenProfile={onOpenProfile}
-        onLogout={onLogout}
-      />,
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 400, height: 800 },
+          insets: { top: 24, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <TopHeader
+          user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
+          unreadNotifications={4}
+          onToggleSidebar={onToggleSidebar}
+          onOpenNotifications={onOpenNotifications}
+          onOpenProfile={onOpenProfile}
+          onLogout={onLogout}
+        />
+      </SafeAreaProvider>,
     );
   });
 
   expect(
     renderer!.root.findByProps({ accessibilityLabel: 'Toggle sidebar' }),
   ).toBeTruthy();
+  expect(renderer!.root.findByType(SafeAreaView).props.edges).toEqual(['top']);
+  expect(JSON.stringify(renderer!.toJSON())).toContain('#052E10');
   const logo = renderer!.root.findByProps({
     accessibilityLabel: 'Buy Food logo',
   });
@@ -93,14 +106,21 @@ test('uses a fallback avatar initial when user details are missing', async () =>
 
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(
-      <TopHeader
-        user={null}
-        unreadNotifications={0}
-        onToggleSidebar={jest.fn()}
-        onOpenNotifications={jest.fn()}
-        onOpenProfile={jest.fn()}
-        onLogout={jest.fn()}
-      />,
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 400, height: 800 },
+          insets: { top: 24, right: 0, bottom: 0, left: 0 },
+        }}
+      >
+        <TopHeader
+          user={null}
+          unreadNotifications={0}
+          onToggleSidebar={jest.fn()}
+          onOpenNotifications={jest.fn()}
+          onOpenProfile={jest.fn()}
+          onLogout={jest.fn()}
+        />
+      </SafeAreaProvider>,
     );
   });
 

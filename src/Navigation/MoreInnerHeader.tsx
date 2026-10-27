@@ -5,7 +5,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 type MoreInnerHeaderProps = {
@@ -19,13 +19,11 @@ export default function MoreInnerHeader({
   destination,
   onBack,
 }: MoreInnerHeaderProps) {
-  const insets = useSafeAreaInsets();
-
   return (
-    <View
+    <SafeAreaView
+      edges={['top']}
       className="relative overflow-hidden"
       style={{
-        paddingTop: insets.top,
         backgroundColor: '#052E10',
         elevation: 8,
         shadowColor: '#000000',
@@ -81,6 +79,6 @@ export default function MoreInnerHeader({
           {title}
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

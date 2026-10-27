@@ -125,7 +125,9 @@ test('opens category management from the More tab', async () => {
 
   await press(renderer, 'More');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Categories' }).props.onPress();
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Categories',
+    }).props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await ReactTestRenderer.act(

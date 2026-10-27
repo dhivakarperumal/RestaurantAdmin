@@ -8,7 +8,10 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Svg, {
   Circle,
   Defs,
@@ -111,10 +114,10 @@ function TopHeader({
   };
 
   return (
-    <View
+    <SafeAreaView
+      edges={['top']}
       className="relative z-10 overflow-visible"
       style={{
-        paddingTop: insets.top,
         backgroundColor: '#052E10',
         elevation: 8,
         shadowColor: '#000000',
@@ -310,7 +313,7 @@ function TopHeader({
           </View>
         </View>
       ) : null}
-    </View>
+    </SafeAreaView>
   );
 }
 
