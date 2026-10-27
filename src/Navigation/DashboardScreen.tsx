@@ -905,21 +905,60 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     }
   };
 
+  // Global hardware back button handler — covers every navigable state
+  // Priority (highest → lowest):
+  //  1. Sidebar open          → close sidebar
+  //  2. Notifications open    → close notifications
+  //  3. Action modal open     → close modal
+  //  4. More sub-feature open → go back inside More
+  //  5. Non-home tab active   → go back to Home tab
+  //  6. Home tab              → let OS handle (exit app)
   useEffect(() => {
-    if (!isMoreFeatureOpen) {
-      return undefined;
-    }
-
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        moreFeatureBack();
-        return true;
+        // 1. Sidebar
+        if (isSidebarOpen) {
+          setIsSidebarOpen(false);
+          return true;
+        }
+        // 2. Notifications panel
+        if (isNotificationsOpen) {
+          setIsNotificationsOpen(false);
+          return true;
+        }
+        // 3. Action modal (EntryForm)
+        if (selectedAction) {
+          setSelectedAction(null);
+          return true;
+        }
+        // 4. More sub-feature inner screen
+        if (isMoreFeatureOpen) {
+          moreFeatureBack();
+          return true;
+        }
+        // 5. Non-home tab → go to home
+        if (activeTab !== 'home') {
+          setActiveTab('home');
+          setSelectedAction(null);
+          setSelectedFeature(null);
+          setIsFoodDetailsOpen(false);
+          return true;
+        }
+        // 6. Already on home — let OS decide (exit app)
+        return false;
       },
     );
 
     return () => subscription.remove();
-  }, [isMoreFeatureOpen, selectedFeature]);
+  }, [
+    isSidebarOpen,
+    isNotificationsOpen,
+    selectedAction,
+    isMoreFeatureOpen,
+    selectedFeature,
+    activeTab,
+  ]);
 
   return (
     <SafeAreaView
