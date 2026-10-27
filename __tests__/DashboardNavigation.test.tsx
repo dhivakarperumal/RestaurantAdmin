@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Text, TextInput, View } from 'react-native';
+import { Image, Text, TextInput, View , Alert,  type AlertButton} from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -13,6 +13,15 @@ jest.mock('../api', () => ({
   default: {
     get: jest.fn(() => Promise.resolve({ data: { data: [] } })),
   },
+  API_BASE_URL: 'https://example.com/api',
+}));
+
+jest.mock('react-native-image-picker', () => ({
+  launchImageLibrary: jest.fn(),
+}));
+
+jest.mock('react-native-image-picker', () => ({
+  launchImageLibrary: jest.fn(),
 }));
 
 jest.mock('react-native-image-picker', () => ({
@@ -332,6 +341,582 @@ test('adds food from the plus tab to billing and creates an invoice', async () =
   expect(JSON.stringify(renderer.toJSON())).toContain('₹650.00');
 });
 
+test('opens banner management from the More tab', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'More');
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Banner Management');
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Customers' })).toHaveLength(0);
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Banner Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(JSON.stringify(renderer.toJSON())).toContain('WEBSITE CONTENT');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Create, edit, and publish your website banners.');
+  expect(api.get).toHaveBeenCalledWith('/banners');
+
+  await press(renderer, 'Add banner');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Banner title' }).props.onChangeText('Weekend offer');
+    renderer.root.findByProps({
+      placeholder: 'https://example.com/banner.jpg',
+    }).props.onChangeText('https://example.com/weekend.jpg');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create banner' }).props.onPress();
+  });
+
+  expect(api.post).toHaveBeenCalledWith(
+    '/banners',
+    expect.objectContaining({
+      title: 'Weekend offer',
+      image: 'https://example.com/weekend.jpg',
+      type: 'hero',
+      active: true,
+    }),
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain('Banner added successfully.');
+
+  await press(renderer, 'Back to More');
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' })).toBeTruthy();
+});
+
+test('opens Gallery Management below Banner Management and creates an album', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/gallery/next-id') {
+      return Promise.resolve({ data: { data: 'GAL004' } });
+    }
+    if (path === '/gallery') {
+      return Promise.resolve({
+        data: {
+          success: true,
+          data: [
+            {
+              album_id: 'GAL003',
+              title: 'Summer collection',
+              category: 'Photo Frames',
+              status: 'Active',
+              cover_image: '/uploads/summer.jpg',
+              photos: ['/uploads/photo-one.jpg'],
+              photo_count: 1,
+            },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+
+  const moreScreen = JSON.stringify(renderer.toJSON());
+  expect(moreScreen.indexOf('Banner Management')).toBeLessThan(
+    moreScreen.indexOf('Gallery Management'),
+  );
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Gallery Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'View gallery album Summer collection',
+    }),
+  ).toBeTruthy();
+  expect(get).toHaveBeenCalledWith('/gallery');
+
+  await press(renderer, 'Add gallery album');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Album title' }).props.onChangeText('New collection');
+    renderer.root
+      .findByProps({ placeholder: 'e.g. Photo Frames' })
+      .props.onChangeText('Canvas Prints');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create album' }).props.onPress();
+  });
+
+  expect(get).toHaveBeenCalledWith('/gallery/next-id');
+  expect(api.post).toHaveBeenCalledWith(
+    '/gallery',
+    expect.objectContaining({
+      album_id: 'GAL004',
+      title: 'New collection',
+      category: 'Canvas Prints',
+    }),
+  );
+});
+
+test('opens Review Management below Gallery Management and creates a review', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: {
+          data: [{ food_id: 21, food_name: 'House Blend', food_images: [] }],
+        },
+      });
+    }
+    if (path === '/reviews/next-id') {
+      return Promise.resolve({ data: { data: 'REV014' } });
+    }
+    if (path === '/reviews/stats') {
+      return Promise.resolve({
+        data: {
+          data: {
+            total_reviews: 0,
+            avg_rating: 0,
+            five_star_count: 0,
+            photo_reviews_count: 0,
+            published_count: 0,
+          },
+        },
+      });
+    }
+    if (path === '/reviews') {
+      return Promise.resolve({ data: { data: [] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  const moreScreen = JSON.stringify(renderer.toJSON());
+  expect(moreScreen.indexOf('Gallery Management')).toBeLessThan(
+    moreScreen.indexOf('Review Management'),
+  );
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Manage customer ratings, comments, and review photos.');
+  expect(get).toHaveBeenCalledWith('/reviews');
+  expect(get).toHaveBeenCalledWith('/reviews/stats');
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Add review' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await press(renderer, 'Select food for review');
+  await press(renderer, 'Select food House Blend');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Customer name' }).props.onChangeText('Maya Rivera');
+    renderer.root
+      .findByProps({ placeholder: "Write the customer's review..." })
+      .props.onChangeText('Excellent coffee and friendly service.');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create review' }).props.onPress();
+  });
+
+  expect(api.post).toHaveBeenCalledWith(
+    '/reviews',
+    expect.objectContaining({
+      review_id: 'REV014',
+      product_id: 21,
+      product_name: 'House Blend',
+      product_type: 'food',
+      reviewer_name: 'Maya Rivera',
+      rating: 5,
+      comment: 'Excellent coffee and friendly service.',
+      status: 'Published',
+    }),
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain('Review added successfully.');
+});
+
+test('loads review details, updates a review, and deletes it', async () => {
+  const review = {
+    id: 73,
+    review_id: 'REV073',
+    product_id: 21,
+    product_code: '21',
+    product_name: 'House Blend',
+    product_type: 'food',
+    reviewer_name: 'Alex Morgan',
+    reviewer_email: 'alex@example.com',
+    rating: 4,
+    title: 'Nice coffee',
+    comment: 'A good cup of coffee.',
+    review_photo: '',
+    status: 'Pending',
+    created_by: 'Admin',
+  };
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: { data: [{ food_id: 21, food_name: 'House Blend' }] },
+      });
+    }
+    if (path === '/reviews/stats') {
+      return Promise.resolve({ data: { data: { total_reviews: 1, avg_rating: 4 } } });
+    }
+    if (path === '/reviews/73') {
+      return Promise.resolve({ data: { data: review } });
+    }
+    if (path === '/reviews') {
+      return Promise.resolve({ data: { data: [review] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'View review REV073',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(get).toHaveBeenCalledWith('/reviews/73');
+  expect(JSON.stringify(renderer.toJSON())).toContain('A good cup of coffee.');
+  await press(renderer, 'Close review details');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Edit review REV073',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await ReactTestRenderer.act(() => {
+    renderer.root
+      .findByProps({ placeholder: "Write the customer's review..." })
+      .props.onChangeText('Updated review after another visit.');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Save review changes' })
+      .props.onPress();
+  });
+
+  expect(api.put).toHaveBeenCalledWith(
+    '/reviews/73',
+    expect.objectContaining({
+      review_id: 'REV073',
+      comment: 'Updated review after another visit.',
+      product_id: 21,
+    }),
+  );
+
+  let confirmDelete: AlertButton | undefined;
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
+    confirmDelete = buttons?.find(button => button.text === 'Delete');
+  });
+  await press(renderer, 'Delete review REV073');
+  await ReactTestRenderer.act(async () => {
+    await confirmDelete?.onPress?.();
+  });
+  expect(alert).toHaveBeenCalled();
+  expect(api.delete).toHaveBeenCalledWith('/reviews/73');
+  alert.mockRestore();
+});
+
+test('opens banner management from the More tab', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'More');
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Banner Management');
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Customers' })).toHaveLength(0);
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Banner Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(JSON.stringify(renderer.toJSON())).toContain('WEBSITE CONTENT');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Create, edit, and publish your website banners.');
+  expect(api.get).toHaveBeenCalledWith('/banners');
+
+  await press(renderer, 'Add banner');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Banner title' }).props.onChangeText('Weekend offer');
+    renderer.root.findByProps({
+      placeholder: 'https://example.com/banner.jpg',
+    }).props.onChangeText('https://example.com/weekend.jpg');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create banner' }).props.onPress();
+  });
+
+  expect(api.post).toHaveBeenCalledWith(
+    '/banners',
+    expect.objectContaining({
+      title: 'Weekend offer',
+      image: 'https://example.com/weekend.jpg',
+      type: 'hero',
+      active: true,
+    }),
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain('Banner added successfully.');
+
+  await press(renderer, 'Back to More');
+  expect(renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' })).toBeTruthy();
+});
+
+test('opens Gallery Management below Banner Management and creates an album', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/gallery/next-id') {
+      return Promise.resolve({ data: { data: 'GAL004' } });
+    }
+    if (path === '/gallery') {
+      return Promise.resolve({
+        data: {
+          success: true,
+          data: [
+            {
+              album_id: 'GAL003',
+              title: 'Summer collection',
+              category: 'Photo Frames',
+              status: 'Active',
+              cover_image: '/uploads/summer.jpg',
+              photos: ['/uploads/photo-one.jpg'],
+              photo_count: 1,
+            },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+
+  const moreScreen = JSON.stringify(renderer.toJSON());
+  expect(moreScreen.indexOf('Banner Management')).toBeLessThan(
+    moreScreen.indexOf('Gallery Management'),
+  );
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Gallery Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'View gallery album Summer collection',
+    }),
+  ).toBeTruthy();
+  expect(get).toHaveBeenCalledWith('/gallery');
+
+  await press(renderer, 'Add gallery album');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Album title' }).props.onChangeText('New collection');
+    renderer.root
+      .findByProps({ placeholder: 'e.g. Photo Frames' })
+      .props.onChangeText('Canvas Prints');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create album' }).props.onPress();
+  });
+
+  expect(get).toHaveBeenCalledWith('/gallery/next-id');
+  expect(api.post).toHaveBeenCalledWith(
+    '/gallery',
+    expect.objectContaining({
+      album_id: 'GAL004',
+      title: 'New collection',
+      category: 'Canvas Prints',
+    }),
+  );
+});
+
+test('opens Review Management below Gallery Management and creates a review', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: {
+          data: [{ food_id: 21, food_name: 'House Blend', food_images: [] }],
+        },
+      });
+    }
+    if (path === '/reviews/next-id') {
+      return Promise.resolve({ data: { data: 'REV014' } });
+    }
+    if (path === '/reviews/stats') {
+      return Promise.resolve({
+        data: {
+          data: {
+            total_reviews: 0,
+            avg_rating: 0,
+            five_star_count: 0,
+            photo_reviews_count: 0,
+            published_count: 0,
+          },
+        },
+      });
+    }
+    if (path === '/reviews') {
+      return Promise.resolve({ data: { data: [] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  const moreScreen = JSON.stringify(renderer.toJSON());
+  expect(moreScreen.indexOf('Gallery Management')).toBeLessThan(
+    moreScreen.indexOf('Review Management'),
+  );
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Manage customer ratings, comments, and review photos.');
+  expect(get).toHaveBeenCalledWith('/reviews');
+  expect(get).toHaveBeenCalledWith('/reviews/stats');
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Add review' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await press(renderer, 'Select food for review');
+  await press(renderer, 'Select food House Blend');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ placeholder: 'Customer name' }).props.onChangeText('Maya Rivera');
+    renderer.root
+      .findByProps({ placeholder: "Write the customer's review..." })
+      .props.onChangeText('Excellent coffee and friendly service.');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root.findByProps({ accessibilityLabel: 'Create review' }).props.onPress();
+  });
+
+  expect(api.post).toHaveBeenCalledWith(
+    '/reviews',
+    expect.objectContaining({
+      review_id: 'REV014',
+      product_id: 21,
+      product_name: 'House Blend',
+      product_type: 'food',
+      reviewer_name: 'Maya Rivera',
+      rating: 5,
+      comment: 'Excellent coffee and friendly service.',
+      status: 'Published',
+    }),
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain('Review added successfully.');
+});
+
+test('loads review details, updates a review, and deletes it', async () => {
+  const review = {
+    id: 73,
+    review_id: 'REV073',
+    product_id: 21,
+    product_code: '21',
+    product_name: 'House Blend',
+    product_type: 'food',
+    reviewer_name: 'Alex Morgan',
+    reviewer_email: 'alex@example.com',
+    rating: 4,
+    title: 'Nice coffee',
+    comment: 'A good cup of coffee.',
+    review_photo: '',
+    status: 'Pending',
+    created_by: 'Admin',
+  };
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/foods') {
+      return Promise.resolve({
+        data: { data: [{ food_id: 21, food_name: 'House Blend' }] },
+      });
+    }
+    if (path === '/reviews/stats') {
+      return Promise.resolve({ data: { data: { total_reviews: 1, avg_rating: 4 } } });
+    }
+    if (path === '/reviews/73') {
+      return Promise.resolve({ data: { data: review } });
+    }
+    if (path === '/reviews') {
+      return Promise.resolve({ data: { data: [review] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Open Review Management',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'View review REV073',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  expect(get).toHaveBeenCalledWith('/reviews/73');
+  expect(JSON.stringify(renderer.toJSON())).toContain('A good cup of coffee.');
+  await press(renderer, 'Close review details');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({
+      accessibilityLabel: 'Edit review REV073',
+    }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await ReactTestRenderer.act(() => {
+    renderer.root
+      .findByProps({ placeholder: "Write the customer's review..." })
+      .props.onChangeText('Updated review after another visit.');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Save review changes' })
+      .props.onPress();
+  });
+
+  expect(api.put).toHaveBeenCalledWith(
+    '/reviews/73',
+    expect.objectContaining({
+      review_id: 'REV073',
+      comment: 'Updated review after another visit.',
+      product_id: 21,
+    }),
+  );
+
+  let confirmDelete: AlertButton | undefined;
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
+    confirmDelete = buttons?.find(button => button.text === 'Delete');
+  });
+  await press(renderer, 'Delete review REV073');
+  await ReactTestRenderer.act(async () => {
+    await confirmDelete?.onPress?.();
+  });
+  expect(alert).toHaveBeenCalled();
+  expect(api.delete).toHaveBeenCalledWith('/reviews/73');
+  alert.mockRestore();
+});
+
 test('shows full-width sidebar navigation with icons and labels in the same row', async () => {
   const renderer = await renderDashboard();
 
@@ -551,3 +1136,161 @@ test('requests reports for a selected custom date range', async () => {
     }),
   );
 });
+
+test('shows employees returned in the backend employees response property', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/employees') {
+      return Promise.resolve({
+        data: {
+          success: true,
+          employees: [
+            {
+              employee_id: 12,
+              full_name: 'Jordan Lee',
+              employee_type: 'Server',
+              email: 'jordan@example.com',
+              status: 'Active',
+            },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  const output = JSON.stringify(renderer.toJSON());
+  expect(output).toContain('Jordan Lee');
+  expect(output).toContain('Server');
+}, 15000);
+
+test('creates an employee from the employee form', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation(() => Promise.resolve({ data: { employees: [] } }));
+  const post = api.post as jest.Mock;
+  const renderer = await renderDashboard();
+
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await press(renderer, 'Add new employee');
+  await ReactTestRenderer.act(() => {
+    renderer.root.findByProps({ accessibilityLabel: 'Full name' }).props.onChangeText('Taylor Morgan');
+    renderer.root.findByProps({ accessibilityLabel: 'Phone number' }).props.onChangeText('9876543210');
+    renderer.root.findByProps({ accessibilityLabel: 'Email' }).props.onChangeText('taylor@example.com');
+    renderer.root.findByProps({ accessibilityLabel: 'Street address' }).props.onChangeText('10 Main Street');
+    renderer.root.findByProps({ accessibilityLabel: 'Area / locality' }).props.onChangeText('Anna Nagar');
+    renderer.root.findByProps({ accessibilityLabel: 'City' }).props.onChangeText('Chennai');
+    renderer.root.findByProps({ accessibilityLabel: 'District' }).props.onChangeText('Chennai');
+    renderer.root.findByProps({ accessibilityLabel: 'State' }).props.onChangeText('Tamil Nadu');
+    renderer.root.findByProps({ accessibilityLabel: 'Pincode' }).props.onChangeText('600001');
+    renderer.root.findByProps({ accessibilityLabel: 'Basic salary' }).props.onChangeText('25000');
+    renderer.root.findByProps({ accessibilityLabel: 'Password' }).props.onChangeText('secure-pass');
+    renderer.root.findByProps({ accessibilityLabel: 'Confirm password' }).props.onChangeText('secure-pass');
+  });
+  await press(renderer, 'Cuisine type: South Indian');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Create employee' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(post).toHaveBeenCalledWith(
+    '/employees',
+    expect.anything(),
+    expect.objectContaining({
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  );
+}, 15000);
+
+test('loads employee details and submits edits to the employee endpoint', async () => {
+  const get = api.get as jest.Mock;
+  const employee = {
+    employee_id: 37,
+    full_name: 'Casey Rivers',
+    employee_type: 'Server',
+    email: 'casey@example.com',
+    phone_number: '9876543210',
+    status: 'Active',
+    address: '10 Main Street',
+    area_locality: 'Anna Nagar',
+    city: 'Chennai',
+    district: 'Chennai',
+    state: 'Tamil Nadu',
+    pincode: '600001',
+    basic_salary: 25000,
+  };
+  get.mockImplementation((path: string) => {
+    if (path === '/employees') {
+      return Promise.resolve({ data: { employees: [employee] } });
+    }
+    if (path === '/employees/37') {
+      return Promise.resolve({ data: { employee } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  const put = api.put as jest.Mock;
+  const renderer = await renderDashboard();
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await ReactTestRenderer.act(async () => {
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Edit employee Casey Rivers' })
+      .props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Full name' }).props.value,
+  ).toBe('Casey Rivers');
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Save employee changes' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+
+  expect(put).toHaveBeenCalledWith(
+    '/employees/37',
+    expect.anything(),
+    expect.objectContaining({
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  );
+}, 15000);
+
+test('shows and hides employee passwords independently', async () => {
+  const renderer = await renderDashboard();
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  });
+  await press(renderer, 'Add new employee');
+
+  const passwordField = renderer.root.findByProps({ accessibilityLabel: 'Password' });
+  const confirmPasswordField = renderer.root.findByProps({
+    accessibilityLabel: 'Confirm password',
+  });
+  expect(passwordField.props.secureTextEntry).toBe(true);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(true);
+
+  await press(renderer, 'Show password');
+  expect(passwordField.props.secureTextEntry).toBe(false);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(true);
+
+  await press(renderer, 'Show confirm password');
+  expect(passwordField.props.secureTextEntry).toBe(false);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(false);
+
+  await press(renderer, 'Hide password');
+  await press(renderer, 'Hide confirm password');
+  expect(passwordField.props.secureTextEntry).toBe(true);
+  expect(confirmPasswordField.props.secureTextEntry).toBe(true);
+}, 15000);
