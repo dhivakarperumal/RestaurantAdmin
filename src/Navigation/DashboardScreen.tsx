@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -76,6 +76,8 @@ type LocalRecord = {
   createdAt: string;
   status?: 'Pending' | 'Completed' | 'Cancelled';
 };
+
+type ReservationStatus = 'Pending' | 'Confirmed' | 'Declined' | 'Cancelled';
 
 type BillingLineItem = {
   id: string;
@@ -391,6 +393,11 @@ const moreFeatures: MoreFeature[] = [
     title: 'Categories',
     subtitle: 'Manage product categories',
     icon: AddCategoryIcon,
+  },
+  {
+    title: 'Reservations',
+    subtitle: 'Manage table bookings and guest requests',
+    icon: ReceiptIcon,
   },
   {
     title: 'Cuisines',
@@ -1496,6 +1503,9 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Reservations') {
+      return <ReservationScreen onBack={() => onSelectFeature(null)} />;
+    }
     if (selectedFeature === 'Customers') {
       return (
         <CustomersScreen
@@ -1936,6 +1946,7 @@ function HomePage({
   onSetCustomTo: (date: string) => void;
 }) {
   const summaryCardGap = 10;
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
   const filteredOrders = filterOrdersByPeriod(
     apiData.orders,
     dateFilter,
@@ -2125,49 +2136,93 @@ function HomePage({
     apiData.bills.length > 0 ||
     apiData.kitchenOrders.length > 0 ||
     records.length > 0;
+  const currentHour = new Date().getHours();
+  const greeting =
+    currentHour < 12
+      ? 'Good morning'
+      : currentHour < 17
+      ? 'Good afternoon'
+      : 'Good evening';
   return (
     <ScrollView contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6">
-      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
-        OVERVIEW
-      </Text>
-      <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
-        Good day, {userName}
-      </Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
-        Here’s your restaurant at a glance.
-      </Text>
+      <View className="flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5">
+        <View className="mr-3 h-10 w-1 rounded-full bg-[#116C0B]" />
+        <View className="flex-1">
+          <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
+            OVERVIEW
+          </Text>
+          <Text className="mt-0.5 text-xl font-bold text-[#012711]">
+            {greeting}, {userName}
+          </Text>
+          <Text className="mt-0.5 text-xs leading-[18px] text-[#6B7280]">
+            Here’s your restaurant at a glance.
+          </Text>
+        </View>
+      </View>
 
       <View className="mt-[18px] flex-row flex-wrap items-center justify-between gap-y-2.5">
         <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
           Store performance
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-row gap-1.5">
-            {dashboardPeriods.map(({ value: filter, label }) => (
-              <Pressable
-                accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: dateFilter === filter }}
-                key={filter}
-                onPress={() => onSetDateFilter(filter)}
-                className={`rounded-2xl border px-2.5 py-[7px] ${
-                  dateFilter === filter
-                    ? 'border-[#116C0B] bg-[#116C0B]'
-                    : 'border-[#E5E7EB] bg-white'
-                }`}
-              >
-                <Text
-                  className={`text-[11px] font-semibold ${
-                    dateFilter === filter ? 'text-white' : 'text-[#6B7280]'
+        <Pressable
+          accessibilityLabel={`Date range: ${dashboardPeriods.find(period => period.value === dateFilter)?.label || 'Select'}`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isDateFilterOpen }}
+          onPress={() => setIsDateFilterOpen(true)}
+          className="min-w-[142px] flex-row items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5"
+        >
+          <Text className="text-[12px] font-semibold text-[#012711]">
+            {dashboardPeriods.find(period => period.value === dateFilter)?.label || 'Select range'}
+          </Text>
+          <Text className="ml-3 text-xs text-[#6B7280]">⌄</Text>
+        </Pressable>
+      </View>
+      <Modal
+        visible={isDateFilterOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsDateFilterOpen(false)}
+      >
+        <Pressable
+          accessibilityLabel="Close date range options"
+          onPress={() => setIsDateFilterOpen(false)}
+          className="flex-1 justify-center bg-black/30 px-8"
+        >
+          <Pressable
+            onPress={event => event.stopPropagation()}
+            className="max-h-[75%] rounded-2xl border border-[#E5E7EB] bg-white p-2"
+          >
+            <Text className="px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B7280]">
+              Select date range
+            </Text>
+            <ScrollView>
+              {dashboardPeriods.map(({ value: filter, label }) => (
+                <Pressable
+                  accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: dateFilter === filter }}
+                  key={filter}
+                  onPress={() => {
+                    onSetDateFilter(filter);
+                    setIsDateFilterOpen(false);
+                  }}
+                  className={`rounded-xl px-3 py-3 ${
+                    dateFilter === filter ? 'bg-[#E8F5E9]' : 'bg-white'
                   }`}
                 >
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
+                  <Text
+                    className={`text-sm font-semibold ${
+                      dateFilter === filter ? 'text-[#116C0B]' : 'text-[#374151]'
+                    }`}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
       {dateFilter === 'custom' ? (
         <View className="mb-3.5 flex-row gap-2">
           <TextInput
