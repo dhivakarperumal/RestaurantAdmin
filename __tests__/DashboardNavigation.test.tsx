@@ -223,12 +223,18 @@ test('opens the Tables card from the More tab', async () => {
       },
     }),
   );
-  await press(renderer, 'More');
+  await press(renderer, 'Toggle sidebar');
+  const sidebarMore = renderer.root
+    .findAllByProps({ accessibilityLabel: 'More' })
+    .find(item => item.props.accessibilityRole === 'button');
+  expect(sidebarMore).toBeTruthy();
+  await ReactTestRenderer.act(() => sidebarMore!.props.onPress());
   await press(renderer, 'Open Tables');
 
   expect(
     renderer.root.findByProps({ accessibilityLabel: 'Search tables' }),
   ).toBeTruthy();
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('WORKSPACE');
   expect(
     renderer.root.findByProps({ accessibilityLabel: 'Add table' }),
   ).toBeTruthy();

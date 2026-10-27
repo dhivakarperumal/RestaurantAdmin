@@ -730,6 +730,15 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsNotificationsOpen(false);
   };
 
+  const navigateToMoreFeature = (feature: string | null) => {
+    setActiveTab('more');
+    setIsFoodDetailsOpen(false);
+    setSelectedAction(null);
+    setSelectedFeature(feature);
+    setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
+  };
+
   const handleFoodDetailsVisibilityChange = (isVisible: boolean) => {
     setIsFoodDetailsOpen(isVisible);
     if (isVisible) {
@@ -1035,7 +1044,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
                 createInvoiceFromBillingItems();
                 navigateToTab('billing');
               }}
-              onSelectFeature={setSelectedFeature}
+              onSelectFeature={navigateToMoreFeature}
               onUpdateOrderStatus={updateOrderStatus}
               onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
               onSetDateFilter={setDateFilter}
@@ -1091,7 +1100,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               createInvoiceFromBillingItems();
               navigateToTab('billing');
             }}
-            onSelectFeature={setSelectedFeature}
+            onSelectFeature={navigateToMoreFeature}
             onUpdateOrderStatus={updateOrderStatus}
             onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
             onSetDateFilter={setDateFilter}
