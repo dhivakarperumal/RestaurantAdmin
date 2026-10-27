@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -74,6 +74,8 @@ type LocalRecord = {
   createdAt: string;
   status?: 'Pending' | 'Completed' | 'Cancelled';
 };
+
+type ReservationStatus = 'Pending' | 'Confirmed' | 'Declined' | 'Cancelled';
 
 type BillingLineItem = {
   id: string;
@@ -384,6 +386,11 @@ const moreFeatures = [
     title: 'Categories',
     subtitle: 'Manage product categories',
     icon: AddCategoryIcon,
+  },
+  {
+    title: 'Reservations',
+    subtitle: 'Manage table bookings and guest requests',
+    icon: ReceiptIcon,
   },
   {
     title: 'Cuisines',
@@ -1512,6 +1519,9 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Reservations') {
+      return <ReservationScreen onBack={() => onSelectFeature(null)} />;
+    }
     if (selectedFeature === 'Cuisines') {
       return (
         <CuisineScreen
@@ -1711,8 +1721,6 @@ function MainContent({
   );
 }
 
-<<<<<<< Updated upstream
-=======
 type ReservationApiRecord = {
   reservation_id: string;
   user_id?: string;
@@ -1899,7 +1907,6 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
->>>>>>> Stashed changes
 function HomePage({
   apiData,
   report,
