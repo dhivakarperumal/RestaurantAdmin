@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { Text } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
 import api from '../api';
 import Categories from '../src/Screens/Categories';
 
@@ -14,10 +13,6 @@ jest.mock('../api', () => ({
     put: jest.fn(),
     delete: jest.fn(),
   },
-}));
-
-jest.mock('react-native-image-picker', () => ({
-  launchImageLibrary: jest.fn(),
 }));
 
 const mountedRenderers: ReactTestRenderer.ReactTestRenderer[] = [];
@@ -85,7 +80,9 @@ async function renderCategories() {
 
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
-    renderer = ReactTestRenderer.create(<Categories onBack={jest.fn()} />);
+    renderer = ReactTestRenderer.create(
+      <Categories onAddCategory={jest.fn()} onBack={jest.fn()} />,
+    );
     await Promise.resolve();
   });
   mountedRenderers.push(renderer!);
@@ -108,139 +105,29 @@ test('loads category cards and calculates product counts from ID then name', asy
   });
 });
 
-test('creates categories with generated IDs and reloads the list', async () => {
+test('opens the dedicated Add Category screen from the category list', async () => {
+  const onAddCategory = jest.fn();
   const get = api.get as jest.Mock;
-  const post = api.post as jest.Mock;
-  post.mockResolvedValue({ data: { success: true } });
-  get.mockImplementation((path: string) => {
-    if (path === '/categories/next-id') {
-      return Promise.resolve({ data: { success: true, data: 'CAT002' } });
-    }
-    if (path === '/categories') {
-      return Promise.resolve({
-        data: {
-          success: true,
-          data: [
-            {
-              category_id: 'CAT001',
-              category_name: 'Breakfast',
-              description: 'Updated description',
-              sub_categories: ['Idli', 'Dosa'],
-              category_image: '/uploads/categories/breakfast.webp',
-              status: 'Inactive',
-            },
-          ],
-        },
-      });
-    }
-    if (path === '/foods') {
-      return Promise.resolve({ data: { success: true, data: [] } });
-    }
-    return Promise.reject(new Error(`Unexpected GET ${path}`));
-  });
-
+  get.mockImplementation((path: string) =>
+    Promise.resolve({
+      data: { success: true, data: path === '/categories' ? [] : [] },
+    }),
+  );
   let renderer: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
-    renderer = ReactTestRenderer.create(<Categories onBack={jest.fn()} />);
+    renderer = ReactTestRenderer.create(
+      <Categories onAddCategory={onAddCategory} onBack={jest.fn()} />,
+    );
     await Promise.resolve();
   });
   mountedRenderers.push(renderer!);
   await flush();
-  await ReactTestRenderer.act(async () => {
+  await ReactTestRenderer.act(() => {
     renderer!.root
       .findByProps({ accessibilityLabel: 'Add category' })
       .props.onPress();
-    await Promise.resolve();
   });
-  await flush();
-  expect(
-    renderer!.root.findByProps({ accessibilityLabel: 'Category ID' }).props
-      .value,
-  ).toBe('CAT002');
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Category name' })
-      .props.onChangeText('Lunch');
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Category description' })
-      .props.onChangeText('Lunch menu');
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Subcategory name' })
-      .props.onChangeText('Rice');
-  });
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Add subcategory' })
-      .props.onPress();
-  });
-  await ReactTestRenderer.act(async () => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Save category' })
-      .props.onPress();
-    await Promise.resolve();
-  });
-
-  expect(post).toHaveBeenCalledWith('/categories', {
-    categoryId: 'CAT002',
-    categoryName: 'Lunch',
-    description: 'Lunch menu',
-    subcategories: ['Rice'],
-    image: '',
-    status: 'Active',
-  });
-  expect(get).toHaveBeenCalledWith('/categories', {
-    signal: expect.any(AbortSignal),
-  });
-});
-
-test('uploads category images to the existing upload endpoint', async () => {
-  const post = api.post as jest.Mock;
-  post.mockResolvedValue({
-    data: { success: true, url: '/uploads/categories/new-image.jpg' },
-  });
-  (launchImageLibrary as jest.Mock).mockResolvedValue({
-    assets: [
-      {
-        uri: 'file:///new-image.jpg',
-        fileName: 'new-image.jpg',
-        fileSize: 1024,
-        type: 'image/jpeg',
-      },
-    ],
-  });
-
-  let renderer: ReactTestRenderer.ReactTestRenderer;
-  await ReactTestRenderer.act(async () => {
-    renderer = ReactTestRenderer.create(<Categories onBack={jest.fn()} />);
-    await Promise.resolve();
-  });
-  mountedRenderers.push(renderer!);
-  await flush();
-  await ReactTestRenderer.act(async () => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Add category' })
-      .props.onPress();
-    await Promise.resolve();
-  });
-  await flush();
-  await ReactTestRenderer.act(async () => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Choose category image' })
-      .props.onPress();
-    await Promise.resolve();
-  });
-
-  expect(post).toHaveBeenCalledWith('/upload', expect.any(FormData), {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  expect(
-    renderer!.root.findByProps({
-      accessibilityLabel: 'Category category image',
-    }).props.source,
-  ).toEqual({
-    uri: 'https://restaurant.qtechx.com/uploads/categories/new-image.jpg',
-  });
+  expect(onAddCategory).toHaveBeenCalledTimes(1);
 });
 
 test('edits existing categories and reports protected category deletion', async () => {

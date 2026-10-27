@@ -43,8 +43,7 @@ type CategoryForm = {
 };
 
 type CategoriesProps = {
-  addRequestId?: number | null;
-  onAddRequestHandled?: (id: number) => void;
+  onAddCategory: () => void;
   onBack: () => void;
 };
 
@@ -166,18 +165,6 @@ function getCategoryCount(category: Category, foods: Food[]) {
   }, 0);
 }
 
-function getNextId(payload: unknown) {
-  const data = unwrapData(payload);
-  if (typeof data === 'string') {
-    return data.trim();
-  }
-  if (isRecord(data)) {
-    const id = data.category_id ?? data.categoryId ?? data.cate_id;
-    return typeof id === 'string' ? id.trim() : '';
-  }
-  return '';
-}
-
 function CategoryImage({ name, uri }: { name: string; uri?: string }) {
   const [failed, setFailed] = useState(false);
 
@@ -203,8 +190,7 @@ function CategoryImage({ name, uri }: { name: string; uri?: string }) {
 }
 
 function Categories({
-  addRequestId = null,
-  onAddRequestHandled,
+  onAddCategory,
   onBack,
 }: CategoriesProps) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -233,7 +219,6 @@ function Categories({
   const [deleteError, setDeleteError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const requestId = useRef(0);
-  const lastHandledAddRequest = useRef<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -351,38 +336,6 @@ function Categories({
     setSubcategoryInput('');
   };
 
-  const openAddForm = async () => {
-    const currentRequest = requestId.current + 1;
-    requestId.current = currentRequest;
-    setIsEditing(false);
-    setForm({ ...EMPTY_FORM });
-    setFormError('');
-    setSubcategoryInput('');
-    setIsFormOpen(true);
-    setIsFormLoading(true);
-
-    try {
-      const response = await api.get('/categories/next-id');
-      const categoryId = getNextId(response.data);
-      if (!categoryId) {
-        throw new Error('The server did not return a category ID.');
-      }
-      if (requestId.current === currentRequest) {
-        setForm(current => ({ ...current, categoryId }));
-      }
-    } catch (error) {
-      if (requestId.current === currentRequest) {
-        setFormError(
-          getErrorMessage(error, 'Unable to generate a category ID.'),
-        );
-      }
-    } finally {
-      if (requestId.current === currentRequest) {
-        setIsFormLoading(false);
-      }
-    }
-  };
-
   const openEditForm = async (category: Category) => {
     const categoryId = getCategoryId(category);
     const currentRequest = requestId.current + 1;
@@ -421,18 +374,6 @@ function Categories({
       }
     }
   };
-
-  useEffect(() => {
-    if (
-      addRequestId === null ||
-      lastHandledAddRequest.current === addRequestId
-    ) {
-      return;
-    }
-    lastHandledAddRequest.current = addRequestId;
-    void openAddForm();
-    onAddRequestHandled?.(addRequestId);
-  }, [addRequestId, onAddRequestHandled]);
 
   const addSubcategory = () => {
     const name = subcategoryInput.trim();
@@ -769,7 +710,7 @@ function Categories({
               <Pressable
                 accessibilityLabel="Add category"
                 accessibilityRole="button"
-                onPress={() => void openAddForm()}
+                onPress={onAddCategory}
                 className="rounded-xl bg-[#116C0B] px-4 py-3"
                 style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
               >

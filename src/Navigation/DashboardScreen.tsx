@@ -5,6 +5,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -14,7 +15,14 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import colors from '../theme/colors';
 import {
   BellIcon,
@@ -37,6 +45,7 @@ import AddCategoryIcon from './AddCategoryIcon';
 import Bills, { type BillFood } from '../Tabs/Bills';
 import Items from '../Tabs/Items';
 import CategoriesScreen from '../Screens/Categories';
+import AddCategoriesScreen from '../Screens/AddCategories';
 import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
@@ -49,7 +58,7 @@ type DashboardScreenProps = {
 };
 
 type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' |  'employees' |'more';
-type ItemsAddRequest = { id: number; action: 'product' | 'category' };
+type ItemsAddRequest = { id: number; action: 'product' };
 type QuickActionId =
   | 'invoice'
   | 'order'
@@ -473,9 +482,6 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [activeTab, setActiveTab] = useState<AppTab>('home');
   const [itemsAddRequest, setItemsAddRequest] =
     useState<ItemsAddRequest | null>(null);
-  const [categoriesAddRequestId, setCategoriesAddRequestId] = useState<
-    number | null
-  >(null);
   const nextItemsAddRequestId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -710,32 +716,26 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsNotificationsOpen(false);
   };
 
-  const openItemsAddForm = (action: ItemsAddRequest['action']) => {
-    if (action === 'category') {
-      nextItemsAddRequestId.current += 1;
-      setCategoriesAddRequestId(nextItemsAddRequestId.current);
-      setActiveTab('more');
-      setIsFoodDetailsOpen(false);
-      setSelectedAction(null);
-      setSelectedFeature('Categories');
-      setIsSidebarOpen(false);
-      setIsNotificationsOpen(false);
-      return;
-    }
+  const openItemsAddForm = () => {
     nextItemsAddRequestId.current += 1;
     setItemsAddRequest({
       id: nextItemsAddRequestId.current,
-      action,
+      action: 'product',
     });
     navigateToTab('items');
   };
 
-  const handleItemsAddRequestHandled = (id: number) => {
-    setItemsAddRequest(current => (current?.id === id ? null : current));
+  const openAddCategoryPage = () => {
+    setActiveTab('more');
+    setIsFoodDetailsOpen(false);
+    setSelectedAction(null);
+    setSelectedFeature('AddCategory');
+    setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
   };
 
-  const handleCategoriesAddRequestHandled = (id: number) => {
-    setCategoriesAddRequestId(current => (current === id ? null : current));
+  const handleItemsAddRequestHandled = (id: number) => {
+    setItemsAddRequest(current => (current?.id === id ? null : current));
   };
 
   const handleSaveAction = (name: string, amount?: number) => {
@@ -921,8 +921,6 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               userName={userName}
               itemsAddRequest={itemsAddRequest}
               onItemsAddRequestHandled={handleItemsAddRequestHandled}
-              categoriesAddRequestId={categoriesAddRequestId}
-              onCategoriesAddRequestHandled={handleCategoriesAddRequestHandled}
               onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
@@ -976,8 +974,6 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             userName={userName}
             itemsAddRequest={itemsAddRequest}
             onItemsAddRequestHandled={handleItemsAddRequestHandled}
-            categoriesAddRequestId={categoriesAddRequestId}
-            onCategoriesAddRequestHandled={handleCategoriesAddRequestHandled}
             onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
@@ -1002,8 +998,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       {!isWide && activeTab === 'items' && !isFoodDetailsOpen ? (
         <FloatingActionMenu
-          onAddProduct={() => openItemsAddForm('product')}
-          onAddCategory={() => openItemsAddForm('category')}
+          onAddProduct={openItemsAddForm}
+          onAddCategory={openAddCategoryPage}
           onAddCustomers={() => navigateToAction('customer')}
         />
       ) : null}
@@ -1345,8 +1341,6 @@ function MainContent({
   userName,
   itemsAddRequest,
   onItemsAddRequestHandled,
-  categoriesAddRequestId,
-  onCategoriesAddRequestHandled,
   onFoodDetailsVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
@@ -1382,8 +1376,6 @@ function MainContent({
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
   onItemsAddRequestHandled: (id: number) => void;
-  categoriesAddRequestId: number | null;
-  onCategoriesAddRequestHandled: (id: number) => void;
   onFoodDetailsVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
@@ -1419,10 +1411,14 @@ function MainContent({
     if (selectedFeature === 'Categories') {
       return (
         <CategoriesScreen
-          addRequestId={categoriesAddRequestId}
-          onAddRequestHandled={onCategoriesAddRequestHandled}
+          onAddCategory={() => onSelectFeature('AddCategory')}
           onBack={() => onSelectFeature(null)}
         />
+      );
+    }
+    if (selectedFeature === 'AddCategory') {
+      return (
+        <AddCategoriesScreen onBack={() => onSelectFeature('Categories')} />
       );
     }
     if (selectedFeature === 'Printer Setup') {
@@ -4050,56 +4046,73 @@ function PageShell({
   );
 }
 
-const statCardPalettes = {
+type StatTone =
+  | 'green'
+  | 'blue'
+  | 'orange'
+  | 'purple'
+  | 'cyan'
+  | 'pink'
+  | 'teal'
+  | 'red';
+
+type StatPalette = {
+  gradient: [string, string, string];
+  glow: string;
+  shadow: string;
+  sparkline: string;
+};
+
+const statCardPalettes: Record<StatTone, StatPalette> = {
   green: {
-    accent: '#116C0B',
-    lightBg: '#F0F7EE',
-    lightBorder: '#DCE8D8',
-    sparkline: 'M2 18 C 12 18, 18 6, 28 10 C 38 14, 44 4, 58 2',
+    gradient: ['#052E10', '#0B4D1A', '#137A29'],
+    glow: '#81C238',
+    shadow: '#052E10',
+    sparkline: 'M2 20 C 14 20, 20 8, 32 12 C 44 16, 52 4, 68 2',
   },
   blue: {
-    accent: '#2563EB',
-    lightBg: '#EFF6FF',
-    lightBorder: '#BFDBFE',
-    sparkline: 'M2 16 C 14 16, 20 8, 30 11 C 38 13, 46 5, 58 3',
+    gradient: ['#0B2545', '#134074', '#1D63B8'],
+    glow: '#60A5FA',
+    shadow: '#0B2545',
+    sparkline: 'M2 18 C 16 18, 24 10, 36 13 C 46 15, 54 6, 68 3',
   },
   orange: {
-    accent: '#D97706',
-    lightBg: '#FFFBEB',
-    lightBorder: '#FDE68A',
-    sparkline: 'M2 17 C 12 14, 22 19, 32 10 C 40 14, 48 6, 58 4',
+    gradient: ['#431407', '#9A3412', '#EA580C'],
+    glow: '#FDBA74',
+    shadow: '#431407',
+    sparkline: 'M2 19 C 14 16, 26 21, 38 12 C 48 16, 56 7, 68 4',
   },
   purple: {
-    accent: '#7C3AED',
-    lightBg: '#F5F3FF',
-    lightBorder: '#DDD6FE',
-    sparkline: 'M2 18 C 14 17, 22 9, 30 12 C 40 8, 48 4, 58 2',
+    gradient: ['#2E1065', '#581C87', '#7C3AED'],
+    glow: '#C4B5FD',
+    shadow: '#2E1065',
+    sparkline: 'M2 20 C 16 19, 26 10, 36 14 C 48 9, 56 5, 68 2',
   },
   cyan: {
-    accent: '#0891B2',
-    lightBg: '#ECFEFF',
-    lightBorder: '#A5F3FC',
-    sparkline: 'M2 16 C 12 16, 20 7, 30 10 C 40 13, 46 5, 58 3',
+    gradient: ['#042F2E', '#0E7490', '#0891B2'],
+    glow: '#67E8F9',
+    shadow: '#042F2E',
+    sparkline: 'M2 18 C 14 18, 24 9, 36 12 C 48 15, 54 6, 68 3',
   },
   pink: {
-    accent: '#DB2777',
-    lightBg: '#FDF2F8',
-    lightBorder: '#FBCFE8',
-    sparkline: 'M2 17 C 12 15, 22 8, 32 12 C 42 7, 48 4, 58 2',
+    gradient: ['#4C0519', '#9F1239', '#E11D48'],
+    glow: '#FDA4AF',
+    shadow: '#4C0519',
+    sparkline: 'M2 19 C 14 17, 26 9, 38 14 C 50 8, 56 5, 68 2',
   },
   teal: {
-    accent: '#0D9488',
-    lightBg: '#F0FDFA',
-    lightBorder: '#99F6E4',
-    sparkline: 'M2 16 C 14 18, 22 7, 32 11 C 40 7, 48 5, 58 3',
+    gradient: ['#062D24', '#0D5C4B', '#0D9488'],
+    glow: '#5EEAD4',
+    shadow: '#062D24',
+    sparkline: 'M2 18 C 16 20, 26 8, 38 13 C 48 8, 56 6, 68 3',
   },
   red: {
-    accent: '#DC2626',
-    lightBg: '#FEF2F2',
-    lightBorder: '#FECACA',
-    sparkline: 'M2 14 C 12 16, 22 18, 32 12 C 42 16, 48 9, 58 5',
+    gradient: ['#450A0A', '#991B1B', '#DC2626'],
+    glow: '#FCA5A5',
+    shadow: '#450A0A',
+    sparkline: 'M2 16 C 14 18, 26 20, 38 13 C 50 17, 56 10, 68 5',
   },
-} as const;
+};
 
 function StatCard({
   label,
@@ -4114,126 +4127,121 @@ function StatCard({
   value: string;
   detail: string;
   badge: string;
-  tone:
-    | 'green'
-    | 'blue'
-    | 'orange'
-    | 'purple'
-    | 'cyan'
-    | 'pink'
-    | 'teal'
-    | 'red';
+  tone: StatTone;
   width: number;
   icon: typeof ChartIcon;
 }) {
   const palette = statCardPalettes[tone];
   const isLive = tone === 'orange' || badge === 'LIVE';
+  const gradId = `statGrad_${tone}`;
+  const glowId = `statGlow_${tone}`;
 
   return (
     <View
-      className="relative justify-between overflow-hidden rounded-2xl bg-white p-4 shadow-sm"
+      className="relative justify-between overflow-hidden rounded-3xl p-4 shadow-lg"
       style={{
-        borderColor: '#E5E7EB',
-        borderWidth: 1,
-        minHeight: 162,
+        height: 168,
         width,
-        shadowColor: '#111827',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowColor: palette.shadow,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.32,
+        shadowRadius: 10,
+        elevation: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
       }}
     >
-      {/* Top 3px Colored Accent Line */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          backgroundColor: palette.accent,
-        }}
-      />
-
-      {/* Decorative subtle ambient corner glow */}
-      <View
+      {/* SVG Multi-Stop Gradient Background */}
+      <Svg
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: -12,
-          right: -12,
-          width: 72,
-          height: 72,
-          borderRadius: 36,
-          backgroundColor: palette.lightBg,
-          opacity: 0.8,
-        }}
-      />
+        style={StyleSheet.absoluteFill}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+      >
+        <Defs>
+          <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={palette.gradient[0]} stopOpacity="1" />
+            <Stop offset="50%" stopColor={palette.gradient[1]} stopOpacity="1" />
+            <Stop offset="100%" stopColor={palette.gradient[2]} stopOpacity="1" />
+          </LinearGradient>
+          <LinearGradient id={glowId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={palette.glow} stopOpacity="0.35" />
+            <Stop offset="100%" stopColor={palette.glow} stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradId})`} />
+        {/* Ambient Corner Light Glow */}
+        <Circle cx="88%" cy="18%" r="70" fill={`url(#${glowId})`} />
+        {/* Subtle decorative background wave */}
+        <Path
+          d="M-20 40 Q 40 10, 100 35 T 220 25"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.1)"
+          strokeWidth="1.2"
+        />
+      </Svg>
 
-      {/* Top Row: Icon squircle + Badge */}
+      {/* Top Row: Frosted Glass Icon Squircle + Status Badge */}
       <View className="z-[1] flex-row items-center justify-between">
         <View
-          className="h-10 w-10 items-center justify-center rounded-xl border"
-          style={{
-            backgroundColor: palette.lightBg,
-            borderColor: palette.lightBorder,
-          }}
+          className="h-10 w-10 items-center justify-center rounded-2xl border border-white/30"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
         >
-          <Icon color={palette.accent} size={20} />
+          <Icon color="#FFFFFF" size={20} />
         </View>
 
         <View
-          className="flex-row items-center gap-1.5 rounded-full border px-2.5 py-0.5"
-          style={{
-            backgroundColor: palette.lightBg,
-            borderColor: palette.lightBorder,
-          }}
+          className="flex-row items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-0.5"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.25)' }}
         >
           {isLive ? (
-            <View className="h-1.5 w-1.5 rounded-full bg-[#D97706]" />
+            <View className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" />
           ) : null}
-          <Text
-            className="text-[10px] font-extrabold tracking-wider"
-            style={{ color: palette.accent }}
-          >
+          <Text className="text-[10px] font-black uppercase tracking-wider text-white">
             {badge}
           </Text>
         </View>
       </View>
 
-      {/* Middle Row: Value + Label */}
-      <View className="z-[1] my-2">
+      {/* Middle Row: Big Bold Metric Value + Label */}
+      <View className="z-[1] my-1">
         <Text
           adjustsFontSizeToFit
           numberOfLines={1}
-          className="text-2xl font-black tracking-tight text-[#012711]"
+          className="text-[25px] font-black tracking-tight text-white"
+          style={{
+            textShadowColor: 'rgba(0, 0, 0, 0.25)',
+            textShadowOffset: { width: 0, height: 1 },
+            textShadowRadius: 3,
+          }}
         >
           {value}
         </Text>
         <Text
           numberOfLines={1}
-          className="mt-0.5 text-xs font-semibold text-[#6B7280]"
+          className="mt-0.5 text-xs font-bold uppercase tracking-wider text-white/85"
         >
           {label}
         </Text>
       </View>
 
-      {/* Bottom Row: Detail text + Micro SVG Sparkline */}
-      <View className="z-[1] flex-row items-center justify-between border-t border-[#F3F4F6] pt-2">
+      {/* Bottom Row: Detail Caption + Frosted SVG Sparkline */}
+      <View className="z-[1] flex-row items-center justify-between border-t border-white/10 pt-2">
         <Text
           numberOfLines={1}
-          className="min-w-0 flex-1 text-[11px] font-medium text-[#9CA3AF]"
+          className="min-w-0 flex-1 text-[11px] font-medium text-white/75"
         >
           {detail}
         </Text>
-        <Svg width={48} height={16} viewBox="0 0 60 20" fill="none">
+        <Svg width={54} height={18} viewBox="0 0 70 22" fill="none">
           <Path
             d={palette.sparkline}
-            stroke={palette.accent}
+            stroke="#FFFFFF"
             strokeWidth={2.2}
             strokeLinecap="round"
             strokeLinejoin="round"
+            opacity={0.55}
           />
         </Svg>
       </View>

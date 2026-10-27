@@ -1,5 +1,11 @@
 import React from 'react';
-import { Image, Text, TextInput, View , Alert,  type AlertButton} from 'react-native';
+import {
+  Alert,
+  Image,
+  TextInput,
+  View,
+  type AlertButton,
+} from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -127,6 +133,21 @@ test('opens category management from the More tab', async () => {
   );
   expect(
     renderer.root.findByProps({ accessibilityLabel: 'Search categories' }),
+  ).toBeTruthy();
+});
+
+test('opens the dedicated Add Category page from the Items FAB', async () => {
+  const renderer = await renderDashboard();
+  await press(renderer, 'Items');
+  await press(renderer, 'Open quick actions');
+  await press(renderer, 'Add Category');
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Add Category');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Category name' }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Back to categories' }),
   ).toBeTruthy();
 });
 
