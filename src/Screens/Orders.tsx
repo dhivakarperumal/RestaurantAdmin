@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { getApiErrorMessage } from '../../api';
-import { OrdersIcon, PlusIcon } from '../Navigation/NavigationIcons';
+import { OrdersIcon } from '../Navigation/NavigationIcons';
 import colors from '../theme/colors';
 
 export type ApiOrderItem = {
@@ -896,16 +896,6 @@ export function OrdersScreen({ onBack, onAddOrder }: OrdersScreenProps) {
             >
               <Text className="text-base">🔄</Text>
             </Pressable>
-            {onAddOrder ? (
-              <Pressable
-                onPress={onAddOrder}
-                className="flex-row items-center gap-1.5 rounded-xl bg-[#116C0B] px-3.5 py-2.5 shadow-sm"
-                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-              >
-                <PlusIcon color="#FFFFFF" size={16} />
-                <Text className="text-xs font-black text-white">New Order</Text>
-              </Pressable>
-            ) : null}
           </View>
         </View>
       </View>
