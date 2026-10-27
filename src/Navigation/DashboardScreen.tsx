@@ -4710,7 +4710,7 @@ function StatCard({
     <View
       className="relative justify-between overflow-hidden rounded-3xl p-4 shadow-lg"
       style={{
-        height: 168,
+        minHeight: 188,
         width,
         shadowColor: palette.shadow,
         shadowOffset: { width: 0, height: 6 },
@@ -4801,6 +4801,7 @@ function StatCard({
         <Text
           numberOfLines={1}
           className="min-w-0 flex-1 text-[11px] font-medium text-white/75"
+          style={{ flexShrink: 1 }}
         >
           {detail}
         </Text>

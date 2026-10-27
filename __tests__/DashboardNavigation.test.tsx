@@ -1144,7 +1144,7 @@ test('loads the restaurant POS dashboard snapshot and revenue reports', async ()
   const output = JSON.stringify(renderer!.toJSON());
   const summaryCards = renderer!.root
     .findAllByType(View)
-    .filter(node => node.props.style?.height === 168);
+    .filter(node => node.props.style?.minHeight === 188);
   expect(summaryCards).toHaveLength(8);
   expect(get).toHaveBeenCalledWith(
     '/orders/management',
