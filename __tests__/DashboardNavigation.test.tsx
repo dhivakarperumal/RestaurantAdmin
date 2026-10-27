@@ -18,6 +18,8 @@ jest.mock('../api', () => ({
   API_BASE_URL: 'https://restaurant.qtechx.com/api',
   default: {
     get: jest.fn(() => Promise.resolve({ data: { data: [] } })),
+    post: jest.fn(),
+    put: jest.fn(),
   },
 }));
 
@@ -70,6 +72,13 @@ async function press(
   await ReactTestRenderer.act(() => {
     renderer.root.findByProps({ accessibilityLabel }).props.onPress();
   });
+}
+
+async function openEmployeeManagement(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+) {
+  await press(renderer, 'More');
+  await press(renderer, 'Open Staff & Employees');
 }
 
 test('navigates tabs and creates a session invoice from billing', async () => {
@@ -1249,10 +1258,10 @@ test('shows employees returned in the backend employees response property', asyn
   });
 
   const renderer = await renderDashboard();
-  await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-  });
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'Employees' }),
+  ).toHaveLength(0);
+  await openEmployeeManagement(renderer);
 
   const output = JSON.stringify(renderer.toJSON());
   expect(output).toContain('Jordan Lee');
@@ -1265,10 +1274,7 @@ test('creates an employee from the employee form', async () => {
   const post = api.post as jest.Mock;
   const renderer = await renderDashboard();
 
-  await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-  });
+  await openEmployeeManagement(renderer);
   await press(renderer, 'Add new employee');
   await ReactTestRenderer.act(() => {
     renderer.root.findByProps({ accessibilityLabel: 'Full name' }).props.onChangeText('Taylor Morgan');
@@ -1327,10 +1333,7 @@ test('loads employee details and submits edits to the employee endpoint', async 
   });
   const put = api.put as jest.Mock;
   const renderer = await renderDashboard();
-  await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-  });
+  await openEmployeeManagement(renderer);
   await ReactTestRenderer.act(async () => {
     renderer.root
       .findByProps({ accessibilityLabel: 'Edit employee Casey Rivers' })
@@ -1357,10 +1360,7 @@ test('loads employee details and submits edits to the employee endpoint', async 
 
 test('shows and hides employee passwords independently', async () => {
   const renderer = await renderDashboard();
-  await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Employees' }).props.onPress();
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-  });
+  await openEmployeeManagement(renderer);
   await press(renderer, 'Add new employee');
 
   const passwordField = renderer.root.findByProps({ accessibilityLabel: 'Password' });

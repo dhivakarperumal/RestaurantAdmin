@@ -60,7 +60,7 @@ type DashboardScreenProps = {
   onLogout: () => void;
 };
 
-type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' |  'employees' |'more';
+type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' | 'more';
 type ItemsAddRequest = { id: number; action: 'product' };
 type QuickActionId =
   | 'invoice'
@@ -1509,7 +1509,10 @@ function MainContent({
         />
       );
     }
-    if (selectedFeature === 'Employee Management') {
+    if (
+      selectedFeature === 'Employee Management' ||
+      selectedFeature === 'Staff & Employees'
+    ) {
       return <EmployeesPage onBack={() => onSelectFeature(null)} />;
     }
     if (selectedFeature === 'Profile') {
@@ -1597,9 +1600,6 @@ function MainContent({
         showAddButton={false}
       />
     );
-  }
-  if (activeTab === 'employees') {
-    return <EmployeesPage />;
   }
   if (activeTab === 'add') {
     return (
@@ -4296,7 +4296,6 @@ function BottomNavigation({
       label: 'Orders',
       icon: color => <OrdersIcon color={color} size={21} />,
     },
-    { key: 'employees', label: 'Employees', icon: color => <CustomersIcon color={color} size={21} /> },
     {
       key: 'more',
       label: 'More',
@@ -4471,7 +4470,6 @@ function Sidebar({
         label="Orders"
         onPress={() => onNavigate('orders')}
       />
-      <TabButtonLarge icon={CustomersIcon} label="Employees" onPress={() => onNavigate('employees')} />
       <TabButtonLarge
         icon={MoreIcon}
         label="More"
