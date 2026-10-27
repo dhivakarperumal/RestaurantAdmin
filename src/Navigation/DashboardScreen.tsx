@@ -1753,8 +1753,7 @@ function HomePage({
   const { width: screenWidth } = useWindowDimensions();
   const [summaryGridWidth, setSummaryGridWidth] = useState(0);
   const measuredGridWidth = summaryGridWidth || Math.max(0, screenWidth - 40);
-  const summaryCardColumns =
-    measuredGridWidth >= 1060 ? 4 : measuredGridWidth < 320 ? 1 : 2;
+  const summaryCardColumns = measuredGridWidth >= 1060 ? 4 : 2;
   const summaryCardGap = measuredGridWidth >= 1060 ? 16 : 12;
   const summaryCardWidth =
     (measuredGridWidth - summaryCardGap * (summaryCardColumns - 1)) /
@@ -4760,7 +4759,7 @@ function StatCard({
       </Svg>
 
       {/* Top Row: Frosted Glass Icon Squircle + Status Badge */}
-      <View className="z-[1] flex-row items-center justify-between">
+      <View className="z-[1] flex-row items-center justify-between gap-1">
         <View
           className="h-10 w-10 items-center justify-center rounded-2xl border border-white/30"
           style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
@@ -4769,13 +4768,19 @@ function StatCard({
         </View>
 
         <View
-          className="flex-row items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-0.5"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.25)' }}
+          className="min-w-0 flex-row items-center gap-1 rounded-full border border-white/20 px-1.5 py-0.5"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.25)',
+            flexShrink: 1,
+          }}
         >
           {isLive ? (
             <View className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" />
           ) : null}
-          <Text className="text-[10px] font-black uppercase tracking-wider text-white">
+          <Text
+            numberOfLines={1}
+            className="text-[9px] font-black uppercase tracking-wide text-white"
+          >
             {badge}
           </Text>
         </View>
