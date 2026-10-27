@@ -1718,8 +1718,6 @@ function MainContent({
   );
 }
 
-<<<<<<< Updated upstream
-=======
 type ReservationApiRecord = {
   reservation_id: string;
   user_id?: string;
@@ -1906,7 +1904,6 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
->>>>>>> Stashed changes
 function HomePage({
   apiData,
   report,
