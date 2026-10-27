@@ -47,6 +47,7 @@ import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
 import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen';
+import TablesScreen from '../Screens/Tables';
 import api from '../../api';
 
 type DashboardScreenProps = {
@@ -388,6 +389,11 @@ const moreFeatures = [
   {
     title: 'Cuisines',
     subtitle: 'View restaurant cuisines',
+    icon: MenuIcon,
+  },
+  {
+    title: 'Tables',
+    subtitle: 'Manage restaurant tables and seating',
     icon: MenuIcon,
   },
   {
@@ -1011,6 +1017,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               selectedAction={selectedActionDetails}
               selectedFeature={selectedFeature}
               userEmail={userEmail}
+              userId={String(user?.user_id ?? user?.id ?? '')}
               userInitial={userInitial}
               userName={userName}
               itemsAddRequest={itemsAddRequest}
@@ -1066,6 +1073,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             selectedAction={selectedActionDetails}
             selectedFeature={selectedFeature}
             userEmail={userEmail}
+            userId={String(user?.user_id ?? user?.id ?? '')}
             userInitial={userInitial}
             userName={userName}
             itemsAddRequest={itemsAddRequest}
@@ -1437,6 +1445,7 @@ function MainContent({
   selectedAction,
   selectedFeature,
   userEmail,
+  userId,
   userInitial,
   userName,
   itemsAddRequest,
@@ -1474,6 +1483,7 @@ function MainContent({
   selectedAction?: QuickAction;
   selectedFeature: string | null;
   userEmail: string;
+  userId: string;
   userInitial: string;
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
@@ -1512,6 +1522,15 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Tables') {
+      return (
+        <TablesScreen
+          onBack={() => onSelectFeature(null)}
+          showBackButton={false}
+          userId={userId}
+        />
+      );
+    }
     if (selectedFeature === 'Cuisines') {
       return (
         <CuisineScreen

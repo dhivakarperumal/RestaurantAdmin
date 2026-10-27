@@ -3,16 +3,18 @@ import {
   Alert,
   Dimensions,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
   TextInput,
   View,
   type AlertButton,
 } from 'react-native';
 import { Path } from 'react-native-svg';
 import ReactTestRenderer from 'react-test-renderer';
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from 'react-native-safe-area-context';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import DashboardScreen from '../src/Navigation/DashboardScreen';
 import { PlusIcon } from '../src/Navigation/NavigationIcons';
 import api from '../api';
@@ -59,7 +61,11 @@ async function renderDashboard() {
         }}
       >
         <DashboardScreen
-          user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
+          user={{
+            name: 'Maya Rivera',
+            email: 'maya@example.com',
+            user_id: 'user-123',
+          }}
           onLogout={jest.fn()}
         />
       </SafeAreaProvider>,
@@ -75,6 +81,18 @@ async function press(
 ) {
   await ReactTestRenderer.act(() => {
     renderer.root.findByProps({ accessibilityLabel }).props.onPress();
+  });
+}
+
+function hasText(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  expectedText: string,
+) {
+  return renderer.root.findAllByType(Text).some(node => {
+    const children = Array.isArray(node.props.children)
+      ? node.props.children.join('')
+      : node.props.children;
+    return children === expectedText;
   });
 }
 
@@ -138,9 +156,11 @@ test('opens category management from the More tab', async () => {
 
   await press(renderer, 'More');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Categories',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Categories',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await ReactTestRenderer.act(
@@ -185,6 +205,171 @@ test('opens the cuisines list from the More tab', async () => {
     renderer.root.findByProps({ accessibilityLabel: 'Cuisine ID' }),
   ).toBeTruthy();
 }, 15000);
+
+test('opens the Tables card from the More tab', async () => {
+  const renderer = await renderDashboard();
+
+  (api.get as jest.Mock).mockImplementationOnce(() =>
+    Promise.resolve({
+      data: {
+        data: [
+          {
+            table_id: 'table-7',
+            table_number: 't7',
+            no_of_seats: 6,
+            status: 'Available',
+          },
+        ],
+      },
+    }),
+  );
+  await press(renderer, 'More');
+  await press(renderer, 'Open Tables');
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Search tables' }),
+  ).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Add table' }),
+  ).toBeTruthy();
+  expect(api.get).toHaveBeenCalledWith(
+    '/server-tables',
+    expect.objectContaining({ headers: expect.any(Object) }),
+  );
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+  expect(hasText(renderer, 'Table t7')).toBe(true);
+});
+
+test('adds a table from the Tables screen', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'More');
+  await press(renderer, 'Open Tables');
+  await press(renderer, 'Add table');
+
+  expect(hasText(renderer, 'Add new table')).toBe(true);
+  expect(renderer.root.findByType(KeyboardAvoidingView).props.behavior).toBe(
+    Platform.OS === 'ios' ? 'padding' : 'height',
+  );
+  expect(
+    renderer.root
+      .findAllByType(ScrollView)
+      .some(scrollView => scrollView.props.keyboardDismissMode === 'on-drag'),
+  ).toBe(true);
+  await ReactTestRenderer.act(() => {
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Table number' })
+      .props.onChangeText('t7');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Number of seats' })
+      .props.onChangeText('6');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Save table' })
+      .props.onPress();
+  });
+
+  expect(api.post).toHaveBeenCalledWith('/server-tables', {
+    table_number: 't7',
+    no_of_seats: 6,
+    image_url: null,
+    status: 'Available',
+    user_id: 'user-123',
+  });
+});
+
+test('uploads an image and saves its URL with a new table', async () => {
+  const renderer = await renderDashboard();
+  const post = api.post as jest.Mock;
+  post.mockReset();
+  (launchImageLibrary as jest.Mock).mockResolvedValueOnce({
+    assets: [
+      {
+        uri: 'file:///table.jpg',
+        fileName: 'table.jpg',
+        type: 'image/jpeg',
+      },
+    ],
+  });
+  post.mockResolvedValueOnce({
+    data: { url: '/uploads/table.jpg' },
+  });
+
+  await press(renderer, 'More');
+  await press(renderer, 'Open Tables');
+  await press(renderer, 'Add table');
+  await ReactTestRenderer.act(() => {
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Table number' })
+      .props.onChangeText('t8');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Number of seats' })
+      .props.onChangeText('4');
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({
+        accessibilityLabel: 'Upload table image',
+      })
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Save table' })
+      .props.onPress();
+  });
+
+  expect(launchImageLibrary).toHaveBeenCalledWith({
+    mediaType: 'photo',
+    selectionLimit: 1,
+  });
+  expect(api.post).toHaveBeenNthCalledWith(
+    1,
+    '/upload',
+    expect.any(FormData),
+    expect.objectContaining({
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  );
+  expect(api.post).toHaveBeenNthCalledWith(2, '/server-tables', {
+    table_number: 't8',
+    no_of_seats: 4,
+    image_url: '/uploads/table.jpg',
+    status: 'Available',
+    user_id: 'user-123',
+  });
+}, 15000);
+
+test('retries table loading when the API responds 304', async () => {
+  const renderer = await renderDashboard();
+  const get = api.get as jest.Mock;
+  get
+    .mockImplementationOnce(() =>
+      Promise.reject({ status: 304, message: 'Not Modified' }),
+    )
+    .mockImplementationOnce(() =>
+      Promise.resolve({
+        data: { data: [{ table_number: 'T-2', no_of_seats: 4 }] },
+      }),
+    );
+
+  await press(renderer, 'More');
+  await press(renderer, 'Open Tables');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(get).toHaveBeenCalledWith(
+    '/server-tables',
+    expect.objectContaining({
+      params: expect.objectContaining({ _refresh: expect.any(Number) }),
+    }),
+  );
+  expect(hasText(renderer, 'Table T-2')).toBe(true);
+});
 
 test('opens the dedicated Add Category page from the Items FAB', async () => {
   const renderer = await renderDashboard();
@@ -431,27 +616,39 @@ test('opens banner management from the More tab', async () => {
   await press(renderer, 'More');
 
   expect(JSON.stringify(renderer.toJSON())).toContain('Banner Management');
-  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Customers' })).toHaveLength(0);
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'Customers' }),
+  ).toHaveLength(0);
 
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Banner Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Banner Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   expect(JSON.stringify(renderer.toJSON())).toContain('WEBSITE CONTENT');
-  expect(JSON.stringify(renderer.toJSON())).toContain('Create, edit, and publish your website banners.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Create, edit, and publish your website banners.',
+  );
   expect(api.get).toHaveBeenCalledWith('/banners');
 
   await press(renderer, 'Add banner');
   await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ placeholder: 'Banner title' }).props.onChangeText('Weekend offer');
-    renderer.root.findByProps({
-      placeholder: 'https://example.com/banner.jpg',
-    }).props.onChangeText('https://example.com/weekend.jpg');
+    renderer.root
+      .findByProps({ placeholder: 'Banner title' })
+      .props.onChangeText('Weekend offer');
+    renderer.root
+      .findByProps({
+        placeholder: 'https://example.com/banner.jpg',
+      })
+      .props.onChangeText('https://example.com/weekend.jpg');
   });
   await ReactTestRenderer.act(async () => {
-    await renderer.root.findByProps({ accessibilityLabel: 'Create banner' }).props.onPress();
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Create banner' })
+      .props.onPress();
   });
 
   expect(api.post).toHaveBeenCalledWith(
@@ -463,10 +660,14 @@ test('opens banner management from the More tab', async () => {
       active: true,
     }),
   );
-  expect(JSON.stringify(renderer.toJSON())).toContain('Banner added successfully.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Banner added successfully.',
+  );
 
   await press(renderer, 'Back to More');
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' })).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' }),
+  ).toBeTruthy();
 });
 
 test('shows printer, banner, gallery, and review tools in More and opens printer setup', async () => {
@@ -486,9 +687,11 @@ test('shows printer, banner, gallery, and review tools in More and opens printer
   }
 
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Printer Setup',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Printer Setup',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
@@ -542,9 +745,11 @@ test('opens Gallery Management below Banner Management and creates an album', as
     moreScreen.indexOf('Gallery Management'),
   );
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Gallery Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Gallery Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
@@ -557,13 +762,17 @@ test('opens Gallery Management below Banner Management and creates an album', as
 
   await press(renderer, 'Add gallery album');
   await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ placeholder: 'Album title' }).props.onChangeText('New collection');
+    renderer.root
+      .findByProps({ placeholder: 'Album title' })
+      .props.onChangeText('New collection');
     renderer.root
       .findByProps({ placeholder: 'e.g. Photo Frames' })
       .props.onChangeText('Canvas Prints');
   });
   await ReactTestRenderer.act(async () => {
-    await renderer.root.findByProps({ accessibilityLabel: 'Create album' }).props.onPress();
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Create album' })
+      .props.onPress();
   });
 
   expect(get).toHaveBeenCalledWith('/gallery/next-id');
@@ -616,30 +825,40 @@ test('opens Review Management below Gallery Management and creates a review', as
     moreScreen.indexOf('Review Management'),
   );
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Review Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Review Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
-  expect(JSON.stringify(renderer.toJSON())).toContain('Manage customer ratings, comments, and review photos.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Manage customer ratings, comments, and review photos.',
+  );
   expect(get).toHaveBeenCalledWith('/reviews');
   expect(get).toHaveBeenCalledWith('/reviews/stats');
 
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Add review' }).props.onPress();
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Add review' })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await press(renderer, 'Select food for review');
   await press(renderer, 'Select food House Blend');
   await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ placeholder: 'Customer name' }).props.onChangeText('Maya Rivera');
+    renderer.root
+      .findByProps({ placeholder: 'Customer name' })
+      .props.onChangeText('Maya Rivera');
     renderer.root
       .findByProps({ placeholder: "Write the customer's review..." })
       .props.onChangeText('Excellent coffee and friendly service.');
   });
   await ReactTestRenderer.act(async () => {
-    await renderer.root.findByProps({ accessibilityLabel: 'Create review' }).props.onPress();
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Create review' })
+      .props.onPress();
   });
 
   expect(api.post).toHaveBeenCalledWith(
@@ -655,7 +874,9 @@ test('opens Review Management below Gallery Management and creates a review', as
       status: 'Published',
     }),
   );
-  expect(JSON.stringify(renderer.toJSON())).toContain('Review added successfully.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Review added successfully.',
+  );
 });
 
 test('loads review details, updates a review, and deletes it', async () => {
@@ -683,7 +904,9 @@ test('loads review details, updates a review, and deletes it', async () => {
       });
     }
     if (path === '/reviews/stats') {
-      return Promise.resolve({ data: { data: { total_reviews: 1, avg_rating: 4 } } });
+      return Promise.resolve({
+        data: { data: { total_reviews: 1, avg_rating: 4 } },
+      });
     }
     if (path === '/reviews/73') {
       return Promise.resolve({ data: { data: review } });
@@ -697,25 +920,31 @@ test('loads review details, updates a review, and deletes it', async () => {
   const renderer = await renderDashboard();
   await press(renderer, 'More');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Review Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Review Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'View review REV073',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'View review REV073',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   expect(get).toHaveBeenCalledWith('/reviews/73');
   expect(JSON.stringify(renderer.toJSON())).toContain('A good cup of coffee.');
   await press(renderer, 'Close review details');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Edit review REV073',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Edit review REV073',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await ReactTestRenderer.act(() => {
@@ -739,9 +968,11 @@ test('loads review details, updates a review, and deletes it', async () => {
   );
 
   let confirmDelete: AlertButton | undefined;
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-    confirmDelete = buttons?.find(button => button.text === 'Delete');
-  });
+  const alert = jest
+    .spyOn(Alert, 'alert')
+    .mockImplementation((title, message, buttons) => {
+      confirmDelete = buttons?.find(button => button.text === 'Delete');
+    });
   await press(renderer, 'Delete review REV073');
   await ReactTestRenderer.act(async () => {
     await confirmDelete?.onPress?.();
@@ -757,27 +988,39 @@ test('opens banner management from the More tab', async () => {
   await press(renderer, 'More');
 
   expect(JSON.stringify(renderer.toJSON())).toContain('Banner Management');
-  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Customers' })).toHaveLength(0);
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'Customers' }),
+  ).toHaveLength(0);
 
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Banner Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Banner Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   expect(JSON.stringify(renderer.toJSON())).toContain('WEBSITE CONTENT');
-  expect(JSON.stringify(renderer.toJSON())).toContain('Create, edit, and publish your website banners.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Create, edit, and publish your website banners.',
+  );
   expect(api.get).toHaveBeenCalledWith('/banners');
 
   await press(renderer, 'Add banner');
   await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ placeholder: 'Banner title' }).props.onChangeText('Weekend offer');
-    renderer.root.findByProps({
-      placeholder: 'https://example.com/banner.jpg',
-    }).props.onChangeText('https://example.com/weekend.jpg');
+    renderer.root
+      .findByProps({ placeholder: 'Banner title' })
+      .props.onChangeText('Weekend offer');
+    renderer.root
+      .findByProps({
+        placeholder: 'https://example.com/banner.jpg',
+      })
+      .props.onChangeText('https://example.com/weekend.jpg');
   });
   await ReactTestRenderer.act(async () => {
-    await renderer.root.findByProps({ accessibilityLabel: 'Create banner' }).props.onPress();
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Create banner' })
+      .props.onPress();
   });
 
   expect(api.post).toHaveBeenCalledWith(
@@ -789,10 +1032,14 @@ test('opens banner management from the More tab', async () => {
       active: true,
     }),
   );
-  expect(JSON.stringify(renderer.toJSON())).toContain('Banner added successfully.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Banner added successfully.',
+  );
 
   await press(renderer, 'Back to More');
-  expect(renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' })).toBeTruthy();
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Open Banner Management' }),
+  ).toBeTruthy();
 });
 
 test('opens Gallery Management below Banner Management and creates an album', async () => {
@@ -830,9 +1077,11 @@ test('opens Gallery Management below Banner Management and creates an album', as
     moreScreen.indexOf('Gallery Management'),
   );
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Gallery Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Gallery Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
@@ -845,13 +1094,17 @@ test('opens Gallery Management below Banner Management and creates an album', as
 
   await press(renderer, 'Add gallery album');
   await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ placeholder: 'Album title' }).props.onChangeText('New collection');
+    renderer.root
+      .findByProps({ placeholder: 'Album title' })
+      .props.onChangeText('New collection');
     renderer.root
       .findByProps({ placeholder: 'e.g. Photo Frames' })
       .props.onChangeText('Canvas Prints');
   });
   await ReactTestRenderer.act(async () => {
-    await renderer.root.findByProps({ accessibilityLabel: 'Create album' }).props.onPress();
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Create album' })
+      .props.onPress();
   });
 
   expect(get).toHaveBeenCalledWith('/gallery/next-id');
@@ -904,30 +1157,40 @@ test('opens Review Management below Gallery Management and creates a review', as
     moreScreen.indexOf('Review Management'),
   );
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Review Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Review Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
-  expect(JSON.stringify(renderer.toJSON())).toContain('Manage customer ratings, comments, and review photos.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Manage customer ratings, comments, and review photos.',
+  );
   expect(get).toHaveBeenCalledWith('/reviews');
   expect(get).toHaveBeenCalledWith('/reviews/stats');
 
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Add review' }).props.onPress();
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Add review' })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await press(renderer, 'Select food for review');
   await press(renderer, 'Select food House Blend');
   await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ placeholder: 'Customer name' }).props.onChangeText('Maya Rivera');
+    renderer.root
+      .findByProps({ placeholder: 'Customer name' })
+      .props.onChangeText('Maya Rivera');
     renderer.root
       .findByProps({ placeholder: "Write the customer's review..." })
       .props.onChangeText('Excellent coffee and friendly service.');
   });
   await ReactTestRenderer.act(async () => {
-    await renderer.root.findByProps({ accessibilityLabel: 'Create review' }).props.onPress();
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Create review' })
+      .props.onPress();
   });
 
   expect(api.post).toHaveBeenCalledWith(
@@ -943,7 +1206,9 @@ test('opens Review Management below Gallery Management and creates a review', as
       status: 'Published',
     }),
   );
-  expect(JSON.stringify(renderer.toJSON())).toContain('Review added successfully.');
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Review added successfully.',
+  );
 });
 
 test('loads review details, updates a review, and deletes it', async () => {
@@ -971,7 +1236,9 @@ test('loads review details, updates a review, and deletes it', async () => {
       });
     }
     if (path === '/reviews/stats') {
-      return Promise.resolve({ data: { data: { total_reviews: 1, avg_rating: 4 } } });
+      return Promise.resolve({
+        data: { data: { total_reviews: 1, avg_rating: 4 } },
+      });
     }
     if (path === '/reviews/73') {
       return Promise.resolve({ data: { data: review } });
@@ -985,25 +1252,31 @@ test('loads review details, updates a review, and deletes it', async () => {
   const renderer = await renderDashboard();
   await press(renderer, 'More');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Open Review Management',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Open Review Management',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'View review REV073',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'View review REV073',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   expect(get).toHaveBeenCalledWith('/reviews/73');
   expect(JSON.stringify(renderer.toJSON())).toContain('A good cup of coffee.');
   await press(renderer, 'Close review details');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({
-      accessibilityLabel: 'Edit review REV073',
-    }).props.onPress();
+    renderer.root
+      .findByProps({
+        accessibilityLabel: 'Edit review REV073',
+      })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   await ReactTestRenderer.act(() => {
@@ -1027,9 +1300,11 @@ test('loads review details, updates a review, and deletes it', async () => {
   );
 
   let confirmDelete: AlertButton | undefined;
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation((title, message, buttons) => {
-    confirmDelete = buttons?.find(button => button.text === 'Delete');
-  });
+  const alert = jest
+    .spyOn(Alert, 'alert')
+    .mockImplementation((title, message, buttons) => {
+      confirmDelete = buttons?.find(button => button.text === 'Delete');
+    });
   await press(renderer, 'Delete review REV073');
   await ReactTestRenderer.act(async () => {
     await confirmDelete?.onPress?.();
@@ -1148,9 +1423,7 @@ test('loads the restaurant POS dashboard snapshot and revenue reports', async ()
     .filter(node => node.props.style?.minHeight === 188);
   expect(summaryCards).toHaveLength(8);
   expect(
-    summaryCards[0].props.style.width +
-      summaryCards[1].props.style.width +
-      12,
+    summaryCards[0].props.style.width + summaryCards[1].props.style.width + 12,
   ).toBeLessThanOrEqual(Dimensions.get('window').width - 40);
   expect(get).toHaveBeenCalledWith(
     '/orders/management',
@@ -1306,22 +1579,48 @@ test('creates an employee from the employee form', async () => {
   await openEmployeeManagement(renderer);
   await press(renderer, 'Add new employee');
   await ReactTestRenderer.act(() => {
-    renderer.root.findByProps({ accessibilityLabel: 'Full name' }).props.onChangeText('Taylor Morgan');
-    renderer.root.findByProps({ accessibilityLabel: 'Phone number' }).props.onChangeText('9876543210');
-    renderer.root.findByProps({ accessibilityLabel: 'Email' }).props.onChangeText('taylor@example.com');
-    renderer.root.findByProps({ accessibilityLabel: 'Street address' }).props.onChangeText('10 Main Street');
-    renderer.root.findByProps({ accessibilityLabel: 'Area / locality' }).props.onChangeText('Anna Nagar');
-    renderer.root.findByProps({ accessibilityLabel: 'City' }).props.onChangeText('Chennai');
-    renderer.root.findByProps({ accessibilityLabel: 'District' }).props.onChangeText('Chennai');
-    renderer.root.findByProps({ accessibilityLabel: 'State' }).props.onChangeText('Tamil Nadu');
-    renderer.root.findByProps({ accessibilityLabel: 'Pincode' }).props.onChangeText('600001');
-    renderer.root.findByProps({ accessibilityLabel: 'Basic salary' }).props.onChangeText('25000');
-    renderer.root.findByProps({ accessibilityLabel: 'Password' }).props.onChangeText('secure-pass');
-    renderer.root.findByProps({ accessibilityLabel: 'Confirm password' }).props.onChangeText('secure-pass');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Full name' })
+      .props.onChangeText('Taylor Morgan');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Phone number' })
+      .props.onChangeText('9876543210');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Email' })
+      .props.onChangeText('taylor@example.com');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Street address' })
+      .props.onChangeText('10 Main Street');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Area / locality' })
+      .props.onChangeText('Anna Nagar');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'City' })
+      .props.onChangeText('Chennai');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'District' })
+      .props.onChangeText('Chennai');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'State' })
+      .props.onChangeText('Tamil Nadu');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Pincode' })
+      .props.onChangeText('600001');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Basic salary' })
+      .props.onChangeText('25000');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Password' })
+      .props.onChangeText('secure-pass');
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Confirm password' })
+      .props.onChangeText('secure-pass');
   });
   await press(renderer, 'Cuisine type: South Indian');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Create employee' }).props.onPress();
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Create employee' })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
@@ -1374,7 +1673,9 @@ test('loads employee details and submits edits to the employee endpoint', async 
     renderer.root.findByProps({ accessibilityLabel: 'Full name' }).props.value,
   ).toBe('Casey Rivers');
   await ReactTestRenderer.act(async () => {
-    renderer.root.findByProps({ accessibilityLabel: 'Save employee changes' }).props.onPress();
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Save employee changes' })
+      .props.onPress();
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
 
@@ -1392,7 +1693,9 @@ test('shows and hides employee passwords independently', async () => {
   await openEmployeeManagement(renderer);
   await press(renderer, 'Add new employee');
 
-  const passwordField = renderer.root.findByProps({ accessibilityLabel: 'Password' });
+  const passwordField = renderer.root.findByProps({
+    accessibilityLabel: 'Password',
+  });
   const confirmPasswordField = renderer.root.findByProps({
     accessibilityLabel: 'Confirm password',
   });

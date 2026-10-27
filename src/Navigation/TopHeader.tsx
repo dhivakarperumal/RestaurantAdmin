@@ -29,6 +29,8 @@ import {
 } from './NavigationIcons';
 
 export type HeaderUser = {
+  id?: string | number;
+  user_id?: string | number;
   name?: string;
   username?: string;
   email?: string;
