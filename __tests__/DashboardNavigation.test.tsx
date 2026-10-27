@@ -136,6 +136,20 @@ test('opens category management from the More tab', async () => {
   ).toBeTruthy();
 });
 
+test('opens the cuisines list from the More tab', async () => {
+  const renderer = await renderDashboard();
+  await press(renderer, 'More');
+  await press(renderer, 'Open Cuisines');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Search cuisines' }),
+  ).toBeTruthy();
+  expect(JSON.stringify(renderer.toJSON())).toContain('All Cuisines');
+});
+
 test('opens the dedicated Add Category page from the Items FAB', async () => {
   const renderer = await renderDashboard();
   await press(renderer, 'Items');

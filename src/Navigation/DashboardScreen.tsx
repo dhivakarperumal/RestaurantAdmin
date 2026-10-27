@@ -46,6 +46,7 @@ import Bills, { type BillFood } from '../Tabs/Bills';
 import Items from '../Tabs/Items';
 import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
+import CuisineScreen from '../Screens/Cuisine';
 import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
@@ -387,6 +388,11 @@ const moreFeatures = [
     title: 'Categories',
     subtitle: 'Manage product categories',
     icon: AddCategoryIcon,
+  },
+  {
+    title: 'Cuisines',
+    subtitle: 'View restaurant cuisines',
+    icon: MenuIcon,
   },
   {
     title: 'Customers',
@@ -1408,6 +1414,9 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Cuisines') {
+      return <CuisineScreen onBack={() => onSelectFeature(null)} />;
+    }
     if (selectedFeature === 'Categories') {
       return (
         <CategoriesScreen
