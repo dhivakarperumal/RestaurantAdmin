@@ -91,12 +91,13 @@ export default function ServerTopHeader({
         animationType="fade"
         onRequestClose={() => setIsProfileMenuOpen(false)}
       >
-        <Pressable
-          accessibilityLabel="Close profile menu"
-          accessibilityRole="button"
-          onPress={() => setIsProfileMenuOpen(false)}
-          className="flex-1 bg-black/20"
-        >
+        <View className="flex-1">
+          <Pressable
+            accessibilityLabel="Close profile menu"
+            accessibilityRole="button"
+            onPress={() => setIsProfileMenuOpen(false)}
+            className="absolute inset-0 bg-black/20"
+          />
           <View className="absolute right-5 top-16 w-56 rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-lg">
             <View className="border-b border-[#E5E7EB] px-3 py-2">
               <Text className="font-bold text-[#012711]">{name}</Text>
@@ -151,7 +152,7 @@ export default function ServerTopHeader({
               <Text className="font-semibold text-[#C2410C]">Check out</Text>
             </Pressable>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </SafeAreaView>
   );
