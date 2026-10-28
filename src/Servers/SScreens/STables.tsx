@@ -182,11 +182,21 @@ export default function ServerTables({
     const map = new Map<string, Record<string, unknown>>();
     orders.forEach(o => {
       const status = String(o.status || o.order_status || '').toLowerCase();
-      if (['pending', 'preparing', 'cooking', 'ready', 'confirmed'].includes(status)) {
-        const t = String(o.table_number || o.table_id || o.table || '').trim();
-        if (t && t !== '—') {
-          map.set(t, o);
-        }
+      if (
+        [
+          'pending',
+          'preparing',
+          'cooking',
+          'ready',
+          'ready to serve',
+          'confirmed',
+          'in progress',
+        ].includes(status)
+      ) {
+        const tableValues = [o.table_number, o.table_id, o.table]
+          .map(value => String(value ?? '').trim())
+          .filter(value => value && value !== '—');
+        tableValues.forEach(value => map.set(value.toLowerCase(), o));
       }
     });
     return map;
@@ -197,7 +207,7 @@ export default function ServerTables({
     if (tables.length > 0) {
       return tables.map((t, idx): ServerTablesRow => {
         const num = String(t.table_number ?? t.id ?? t.table_id ?? idx + 1);
-        const hasOrder = occupiedOrderMap.has(num);
+        const hasOrder = occupiedOrderMap.has(num.toLowerCase());
         return {
           ...t,
           id: t.id ?? t.table_id ?? num,
@@ -211,7 +221,7 @@ export default function ServerTables({
     // Default 12 floor tables
     return Array.from({ length: 12 }, (_, i): ServerTablesRow => {
       const num = String(i + 1);
-      const hasOrder = occupiedOrderMap.has(num);
+      const hasOrder = occupiedOrderMap.has(num.toLowerCase());
       return {
         id: num,
         table_id: num,
@@ -276,11 +286,7 @@ export default function ServerTables({
 
     if (list.length > 0) return list;
 
-    // Fallback if no tables in db have assigned servers, show first 4 so screen is not empty during testing
-    const anyAssigned = normalizedTableList.some(
-      t => t.assigned_server_id || t.assigned_employee_id || t.server_id,
-    );
-    return !anyAssigned ? normalizedTableList.slice(0, 4) : list;
+    return list;
   }, [normalizedTableList, userIds, userNames]);
 
   // Filter by status & search
@@ -391,6 +397,7 @@ export default function ServerTables({
         return;
       }
 
+      await api.get(`/table-bills/${billId}`);
       await api.post(`/table-bills/${billId}/settle`);
       Alert.alert(
         'Bill Completed',
@@ -559,7 +566,9 @@ export default function ServerTables({
             const currentStatus = statuses[key] ?? normalizedStatus(table.status);
             const cfg = statusConfig[currentStatus];
             const isUpdating = updating === key;
-            const activeOrder = occupiedOrderMap.get(String(table.table_number));
+            const activeOrder = occupiedOrderMap.get(
+              String(table.table_number ?? '').trim().toLowerCase(),
+            );
 
             return (
               <View
