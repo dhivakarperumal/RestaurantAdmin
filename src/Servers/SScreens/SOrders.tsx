@@ -55,7 +55,13 @@ function getStatusColors(status: string) {
   return ['#C2410C', '#FFEDD5', '#FED7AA'];
 }
 
-export default function ServerOrders({ user = {} }: { user?: HeaderUser }) {
+export default function ServerOrders({
+  user = {},
+  serverEmployeeId,
+}: {
+  user?: HeaderUser;
+  serverEmployeeId?: string | number | null;
+}) {
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,17 +73,25 @@ export default function ServerOrders({ user = {} }: { user?: HeaderUser }) {
 
   const serverIds = useMemo(
     () =>
-      [user.employee_id, user.employeeId, user.id, user.user_id, (user as Record<string, unknown>).uuid]
+      [
+        serverEmployeeId,
+        user.employee_id,
+        user.employeeId,
+        user.id,
+        user.user_id,
+        (user as Record<string, unknown>).uuid,
+        (user as Record<string, unknown>).emp_id,
+      ]
         .filter(id => id !== undefined && id !== null && String(id).trim() !== '')
         .map(id => String(id).trim().toLowerCase()),
-    [user],
+    [user, serverEmployeeId],
   );
   const serverNames = useMemo(
     () =>
       [user.name, user.username, (user as Record<string, unknown>).full_name]
         .filter(name => typeof name === 'string' && name.trim() !== '')
         .map(name => String(name).trim().toLowerCase()),
-    [user],
+    [user, serverEmployeeId],
   );
 
   const belongsToServer = useCallback(

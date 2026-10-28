@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
@@ -176,6 +177,9 @@ export default function ServerTables({
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTableDetails, setSelectedTableDetails] = useState<ServerTablesRow | null>(null);
   const [settlingTable, setSettlingTable] = useState<string | null>(null);
+  const [billPreview, setBillPreview] = useState<Record<string, unknown> | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const insets = useSafeAreaInsets();
 
   const employeeId = serverEmployeeId ?? user.employee_id ?? user.employeeId;
 
@@ -377,43 +381,118 @@ export default function ServerTables({
   }, [onRefresh]);
 
   const completeBill = async (table: ServerTablesRow) => {
-    const tableId = table.id ?? table.table_id;
-    const tableKey = String(tableId ?? table.table_number ?? '');
-    if (!tableId || settlingTable) return;
+    const tableIdentifiers = Array.from(
+      new Set(
+        [table.table_id, table.id, table.table_number]
+          .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
+          .map(value => String(value)),
+      ),
+    );
+    const tableKey = tableIdentifiers[0] || '';
+    if (tableIdentifiers.length === 0 || settlingTable) return;
 
     setSettlingTable(tableKey);
     try {
-      const billResponse = await api.get(`/table-bills/active/${tableId}`);
-      const payload =
-        billResponse.data && typeof billResponse.data === 'object'
-          ? (billResponse.data as Record<string, unknown>)
-          : {};
-      const bill =
-        payload.bill && typeof payload.bill === 'object'
-          ? (payload.bill as Record<string, unknown>)
-          : payload.data && typeof payload.data === 'object'
-          ? (payload.data as Record<string, unknown>)
-          : payload;
-      const billId = bill.bill_id ?? bill.id;
+      let bill: Record<string, unknown> | null = null;
+      let lastLookupError: unknown = null;
+      for (const tableIdentifier of tableIdentifiers) {
+        try {
+          const billResponse = await api.get(`/table-bills/active/${encodeURIComponent(tableIdentifier)}`);
+          const payload =
+            billResponse.data && typeof billResponse.data === 'object'
+              ? (billResponse.data as Record<string, unknown>)
+              : {};
+          const candidate =
+            payload.bill && typeof payload.bill === 'object'
+              ? (payload.bill as Record<string, unknown>)
+              : payload.data && typeof payload.data === 'object'
+              ? (payload.data as Record<string, unknown>)
+              : payload;
+          const candidateId = candidate.bill_id ?? candidate.id;
+          if (candidateId) {
+            bill = candidate;
+            break;
+          }
+        } catch (lookupError) {
+          lastLookupError = lookupError;
+        }
+      }
+
+      if (!bill && lastLookupError && tableIdentifiers.length === 1) {
+        throw lastLookupError;
+      }
+
+      const activeBill = bill;
+      const billId = activeBill?.bill_id ?? activeBill?.id;
 
       if (!billId) {
         Alert.alert('Bill unavailable', 'No active bill was found for this table.');
         return;
       }
 
-      await api.get(`/table-bills/${billId}`);
-      const settleResponse = await api.post(`/table-bills/${billId}/settle`, {
-        payment_method: 'Cash',
+      const detailsResponse = await api.get(`/table-bills/${billId}`);
+      const detailsPayload =
+        detailsResponse.data && typeof detailsResponse.data === 'object'
+          ? (detailsResponse.data as Record<string, unknown>)
+          : {};
+      const detailedBill =
+        detailsPayload.bill && typeof detailsPayload.bill === 'object'
+          ? (detailsPayload.bill as Record<string, unknown>)
+          : detailsPayload.data && typeof detailsPayload.data === 'object'
+          ? (detailsPayload.data as Record<string, unknown>)
+          : detailsPayload;
+      setBillPreview({
+        ...activeBill,
+        ...detailedBill,
+        table_number: table.table_number ?? detailedBill.table_number,
+        bill_id: billId,
+      });
+      setPaymentMethod(
+        String(detailedBill.payment_method || activeBill?.payment_method || 'Cash'),
+      );
+    } catch (error) {
+      const message =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message?: unknown }).message)
+          : 'Unable to complete this bill.';
+      Alert.alert('Bill completion failed', message);
+    } finally {
+      setSettlingTable(null);
+    }
+  };
+
+  const billItems = useMemo(() => {
+    if (!billPreview) return [];
+    const rounds = Array.isArray(billPreview.rounds)
+      ? billPreview.rounds.flatMap(round =>
+          round && typeof round === 'object' && Array.isArray((round as Record<string, unknown>).items)
+            ? ((round as Record<string, unknown>).items as unknown[])
+            : [],
+        )
+      : [];
+    const rawItems =
+      rounds.length > 0
+        ? rounds
+        : (billPreview.consolidated_items || billPreview.items || billPreview.order_items);
+    if (!Array.isArray(rawItems)) return [];
+    return rawItems as Record<string, unknown>[];
+  }, [billPreview]);
+
+  const settleBill = async () => {
+    if (!billPreview?.bill_id || settlingTable) return;
+    setSettlingTable(String(billPreview.table_id || billPreview.table_number || billPreview.bill_id));
+    try {
+      const settleResponse = await api.post(`/table-bills/${billPreview.bill_id}/settle`, {
+        payment_method: paymentMethod,
         discount: 0,
       });
       if (settleResponse.data?.success === false) {
-        throw new Error(
-          settleResponse.data?.message || 'The bill could not be settled.',
-        );
+        throw new Error(settleResponse.data?.message || 'The bill could not be settled.');
       }
+      setBillPreview(null);
       Alert.alert(
         'Bill Completed',
-        `Table ${table.table_number ?? tableId} bill has been completed.`,
+        `Table ${billPreview.table_number || ''} bill has been completed.`,
       );
       await onRefresh?.();
     } catch (error) {
@@ -428,7 +507,8 @@ export default function ServerTables({
   };
 
   return (
-    <ScrollView
+    <>
+      <ScrollView
       className="flex-1"
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -808,6 +888,118 @@ export default function ServerTables({
           </View>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+      <Modal
+        visible={Boolean(billPreview)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          if (!settlingTable) setBillPreview(null);
+        }}
+      >
+        <View className="flex-1 justify-end bg-black/40">
+          <View
+            className="max-h-[88%] rounded-t-3xl bg-white px-5 pt-4"
+            style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
+          >
+            <View className="mb-4 h-1.5 w-12 self-center rounded-full bg-[#CBD5E1]" />
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-xl font-black text-[#0F172A]">Bill Preview</Text>
+                <Text className="mt-1 text-xs font-semibold text-[#64748B]">
+                  Table {String(billPreview?.table_number || '—')}
+                </Text>
+              </View>
+              <Pressable
+                disabled={Boolean(settlingTable)}
+                onPress={() => setBillPreview(null)}
+                className="h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9]"
+              >
+                <Text className="text-lg font-bold text-[#475569]">×</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+              {billItems.length > 0 ? (
+                billItems.map((item, index) => (
+                  <View key={index} className="flex-row items-center justify-between border-b border-[#F1F5F9] py-3">
+                    <View className="flex-1 pr-3">
+                      <Text className="text-sm font-bold text-[#0F172A]">
+                        {String(item.food_name || item.name || item.item_name || 'Food item')}
+                      </Text>
+                      <Text className="mt-1 text-xs text-[#64748B]">
+                        Qty: {String(item.quantity || 1)}
+                      </Text>
+                    </View>
+                    <Text className="text-sm font-extrabold text-[#116C0B]">
+                      {String(item.total_price ?? item.price ?? item.unit_price ?? '—')}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="py-8 text-center text-sm text-[#64748B]">
+                  No food items found for this bill.
+                </Text>
+              )}
+
+              <View className="mt-4 rounded-2xl bg-[#F8FAFC] p-4">
+                <View className="flex-row justify-between">
+                  <Text className="text-sm text-[#64748B]">Subtotal</Text>
+                  <Text className="text-sm font-bold text-[#0F172A]">
+                    {String(billPreview?.subtotal ?? billPreview?.total_amount ?? '—')}
+                  </Text>
+                </View>
+                <View className="mt-2 flex-row justify-between">
+                  <Text className="text-base font-extrabold text-[#0F172A]">Grand Total</Text>
+                  <Text className="text-lg font-black text-[#116C0B]">
+                    {String(billPreview?.grand_total ?? billPreview?.total ?? billPreview?.total_amount ?? '—')}
+                  </Text>
+                </View>
+              </View>
+
+              <Text className="mb-2 mt-5 text-xs font-extrabold uppercase tracking-wider text-[#64748B]">
+                Select Payment Method
+              </Text>
+              <View className="flex-row gap-2">
+                {['Cash', 'Card', 'UPI'].map(method => (
+                  <Pressable
+                    key={method}
+                    disabled={Boolean(settlingTable)}
+                    onPress={() => setPaymentMethod(method)}
+                    className={`flex-1 items-center rounded-xl border py-3 ${
+                      paymentMethod === method
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#CBD5E1] bg-white'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-extrabold ${
+                        paymentMethod === method ? 'text-white' : 'text-[#475569]'
+                      }`}
+                    >
+                      {method}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+
+            <Pressable
+              disabled={Boolean(settlingTable)}
+              onPress={() => void settleBill()}
+              className="mt-4 h-12 items-center justify-center rounded-xl bg-[#116C0B]"
+            >
+              {settlingTable ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text className="font-extrabold text-white">
+                  Complete Bill • {paymentMethod}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }

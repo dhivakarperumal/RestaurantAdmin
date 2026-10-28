@@ -257,6 +257,107 @@ function getFoodType(food: Row): 'veg' | 'non-veg' {
   return 'veg';
 }
 
+export function resolveServerEmployeeId(
+  employees: Record<string, unknown>[],
+  user: HeaderUser | null | undefined,
+  tables: ServerTable[] = [],
+): string | number | null {
+  if (!user) return null;
+
+  const uName = String(user.name || user.username || '').toLowerCase().trim();
+  const uEmail = String(user.email || '').toLowerCase().trim();
+  const uPhone = String(
+    (user as Record<string, unknown>)?.mobile_number ||
+    (user as Record<string, unknown>)?.phone ||
+    '',
+  ).replace(/\D/g, '');
+
+  const explicitEmpId = user.employee_id ?? user.employeeId ?? (user as Record<string, unknown>)?.emp_id;
+  if (explicitEmpId !== undefined && explicitEmpId !== null && String(explicitEmpId).trim() !== '') {
+    return explicitEmpId as string | number;
+  }
+
+  // 1. Check if user name matches any table in tables
+  if (uName && tables.length) {
+    for (const t of tables) {
+      const sName = String(t.assigned_server_name ?? t.server_name ?? '').toLowerCase().trim();
+      const sId = t.assigned_server_id ?? t.assigned_employee_id ?? t.server_id;
+      if (sName && sId !== undefined && sId !== null && String(sId).trim() !== '') {
+        if (sName === uName || sName.includes(uName) || uName.includes(sName)) {
+          return sId as string | number;
+        }
+      }
+    }
+  }
+
+  // 2. Search in employees list
+  if (employees.length) {
+    // 2a. Match by email
+    if (uEmail) {
+      const match = employees.find(e => String(e.email || '').toLowerCase().trim() === uEmail);
+      if (match) {
+        const id = match.employee_id ?? match.id;
+        if (id !== undefined && id !== null) return id as string | number;
+      }
+    }
+
+    // 2b. Match by phone
+    if (uPhone && uPhone.length >= 7) {
+      const match = employees.find(e => {
+        const p = String(e.phone_number || e.phone || e.mobile || '').replace(/\D/g, '');
+        return p && (p.includes(uPhone) || uPhone.includes(p));
+      });
+      if (match) {
+        const id = match.employee_id ?? match.id;
+        if (id !== undefined && id !== null) return id as string | number;
+      }
+    }
+
+    // 2c. Match by exact name
+    if (uName) {
+      const match = employees.find(e => {
+        const n = String(e.full_name || e.name || '').toLowerCase().trim();
+        return n && (n === uName || n.replace(/\s+/g, '') === uName.replace(/\s+/g, ''));
+      });
+      if (match) {
+        const id = match.employee_id ?? match.id;
+        if (id !== undefined && id !== null) return id as string | number;
+      }
+
+      // 2d. Substring name match (prioritize Server role)
+      const serverMatch = employees.find(e => {
+        const isServer = String(e.employee_type || e.role || '').toLowerCase().includes('server');
+        const n = String(e.full_name || e.name || '').toLowerCase().trim();
+        return isServer && n && (n.includes(uName) || uName.includes(n));
+      });
+      if (serverMatch) {
+        const id = serverMatch.employee_id ?? serverMatch.id;
+        if (id !== undefined && id !== null) return id as string | number;
+      }
+
+      const anyNameMatch = employees.find(e => {
+        const n = String(e.full_name || e.name || '').toLowerCase().trim();
+        return n && (n.includes(uName) || uName.includes(n));
+      });
+      if (anyNameMatch) {
+        const id = anyNameMatch.employee_id ?? anyNameMatch.id;
+        if (id !== undefined && id !== null) return id as string | number;
+      }
+    }
+
+    // 2e. If exactly 1 server employee exists in restaurant, that's the logged in server
+    const servers = employees.filter(e =>
+      String(e.employee_type || e.role || '').toLowerCase().includes('server'),
+    );
+    if (servers.length === 1) {
+      const id = servers[0].employee_id ?? servers[0].id;
+      if (id !== undefined && id !== null) return id as string | number;
+    }
+  }
+
+  return null;
+}
+
 function isTableAssignedToServer(
   table: ServerTable,
   user: HeaderUser,
@@ -265,10 +366,8 @@ function isTableAssignedToServer(
   const userIds = [
     user.employee_id,
     user.employeeId,
-    user.id,
-    user.user_id,
-    extraEmployeeId,
     (user as Record<string, unknown>)?.emp_id,
+    extraEmployeeId,
   ]
     .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
     .map(val => String(val).trim());
@@ -304,23 +403,28 @@ function isTableAssignedToServer(
     if (sId !== undefined && sId !== null && userIds.includes(String(sId).trim())) {
       return true;
     }
-    const sName = String(
-      table.assigned_server.name ?? table.assigned_server.full_name ?? '',
-    )
-      .toLowerCase()
-      .trim();
-    if (sName && userNames.includes(sName)) {
-      return true;
-    }
   }
 
-  const serverName = String(
-    table.assigned_server_name ?? table.server_name ?? '',
-  )
-    .toLowerCase()
-    .trim();
-  if (serverName && userNames.includes(serverName)) {
-    return true;
+  const serverNames = [
+    table.assigned_server_name,
+    table.server_name,
+    table.assigned_server?.name,
+    table.assigned_server?.full_name,
+  ]
+    .filter(Boolean)
+    .map(s => String(s).toLowerCase().trim());
+
+  for (const sName of serverNames) {
+    for (const uName of userNames) {
+      if (
+        sName === uName ||
+        sName.includes(uName) ||
+        uName.includes(sName) ||
+        sName.replace(/\s+/g, '') === uName.replace(/\s+/g, '')
+      ) {
+        return true;
+      }
+    }
   }
 
   return false;
@@ -2327,22 +2431,18 @@ export default function ServerHome({
   }, [tables, user, storedEmployeeId, serverEmployeeId]);
 
   const loadHome = useCallback(async () => {
-    let activeEmpId =
-      user?.employee_id ??
-      user?.employeeId ??
-      (user as Record<string, unknown>)?.emp_id ??
-      user?.id ??
-      user?.user_id;
+    let activeEmpId: string | number | null =
+      (user?.employee_id as string | number | null) ??
+      (user?.employeeId as string | number | null) ??
+      (((user as Record<string, unknown>)?.emp_id as unknown) as string | number | null) ??
+      null;
 
     try {
       const stored = await getStoredUser();
-      const sId =
-        activeEmpId ??
+      const sId = (activeEmpId ??
         stored?.employee_id ??
         stored?.employeeId ??
-        (stored as Record<string, unknown>)?.emp_id ??
-        stored?.id ??
-        stored?.user_id;
+        ((stored as Record<string, unknown>)?.emp_id as unknown)) as string | number | null;
       if (sId) {
         setStoredEmployeeId(sId);
         activeEmpId = sId;
@@ -2358,40 +2458,23 @@ export default function ServerHome({
       api.get('/employees'),
     ]);
 
-    if (empResult.status === 'fulfilled') {
-      const empData = empResult.value.data;
-      const empList: Record<string, unknown>[] = Array.isArray(empData)
-        ? empData
-        : Array.isArray(empData?.data)
-        ? empData.data
-        : Array.isArray(empData?.employees)
-        ? empData.employees
+    const loadedTables =
+      tableResult.status === 'fulfilled'
+        ? (rows(tableResult.value.data) as ServerTable[])
         : [];
 
-      const targetEmail = (user?.email || '').toLowerCase().trim();
-      const targetName = (user?.name || user?.username || '').toLowerCase().trim();
-      const targetUserId = String(user?.id ?? user?.user_id ?? '').trim();
+    const empList =
+      empResult.status === 'fulfilled'
+        ? (rows(empResult.value.data) as Record<string, unknown>[])
+        : [];
 
-      const matchedEmp = empList.find(emp => {
-        const empId = String(emp.employee_id || emp.id || '').trim();
-        const empUserId = String(emp.user_id || '').trim();
-        const empEmail = String(emp.email || '').toLowerCase().trim();
-        const empName = String(emp.full_name || emp.name || '').toLowerCase().trim();
-
-        if (targetUserId && empUserId && empUserId === targetUserId) return true;
-        if (targetEmail && empEmail && empEmail === targetEmail) return true;
-        if (targetName && empName && empName === targetName) return true;
-        if (activeEmpId && empId === String(activeEmpId)) return true;
-        return false;
-      });
-
-      if (matchedEmp) {
-        const realEmpId = (matchedEmp.employee_id ?? matchedEmp.id) as string | number;
-        if (realEmpId) {
-          setStoredEmployeeId(realEmpId);
-          setServerEmployeeId(realEmpId);
-        }
-      }
+    // Resolve canonical employee ID using comprehensive multi-vector matcher
+    const realId = resolveServerEmployeeId(empList, user, loadedTables);
+    if (realId) {
+      setStoredEmployeeId(realId);
+      setServerEmployeeId(realId);
+    } else if (activeEmpId) {
+      setServerEmployeeId(activeEmpId);
     }
 
     setOrders(
@@ -2400,11 +2483,7 @@ export default function ServerHome({
     setFoods(
       foodResult.status === 'fulfilled' ? rows(foodResult.value.data) : [],
     );
-    setTables(
-      tableResult.status === 'fulfilled'
-        ? (rows(tableResult.value.data) as ServerTable[])
-        : [],
-    );
+    setTables(loadedTables);
   }, [user]);
 
   const initData = useCallback(async () => {
@@ -2505,14 +2584,20 @@ export default function ServerHome({
         return;
       }
 
+      // PRESERVE existing assignment if already set on table
+      const existingTableServerId =
+        table.assigned_server_id ?? table.assigned_employee_id ?? table.server_id;
+      const existingTableServerName =
+        table.assigned_server_name ?? table.server_name;
+
       const activeEmpId =
+        existingTableServerId ??
         serverEmployeeId ??
         user?.employee_id ??
         user?.employeeId ??
-        storedEmployeeId ??
-        user?.id;
+        storedEmployeeId;
 
-      const serverName = user?.name ?? user?.username ?? 'Server';
+      const serverName = existingTableServerName ?? user?.name ?? user?.username ?? 'Server';
 
       try {
         await api
@@ -2668,7 +2753,12 @@ export default function ServerHome({
     }
 
     if (activeTab === 'orders') {
-      return <ServerOrders user={user} />;
+      return (
+        <ServerOrders
+          user={user}
+          serverEmployeeId={serverEmployeeId ?? storedEmployeeId}
+        />
+      );
     }
 
     if (activeTab === 'foods') {

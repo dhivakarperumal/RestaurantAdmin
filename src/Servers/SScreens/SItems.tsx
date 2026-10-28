@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { API_BASE_URL, getStoredUser } from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
+import { resolveServerEmployeeId } from './SHome';
 
 /* ==========================================================================
    Types
@@ -393,16 +394,11 @@ export default function ServerItems({
       serverEmployeeId ??
       user?.employee_id ??
       user?.employeeId ??
-      ((user as Record<string, unknown>)?.emp_id as string | number | undefined) ??
-      user?.id ??
-      user?.user_id ??
-      table.assigned_server_id ??
-      table.assigned_employee_id ??
-      table.server_id;
+      ((user as Record<string, unknown>)?.emp_id as string | number | undefined);
     return candidate !== undefined && candidate !== null && String(candidate).trim() !== ''
       ? (candidate as string | number)
       : null;
-  }, [serverEmployeeId, user, table]);
+  }, [serverEmployeeId, user]);
 
   const effectiveServerName = useMemo(() => {
     return (
@@ -624,6 +620,14 @@ export default function ServerItems({
     if (!cart.length || submitting || submissionLock.current) return;
     submissionLock.current = true;
     setSubmitting(true);
+
+    let assignedServerId: string | number | null =
+      table.assigned_server_id ??
+      table.assigned_employee_id ??
+      table.server_id ??
+      effectiveServerId ??
+      null;
+
     try {
       const billRecord =
         activeBill && typeof activeBill === 'object'
@@ -643,25 +647,15 @@ export default function ServerItems({
         price: priceValue(food),
       }));
 
-      // Resolve current server ID
-      let assignedServerId: string | number | null =
-        effectiveServerId ??
-        table.assigned_server_id ??
-        table.assigned_employee_id ??
-        table.server_id ??
-        null;
-
+      // Resolve current server ID:
+      // 1. If table is already assigned, preserve its assigned server ID
+      // 2. Otherwise use the server's resolved employee ID
       if (!assignedServerId) {
         try {
-          const stored = await getStoredUser();
-          const sId =
-            stored?.employee_id ??
-            stored?.employeeId ??
-            stored?.id ??
-            stored?.user_id;
-          if (sId !== undefined && sId !== null && String(sId).trim() !== '') {
-            assignedServerId = sId as string | number;
-          }
+          const empRes = await api.get('/employees');
+          const empList = readRows(empRes.data, ['data', 'employees']);
+          const resolved = resolveServerEmployeeId(empList, user, tables as ServerOrderTable[]);
+          if (resolved) assignedServerId = resolved;
         } catch {
           // ignore
         }
@@ -673,8 +667,18 @@ export default function ServerItems({
       }
 
       const postKitchenOrder = async (serverIdToSend?: string | number | null) => {
+        const cleanTId = !isNaN(Number(tableId)) ? Number(tableId) : tableId;
+        const cleanSId =
+          serverIdToSend !== undefined &&
+          serverIdToSend !== null &&
+          String(serverIdToSend).trim() !== ''
+            ? !isNaN(Number(serverIdToSend))
+              ? Number(serverIdToSend)
+              : serverIdToSend
+            : undefined;
+
         return await api.post('/kitchen-orders', {
-          table_id: tableId,
+          table_id: cleanTId,
           table_number: tableLabel,
           items,
           total_amount: total,
@@ -683,13 +687,11 @@ export default function ServerItems({
           ...(billData.bill_id || billData.id
             ? { bill_id: billData.bill_id ?? billData.id }
             : {}),
-          ...(serverIdToSend !== undefined &&
-          serverIdToSend !== null &&
-          String(serverIdToSend).trim() !== ''
+          ...(cleanSId !== undefined
             ? {
-                server_id: serverIdToSend,
-                assigned_server_id: serverIdToSend,
-                employee_id: serverIdToSend,
+                server_id: cleanSId,
+                assigned_server_id: cleanSId,
+                employee_id: cleanSId,
               }
             : {}),
           ...(effectiveServerName
@@ -716,28 +718,38 @@ export default function ServerItems({
           errStr.includes('assigned') ||
           errStr.includes('server account')
         ) {
-          // Collect candidate IDs to link the table
-          const candidateIds = [
-            assignedServerId,
-            user?.employee_id,
-            user?.id,
-            user?.user_id,
-            table.assigned_server_id,
-          ].filter(
-            (v): v is string | number =>
-              v !== undefined && v !== null && String(v).trim() !== '',
-          );
-
           let recovered = false;
-          for (const candId of candidateIds) {
-            try {
-              await ensureTableAssigned(tableId, candId);
-              kitchenResponse = await postKitchenOrder(candId);
-              recovered = true;
-              break;
-            } catch {
-              // try next candidate
+          try {
+            const empRes = await api.get('/employees');
+            const empList = readRows(empRes.data, ['data', 'employees']);
+            const resolvedId = resolveServerEmployeeId(empList, user, tables as ServerOrderTable[]);
+
+            const candidateIds: (string | number)[] = [];
+            if (table.assigned_server_id) candidateIds.push(table.assigned_server_id as string | number);
+            if (resolvedId && !candidateIds.includes(resolvedId)) candidateIds.push(resolvedId);
+            if (user?.employee_id && !candidateIds.includes(user.employee_id as string | number)) {
+              candidateIds.push(user.employee_id as string | number);
             }
+
+            empList
+              .filter(e => String(e.employee_type || '').toLowerCase().includes('server'))
+              .forEach(e => {
+                const eid = (e.employee_id ?? e.id) as string | number;
+                if (eid && !candidateIds.includes(eid)) candidateIds.push(eid);
+              });
+
+            for (const candId of candidateIds) {
+              try {
+                await ensureTableAssigned(tableId, candId);
+                kitchenResponse = await postKitchenOrder(candId);
+                recovered = true;
+                break;
+              } catch {
+                // try next candidate
+              }
+            }
+          } catch {
+            // ignore
           }
 
           if (!recovered) {
@@ -795,8 +807,8 @@ export default function ServerItems({
 
       if (isAssignmentIssue) {
         Alert.alert(
-          'Table Assignment Required',
-          `Table ${tableLabel} is currently not linked to your server profile. Would you like to claim Table ${tableLabel} to your station and retry sending the order?`,
+          'Table Assignment Notice',
+          `Table ${tableLabel} is currently unassigned or assigned to another station in the restaurant system. Would you like to link Table ${tableLabel} and send the order?`,
           [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -804,8 +816,16 @@ export default function ServerItems({
               onPress: async () => {
                 submissionLock.current = false;
                 setSubmitting(false);
-                if (effectiveServerId) {
-                  await ensureTableAssigned(tableId, effectiveServerId);
+                try {
+                  const empRes = await api.get('/employees');
+                  const empList = readRows(empRes.data, ['data', 'employees']);
+                  const resolvedId = resolveServerEmployeeId(empList, user, tables as ServerOrderTable[]);
+                  const targetId = resolvedId ?? assignedServerId;
+                  if (targetId) {
+                    await ensureTableAssigned(tableId, targetId);
+                  }
+                } catch {
+                  // ignore
                 }
                 setTimeout(() => {
                   void sendToKitchen(true);
