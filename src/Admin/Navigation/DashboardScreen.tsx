@@ -462,8 +462,11 @@ const moreFeatures: MoreFeature[] = [
     subtitle: 'Manage your team',
     icon: CustomersIcon,
   },
-
- 
+  {
+    title: 'Employee Attendance',
+    subtitle: 'Review daily shifts and attendance history',
+    icon: ReceiptIcon,
+  },
 
   {
     title: 'Help & Support',
@@ -1651,6 +1654,9 @@ function MainContent({
       selectedFeature === 'Staff & Employees'
     ) {
       return <EmployeesPage onBack={() => onSelectFeature(null)} />;
+    }
+    if (selectedFeature === 'Employee Attendance') {
+      return <EmployeeAttendance onBack={() => onSelectFeature(null)} />;
     }
     if (selectedFeature === 'Profile') {
       return (
@@ -4176,8 +4182,6 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
           ))}
         </View>
       </View>
-
-      <EmployeeAttendance />
 
       {onBack ? (
         <View className="mt-5">

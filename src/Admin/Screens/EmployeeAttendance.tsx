@@ -49,12 +49,16 @@ type AttendanceStatus =
 type AttendanceForm = {
   employee_id: string;
   employee_name: string;
-  attendance_record_id?: number | string | null;
+  attendance_record_id: number | string;
   date: string;
   check_in: string;
   check_out: string;
   status: string;
   notes: string;
+};
+
+type EmployeeAttendanceProps = {
+  onBack: () => void;
 };
 
 const employeeRoles = [
@@ -139,7 +143,7 @@ function isSuccessfulResponse(payload: unknown): payload is Record<string, unkno
   return isRecord(payload) && payload.success === true;
 }
 
-function EmployeeAttendance() {
+function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
   const today = useMemo(() => localDateString(), []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedRole, setSelectedRole] = useState('All');
@@ -235,6 +239,9 @@ function EmployeeAttendance() {
   }, [selectedDate, selectedRole, selectedStatus, search, refreshKey]);
 
   const openRecordForm = (record: AttendanceRecord) => {
+    if (!record.attendance_record_id) {
+      return;
+    }
     setFormError('');
     setForm({
       employee_id: String(record.employee_id),
@@ -250,6 +257,10 @@ function EmployeeAttendance() {
 
   const saveRecord = async () => {
     if (!form) {
+      return;
+    }
+    if (!form.attendance_record_id) {
+      setFormError('This attendance record cannot be edited.');
       return;
     }
     if (!form.employee_id || !form.date.trim()) {
@@ -273,12 +284,10 @@ function EmployeeAttendance() {
         status: form.status,
         notes: form.notes.trim(),
       };
-      const response = form.attendance_record_id
-        ? await api.put(
-            `/attendance/admin/${encodeURIComponent(String(form.attendance_record_id))}`,
-            payload,
-          )
-        : await api.post('/attendance/admin/mark', payload);
+      const response = await api.put(
+        `/attendance/admin/${encodeURIComponent(String(form.attendance_record_id))}`,
+        payload,
+      );
       if (!isSuccessfulResponse(response.data)) {
         throw new Error(
           isRecord(response.data) && typeof response.data.message === 'string'
@@ -319,44 +328,6 @@ function EmployeeAttendance() {
     } finally {
       setIsLoadingHistory(false);
     }
-  };
-
-  const deleteRecord = (record: AttendanceRecord) => {
-    if (!record.attendance_record_id) {
-      return;
-    }
-    Alert.alert(
-      'Delete attendance record',
-      `Remove the attendance record for ${record.full_name || 'this employee'}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await api.delete(
-                `/attendance/admin/${encodeURIComponent(String(record.attendance_record_id))}`,
-              );
-              if (!isSuccessfulResponse(response.data)) {
-                throw new Error(
-                  isRecord(response.data) &&
-                    typeof response.data.message === 'string'
-                    ? response.data.message
-                    : 'The server did not confirm the deletion.',
-                );
-              }
-              setRefreshKey(current => current + 1);
-            } catch (deleteError) {
-              Alert.alert(
-                'Could not delete record',
-                getErrorMessage(deleteError, 'Failed to delete attendance.'),
-              );
-            }
-          },
-        },
-      ],
-    );
   };
 
   const exportCsv = async () => {
@@ -412,17 +383,43 @@ function EmployeeAttendance() {
   };
 
   return (
-    <View className="mt-7 gap-4">
+    <ScrollView
+      contentContainerClassName="mx-auto w-full max-w-[1100px] gap-4 px-5 pb-7 pt-6"
+      keyboardShouldPersistTaps="handled"
+    >
+      <View>
+        <Pressable
+          accessibilityLabel="Back to More"
+          accessibilityRole="button"
+          onPress={onBack}
+          className="self-start rounded-lg py-1"
+        >
+          <Text className="text-sm font-semibold text-[#116C0B]">
+            ‹ Back to More
+          </Text>
+        </Pressable>
+        <Text className="mt-3 text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
+          TEAM
+        </Text>
+        <Text className="mt-1 text-2xl font-bold text-[#012711]">
+          Employee attendance
+        </Text>
+        <Text className="mt-1 text-sm leading-5 text-[#6B7280]">
+          Review daily shifts, edit attendance records, and view employee history.
+        </Text>
+      </View>
+
+      <View className="gap-4">
       <View className="flex-row items-start justify-between gap-2">
         <View className="flex-1">
           <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
             DAILY TRACKING
           </Text>
           <Text className="mt-1 text-base font-bold text-[#012711]">
-            Employee attendance
+            Attendance records
           </Text>
           <Text className="mt-1 text-xs leading-5 text-[#6B7280]">
-            Review shifts, mark attendance, and view employee history.
+            Attendance overview for your restaurant team.
           </Text>
         </View>
         <View className="flex-row gap-2">
@@ -603,18 +600,13 @@ function EmployeeAttendance() {
                 ) : null}
                 <View className="flex-row flex-wrap gap-2 border-t border-[#F3F4F6] pt-2">
                   <SmallAction
-                    label={record.attendance_record_id ? 'Edit' : 'Mark attendance'}
-                    onPress={() => openRecordForm(record)}
-                  />
-                  <SmallAction
                     label="History"
                     onPress={() => loadHistory(record)}
                   />
                   {record.attendance_record_id ? (
                     <SmallAction
-                      label="Delete"
-                      destructive
-                      onPress={() => deleteRecord(record)}
+                      label="Edit"
+                      onPress={() => openRecordForm(record)}
                     />
                   ) : null}
                 </View>
@@ -645,7 +637,7 @@ function EmployeeAttendance() {
           <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text className="text-lg font-bold text-[#012711]">
-                {form?.attendance_record_id ? 'Edit attendance' : 'Mark attendance'}
+                Edit attendance
               </Text>
               <Text className="mt-1 text-xs text-[#6B7280]">
                 {form?.employee_name} · {form?.employee_id}
@@ -802,7 +794,8 @@ function EmployeeAttendance() {
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
