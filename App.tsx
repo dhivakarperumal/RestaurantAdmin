@@ -32,6 +32,7 @@ import type { RegisterValues } from './src/Auth/RegisterPage';
 import colors from './src/theme/colors';
 import DashboardScreen from './src/Admin/Navigation/DashboardScreen';
 import type { HeaderUser } from './src/Admin/Navigation/TopHeader';
+import ServerHome from './src/Servers/SScreens/SHome';
 
 const { height, width } = Dimensions.get('window');
 const fallbackWindowMetrics = {
@@ -151,10 +152,25 @@ function AppContent() {
     );
   }
 
-  return user ? (
-    <DashboardScreen user={user} onLogout={handleLogout} />
-  ) : (
+  if (!user) {
+    return (
     <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />
+    );
+  }
+
+  const role = String(user.role ?? '').trim().toLowerCase();
+  const isServerRole = [
+    'server',
+    'waiter',
+    'staff',
+    'attendee',
+    'employee',
+  ].includes(role);
+
+  return isServerRole ? (
+    <ServerHome user={user} onLogout={handleLogout} />
+  ) : (
+    <DashboardScreen user={user} onLogout={handleLogout} />
   );
 }
 

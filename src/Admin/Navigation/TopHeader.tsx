@@ -29,6 +29,9 @@ export type HeaderUser = {
   name?: string;
   username?: string;
   email?: string;
+  role?: string;
+  employee_id?: string | number;
+  employeeId?: string | number;
 };
 
 type TopHeaderProps = {
