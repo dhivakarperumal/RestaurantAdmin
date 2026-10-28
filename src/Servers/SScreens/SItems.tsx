@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { API_BASE_URL } from '../../../api';
 
@@ -354,6 +355,7 @@ export default function ServerItems({
   onTableChange?: (table: ServerOrderTable) => void;
   onTableStatusChange?: (status: string) => void;
 }) {
+  const insets = useSafeAreaInsets();
   const [foods, setFoods] = useState<FoodRow[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');
@@ -597,7 +599,9 @@ export default function ServerItems({
     <View className="flex-1">
       <ScrollView
         className="flex-1 px-4 pt-3"
-        contentContainerStyle={{ paddingBottom: cart.length > 0 ? 190 : 24 }}
+        contentContainerStyle={{
+          paddingBottom: cart.length > 0 ? 190 + insets.bottom : 24 + insets.bottom,
+        }}
         showsVerticalScrollIndicator={false}
       >
       {/* ====================================================================
@@ -1128,11 +1132,11 @@ export default function ServerItems({
             borderRadius: 22,
             elevation: 8,
             left: 16,
-            marginBottom: 12,
+            marginBottom: 8,
             padding: 16,
             position: 'absolute',
             right: 16,
-            bottom: 0,
+            bottom: Math.max(insets.bottom, 8),
             shadowColor: '#012711',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
@@ -1161,30 +1165,31 @@ export default function ServerItems({
             </Pressable>
           </View>
 
-          {/* Quick Direct Kitchen Send CTA */}
-          <Pressable
-            disabled={submitting}
-            onPress={() => void sendToKitchen()}
-            className="mt-3 h-12 flex-row items-center justify-center rounded-xl bg-[#116C0B] active:bg-[#0F5A09]"
-          >
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text className="text-sm font-black text-white">
-                Send Directly to Kitchen
-              </Text>
-            )}
-          </Pressable>
+          <View className="mt-3 flex-row gap-2">
+            <Pressable
+              disabled={submitting}
+              onPress={() => void sendToKitchen()}
+              className="h-12 flex-1 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-2 active:bg-[#0F5A09]"
+            >
+              {submitting ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text className="text-center text-xs font-black text-white">
+                  Send Directly to Kitchen
+                </Text>
+              )}
+            </Pressable>
 
-          <Pressable
-            accessibilityLabel="Send KOT Preview"
-            onPress={() => setIsReviewOpen(true)}
-            className="mt-2 h-12 flex-row items-center justify-center rounded-xl border border-[#FF7800] bg-white active:bg-[#FFF7ED]"
-          >
-            <Text className="text-sm font-black text-[#EA580C]">
-              Send KOT Preview
-            </Text>
-          </Pressable>
+            <Pressable
+              accessibilityLabel="Send KOT Preview"
+              onPress={() => setIsReviewOpen(true)}
+              className="h-12 flex-1 flex-row items-center justify-center rounded-xl border border-[#FF7800] bg-white px-2 active:bg-[#FFF7ED]"
+            >
+              <Text className="text-center text-xs font-black text-[#EA580C]">
+                Send KOT Preview
+              </Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
 
