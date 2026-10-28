@@ -594,7 +594,12 @@ export default function ServerItems({
   };
 
   return (
-    <View className="px-4 pb-28 pt-3">
+    <View className="flex-1">
+      <ScrollView
+        className="flex-1 px-4 pt-3"
+        contentContainerStyle={{ paddingBottom: cart.length > 0 ? 190 : 24 }}
+        showsVerticalScrollIndicator={false}
+      >
       {/* ====================================================================
           Top Navigation Bar & Table Hero Card
           ==================================================================== */}
@@ -1111,8 +1116,10 @@ export default function ServerItems({
         )}
       </View>
 
+      </ScrollView>
+
       {/* ====================================================================
-          Bottom Cart Summary Bar (When items are in cart)
+          Fixed Bottom Cart Summary Bar (When items are in cart)
           ==================================================================== */}
       {cart.length > 0 ? (
         <View
@@ -1120,8 +1127,12 @@ export default function ServerItems({
             backgroundColor: '#062D16',
             borderRadius: 22,
             elevation: 8,
-            marginTop: 16,
+            left: 16,
+            marginBottom: 12,
             padding: 16,
+            position: 'absolute',
+            right: 16,
+            bottom: 0,
             shadowColor: '#012711',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,

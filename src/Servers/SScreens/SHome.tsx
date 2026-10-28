@@ -2121,22 +2121,28 @@ export default function ServerHome({
         onClockOut={clockOut}
       />
 
-      {/* Main Scroll Content with Pull-To-Refresh */}
-      <ScrollView
-        className="flex-1"
-        style={{ zIndex: 0 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#FF7800', '#116C0B']}
-            tintColor="#FF7800"
-          />
-        }
-      >
-        {mainContent}
-      </ScrollView>
+      {/* Keep the item-order screen independent so its KOT bar can stay fixed. */}
+      {selectedTable ? (
+        <View className="flex-1" style={{ zIndex: 0 }}>
+          {mainContent}
+        </View>
+      ) : (
+        <ScrollView
+          className="flex-1"
+          style={{ zIndex: 0 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#FF7800', '#116C0B']}
+              tintColor="#FF7800"
+            />
+          }
+        >
+          {mainContent}
+        </ScrollView>
+      )}
 
       {/* Attendance Modal */}
       <Modal
@@ -2194,15 +2200,17 @@ export default function ServerHome({
         onServe={handleServeOrder}
       />
 
-      {/* Pinned Server Bottom Navigation Bar */}
-      <ServerBottomBar
-        activeTab={activeTab}
-        onPress={tab => {
-          setSelectedTable(null);
-          setActiveTab(tab);
-        }}
-        onPlusPress={() => setIsAssignedTablesOpen(true)}
-      />
+      {/* Keep the order screen focused on its KOT actions. */}
+      {!selectedTable ? (
+        <ServerBottomBar
+          activeTab={activeTab}
+          onPress={tab => {
+            setSelectedTable(null);
+            setActiveTab(tab);
+          }}
+          onPlusPress={() => setIsAssignedTablesOpen(true)}
+        />
+      ) : null}
       <Modal
         visible={isAssignedTablesOpen}
         transparent
