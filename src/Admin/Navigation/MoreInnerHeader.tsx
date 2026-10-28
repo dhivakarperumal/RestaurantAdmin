@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   Pressable,
   StatusBar,
@@ -12,12 +13,16 @@ type MoreInnerHeaderProps = {
   title: string;
   destination: string;
   onBack: () => void;
+  subtitle?: string;
+  rightContent?: ReactNode;
 };
 
 export default function MoreInnerHeader({
   title,
   destination,
   onBack,
+  subtitle,
+  rightContent,
 }: MoreInnerHeaderProps) {
   return (
     <SafeAreaView
@@ -61,7 +66,7 @@ export default function MoreInnerHeader({
           fill="url(#moreInnerHeaderGradient)"
         />
       </Svg>
-      <View className="h-[58px] flex-row items-center gap-3 px-4">
+      <View className="min-h-[58px] flex-row items-center gap-3 px-4 py-2">
         <Pressable
           accessibilityLabel={`Back to ${destination}`}
           accessibilityRole="button"
@@ -75,9 +80,17 @@ export default function MoreInnerHeader({
         >
           <Text className="text-2xl leading-7 text-white">‹</Text>
         </Pressable>
-        <Text className="flex-1 text-base font-bold text-white" numberOfLines={1}>
-          {title}
-        </Text>
+        <View className="flex-1">
+          <Text className="text-base font-bold text-white" numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text className="mt-0.5 text-xs text-white/75" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {rightContent}
       </View>
     </SafeAreaView>
   );

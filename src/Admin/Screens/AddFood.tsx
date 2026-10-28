@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { launchImageLibrary, type Asset } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
+import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 
 type FoodOption = {
   value: string;
@@ -796,30 +797,40 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#F9FAFB]">
-        <ActivityIndicator color="#116C0B" />
-        <Text className="mt-3 text-sm text-[#6B7280]">Loading food form...</Text>
+      <View className="flex-1 bg-[#F9FAFB]">
+        <MoreInnerHeader
+          title={isEditMode ? 'Edit Food' : 'Add Food'}
+          destination="Items"
+          onBack={onCancel}
+          subtitle={foodId || undefined}
+        />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#116C0B" />
+          <Text className="mt-3 text-sm text-[#6B7280]">
+            Loading food form...
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View className="flex-1 bg-[#F9FAFB]">
-      <View className="flex-row items-center justify-between border-b border-[#E5E7EB] bg-white px-4 py-3">
-        <View className="flex-1">
-          <Text className="text-xl font-bold text-[#012711]">
-            {isEditMode ? 'Edit Food' : 'Add Food'}
+      <MoreInnerHeader
+        title={isEditMode ? 'Edit Food' : 'Add Food'}
+        destination="Items"
+        onBack={onCancel}
+        subtitle={
+          isEditMode
+            ? 'Update this menu item and its availability.'
+            : 'Create a menu item with pricing and availability.'
+        }
+        rightContent={
+          <Text className="ml-1 rounded-lg bg-white/15 px-2.5 py-2 text-xs font-bold text-white">
+            {foodId || 'Food ID unavailable'}
           </Text>
-          <Text className="mt-1 text-xs text-[#6B7280]">
-            {isEditMode
-              ? 'Update this menu item and its availability.'
-              : 'Create a menu item with pricing and availability.'}
-          </Text>
-        </View>
-        <Text className="ml-3 rounded-lg bg-[#F0F7EE] px-2.5 py-2 text-xs font-bold text-[#116C0B]">
-          {foodId || 'Food ID unavailable'}
-        </Text>
-      </View>
+        }
+      />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 24 }}

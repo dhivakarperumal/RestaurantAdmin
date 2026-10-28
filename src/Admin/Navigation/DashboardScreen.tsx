@@ -284,7 +284,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const nextItemsAddRequestId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isFoodDetailsOpen, setIsFoodDetailsOpen] = useState(false);
+  const [isItemsInnerPageOpen, setIsItemsInnerPageOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(
     null,
   );
@@ -494,7 +494,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const navigateToTab = (tab: AppTab) => {
     setActiveTab(tab);
-    setIsFoodDetailsOpen(false);
+    setIsItemsInnerPageOpen(false);
     setSelectedAction(null);
     setSelectedFeature(null);
     setIsSidebarOpen(false);
@@ -503,7 +503,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const navigateToMoreFeature = (feature: string | null) => {
     setActiveTab('more');
-    setIsFoodDetailsOpen(false);
+    setIsItemsInnerPageOpen(false);
     setSelectedAction(null);
     setSelectedFeature(feature);
     setIsSidebarOpen(false);
@@ -518,8 +518,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     navigateToTab(tab);
   };
 
-  const handleFoodDetailsVisibilityChange = (isVisible: boolean) => {
-    setIsFoodDetailsOpen(isVisible);
+  const handleItemsInnerPageVisibilityChange = (isVisible: boolean) => {
+    setIsItemsInnerPageOpen(isVisible);
     if (isVisible) {
       setIsSidebarOpen(false);
       setIsNotificationsOpen(false);
@@ -544,7 +544,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const openAddCategoryPage = () => {
     setActiveTab('more');
-    setIsFoodDetailsOpen(false);
+    setIsItemsInnerPageOpen(false);
     setSelectedAction(null);
     setSelectedFeature('AddCategory');
     setIsSidebarOpen(false);
@@ -746,7 +746,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           setActiveTab('home');
           setSelectedAction(null);
           setSelectedFeature(null);
-          setIsFoodDetailsOpen(false);
+          setIsItemsInnerPageOpen(false);
           return true;
         }
         // 6. Already on home — let OS decide (exit app)
@@ -767,15 +767,15 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   return (
     <SafeAreaView
       edges={
-        isFoodDetailsOpen
-          ? ['top', 'bottom']
+        isItemsInnerPageOpen
+          ? ['bottom']
           : isMoreFeatureOpen
           ? ['bottom']
           : []
       }
       className="flex-1 bg-[#F9FAFB]"
     >
-      {!isFoodDetailsOpen && !isMoreFeatureOpen ? (
+      {!isItemsInnerPageOpen && !isMoreFeatureOpen ? (
         <TopHeader
           user={user}
           unreadNotifications={0}
@@ -795,7 +795,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           onLogout={handleLogout}
         />
       ) : null}
-      {!isFoodDetailsOpen && isMoreFeatureOpen ? (
+      {!isItemsInnerPageOpen && isMoreFeatureOpen ? (
         <MoreInnerHeader
           title={
             selectedFeature === 'AddCategory'
@@ -850,7 +850,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onItemsAddRequestHandled={handleItemsAddRequestHandled}
               onOpenAddCuisine={openAddCuisinePage}
               onCloseAddCuisine={closeAddCuisinePage}
-              onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
+              onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
               onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -906,7 +906,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onItemsAddRequestHandled={handleItemsAddRequestHandled}
             onOpenAddCuisine={openAddCuisinePage}
             onCloseAddCuisine={closeAddCuisinePage}
-            onFoodDetailsVisibilityChange={handleFoodDetailsVisibilityChange}
+            onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
             onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -927,10 +927,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         </View>
       )}
 
-      {!isMoreFeatureOpen ? (
+      {!isMoreFeatureOpen && !isItemsInnerPageOpen ? (
         <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       ) : null}
-      {!isWide && activeTab === 'items' && !isFoodDetailsOpen ? (
+      {!isWide && activeTab === 'items' && !isItemsInnerPageOpen ? (
         <FloatingActionMenu
           onAddProduct={openItemsAddForm}
           onAddCategory={openAddCategoryPage}
@@ -1258,7 +1258,7 @@ function MainContent({
   onItemsAddRequestHandled,
   onOpenAddCuisine,
   onCloseAddCuisine,
-  onFoodDetailsVisibilityChange,
+  onInnerPageVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
   onRemoveFoodFromBilling,
@@ -1296,7 +1296,7 @@ function MainContent({
   onItemsAddRequestHandled: (id: number) => void;
   onOpenAddCuisine: (returnFeature: string | null) => void;
   onCloseAddCuisine: () => void;
-  onFoodDetailsVisibilityChange: (isVisible: boolean) => void;
+  onInnerPageVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
@@ -1511,7 +1511,7 @@ function MainContent({
         pendingAddRequest={itemsAddRequest}
         onAddRequestHandled={onItemsAddRequestHandled}
         onAddCuisine={() => onOpenAddCuisine(null)}
-        onFoodDetailsVisibilityChange={onFoodDetailsVisibilityChange}
+        onInnerPageVisibilityChange={onInnerPageVisibilityChange}
         showAddButton={false}
       />
     );
