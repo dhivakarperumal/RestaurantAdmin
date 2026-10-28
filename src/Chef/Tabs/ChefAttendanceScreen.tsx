@@ -1,0 +1,519 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
+type AttendanceRecord = Record<string, unknown>;
+type StatusFilter = 'All' | 'Present' | 'Late' | 'Working' | 'Completed';
+type MonthFilter = 'All' | 'Current' | 'Previous';
+
+type ChefAttendanceScreenProps = {
+  attendance: AttendanceRecord | null;
+  history: AttendanceRecord[];
+  shiftInfo: AttendanceRecord | null;
+  isBusy: boolean;
+  onClockAction: () => void;
+};
+
+function valueOf(value: unknown, fallback = '') {
+  return value === undefined || value === null || String(value).trim() === ''
+    ? fallback
+    : String(value);
+}
+
+function formatTime(value: unknown) {
+  if (!value) {
+    return '—';
+  }
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatShiftTime(value: unknown) {
+  if (!value) {
+    return '—';
+  }
+  const [hours, minutes] = String(value).split(':');
+  if (!hours || !minutes) {
+    return String(value);
+  }
+  const date = new Date();
+  date.setHours(Number(hours), Number(minutes), 0, 0);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDuration(seconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
+function durationInSeconds(record: AttendanceRecord) {
+  if (record.duration_seconds !== undefined && record.duration_seconds !== null) {
+    return Number(record.duration_seconds) || 0;
+  }
+  if (record.total_hours !== undefined && record.total_hours !== null) {
+    return (Number(record.total_hours) || 0) * 3600;
+  }
+  if (record.check_in && !record.check_out) {
+    const checkInTime = new Date(String(record.check_in)).getTime();
+    return Number.isNaN(checkInTime)
+      ? 0
+      : Math.max(0, Math.floor((Date.now() - checkInTime) / 1000));
+  }
+  return 0;
+}
+
+function dateKey(record: AttendanceRecord) {
+  return valueOf(record.date ?? record.attendance_date).slice(0, 10);
+}
+
+function dateLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? value || 'Previous shift'
+    : date.toLocaleDateString([], {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+}
+
+function MetricCard({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <View className="min-h-[104px] w-[48%] justify-between rounded-2xl border border-[#E5E7EB] bg-white p-4">
+      <Text className="text-[10px] font-bold uppercase tracking-[0.8px] text-[#6B7280]">
+        {label}
+      </Text>
+      <View>
+        <Text className="text-[23px] font-extrabold text-[#012711]">
+          {value}
+        </Text>
+        <Text className="mt-1 text-[10px] text-[#9CA3AF]">{hint}</Text>
+      </View>
+    </View>
+  );
+}
+
+function ChefAttendanceScreen({
+  attendance,
+  history,
+  shiftInfo,
+  isBusy,
+  onClockAction,
+}: ChefAttendanceScreenProps) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
+  const [monthFilter, setMonthFilter] = useState<MonthFilter>('All');
+  const [liveSeconds, setLiveSeconds] = useState(() =>
+    durationInSeconds(attendance ?? {}),
+  );
+
+  const isWorking = Boolean(attendance?.check_in && !attendance?.check_out);
+  const isCompleted = Boolean(attendance?.check_in && attendance?.check_out);
+  const today = new Date().toISOString().slice(0, 10);
+  const todayLabel = new Date().toLocaleDateString([], {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const totalSeconds = history.reduce(
+    (total, record) => total + durationInSeconds(record),
+    0,
+  );
+  const daysPresent = new Set(history.map(dateKey).filter(Boolean)).size;
+  const lateCount = history.filter(record => record.status === 'Late').length;
+  const onTimeRate = history.length
+    ? Math.round(((history.length - lateCount) / history.length) * 100)
+    : 100;
+  const averageHours = history.length
+    ? (totalSeconds / history.length / 3600).toFixed(1)
+    : '0.0';
+
+  const filteredHistory = useMemo(() => {
+    const currentDate = new Date();
+    const currentMonth = `${currentDate.getFullYear()}-${String(
+      currentDate.getMonth() + 1,
+    ).padStart(2, '0')}`;
+    const previousDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - 1,
+      1,
+    );
+    const previousMonth = `${previousDate.getFullYear()}-${String(
+      previousDate.getMonth() + 1,
+    ).padStart(2, '0')}`;
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return history.filter(record => {
+      const currentRecordIsWorking = Boolean(
+        record.check_in && !record.check_out,
+      );
+      if (
+        normalizedSearch &&
+        ![
+          dateKey(record),
+          valueOf(record.notes),
+          valueOf(record.status),
+        ].some(item => item.toLowerCase().includes(normalizedSearch))
+      ) {
+        return false;
+      }
+
+      if (
+        statusFilter === 'Working' &&
+        !currentRecordIsWorking
+      ) {
+        return false;
+      }
+      if (
+        statusFilter === 'Completed' &&
+        !(record.check_in && record.check_out)
+      ) {
+        return false;
+      }
+      if (statusFilter === 'Late' && record.status !== 'Late') {
+        return false;
+      }
+      if (
+        statusFilter === 'Present' &&
+        (!record.check_in || record.status === 'Late')
+      ) {
+        return false;
+      }
+
+      const recordMonth = dateKey(record).slice(0, 7);
+      if (monthFilter === 'Current' && recordMonth !== currentMonth) {
+        return false;
+      }
+      if (monthFilter === 'Previous' && recordMonth !== previousMonth) {
+        return false;
+      }
+      return true;
+    });
+  }, [history, monthFilter, search, statusFilter]);
+
+  const scheduledStart = shiftInfo?.start_time ?? attendance?.start_time;
+  const scheduledEnd = shiftInfo?.end_time ?? attendance?.end_time;
+
+  useEffect(() => {
+    if (!attendance?.check_in || attendance.check_out) {
+      setLiveSeconds(durationInSeconds(attendance ?? {}));
+      return;
+    }
+
+    const updateLiveDuration = () => {
+      const checkInTime = new Date(String(attendance.check_in)).getTime();
+      setLiveSeconds(
+        Number.isNaN(checkInTime)
+          ? 0
+          : Math.max(0, Math.floor((Date.now() - checkInTime) / 1000)),
+      );
+    };
+    updateLiveDuration();
+    const interval = setInterval(updateLiveDuration, 1000);
+    return () => clearInterval(interval);
+  }, [attendance]);
+
+  return (
+    <View className="gap-5">
+      <View>
+        <Text className="text-[23px] font-extrabold text-[#012711]">
+          Chef Attendance & Shift Log
+        </Text>
+        <Text className="mt-1 text-[13px] leading-5 text-[#6B7280]">
+          Mark your daily check-in, track working hours, and review your shift history.
+        </Text>
+      </View>
+
+      <View className="overflow-hidden rounded-2xl border border-[#D1E9D5] bg-white p-4">
+        <View className="mb-4 h-1 self-stretch rounded-full bg-[#116C0B]" />
+        <Text className="text-[10px] font-bold uppercase tracking-[1px] text-[#116C0B]">
+          {todayLabel}
+        </Text>
+        <View className="mt-2 flex-row flex-wrap items-center gap-2">
+          <Text className="text-lg font-extrabold text-[#012711]">
+            {isWorking
+              ? 'You are on duty'
+              : isCompleted
+                ? 'Shift completed for today'
+                : 'Shift not yet started'}
+          </Text>
+          <Text
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+              isWorking
+                ? 'bg-emerald-100 text-emerald-800'
+                : isCompleted
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-amber-100 text-amber-800'
+            }`}
+          >
+            {isWorking ? 'ACTIVE DUTY' : isCompleted ? 'COMPLETED' : 'NOT STARTED'}
+          </Text>
+          {attendance?.status ? (
+            <Text className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[10px] font-bold text-[#4B5563]">
+              {valueOf(attendance.status)}
+            </Text>
+          ) : null}
+        </View>
+        <Text className="mt-2 text-xs leading-[18px] text-[#6B7280]">
+          {isWorking
+            ? `Clocked in at ${formatTime(attendance?.check_in)}. Your work time is being recorded.`
+            : isCompleted
+              ? `Worked from ${formatTime(attendance?.check_in)} to ${formatTime(attendance?.check_out)} (${valueOf(attendance?.total_hours, '0')} hrs).`
+              : scheduledStart
+                ? `Your scheduled shift is ${formatShiftTime(scheduledStart)} – ${formatShiftTime(scheduledEnd)}. Clock in to start your shift.`
+                : 'Clock in to start recording your shift.'}
+        </Text>
+
+        <View className="mt-4 flex-row flex-wrap gap-2">
+          <View className="min-w-[45%] flex-1 rounded-xl bg-[#F9FAFB] p-3">
+            <Text className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+              Clock in
+            </Text>
+            <Text className="mt-1 text-sm font-bold text-[#012711]">
+              {formatTime(attendance?.check_in)}
+            </Text>
+          </View>
+          <View className="min-w-[45%] flex-1 rounded-xl bg-[#F9FAFB] p-3">
+            <Text className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+              Clock out
+            </Text>
+            <Text className="mt-1 text-sm font-bold text-[#012711]">
+              {formatTime(attendance?.check_out)}
+            </Text>
+          </View>
+          {isWorking ? (
+            <View className="min-w-[45%] flex-1 rounded-xl bg-emerald-50 p-3">
+              <Text className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                Active duration
+              </Text>
+              <Text className="mt-1 text-sm font-extrabold text-[#012711]">
+                {formatDuration(liveSeconds)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          disabled={isBusy}
+          onPress={onClockAction}
+          className={`mt-4 min-h-[48px] items-center justify-center rounded-xl px-4 ${
+            isWorking ? 'bg-rose-600' : 'bg-[#116C0B]'
+          } ${isBusy ? 'opacity-60' : 'opacity-100'}`}
+        >
+          <Text className="text-sm font-bold text-white">
+            {isBusy
+              ? 'Updating attendance...'
+              : isWorking
+                ? 'Clock Out'
+                : isCompleted
+                  ? 'Resume Shift'
+                  : 'Clock In Now'}
+          </Text>
+        </Pressable>
+      </View>
+
+      <View className="flex-row flex-wrap justify-between gap-y-3">
+        <MetricCard
+          label="Days present"
+          value={String(daysPresent)}
+          hint="Recorded shifts"
+        />
+        <MetricCard
+          label="Total hours"
+          value={`${(totalSeconds / 3600).toFixed(1)} hrs`}
+          hint="Logged on duty"
+        />
+        <MetricCard
+          label="Average shift"
+          value={`${averageHours} hrs`}
+          hint="Per recorded shift"
+        />
+        <MetricCard
+          label="On-time rate"
+          value={`${onTimeRate}%`}
+          hint="Attendance punctuality"
+        />
+        <MetricCard
+          label="Late arrivals"
+          value={String(lateCount)}
+          hint="Past scheduled shift"
+        />
+      </View>
+
+      <View>
+        <View className="mb-3">
+          <Text className="text-[17px] font-bold text-[#012711]">
+            My Attendance History
+          </Text>
+          <Text className="mt-1 text-xs text-[#6B7280]">
+            Showing {filteredHistory.length} of {history.length} shifts
+          </Text>
+        </View>
+
+        <TextInput
+          accessibilityLabel="Search attendance history"
+          className="min-h-11 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
+          onChangeText={setSearch}
+          placeholder="Search date, status, or note"
+          placeholderTextColor="#9CA3AF"
+          value={search}
+        />
+
+        <View className="mt-3 gap-3">
+          <View className="flex-row flex-wrap gap-2">
+            {(['All', 'Present', 'Late', 'Working', 'Completed'] as const).map(
+              filter => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: statusFilter === filter }}
+                  key={filter}
+                  onPress={() => setStatusFilter(filter)}
+                  className={`rounded-full border px-3 py-2 ${
+                    statusFilter === filter
+                      ? 'border-[#116C0B] bg-[#116C0B]'
+                      : 'border-[#E5E7EB] bg-white'
+                  }`}
+                >
+                  <Text
+                    className={`text-[11px] font-semibold ${
+                      statusFilter === filter ? 'text-white' : 'text-[#4B5563]'
+                    }`}
+                  >
+                    {filter === 'Working' ? 'Active duty' : filter === 'All' ? 'All statuses' : filter}
+                  </Text>
+                </Pressable>
+              ),
+            )}
+          </View>
+          <View className="flex-row gap-2">
+            {(['All', 'Current', 'Previous'] as const).map(filter => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: monthFilter === filter }}
+                key={filter}
+                onPress={() => setMonthFilter(filter)}
+                className={`rounded-lg px-3 py-2 ${
+                  monthFilter === filter ? 'bg-[#F0F7EE]' : 'bg-white'
+                }`}
+              >
+                <Text
+                  className={`text-[11px] font-semibold ${
+                    monthFilter === filter ? 'text-[#116C0B]' : 'text-[#6B7280]'
+                  }`}
+                >
+                  {filter === 'All' ? 'All months' : `${filter} month`}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View className="mt-3 gap-3">
+          {filteredHistory.length ? (
+            filteredHistory.map((record, index) => {
+              const recordIsWorking = Boolean(
+                record.check_in && !record.check_out,
+              );
+              const date = dateKey(record);
+              return (
+                <View
+                  key={valueOf(
+                    record.id ?? record.attendance_id,
+                    `${date}-${index}`,
+                  )}
+                  className="rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                >
+                  <View className="flex-row flex-wrap items-center justify-between gap-2">
+                    <View className="flex-row flex-wrap items-center gap-2">
+                      <Text className="text-sm font-bold text-[#012711]">
+                        {dateLabel(date)}
+                      </Text>
+                      {date === today ? (
+                        <Text className="rounded-full bg-emerald-100 px-2 py-1 text-[9px] font-bold text-emerald-800">
+                          TODAY
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        recordIsWorking
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : record.status === 'Late'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-[#F3F4F6] text-[#4B5563]'
+                      }`}
+                    >
+                      {recordIsWorking
+                        ? 'ACTIVE DUTY'
+                        : valueOf(record.status, 'Present').toUpperCase()}
+                    </Text>
+                  </View>
+                  {record.start_time ? (
+                    <Text className="mt-2 text-[11px] text-[#6B7280]">
+                      Scheduled: {formatShiftTime(record.start_time)} – {formatShiftTime(record.end_time)}
+                    </Text>
+                  ) : null}
+                  <View className="mt-3 flex-row justify-between gap-2">
+                    <View className="flex-1 rounded-lg bg-[#F9FAFB] p-2.5">
+                      <Text className="text-[10px] text-[#6B7280]">Clock in</Text>
+                      <Text className="mt-1 text-xs font-bold text-[#012711]">
+                        {formatTime(record.check_in)}
+                      </Text>
+                    </View>
+                    <View className="flex-1 rounded-lg bg-[#F9FAFB] p-2.5">
+                      <Text className="text-[10px] text-[#6B7280]">Clock out</Text>
+                      <Text className="mt-1 text-xs font-bold text-[#012711]">
+                        {recordIsWorking ? 'On duty' : formatTime(record.check_out)}
+                      </Text>
+                    </View>
+                    <View className="flex-1 rounded-lg bg-[#F9FAFB] p-2.5">
+                      <Text className="text-[10px] text-[#6B7280]">Duration</Text>
+                      <Text className="mt-1 text-xs font-bold text-[#012711]">
+                        {formatDuration(
+                          recordIsWorking && date === today
+                            ? liveSeconds
+                            : durationInSeconds(record),
+                        )}
+                      </Text>
+                    </View>
+                  </View>
+                  {record.notes ? (
+                    <Text className="mt-3 text-xs leading-5 text-[#6B7280]">
+                      {valueOf(record.notes)}
+                    </Text>
+                  ) : null}
+                </View>
+              );
+            })
+          ) : (
+            <View className="items-center rounded-2xl border border-dashed border-[#D1D5DB] bg-white px-5 py-8">
+              <Text className="text-sm font-semibold text-[#374151]">
+                {history.length
+                  ? 'No attendance records match these filters.'
+                  : 'No attendance history yet.'}
+              </Text>
+              <Text className="mt-1 text-center text-xs leading-5 text-[#6B7280]">
+                {history.length
+                  ? 'Try another search or filter.'
+                  : 'Clock in today to create your first attendance record.'}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export default ChefAttendanceScreen;

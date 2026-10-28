@@ -31,7 +31,7 @@ type ItemsProps = {
   pendingAddRequest?: { id: number; action: 'product' | 'category' } | null;
   onAddRequestHandled?: (id: number) => void;
   onAddCuisine?: () => void;
-  onFoodDetailsVisibilityChange?: (isVisible: boolean) => void;
+  onInnerPageVisibilityChange?: (isVisible: boolean) => void;
   showAddButton?: boolean;
 };
 
@@ -222,7 +222,7 @@ function Items({
   pendingAddRequest = null,
   onAddRequestHandled,
   onAddCuisine,
-  onFoodDetailsVisibilityChange,
+  onInnerPageVisibilityChange,
   showAddButton = true,
 }: ItemsProps) {
   const [items, setItems] = useState<Item[]>([]);
@@ -376,6 +376,7 @@ function Items({
     }
     setIsAddMenuOpen(false);
     if (pendingAddRequest.action === 'product') {
+      onInnerPageVisibilityChange?.(true);
       setIsAddFoodOpen(true);
     } else {
       setEntityName('');
@@ -384,7 +385,7 @@ function Items({
       setAddEntityType('category');
     }
     onAddRequestHandled?.(pendingAddRequest.id);
-  }, [pendingAddRequest, onAddRequestHandled]);
+  }, [pendingAddRequest, onAddRequestHandled, onInnerPageVisibilityChange]);
 
   const saveEntity = async () => {
     const name = entityName.trim();
@@ -423,8 +424,12 @@ function Items({
     return (
       <AddFood
         actor={actor}
-        onCancel={() => setIsAddFoodOpen(false)}
+        onCancel={() => {
+          onInnerPageVisibilityChange?.(false);
+          setIsAddFoodOpen(false);
+        }}
         onSaved={() => {
+          onInnerPageVisibilityChange?.(false);
           setIsAddFoodOpen(false);
           setRetry(count => count + 1);
         }}
@@ -437,8 +442,12 @@ function Items({
       <AddFood
         actor={actor}
         foodId={editingFoodId}
-        onCancel={() => setEditingFoodId(null)}
+        onCancel={() => {
+          onInnerPageVisibilityChange?.(false);
+          setEditingFoodId(null);
+        }}
         onSaved={() => {
+          onInnerPageVisibilityChange?.(false);
           setEditingFoodId(null);
           setSelectedFoodId(null);
           setRetry(count => count + 1);
@@ -452,16 +461,15 @@ function Items({
       <FoodDetails
         foodId={selectedFoodId}
         onEdit={() => {
-          onFoodDetailsVisibilityChange?.(false);
           setEditingFoodId(selectedFoodId);
         }}
         onDeleted={() => {
-          onFoodDetailsVisibilityChange?.(false);
+          onInnerPageVisibilityChange?.(false);
           setSelectedFoodId(null);
           setRetry(count => count + 1);
         }}
         onBack={() => {
-          onFoodDetailsVisibilityChange?.(false);
+          onInnerPageVisibilityChange?.(false);
           setSelectedFoodId(null);
         }}
       />
@@ -758,7 +766,7 @@ function Items({
               accessibilityLabel={`View details of ${getItemName(item)}`}
               accessibilityRole="button"
               onPress={() => {
-                onFoodDetailsVisibilityChange?.(true);
+                onInnerPageVisibilityChange?.(true);
                 setSelectedFoodId(foodId);
               }}
               className="flex-row items-center gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm"
@@ -860,6 +868,7 @@ function Items({
               accessibilityRole="button"
               onPress={() => {
                 setIsAddMenuOpen(false);
+                onInnerPageVisibilityChange?.(true);
                 setIsAddFoodOpen(true);
               }}
               className="rounded-xl bg-[#F0F7EE] px-4 py-3.5"
