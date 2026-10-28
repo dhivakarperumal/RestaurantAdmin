@@ -443,7 +443,7 @@ function Items({
         actor={actor}
         foodId={editingFoodId}
         onCancel={() => {
-          onInnerPageVisibilityChange?.(false);
+          onInnerPageVisibilityChange?.(true);
           setEditingFoodId(null);
         }}
         onSaved={() => {
@@ -461,6 +461,7 @@ function Items({
       <FoodDetails
         foodId={selectedFoodId}
         onEdit={() => {
+          onInnerPageVisibilityChange?.(true);
           setEditingFoodId(selectedFoodId);
         }}
         onDeleted={() => {
