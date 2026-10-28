@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -364,6 +364,7 @@ export default function ServerItems({
   const [loading, setLoading] = useState(true);
   const [billLoading, setBillLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const submissionLock = useRef(false);
   const [error, setError] = useState('');
   const [activeBill, setActiveBill] = useState<unknown>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
@@ -537,7 +538,8 @@ export default function ServerItems({
 
   // Send Order to Kitchen
   const sendToKitchen = async () => {
-    if (!cart.length || submitting) return;
+    if (!cart.length || submitting || submissionLock.current) return;
+    submissionLock.current = true;
     setSubmitting(true);
     try {
       const billRecord =
@@ -547,6 +549,8 @@ export default function ServerItems({
       const billData =
         billRecord.data && typeof billRecord.data === 'object'
           ? (billRecord.data as Record<string, unknown>)
+          : billRecord.bill && typeof billRecord.bill === 'object'
+          ? (billRecord.bill as Record<string, unknown>)
           : billRecord;
 
       const items = cart.map(({ food, quantity }) => ({
@@ -555,8 +559,10 @@ export default function ServerItems({
         quantity,
         price: priceValue(food),
       }));
+      const assignedServerId =
+        table.assigned_server_id ?? table.assigned_employee_id ?? table.server_id;
 
-      await api.post('/kitchen-orders', {
+      const kitchenResponse = await api.post('/kitchen-orders', {
         table_id: tableId,
         table_number: tableLabel,
         items,
@@ -566,11 +572,33 @@ export default function ServerItems({
         ...(billData.bill_id || billData.id
           ? { bill_id: billData.bill_id ?? billData.id }
           : {}),
+        ...(assignedServerId !== undefined &&
+        assignedServerId !== null &&
+        assignedServerId !== ''
+          ? {
+              server_id: assignedServerId,
+              assigned_server_id: assignedServerId,
+            }
+          : {}),
       });
+      const kitchenPayload =
+        kitchenResponse.data && typeof kitchenResponse.data === 'object'
+          ? (kitchenResponse.data as Record<string, unknown>)
+          : {};
+      if (kitchenPayload.success === false) {
+        throw new Error(
+          typeof kitchenPayload.message === 'string'
+            ? kitchenPayload.message
+            : 'The kitchen rejected this order.',
+        );
+      }
 
-      // Also ensure table status is updated to Occupied
+      // The kitchen-order endpoint owns the table/bill state after a successful
+      // KOT. Do not make a second table update request that can fail assignment
+      // validation after the order has already been created.
       if (tableStatus !== 'occupied') {
-        void updateTableStatus('occupied');
+        setTableStatus('occupied');
+        onTableStatusChange?.('occupied');
       }
 
       setCart([]);
@@ -591,6 +619,7 @@ export default function ServerItems({
           : 'Unable to send the order to the kitchen. Please check connection and try again.';
       Alert.alert('Order Placement Failed', message);
     } finally {
+      submissionLock.current = false;
       setSubmitting(false);
     }
   };
@@ -1129,14 +1158,16 @@ export default function ServerItems({
         <View
           style={{
             backgroundColor: '#062D16',
-            borderRadius: 22,
+            borderTopLeftRadius: 22,
+            borderTopRightRadius: 22,
             elevation: 8,
-            left: 16,
-            marginBottom: 8,
-            padding: 16,
+            left: 0,
+            paddingBottom: Math.max(insets.bottom, 8),
+            paddingHorizontal: 16,
+            paddingTop: 16,
             position: 'absolute',
-            right: 16,
-            bottom: Math.max(insets.bottom, 8),
+            right: 0,
+            bottom: 0,
             shadowColor: '#012711',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,

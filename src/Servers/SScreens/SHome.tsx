@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -12,12 +13,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import api from '../../../api';
+import api, { API_BASE_URL, getStoredUser } from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
 import ServerBottomBar, { type ServerTab } from '../SNavigations/SBottombsr';
 import ServerTopHeader from '../SNavigations/STopHeder';
 import ServerFoods from './SFoods';
 import ServerMore from './SMore';
+import ServerProfile from './Profile';
 import ServerItems, { type ServerOrderTable } from './SItems';
 import ServerTables from './STables';
 
@@ -37,6 +39,18 @@ type ServerTable = {
   assigned_server_id?: string | number | null;
   assigned_employee_id?: string | number | null;
   server_id?: string | number | null;
+  employee_id?: string | number | null;
+  user_id?: string | number | null;
+  assigned_to?: string | number | null;
+  waiter_id?: string | number | null;
+  assigned_server_name?: string | null;
+  server_name?: string | null;
+  assigned_server?: {
+    id?: string | number;
+    employee_id?: string | number;
+    name?: string;
+    full_name?: string;
+  } | null;
 };
 
 type OrderItem = {
@@ -112,6 +126,255 @@ function getOrderItems(order: Row): OrderItem[] {
     });
   }
   return [];
+}
+
+function imageUri(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    if (/^(https?:|data:image\/|file:|content:)/i.test(trimmed)) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('//')) {
+      const protocol = API_BASE_URL.match(/^(https?:)/i)?.[1] || 'https:';
+      return `${protocol}${trimmed}`;
+    }
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        return imageUri(JSON.parse(trimmed) as unknown);
+      } catch {
+        return undefined;
+      }
+    }
+    const apiRoot = API_BASE_URL.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    return `${apiRoot}/${trimmed.replace(/^\.?\//, '')}`;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const uri = imageUri(entry);
+      if (uri) return uri;
+    }
+  }
+  if (typeof value === 'object' && value !== null) {
+    const rec = value as Record<string, unknown>;
+    return (
+      imageUri(rec.url) ||
+      imageUri(rec.image_url) ||
+      imageUri(rec.imageUrl) ||
+      imageUri(rec.image) ||
+      imageUri(rec.src) ||
+      imageUri(rec.path)
+    );
+  }
+  return undefined;
+}
+
+function imageValue(row: Row): string | undefined {
+  for (const key of [
+    'food_images',
+    'food_image',
+    'food_image_url',
+    'image_url',
+    'image',
+    'imageUrl',
+    'thumbnail',
+  ]) {
+    const uri = imageUri(row[key]);
+    if (uri) return uri;
+  }
+  return undefined;
+}
+
+function getFoodName(food: Row): string {
+  return value(
+    food,
+    ['food_name', 'product_name', 'productName', 'name', 'item_name', 'title'],
+    'Menu Item',
+  );
+}
+
+function getFoodCategory(food: Row): string {
+  return value(
+    food,
+    [
+      'category_name',
+      'categoryName',
+      'category',
+      'cuisine_name',
+      'cuisine',
+      'food_type',
+    ],
+    'Special',
+  );
+}
+
+function getFoodPrice(food: Row): number {
+  for (const key of [
+    'final_price',
+    'price',
+    'food_price',
+    'selling_price',
+    'unit_price',
+    'mrp',
+  ]) {
+    const raw = food[key];
+    if (raw !== undefined && raw !== null && raw !== '') {
+      const num = Number(raw);
+      if (!isNaN(num) && num > 0) return num;
+    }
+  }
+  return 0;
+}
+
+function getFoodType(food: Row): 'veg' | 'non-veg' {
+  const typeStr = value(
+    food,
+    ['food_type', 'type', 'food_preference', 'dietary'],
+    '',
+  ).toLowerCase();
+  if (typeStr.includes('non') || typeStr === 'non-veg' || typeStr === 'nonveg') {
+    return 'non-veg';
+  }
+  if (typeStr.includes('veg') || typeStr === 'vegan') {
+    return 'veg';
+  }
+  const isVeg = food.is_veg;
+  if (isVeg === false || isVeg === 0 || isVeg === '0' || isVeg === 'false') {
+    return 'non-veg';
+  }
+  if (isVeg === true || isVeg === 1 || isVeg === '1' || isVeg === 'true') {
+    return 'veg';
+  }
+  const name = getFoodName(food).toLowerCase();
+  if (
+    /(chicken|mutton|fish|prawn|egg|pork|beef|meat|crab|lamb|tikka|kebab)/i.test(
+      name,
+    )
+  ) {
+    return 'non-veg';
+  }
+  return 'veg';
+}
+
+function isTableAssignedToServer(
+  table: ServerTable,
+  user: HeaderUser,
+  extraEmployeeId?: string | number | null,
+): boolean {
+  const userIds = [
+    user.employee_id,
+    user.employeeId,
+    user.id,
+    user.user_id,
+    extraEmployeeId,
+    (user as Record<string, unknown>)?.emp_id,
+  ]
+    .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
+    .map(val => String(val).trim());
+
+  const userNames = [
+    user.name,
+    user.username,
+    (user as Record<string, unknown>)?.full_name,
+  ]
+    .filter(val => typeof val === 'string' && val.trim() !== '')
+    .map(val => (val as string).toLowerCase().trim());
+
+  const tableServerIds = [
+    table.assigned_server_id,
+    table.assigned_employee_id,
+    table.server_id,
+    table.employee_id,
+    table.user_id,
+    table.assigned_to,
+    table.waiter_id,
+  ];
+
+  for (const rawId of tableServerIds) {
+    if (rawId !== undefined && rawId !== null && String(rawId).trim() !== '') {
+      if (userIds.includes(String(rawId).trim())) {
+        return true;
+      }
+    }
+  }
+
+  if (table.assigned_server && typeof table.assigned_server === 'object') {
+    const sId = table.assigned_server.employee_id ?? table.assigned_server.id;
+    if (sId !== undefined && sId !== null && userIds.includes(String(sId).trim())) {
+      return true;
+    }
+    const sName = String(
+      table.assigned_server.name ?? table.assigned_server.full_name ?? '',
+    )
+      .toLowerCase()
+      .trim();
+    if (sName && userNames.includes(sName)) {
+      return true;
+    }
+  }
+
+  const serverName = String(
+    table.assigned_server_name ?? table.server_name ?? '',
+  )
+    .toLowerCase()
+    .trim();
+  if (serverName && userNames.includes(serverName)) {
+    return true;
+  }
+
+  return false;
+}
+
+function VegDotSvg({ size = 13 }: { size?: number }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 2.5,
+        borderWidth: 1.5,
+        borderColor: '#15803D',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+      }}
+    >
+      <View
+        style={{
+          width: size * 0.45,
+          height: size * 0.45,
+          borderRadius: 999,
+          backgroundColor: '#15803D',
+        }}
+      />
+    </View>
+  );
+}
+
+function NonVegDotSvg({ size = 13 }: { size?: number }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 2.5,
+        borderWidth: 1.5,
+        borderColor: '#DC2626',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+      }}
+    >
+      <View
+        style={{
+          width: size * 0.45,
+          height: size * 0.45,
+          borderRadius: 999,
+          backgroundColor: '#DC2626',
+        }}
+      />
+    </View>
+  );
 }
 
 /* ==========================================================================
@@ -549,6 +812,7 @@ function HomeTabContent({
   orders,
   foods,
   tables,
+  assignedTables,
   user,
   isClockedIn,
   clockInTime,
@@ -556,10 +820,12 @@ function HomeTabContent({
   onSelectTab,
   onSelectOrder,
   onServeOrder,
+  onOpenAssignedTables,
 }: {
   orders: Row[];
   foods: Row[];
   tables: ServerTable[];
+  assignedTables: ServerTable[];
   user: HeaderUser;
   isClockedIn: boolean;
   clockInTime: string;
@@ -567,6 +833,7 @@ function HomeTabContent({
   onSelectTab: (tab: ServerTab) => void;
   onSelectOrder: (order: Row) => void;
   onServeOrder: (order: Row) => void;
+  onOpenAssignedTables: () => void;
 }) {
   const name = user.name?.trim() || user.username?.trim() || 'Server';
   const [orderFilter, setOrderFilter] = useState<'all' | 'ready' | 'cooking' | 'pending'>('all');
@@ -622,7 +889,7 @@ function HomeTabContent({
     ).length;
   }, [orders]);
 
-  // Table calculations
+  // Active table numbers with orders
   const occupiedTableNumbers = useMemo(() => {
     const tableSet = new Set<string>();
     activeOrders.forEach(o => {
@@ -632,8 +899,105 @@ function HomeTabContent({
     return tableSet;
   }, [activeOrders]);
 
-  const totalTableCount = tables.length || 12;
-  const occupiedTableCount = occupiedTableNumbers.size || Math.min(activeOrders.length, totalTableCount);
+  // Assigned tables counts for THIS server
+  const assignedTableCount = assignedTables.length;
+  const assignedOccupiedCount = useMemo(() => {
+    return assignedTables.filter(t => {
+      const num = String(t.table_number ?? t.id ?? t.table_id ?? '').trim();
+      const status = String(t.status || '').toLowerCase();
+      return status === 'occupied' || occupiedTableNumbers.has(num);
+    }).length;
+  }, [assignedTables, occupiedTableNumbers]);
+
+  const assignedAvailableCount = Math.max(0, assignedTableCount - assignedOccupiedCount);
+
+  // Popular Menu Dishes: ranked by real orders frequency and popularity flags
+  const popularDishes = useMemo(() => {
+    const orderCountByName = new Map<string, number>();
+    orders.forEach(order => {
+      const items = getOrderItems(order);
+      items.forEach(item => {
+        const cleanName = String(item.name || '').toLowerCase().trim();
+        const quantity = Number(item.quantity) || 1;
+        if (cleanName) {
+          orderCountByName.set(
+            cleanName,
+            (orderCountByName.get(cleanName) || 0) + quantity,
+          );
+        }
+      });
+    });
+
+    const scoredFoods = foods
+      .filter(food => {
+        const foodName = getFoodName(food).trim();
+        if (!foodName || foodName === 'Menu Item' || foodName === 'Dish') return false;
+
+        const status = String(food.status || food.food_status || '').toLowerCase();
+        if (status === 'inactive' || status === 'disabled' || status === 'unavailable') {
+          return false;
+        }
+
+        const isAvail = food.is_available ?? food.available;
+        if (isAvail === false || isAvail === 0 || isAvail === '0' || isAvail === 'false') {
+          return false;
+        }
+
+        return true;
+      })
+      .map(food => {
+        const foodName = getFoodName(food).toLowerCase().trim();
+        const orderCount = orderCountByName.get(foodName) || 0;
+        let score = orderCount * 15;
+
+        const isPop = food.is_popular ?? food.popular ?? food.is_popular_dish;
+        if (isPop === true || isPop === 1 || isPop === '1' || isPop === 'true') {
+          score += 30;
+        }
+
+        const isBest = food.is_bestseller ?? food.bestseller ?? food.is_best_seller ?? food.best_seller;
+        if (isBest === true || isBest === 1 || isBest === '1' || isBest === 'true') {
+          score += 25;
+        }
+
+        const isFeatured = food.is_featured ?? food.featured;
+        if (isFeatured === true || isFeatured === 1 || isFeatured === '1' || isFeatured === 'true') {
+          score += 15;
+        }
+
+        const rating = Number(food.rating ?? food.stars ?? 0);
+        if (!isNaN(rating) && rating > 0) {
+          score += rating * 3;
+        }
+
+        if (imageValue(food)) {
+          score += 10;
+        }
+
+        const price = getFoodPrice(food);
+        if (price > 0) {
+          score += 5;
+        }
+
+        return { food, score, orderCount };
+      });
+
+    scoredFoods.sort((a, b) => b.score - a.score);
+
+    if (scoredFoods.length > 0) {
+      return scoredFoods.slice(0, 4).map(item => ({
+        ...item.food,
+        _orderCount: item.orderCount,
+        _isTopSeller: item.orderCount > 0 || item.score >= 25,
+      }));
+    }
+
+    return foods.slice(0, 4).map(f => ({
+      ...f,
+      _orderCount: 0,
+      _isTopSeller: false,
+    }));
+  }, [foods, orders]);
 
   // Filtered orders list to render
   const displayedOrders = useMemo(() => {
@@ -766,13 +1130,21 @@ function HomeTabContent({
 
         <View className="mt-3 flex-row gap-3">
           <StatCard
-            label="Occupied Tables"
-            value={`${occupiedTableCount} / ${totalTableCount}`}
-            subtext="Active seating floor"
-            badge="TABLES"
+            label="Assigned Tables"
+            value={
+              assignedTableCount > 0
+                ? `${assignedTableCount} Tables`
+                : '0 Tables'
+            }
+            subtext={
+              assignedTableCount > 0
+                ? `${assignedOccupiedCount} Occupied • ${assignedAvailableCount} Free`
+                : 'Tap to check assigned stations'
+            }
+            badge="MY FLOOR"
             tone="indigo"
             icon={TableSvg}
-            onPress={() => onSelectTab('tables')}
+            onPress={onOpenAssignedTables}
           />
           <StatCard
             label="Served Today"
@@ -800,7 +1172,7 @@ function HomeTabContent({
           {[
             {
               label: 'Floor Tables',
-              desc: 'Table seating & status',
+              desc: `${assignedTableCount} assigned to you`,
               icon: TableSvg,
               color: '#065F46',
               bg: '#ECFDF5',
@@ -1013,57 +1385,118 @@ function HomeTabContent({
       <View className="mt-7">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-xl font-extrabold text-[#012711]">
-              Popular Menu Dishes
-            </Text>
-            <Text className="text-xs text-[#64748B]">
-              Quick item reference for order recommendations
+            <View className="flex-row items-center gap-1.5">
+              <SparklesSvg color="#EA580C" size={18} />
+              <Text className="text-xl font-extrabold text-[#012711]">
+                Popular Menu Dishes
+              </Text>
+            </View>
+            <Text className="mt-0.5 text-xs text-[#64748B]">
+              Top ordered & chef recommended dishes
             </Text>
           </View>
-          <Pressable onPress={() => onSelectTab('foods')}>
-            <Text className="text-xs font-bold text-[#FF7800]">
+          <Pressable
+            accessibilityLabel="View full menu"
+            accessibilityRole="button"
+            onPress={() => onSelectTab('foods')}
+            className="rounded-lg bg-[#FFF7ED] px-3 py-1.5 active:bg-[#FFEDD5]"
+          >
+            <Text className="text-xs font-bold text-[#EA580C]">
               Full Menu ›
             </Text>
           </Pressable>
         </View>
 
         <View className="mt-3 flex-row flex-wrap justify-between gap-y-3">
-          {foods.slice(0, 4).map((food, idx) => {
-            const foodName = value(food, ['food_name', 'product_name', 'name'], 'Dish');
-            const category = value(food, ['category_name', 'category'], 'Menu item');
-            const price = value(food, ['price', 'selling_price', 'unit_price'], '0');
+          {popularDishes.map((food, idx) => {
+            const foodName = getFoodName(food);
+            const category = getFoodCategory(food);
+            const price = getFoodPrice(food);
+            const image = imageValue(food);
+            const type = getFoodType(food);
+            const orderCount = ((food as Record<string, unknown>)._orderCount as number) || 0;
+            const isTopSeller = Boolean((food as Record<string, unknown>)._isTopSeller);
 
             return (
-              <View
+              <Pressable
                 key={`${foodName}-${idx}`}
-                style={{
+                onPress={() => onSelectTab('foods')}
+                style={({ pressed }) => ({
                   backgroundColor: '#FFFFFF',
                   borderColor: '#E2E8F0',
-                  borderRadius: 16,
+                  borderRadius: 18,
                   borderWidth: 1,
-                  padding: 12,
+                  elevation: 2,
+                  opacity: pressed ? 0.92 : 1,
+                  overflow: 'hidden',
+                  shadowColor: '#0F172A',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 6,
                   width: '48.5%',
-                }}
+                })}
               >
-                <View className="flex-row items-center justify-between">
-                  <View className="rounded-md bg-[#FFF7ED] px-2 py-0.5">
-                    <Text className="text-[10px] font-bold text-[#EA580C]">
+                {/* Image Container with Badges */}
+                <View className="relative h-24 w-full bg-[#F1F5F9]">
+                  {image ? (
+                    <Image
+                      source={{ uri: image }}
+                      resizeMode="cover"
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    <View className="h-full w-full items-center justify-center bg-[#F8FAFC]">
+                      <UtensilsSvg color="#94A3B8" size={26} />
+                    </View>
+                  )}
+
+                  {/* Veg / Non-Veg Icon Top Left */}
+                  <View className="absolute left-2 top-2 rounded-md bg-white/95 p-1 shadow-sm">
+                    {type === 'veg' ? <VegDotSvg size={12} /> : <NonVegDotSvg size={12} />}
+                  </View>
+
+                  {/* Popularity Badge Top Right */}
+                  <View className="absolute right-2 top-2 rounded-full bg-[#012711]/85 px-2 py-0.5">
+                    <Text className="text-[9px] font-black text-[#86EFAC]">
+                      {orderCount > 0
+                        ? `🔥 ${orderCount} Orders`
+                        : isTopSeller
+                        ? '★ Top Seller'
+                        : '★ 4.8'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Card Body */}
+                <View className="p-3">
+                  <View className="self-start rounded-md bg-[#FFF7ED] px-2 py-0.5">
+                    <Text
+                      numberOfLines={1}
+                      className="text-[9.5px] font-extrabold uppercase tracking-wide text-[#EA580C]"
+                    >
                       {category}
                     </Text>
                   </View>
-                  <SparklesSvg color="#F59E0B" size={14} />
-                </View>
 
-                <Text
-                  numberOfLines={1}
-                  className="mt-2 text-sm font-bold text-[#0F172A]"
-                >
-                  {foodName}
-                </Text>
-                <Text className="mt-1 text-xs font-extrabold text-[#116C0B]">
-                  {formatPrice(price)}
-                </Text>
-              </View>
+                  <Text
+                    numberOfLines={1}
+                    className="mt-1.5 text-xs font-black text-[#0F172A]"
+                  >
+                    {foodName}
+                  </Text>
+
+                  <View className="mt-2 flex-row items-center justify-between">
+                    <Text className="text-sm font-black text-[#116C0B]">
+                      {formatPrice(price)}
+                    </Text>
+                    <View className="rounded-lg bg-[#EBF7ED] px-2 py-0.5">
+                      <Text className="text-[10px] font-extrabold text-[#116C0B]">
+                        View ›
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </Pressable>
             );
           })}
         </View>
@@ -1843,22 +2276,68 @@ export default function ServerHome({
   const [selectedOrder, setSelectedOrder] = useState<Row | null>(null);
   const [selectedTable, setSelectedTable] = useState<ServerOrderTable | null>(null);
   const [isAssignedTablesOpen, setIsAssignedTablesOpen] = useState(false);
+  const [storedEmployeeId, setStoredEmployeeId] = useState<string | number | null>(null);
+
+  // Active table numbers with active orders
+  const occupiedTableNumbers = useMemo(() => {
+    const tableSet = new Set<string>();
+    orders.forEach(o => {
+      const status = String(o.status || o.order_status || '').toLowerCase();
+      if (['pending', 'preparing', 'cooking', 'ready', 'confirmed'].includes(status)) {
+        const t = value(o, ['table_number', 'table_id', 'table'], '');
+        if (t && t !== '—') tableSet.add(String(t).trim());
+      }
+    });
+    return tableSet;
+  }, [orders]);
 
   const assignedTables = useMemo(() => {
-    const employeeId = user.employee_id ?? user.employeeId;
-    return tables.filter(table => {
-      const assignedId =
-        table.assigned_server_id ??
-        table.assigned_employee_id ??
-        table.server_id;
-      if (assignedId === null || assignedId === undefined || assignedId === '') {
-        return false;
-      }
-      return employeeId === undefined || String(assignedId) === String(employeeId);
+    // 1. Tables specifically assigned to this server
+    const serverAssigned = tables.filter(table =>
+      isTableAssignedToServer(table, user, storedEmployeeId),
+    );
+
+    if (serverAssigned.length > 0) {
+      return serverAssigned;
+    }
+
+    // 2. Check if ANY table in restaurant has an assignment to anyone
+    const anyAssignmentExists = tables.some(t => {
+      const aId =
+        t.assigned_server_id ??
+        t.assigned_employee_id ??
+        t.server_id ??
+        (t as Record<string, unknown>).employee_id ??
+        (t as Record<string, unknown>).user_id ??
+        (t as Record<string, unknown>).assigned_to;
+      return aId !== null && aId !== undefined && String(aId).trim() !== '';
     });
-  }, [tables, user]);
+
+    // If tables ARE assigned in restaurant, but none to this server, return []
+    if (anyAssignmentExists) {
+      return [];
+    }
+
+    // 3. Fallback: If restaurant has not assigned tables to ANY server yet (unassigned demo / floor),
+    // default to the first 4 tables so the server has floor tables to work with!
+    return tables.slice(0, 4);
+  }, [tables, user, storedEmployeeId]);
 
   const loadHome = useCallback(async () => {
+    try {
+      const stored = await getStoredUser();
+      const sId =
+        stored?.employee_id ??
+        stored?.employeeId ??
+        stored?.id ??
+        stored?.user_id;
+      if (sId) {
+        setStoredEmployeeId(sId);
+      }
+    } catch {
+      // ignore
+    }
+
     const [orderResult, foodResult, tableResult] = await Promise.allSettled([
       api.get('/orders/management'),
       api.get('/foods'),
@@ -2046,6 +2525,7 @@ export default function ServerHome({
           orders={orders}
           foods={foods}
           tables={tables}
+          assignedTables={assignedTables}
           user={user}
           isClockedIn={isClockedIn}
           clockInTime={clockInTime}
@@ -2053,6 +2533,7 @@ export default function ServerHome({
           onSelectTab={setActiveTab}
           onSelectOrder={setSelectedOrder}
           onServeOrder={handleServeOrder}
+          onOpenAssignedTables={() => setIsAssignedTablesOpen(true)}
         />
       );
     }
@@ -2064,6 +2545,18 @@ export default function ServerHome({
           user={user}
           orders={orders}
           onRefresh={onRefresh}
+          onSelectTable={tableNumber => {
+            const table = assignedTables.find(
+              item => String(item.table_number ?? item.id ?? item.table_id) === tableNumber,
+            );
+            if (table) {
+              setSelectedTable({
+                ...table,
+                id: table.id ?? table.table_id,
+                status: 'occupied',
+              });
+            }
+          }}
         />
       );
     }
@@ -2085,12 +2578,24 @@ export default function ServerHome({
       );
     }
 
+    if (activeTab === 'profile') {
+      return (
+        <ServerProfile
+          user={user}
+          onBack={() => setActiveTab('home')}
+          onLogout={onLogout}
+          onClockOut={clockOut}
+        />
+      );
+    }
+
     return (
       <ServerMore
         user={user}
         onLogout={onLogout}
         onClockOut={clockOut}
         onRefreshWorkspace={onRefresh}
+        onOpenProfile={() => setActiveTab('profile')}
       />
     );
   }, [
@@ -2114,15 +2619,18 @@ export default function ServerHome({
 
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-[#F8FAFC]">
-      {/* Pinned Server Top Header */}
-      <ServerTopHeader
-        user={user}
-        onLogout={onLogout}
-        onClockOut={clockOut}
-      />
+      {/* Pinned Server Top Header (hidden when on full-screen profile page) */}
+      {activeTab !== 'profile' ? (
+        <ServerTopHeader
+          user={user}
+          onLogout={onLogout}
+          onClockOut={clockOut}
+          onOpenProfile={() => setActiveTab('profile')}
+        />
+      ) : null}
 
-      {/* Keep the item-order screen independent so its KOT bar can stay fixed. */}
-      {selectedTable ? (
+      {/* Keep the item-order and profile screens independent so they manage their own scrolls */}
+      {selectedTable || activeTab === 'profile' ? (
         <View className="flex-1" style={{ zIndex: 0 }}>
           {mainContent}
         </View>
@@ -2222,11 +2730,16 @@ export default function ServerHome({
             className="flex-1"
             onPress={() => setIsAssignedTablesOpen(false)}
           />
-          <View className="rounded-t-3xl bg-white px-5 pb-8 pt-5">
+          <View className="rounded-t-3xl bg-white px-5 pb-8 pt-5 max-h-[75%]">
             <View className="mb-4 flex-row items-center justify-between">
-              <Text className="text-xl font-extrabold text-[#012711]">
-                Assigned Tables
-              </Text>
+              <View>
+                <Text className="text-xl font-extrabold text-[#012711]">
+                  Assigned Tables
+                </Text>
+                <Text className="text-xs text-[#64748B]">
+                  {assignedTables.length} tables assigned to your station
+                </Text>
+              </View>
               <Pressable
                 accessibilityLabel="Close assigned tables"
                 accessibilityRole="button"
@@ -2236,31 +2749,71 @@ export default function ServerHome({
                 <Text className="text-xl text-[#475569]">×</Text>
               </Pressable>
             </View>
-            {assignedTables.length ? (
-              assignedTables.map((table, index) => (
-                <Pressable
-                  key={`${table.table_id ?? table.id ?? index}`}
-                  onPress={() => void openTableOrder(table)}
-                  className="mb-2 flex-row items-center justify-between rounded-xl bg-[#F8FAFC] p-4"
-                >
-                  <View>
-                    <Text className="font-bold text-[#012711]">
-                      Table {table.table_number ?? table.id ?? table.table_id}
-                    </Text>
-                    <Text className="mt-1 text-xs text-[#64748B]">
-                      {table.no_of_seats ?? 4} seats
-                    </Text>
-                  </View>
-                  <Text className="font-bold capitalize text-[#15803D]">
-                    {table.status ?? 'Available'}
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {assignedTables.length ? (
+                assignedTables.map((table, index) => {
+                  const num = String(table.table_number ?? table.id ?? table.table_id);
+                  const isOccupied =
+                    occupiedTableNumbers.has(num) ||
+                    String(table.status || '').toLowerCase() === 'occupied';
+
+                  return (
+                    <Pressable
+                      key={`${table.table_id ?? table.id ?? index}`}
+                      onPress={() => void openTableOrder(table)}
+                      className="mb-2.5 flex-row items-center justify-between rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 active:bg-[#F1F5F9]"
+                    >
+                      <View className="flex-row items-center gap-3">
+                        <View
+                          className={`h-11 w-11 items-center justify-center rounded-xl ${
+                            isOccupied ? 'bg-amber-100' : 'bg-emerald-100'
+                          }`}
+                        >
+                          <TableSvg color={isOccupied ? '#D97706' : '#15803D'} size={20} />
+                        </View>
+                        <View>
+                          <Text className="text-base font-black text-[#012711]">
+                            Table {num}
+                          </Text>
+                          <Text className="mt-0.5 text-xs text-[#64748B]">
+                            {table.no_of_seats ?? 4} Seats • Station Floor
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View className="items-end">
+                        <View
+                          className={`rounded-full px-2.5 py-1 ${
+                            isOccupied ? 'bg-amber-100' : 'bg-emerald-100'
+                          }`}
+                        >
+                          <Text
+                            className={`text-[10px] font-black uppercase ${
+                              isOccupied ? 'text-amber-800' : 'text-emerald-800'
+                            }`}
+                          >
+                            {isOccupied ? 'Occupied' : 'Available'}
+                          </Text>
+                        </View>
+                        <Text className="mt-1 text-[10px] font-bold text-[#116C0B]">
+                          Tap to take order ›
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })
+              ) : (
+                <View className="items-center py-8">
+                  <Text className="text-sm font-bold text-[#64748B]">
+                    No tables are assigned to you.
                   </Text>
-                </Pressable>
-              ))
-            ) : (
-              <Text className="py-6 text-center text-sm text-[#64748B]">
-                No tables are assigned to you.
-              </Text>
-            )}
+                  <Text className="mt-1 text-center text-xs text-[#94A3B8]">
+                    Tables assigned by floor supervisor will show up here automatically.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>

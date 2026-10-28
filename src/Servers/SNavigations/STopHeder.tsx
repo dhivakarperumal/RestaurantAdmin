@@ -12,10 +12,12 @@ export default function ServerTopHeader({
   user,
   onLogout,
   onClockOut,
+  onOpenProfile,
 }: {
   user: HeaderUser;
   onLogout: () => void;
   onClockOut: () => Promise<void>;
+  onOpenProfile?: () => void;
 }) {
   const name = user.name?.trim() || user.username?.trim() || 'Team member';
   const initial = name.charAt(0).toUpperCase();
@@ -105,7 +107,10 @@ export default function ServerTopHeader({
             <Pressable
               accessibilityLabel="Open profile"
               accessibilityRole="button"
-              onPress={() => setIsProfileMenuOpen(false)}
+              onPress={() => {
+                setIsProfileMenuOpen(false);
+                if (onOpenProfile) onOpenProfile();
+              }}
               className="flex-row items-center gap-3 rounded-xl px-3 py-3"
             >
               <ProfileIcon color="#116C0B" size={18} />

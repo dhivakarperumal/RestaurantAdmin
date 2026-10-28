@@ -372,6 +372,7 @@ export type ServerMoreProps = {
   onLogout?: () => void;
   onClockOut?: () => Promise<void>;
   onRefreshWorkspace?: () => void;
+  onOpenProfile?: () => void;
 };
 
 export default function ServerMore({
@@ -379,6 +380,7 @@ export default function ServerMore({
   onLogout,
   onClockOut,
   onRefreshWorkspace,
+  onOpenProfile,
 }: ServerMoreProps) {
   const name = user.name?.trim() || user.username?.trim() || 'Team Server';
   const email = user.email?.trim() || 'server@dineserve.com';
@@ -529,16 +531,28 @@ export default function ServerMore({
           </View>
         </View>
 
-        {/* View Staff ID Action Button */}
-        <Pressable
-          onPress={() => setIsIdModalOpen(true)}
-          className="mt-4 flex-row items-center justify-center gap-2 rounded-xl bg-white/10 py-2.5 active:bg-white/15"
-        >
-          <IdBadgeSvg color="#86EFAC" size={18} />
-          <Text className="text-xs font-bold text-[#86EFAC]">
-            View Digital Staff ID Card ›
-          </Text>
-        </Pressable>
+        {/* Profile & ID Action Buttons */}
+        <View className="mt-4 flex-row gap-2">
+          {onOpenProfile ? (
+            <Pressable
+              onPress={onOpenProfile}
+              className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl bg-[#114D26] py-2.5 active:bg-[#15803D]"
+            >
+              <Text className="text-xs font-bold text-[#86EFAC]">
+                Staff Profile & Bank ›
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            onPress={() => setIsIdModalOpen(true)}
+            className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl bg-white/10 py-2.5 active:bg-white/15"
+          >
+            <IdBadgeSvg color="#86EFAC" size={16} />
+            <Text className="text-xs font-bold text-white">
+              Digital Staff ID
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* ====================================================================

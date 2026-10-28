@@ -27,6 +27,8 @@ export type ServerTablesRow = {
   assigned_server_id?: string | number | null;
   assigned_employee_id?: string | number | null;
   server_id?: string | number | null;
+  assigned_server_name?: string | null;
+  server_name?: string | null;
 };
 
 type TableStatus = 'available' | 'occupied' | 'reserved';
@@ -171,6 +173,7 @@ export default function ServerTables({
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTableDetails, setSelectedTableDetails] = useState<ServerTablesRow | null>(null);
+  const [settlingTable, setSettlingTable] = useState<string | null>(null);
 
   const employeeId = user.employee_id ?? user.employeeId;
 
@@ -222,12 +225,53 @@ export default function ServerTables({
     });
   }, [tables, occupiedOrderMap, employeeId]);
 
+  const userIds = useMemo(() => {
+    return [
+      user.employee_id,
+      user.employeeId,
+      user.id,
+      user.user_id,
+      (user as Record<string, unknown>)?.emp_id,
+    ]
+      .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
+      .map(val => String(val).trim());
+  }, [user]);
+
+  const userNames = useMemo(() => {
+    return [
+      user.name,
+      user.username,
+      (user as Record<string, unknown>)?.full_name,
+    ]
+      .filter(val => typeof val === 'string' && val.trim() !== '')
+      .map(val => (val as string).toLowerCase().trim());
+  }, [user]);
+
   // Only show tables assigned to this server
   const assignedTables = useMemo(() => {
     const list = normalizedTableList.filter(table => {
-      const aId = table.assigned_server_id ?? table.assigned_employee_id ?? table.server_id;
-      if (aId === null || aId === undefined || aId === '') return false;
-      return employeeId === undefined || String(aId) === String(employeeId);
+      const aId =
+        table.assigned_server_id ??
+        table.assigned_employee_id ??
+        table.server_id ??
+        (table as Record<string, unknown>).employee_id ??
+        (table as Record<string, unknown>).user_id;
+
+      if (aId !== null && aId !== undefined && String(aId).trim() !== '') {
+        if (userIds.includes(String(aId).trim())) return true;
+      }
+
+      const sName = String(
+        table.assigned_server_name ??
+        (table as Record<string, unknown>).server_name ??
+        '',
+      )
+        .toLowerCase()
+        .trim();
+
+      if (sName && userNames.includes(sName)) return true;
+
+      return false;
     });
 
     if (list.length > 0) return list;
@@ -237,7 +281,7 @@ export default function ServerTables({
       t => t.assigned_server_id || t.assigned_employee_id || t.server_id,
     );
     return !anyAssigned ? normalizedTableList.slice(0, 4) : list;
-  }, [normalizedTableList, employeeId]);
+  }, [normalizedTableList, userIds, userNames]);
 
   // Filter by status & search
   const displayedTables = useMemo(() => {
@@ -321,6 +365,48 @@ export default function ServerTables({
     }
     setRefreshing(false);
   }, [onRefresh]);
+
+  const completeBill = async (table: ServerTablesRow) => {
+    const tableId = table.id ?? table.table_id;
+    const tableKey = String(tableId ?? table.table_number ?? '');
+    if (!tableId || settlingTable) return;
+
+    setSettlingTable(tableKey);
+    try {
+      const billResponse = await api.get(`/table-bills/active/${tableId}`);
+      const payload =
+        billResponse.data && typeof billResponse.data === 'object'
+          ? (billResponse.data as Record<string, unknown>)
+          : {};
+      const bill =
+        payload.bill && typeof payload.bill === 'object'
+          ? (payload.bill as Record<string, unknown>)
+          : payload.data && typeof payload.data === 'object'
+          ? (payload.data as Record<string, unknown>)
+          : payload;
+      const billId = bill.bill_id ?? bill.id;
+
+      if (!billId) {
+        Alert.alert('Bill unavailable', 'No active bill was found for this table.');
+        return;
+      }
+
+      await api.post(`/table-bills/${billId}/settle`);
+      Alert.alert(
+        'Bill Completed',
+        `Table ${table.table_number ?? tableId} bill has been completed.`,
+      );
+      await onRefresh?.();
+    } catch (error) {
+      const message =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message?: unknown }).message)
+          : 'Unable to complete this bill.';
+      Alert.alert('Bill completion failed', message);
+    } finally {
+      setSettlingTable(null);
+    }
+  };
 
   return (
     <ScrollView
@@ -583,6 +669,31 @@ export default function ServerTables({
                           ● Dining In Progress
                         </Text>
                       )}
+                    </View>
+                    <View className="mt-3 flex-row gap-2">
+                      <Pressable
+                        accessibilityLabel={`Add round for Table ${table.table_number}`}
+                        onPress={() => onSelectTable?.(String(table.table_number))}
+                        className="h-10 flex-1 flex-row items-center justify-center rounded-lg bg-[#116C0B] px-2 active:bg-[#0F5A09]"
+                      >
+                        <Text className="text-xs font-extrabold text-white">
+                          Add Round
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel={`Complete bill for Table ${table.table_number}`}
+                        disabled={settlingTable === key}
+                        onPress={() => void completeBill(table)}
+                        className="h-10 flex-1 flex-row items-center justify-center rounded-lg border border-[#EA580C] bg-white px-2 active:bg-[#FFF7ED]"
+                      >
+                        {settlingTable === key ? (
+                          <ActivityIndicator size="small" color="#EA580C" />
+                        ) : (
+                          <Text className="text-xs font-extrabold text-[#EA580C]">
+                            Bill Completed
+                          </Text>
+                        )}
+                      </Pressable>
                     </View>
                   </View>
                 ) : currentStatus === 'reserved' ? (
