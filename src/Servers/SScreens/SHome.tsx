@@ -31,6 +31,9 @@ type ServerTable = {
   no_of_seats?: number | string;
   image_url?: string | null;
   status?: string;
+  assigned_server_id?: string | number | null;
+  assigned_employee_id?: string | number | null;
+  server_id?: string | number | null;
 };
 
 type OrderItem = {
@@ -1074,10 +1077,12 @@ function TablesTabContent({
   tables,
   orders,
   onSelectTable,
+  user,
 }: {
   tables: ServerTable[];
   orders: Row[];
   onSelectTable: (tableNum: string) => void;
+  user: HeaderUser;
 }) {
   const [filter, setFilter] = useState<'all' | 'available' | 'occupied'>('all');
   const [search, setSearch] = useState('');
@@ -1099,33 +1104,34 @@ function TablesTabContent({
 
   // Normalize table records or build fallback floor map
   const tableList = useMemo(() => {
-    if (tables.length > 0) {
-      return tables.map(t => {
-        const num = String(t.table_number || t.id || t.table_id || '1');
-        const isOccupied = occupiedMap.has(num) || (t.status || '').toLowerCase() === 'occupied';
-        return {
-          id: num,
-          number: num,
-          seats: Number(t.no_of_seats || 4),
-          status: isOccupied ? 'Occupied' : 'Available',
-          activeOrder: occupiedMap.get(num),
-        };
-      });
-    }
+    const currentEmployeeId = user.employee_id ?? user.employeeId;
+    const assignedTables = tables.filter(table => {
+      const assignedId =
+        table.assigned_server_id ??
+        table.assigned_employee_id ??
+        table.server_id;
+      if (assignedId === null || assignedId === undefined || assignedId === '') {
+        return false;
+      }
+      if (currentEmployeeId === undefined || currentEmployeeId === null) {
+        return true;
+      }
+      return String(assignedId) === String(currentEmployeeId);
+    });
 
-    // Default 12 restaurant tables fallback
-    return Array.from({ length: 12 }, (_, i) => {
-      const num = String(i + 1);
-      const isOccupied = occupiedMap.has(num);
+    return assignedTables.map(t => {
+      const num = String(t.table_number || t.id || t.table_id || '');
+      const isOccupied =
+        occupiedMap.has(num) || (t.status || '').toLowerCase() === 'occupied';
       return {
         id: num,
         number: num,
-        seats: i % 3 === 0 ? 6 : i % 2 === 0 ? 4 : 2,
+        seats: Number(t.no_of_seats || 4),
         status: isOccupied ? 'Occupied' : 'Available',
         activeOrder: occupiedMap.get(num),
       };
     });
-  }, [tables, occupiedMap]);
+  }, [tables, occupiedMap, user]);
 
   const availableCount = tableList.filter(t => t.status === 'Available').length;
   const occupiedCount = tableList.filter(t => t.status === 'Occupied').length;
@@ -1605,10 +1611,12 @@ function MoreTabContent({
   user,
   onLogout,
   onRefresh,
+  onOpenShift,
 }: {
   user: HeaderUser;
   onLogout: () => void;
   onRefresh: () => void;
+  onOpenShift: () => void;
 }) {
   const name = user.name?.trim() || user.username?.trim() || 'Server';
   const email = user.email?.trim() || 'server@restaurant.com';
@@ -1653,6 +1661,23 @@ function MoreTabContent({
             ℹ️ App Information
           </Text>
           <Text className="text-xs text-[#94A3B8]">v1.2.0 ›</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityLabel="Open Shift and Hours"
+          accessibilityRole="button"
+          onPress={onOpenShift}
+          className="flex-row items-center justify-between rounded-xl p-3 active:bg-slate-50"
+        >
+          <View>
+            <Text className="text-sm font-semibold text-[#0F172A]">
+              🕘 Shift &amp; Hours
+            </Text>
+            <Text className="mt-1 text-xs text-[#64748B]">
+              View attendance and shift details
+            </Text>
+          </View>
+          <Text className="text-xs text-[#94A3B8]">›</Text>
         </Pressable>
       </View>
 
@@ -1958,6 +1983,7 @@ export default function ServerHome({
         <TablesTabContent
           tables={tables}
           orders={orders}
+          user={user}
           onSelectTable={tableNum => {
             setActiveTab('home');
           }}
@@ -1987,6 +2013,7 @@ export default function ServerHome({
         user={user}
         onLogout={onLogout}
         onRefresh={onRefresh}
+        onOpenShift={() => setActiveTab('attendee')}
       />
     );
   }, [

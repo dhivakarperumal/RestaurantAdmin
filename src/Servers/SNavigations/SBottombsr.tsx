@@ -1,51 +1,202 @@
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  CustomersIcon,
-  HomeIcon,
-  MenuIcon,
-  MoreIcon,
-  ProductIcon,
-} from '../../Admin/Navigation/NavigationIcons';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import colors from '../../theme/colors';
 
 export type ServerTab = 'home' | 'tables' | 'foods' | 'attendee' | 'more';
 
-const tabs: { key: ServerTab; label: string; icon: typeof HomeIcon }[] = [
-  { key: 'home', label: 'Home', icon: HomeIcon },
-  { key: 'tables', label: 'Tables', icon: MenuIcon },
-  { key: 'foods', label: 'Foods', icon: ProductIcon },
-  { key: 'attendee', label: 'Attendee', icon: CustomersIcon },
-  { key: 'more', label: 'More', icon: MoreIcon },
+/* ==========================================================================
+   Crisp Vector Icons tailored for Server Navigation
+   ========================================================================== */
+
+function HomeTabIcon({
+  color,
+  size = 22,
+  active,
+}: {
+  color: string;
+  size?: number;
+  active: boolean;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-5a1 1 0 0 1-1-1v-4.5a1.5 1.5 0 0 0-1.5-1.5h-2a1.5 1.5 0 0 0-1.5 1.5V20a1 1 0 0 1-1 1h-5A1.5 1.5 0 0 1 3 20v-9.5z"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={active ? 'rgba(17, 108, 11, 0.12)' : 'none'}
+      />
+    </Svg>
+  );
+}
+
+function TablesTabIcon({
+  color,
+  size = 22,
+  active,
+}: {
+  color: string;
+  size?: number;
+  active: boolean;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x="4"
+        y="6.5"
+        width="16"
+        height="5.5"
+        rx="1.8"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        fill={active ? 'rgba(17, 108, 11, 0.12)' : 'none'}
+      />
+      <Path
+        d="M7 12v7M17 12v7M3 5v3.5M21 5v3.5"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function FoodsTabIcon({
+  color,
+  size = 22,
+  active,
+}: {
+  color: string;
+  size?: number;
+  active: boolean;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 17h16M12 4v2M5 17c0-4.418 3.134-8 7-8s7 3.582 7 8M2 19h20"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={active ? 'rgba(17, 108, 11, 0.12)' : 'none'}
+      />
+      <Circle
+        cx="12"
+        cy="4"
+        r="1.5"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+      />
+    </Svg>
+  );
+}
+
+function MoreTabIcon({
+  color,
+  size = 22,
+  active,
+}: {
+  color: string;
+  size?: number;
+  active: boolean;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x="4"
+        y="4"
+        width="6"
+        height="6"
+        rx="1.5"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        fill={active ? 'rgba(17, 108, 11, 0.15)' : 'none'}
+      />
+      <Rect
+        x="14"
+        y="4"
+        width="6"
+        height="6"
+        rx="1.5"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        fill={active ? 'rgba(17, 108, 11, 0.15)' : 'none'}
+      />
+      <Rect
+        x="4"
+        y="14"
+        width="6"
+        height="6"
+        rx="1.5"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        fill={active ? 'rgba(17, 108, 11, 0.15)' : 'none'}
+      />
+      <Rect
+        x="14"
+        y="14"
+        width="6"
+        height="6"
+        rx="1.5"
+        stroke={color}
+        strokeWidth={active ? 2.3 : 1.9}
+        fill={active ? 'rgba(17, 108, 11, 0.15)' : 'none'}
+      />
+    </Svg>
+  );
+}
+
+const tabs: {
+  key: ServerTab;
+  label: string;
+  icon: React.ComponentType<{ color: string; size?: number; active: boolean }>;
+}[] = [
+  { key: 'home', label: 'Home', icon: HomeTabIcon },
+  { key: 'tables', label: 'Tables', icon: TablesTabIcon },
+  { key: 'foods', label: 'Foods', icon: FoodsTabIcon },
+  { key: 'more', label: 'More', icon: MoreTabIcon },
 ];
 
 export default function ServerBottomBar({
   activeTab,
   onPress,
+  onPlusPress,
 }: {
   activeTab: ServerTab;
   onPress: (tab: ServerTab) => void;
+  onPlusPress: () => void;
 }) {
   const insets = useSafeAreaInsets();
+
   return (
     <View
       accessibilityRole="tablist"
       style={{
         alignItems: 'center',
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
+        backgroundColor: '#FFFFFF',
+        borderTopColor: '#F1F5F9',
         borderTopWidth: 1,
-        elevation: 12,
+        elevation: 16,
         flexDirection: 'row',
         justifyContent: 'space-around',
-        minHeight: 62 + insets.bottom,
+        minHeight: 64 + insets.bottom,
         paddingBottom: Math.max(insets.bottom, 6),
-        paddingTop: 4,
+        paddingHorizontal: 6,
+        paddingTop: 6,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
       }}
     >
-      {tabs.map(tab => {
+      {tabs.slice(0, 2).map(tab => {
         const selected = tab.key === activeTab;
         const Icon = tab.icon;
+        const activeColor = colors.primary || '#116C0B';
+        const inactiveColor = '#64748B';
+
         return (
           <Pressable
             key={tab.key}
@@ -53,24 +204,99 @@ export default function ServerBottomBar({
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPress={() => onPress(tab.key)}
-            style={{
+            style={({ pressed }) => ({
               alignItems: 'center',
               flex: 1,
-              gap: 4,
               justifyContent: 'center',
-              minHeight: 54,
-            }}
+              minHeight: 52,
+              opacity: pressed ? 0.75 : 1,
+              transform: [{ scale: pressed ? 0.94 : 1 }],
+            })}
+            <Pressable
+              accessibilityLabel="Open assigned tables"
+              accessibilityRole="button"
+              onPress={onPlusPress}
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                flex: 1,
+                justifyContent: 'center',
+                minHeight: 52,
+                opacity: pressed ? 0.8 : 1,
+                transform: [{ scale: pressed ? 0.94 : 1 }],
+              })}
+            >
+              <View className="-mt-7 h-14 w-14 items-center justify-center rounded-full bg-[#FF7800] shadow-lg">
+                <Text className="text-4xl font-light leading-10 text-white">+</Text>
+              </View>
+              <Text className="mt-1 text-[10.5px] font-extrabold text-[#FF7800]">
+                Tables
+              </Text>
+            </Pressable>
+            {tabs.slice(2).map(tab => {
+              const selected = tab.key === activeTab;
+              const Icon = tab.icon;
+              const activeColor = colors.primary || '#116C0B';
+              const inactiveColor = '#64748B';
+              return (
+                <Pressable
+                  key={tab.key}
+                  accessibilityLabel={tab.label}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                  onPress={() => onPress(tab.key)}
+                  style={{ alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 52 }}
+                >
+                  <Icon color={selected ? activeColor : inactiveColor} size={21} active={selected} />
+                  <Text style={{ color: selected ? activeColor : inactiveColor, fontSize: 10.5, fontWeight: selected ? '800' : '600', marginTop: 2 }}>
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           >
-            <Icon color={selected ? colors.primary : colors.textSecondary} size={21} />
+            {/* Active Capsule Glow */}
+            <View
+              style={{
+                alignItems: 'center',
+                backgroundColor: selected ? '#E8F5E9' : 'transparent',
+                borderRadius: 16,
+                height: 32,
+                justifyContent: 'center',
+                paddingHorizontal: 12,
+                width: 48,
+              }}
+            >
+              <Icon
+                color={selected ? activeColor : inactiveColor}
+                size={21}
+                active={selected}
+              />
+            </View>
+
+            {/* Label */}
             <Text
               style={{
-                color: selected ? colors.primary : colors.textSecondary,
-                fontSize: 10,
-                fontWeight: selected ? '700' : '500',
+                color: selected ? activeColor : inactiveColor,
+                fontSize: 10.5,
+                fontWeight: selected ? '800' : '600',
+                letterSpacing: selected ? 0.2 : 0,
+                marginTop: 2,
               }}
+              numberOfLines={1}
             >
               {tab.label}
             </Text>
+
+            {/* Active Indicator Micro-Dot */}
+            <View
+              style={{
+                backgroundColor: selected ? activeColor : 'transparent',
+                borderRadius: 9999,
+                height: 3.5,
+                marginTop: 2,
+                width: selected ? 12 : 0,
+              }}
+            />
           </Pressable>
         );
       })}
