@@ -155,6 +155,7 @@ const statusConfig: Record<
 export type ServerTablesProps = {
   tables?: ServerTablesRow[];
   user?: HeaderUser;
+  serverEmployeeId?: string | number | null;
   orders?: Record<string, unknown>[];
   onRefresh?: () => void;
   onSelectTable?: (tableNum: string) => void;
@@ -163,6 +164,7 @@ export type ServerTablesProps = {
 export default function ServerTables({
   tables = [],
   user = {},
+  serverEmployeeId,
   orders = [],
   onRefresh,
   onSelectTable,
@@ -175,7 +177,7 @@ export default function ServerTables({
   const [selectedTableDetails, setSelectedTableDetails] = useState<ServerTablesRow | null>(null);
   const [settlingTable, setSettlingTable] = useState<string | null>(null);
 
-  const employeeId = user.employee_id ?? user.employeeId;
+  const employeeId = serverEmployeeId ?? user.employee_id ?? user.employeeId;
 
   // Active orders mapped by table number
   const occupiedOrderMap = useMemo(() => {
@@ -237,6 +239,7 @@ export default function ServerTables({
 
   const userIds = useMemo(() => {
     return [
+      serverEmployeeId,
       user.employee_id,
       user.employeeId,
       user.id,
@@ -245,7 +248,7 @@ export default function ServerTables({
     ]
       .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
       .map(val => String(val).trim());
-  }, [user]);
+  }, [serverEmployeeId, user]);
 
   const userNames = useMemo(() => {
     return [
@@ -286,7 +289,8 @@ export default function ServerTables({
 
     if (list.length > 0) return list;
 
-    return list;
+    // Fallback: If no tables specifically assigned, allow working with restaurant floor tables
+    return normalizedTableList;
   }, [normalizedTableList, userIds, userNames]);
 
   // Filter by status & search
@@ -398,7 +402,15 @@ export default function ServerTables({
       }
 
       await api.get(`/table-bills/${billId}`);
-      await api.post(`/table-bills/${billId}/settle`);
+      const settleResponse = await api.post(`/table-bills/${billId}/settle`, {
+        payment_method: 'Cash',
+        discount: 0,
+      });
+      if (settleResponse.data?.success === false) {
+        throw new Error(
+          settleResponse.data?.message || 'The bill could not be settled.',
+        );
+      }
       Alert.alert(
         'Bill Completed',
         `Table ${table.table_number ?? tableId} bill has been completed.`,
@@ -711,7 +723,19 @@ export default function ServerTables({
                       📌 Reserved for upcoming dining booking
                     </Text>
                   </View>
-                ) : null}
+                ) : (
+                  <View className="mt-3.5">
+                    <Pressable
+                      accessibilityLabel={`Take order for Table ${table.table_number}`}
+                      onPress={() => onSelectTable?.(String(table.table_number))}
+                      className="h-10 flex-row items-center justify-center rounded-lg bg-[#116C0B] px-3 active:bg-[#0F5A09]"
+                    >
+                      <Text className="text-xs font-extrabold text-white">
+                        Take Order ›
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
 
                 {/* 1-Tap Status Switcher Strip */}
                 <View className="mt-4 border-t border-[#F1F5F9] pt-3">

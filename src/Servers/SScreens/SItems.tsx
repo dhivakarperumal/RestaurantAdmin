@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import api, { API_BASE_URL } from '../../../api';
+import api, { API_BASE_URL, getStoredUser } from '../../../api';
+import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
 
 /* ==========================================================================
    Types
@@ -27,6 +28,8 @@ export type ServerOrderTable = {
   assigned_server_id?: string | number | null;
   assigned_employee_id?: string | number | null;
   server_id?: string | number | null;
+  assigned_server_name?: string | null;
+  server_name?: string | null;
 };
 
 type FoodRow = Record<string, unknown>;
@@ -345,12 +348,16 @@ function DietaryBadge({ type }: { type: 'veg' | 'non-veg' | 'egg' }) {
 export default function ServerItems({
   table,
   tables = [],
+  user,
+  serverEmployeeId,
   onBack,
   onTableChange,
   onTableStatusChange,
 }: {
   table: ServerOrderTable;
   tables?: ServerOrderTable[];
+  user?: HeaderUser;
+  serverEmployeeId?: string | number | null;
   onBack: () => void;
   onTableChange?: (table: ServerOrderTable) => void;
   onTableStatusChange?: (status: string) => void;
@@ -379,6 +386,76 @@ export default function ServerItems({
   const tableId = String(table.id ?? table.table_id ?? '');
   const tableLabel = String(table.table_number ?? table.id ?? table.table_id ?? '1');
   const seats = table.no_of_seats ?? 4;
+
+  // Effective server employee ID and name resolution
+  const effectiveServerId = useMemo((): string | number | null => {
+    const candidate =
+      serverEmployeeId ??
+      user?.employee_id ??
+      user?.employeeId ??
+      ((user as Record<string, unknown>)?.emp_id as string | number | undefined) ??
+      user?.id ??
+      user?.user_id ??
+      table.assigned_server_id ??
+      table.assigned_employee_id ??
+      table.server_id;
+    return candidate !== undefined && candidate !== null && String(candidate).trim() !== ''
+      ? (candidate as string | number)
+      : null;
+  }, [serverEmployeeId, user, table]);
+
+  const effectiveServerName = useMemo(() => {
+    return (
+      user?.name ??
+      user?.username ??
+      (user as Record<string, unknown>)?.full_name ??
+      table.assigned_server_name ??
+      table.server_name ??
+      'Server'
+    );
+  }, [user, table]);
+
+  // Pre-emptively link/assign table in backend database
+  const ensureTableAssigned = useCallback(
+    async (tId: string | number, empId: string | number) => {
+      const cleanTableId = !isNaN(Number(tId)) ? Number(tId) : tId;
+      const cleanEmpId = !isNaN(Number(empId)) ? Number(empId) : empId;
+
+      // 1. Try assignment endpoint
+      try {
+        await api.post('/server-tables/assign', {
+          employee_id: cleanEmpId,
+          table_ids: [cleanTableId],
+        });
+      } catch {
+        // Fallback: update table directly
+        try {
+          await api.put(`/server-tables/${tId}`, {
+            assigned_server_id: cleanEmpId,
+            assigned_employee_id: cleanEmpId,
+            server_id: cleanEmpId,
+            assigned_server_name: effectiveServerName,
+            server_name: effectiveServerName,
+            status: 'Occupied',
+          });
+        } catch {
+          try {
+            await api.patch(`/server-tables/${tId}`, {
+              assigned_server_id: cleanEmpId,
+              assigned_employee_id: cleanEmpId,
+              server_id: cleanEmpId,
+              assigned_server_name: effectiveServerName,
+              server_name: effectiveServerName,
+              status: 'Occupied',
+            });
+          } catch {
+            // non-blocking
+          }
+        }
+      }
+    },
+    [effectiveServerName],
+  );
 
   useEffect(() => {
     setCart([]);
@@ -514,14 +591,20 @@ export default function ServerItems({
     if (updatingStatus || status === tableStatus) return;
     setUpdatingStatus(true);
     try {
+      const updatePayload: Record<string, unknown> = {
+        status: tableApiStatus[status],
+      };
+      if (effectiveServerId) {
+        updatePayload.assigned_server_id = effectiveServerId;
+        updatePayload.assigned_employee_id = effectiveServerId;
+        updatePayload.server_id = effectiveServerId;
+        updatePayload.assigned_server_name = effectiveServerName;
+        updatePayload.server_name = effectiveServerName;
+      }
       await api
-        .put(`/server-tables/${tableId}`, {
-          status: tableApiStatus[status],
-        })
+        .put(`/server-tables/${tableId}`, updatePayload)
         .catch(async () => {
-          return await api.patch(`/server-tables/${tableId}`, {
-            status: tableApiStatus[status],
-          });
+          return await api.patch(`/server-tables/${tableId}`, updatePayload);
         });
       setTableStatus(status);
       onTableStatusChange?.(status);
@@ -537,7 +620,7 @@ export default function ServerItems({
   };
 
   // Send Order to Kitchen
-  const sendToKitchen = async () => {
+  const sendToKitchen = async (forceClaim = false) => {
     if (!cart.length || submitting || submissionLock.current) return;
     submissionLock.current = true;
     setSubmitting(true);
@@ -559,30 +642,120 @@ export default function ServerItems({
         quantity,
         price: priceValue(food),
       }));
-      const assignedServerId =
-        table.assigned_server_id ?? table.assigned_employee_id ?? table.server_id;
 
-      const kitchenResponse = await api.post('/kitchen-orders', {
-        table_id: tableId,
-        table_number: tableLabel,
-        items,
-        total_amount: total,
-        status: 'pending',
-        notes: orderNotes.trim() || undefined,
-        ...(billData.bill_id || billData.id
-          ? { bill_id: billData.bill_id ?? billData.id }
-          : {}),
-        ...(assignedServerId !== undefined &&
-        assignedServerId !== null &&
-        assignedServerId !== ''
-          ? {
-              server_id: assignedServerId,
-              assigned_server_id: assignedServerId,
+      // Resolve current server ID
+      let assignedServerId: string | number | null =
+        effectiveServerId ??
+        table.assigned_server_id ??
+        table.assigned_employee_id ??
+        table.server_id ??
+        null;
+
+      if (!assignedServerId) {
+        try {
+          const stored = await getStoredUser();
+          const sId =
+            stored?.employee_id ??
+            stored?.employeeId ??
+            stored?.id ??
+            stored?.user_id;
+          if (sId !== undefined && sId !== null && String(sId).trim() !== '') {
+            assignedServerId = sId as string | number;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Pre-emptively link/assign the table in the backend
+      if (assignedServerId) {
+        await ensureTableAssigned(tableId, assignedServerId);
+      }
+
+      const postKitchenOrder = async (serverIdToSend?: string | number | null) => {
+        return await api.post('/kitchen-orders', {
+          table_id: tableId,
+          table_number: tableLabel,
+          items,
+          total_amount: total,
+          status: 'pending',
+          notes: orderNotes.trim() || undefined,
+          ...(billData.bill_id || billData.id
+            ? { bill_id: billData.bill_id ?? billData.id }
+            : {}),
+          ...(serverIdToSend !== undefined &&
+          serverIdToSend !== null &&
+          String(serverIdToSend).trim() !== ''
+            ? {
+                server_id: serverIdToSend,
+                assigned_server_id: serverIdToSend,
+                employee_id: serverIdToSend,
+              }
+            : {}),
+          ...(effectiveServerName
+            ? {
+                server_name: effectiveServerName,
+                assigned_server_name: effectiveServerName,
+              }
+            : {}),
+        });
+      };
+
+      let kitchenResponse;
+      try {
+        kitchenResponse = await postKitchenOrder(assignedServerId);
+      } catch (firstErr) {
+        const errStr = String(
+          (firstErr as { message?: string })?.message || '',
+        ).toLowerCase();
+
+        // If error is about table assignment to server account:
+        // Attempt automatic assignment repair and retry once!
+        if (
+          errStr.includes('not assigned') ||
+          errStr.includes('assigned') ||
+          errStr.includes('server account')
+        ) {
+          // Collect candidate IDs to link the table
+          const candidateIds = [
+            assignedServerId,
+            user?.employee_id,
+            user?.id,
+            user?.user_id,
+            table.assigned_server_id,
+          ].filter(
+            (v): v is string | number =>
+              v !== undefined && v !== null && String(v).trim() !== '',
+          );
+
+          let recovered = false;
+          for (const candId of candidateIds) {
+            try {
+              await ensureTableAssigned(tableId, candId);
+              kitchenResponse = await postKitchenOrder(candId);
+              recovered = true;
+              break;
+            } catch {
+              // try next candidate
             }
-          : {}),
-      });
+          }
+
+          if (!recovered) {
+            // Also try sending without server_id (let backend associate from auth token)
+            try {
+              kitchenResponse = await postKitchenOrder(undefined);
+              recovered = true;
+            } catch {
+              throw firstErr;
+            }
+          }
+        } else {
+          throw firstErr;
+        }
+      }
+
       const kitchenPayload =
-        kitchenResponse.data && typeof kitchenResponse.data === 'object'
+        kitchenResponse?.data && typeof kitchenResponse.data === 'object'
           ? (kitchenResponse.data as Record<string, unknown>)
           : {};
       if (kitchenPayload.success === false) {
@@ -593,9 +766,7 @@ export default function ServerItems({
         );
       }
 
-      // The kitchen-order endpoint owns the table/bill state after a successful
-      // KOT. Do not make a second table update request that can fail assignment
-      // validation after the order has already been created.
+      // Mark occupied
       if (tableStatus !== 'occupied') {
         setTableStatus('occupied');
         onTableStatusChange?.('occupied');
@@ -617,7 +788,35 @@ export default function ServerItems({
         requestError && typeof requestError === 'object' && 'message' in requestError
           ? String((requestError as { message?: unknown }).message)
           : 'Unable to send the order to the kitchen. Please check connection and try again.';
-      Alert.alert('Order Placement Failed', message);
+
+      const isAssignmentIssue =
+        message.toLowerCase().includes('not assigned') ||
+        message.toLowerCase().includes('server account');
+
+      if (isAssignmentIssue) {
+        Alert.alert(
+          'Table Assignment Required',
+          `Table ${tableLabel} is currently not linked to your server profile. Would you like to claim Table ${tableLabel} to your station and retry sending the order?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Claim & Send Order',
+              onPress: async () => {
+                submissionLock.current = false;
+                setSubmitting(false);
+                if (effectiveServerId) {
+                  await ensureTableAssigned(tableId, effectiveServerId);
+                }
+                setTimeout(() => {
+                  void sendToKitchen(true);
+                }, 300);
+              },
+            },
+          ],
+        );
+      } else {
+        Alert.alert('Order Placement Failed', message);
+      }
     } finally {
       submissionLock.current = false;
       setSubmitting(false);

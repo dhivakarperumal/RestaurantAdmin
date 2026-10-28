@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import colors from '../../theme/colors';
 
-export type ServerTab = 'home' | 'tables' | 'foods' | 'attendee' | 'more' | 'profile';
+export type ServerTab = 'home' | 'tables' | 'orders' | 'foods' | 'attendee' | 'more' | 'profile';
 
 /* ==========================================================================
    Crisp Vector Icons tailored for Server Navigation
@@ -155,7 +155,7 @@ const tabs: {
 }[] = [
   { key: 'home', label: 'Home', icon: HomeTabIcon },
   { key: 'tables', label: 'Tables', icon: TablesTabIcon },
-  { key: 'foods', label: 'Foods', icon: FoodsTabIcon },
+  { key: 'orders', label: 'Orders', icon: FoodsTabIcon },
   { key: 'more', label: 'More', icon: MoreTabIcon },
 ];
 

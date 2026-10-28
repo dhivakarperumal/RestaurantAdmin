@@ -18,6 +18,7 @@ import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
 import ServerBottomBar, { type ServerTab } from '../SNavigations/SBottombsr';
 import ServerTopHeader from '../SNavigations/STopHeder';
 import ServerFoods from './SFoods';
+import ServerOrders from './SOrders';
 import ServerMore from './SMore';
 import ServerProfile from './Profile';
 import ServerItems, { type ServerOrderTable } from './SItems';
@@ -2277,6 +2278,7 @@ export default function ServerHome({
   const [selectedTable, setSelectedTable] = useState<ServerOrderTable | null>(null);
   const [isAssignedTablesOpen, setIsAssignedTablesOpen] = useState(false);
   const [storedEmployeeId, setStoredEmployeeId] = useState<string | number | null>(null);
+  const [serverEmployeeId, setServerEmployeeId] = useState<string | number | null>(null);
 
   // Active table numbers with active orders
   const occupiedTableNumbers = useMemo(() => {
@@ -2292,9 +2294,10 @@ export default function ServerHome({
   }, [orders]);
 
   const assignedTables = useMemo(() => {
+    const effectiveEmpId = serverEmployeeId ?? storedEmployeeId;
     // 1. Tables specifically assigned to this server
     const serverAssigned = tables.filter(table =>
-      isTableAssignedToServer(table, user, storedEmployeeId),
+      isTableAssignedToServer(table, user, effectiveEmpId),
     );
 
     if (serverAssigned.length > 0) {
@@ -2321,28 +2324,75 @@ export default function ServerHome({
     // 3. Fallback: If restaurant has not assigned tables to ANY server yet (unassigned demo / floor),
     // default to the first 4 tables so the server has floor tables to work with!
     return tables.slice(0, 4);
-  }, [tables, user, storedEmployeeId]);
+  }, [tables, user, storedEmployeeId, serverEmployeeId]);
 
   const loadHome = useCallback(async () => {
+    let activeEmpId =
+      user?.employee_id ??
+      user?.employeeId ??
+      (user as Record<string, unknown>)?.emp_id ??
+      user?.id ??
+      user?.user_id;
+
     try {
       const stored = await getStoredUser();
       const sId =
+        activeEmpId ??
         stored?.employee_id ??
         stored?.employeeId ??
+        (stored as Record<string, unknown>)?.emp_id ??
         stored?.id ??
         stored?.user_id;
       if (sId) {
         setStoredEmployeeId(sId);
+        activeEmpId = sId;
       }
     } catch {
       // ignore
     }
 
-    const [orderResult, foodResult, tableResult] = await Promise.allSettled([
+    const [orderResult, foodResult, tableResult, empResult] = await Promise.allSettled([
       api.get('/orders/management'),
       api.get('/foods'),
       api.get('/server-tables'),
+      api.get('/employees'),
     ]);
+
+    if (empResult.status === 'fulfilled') {
+      const empData = empResult.value.data;
+      const empList: Record<string, unknown>[] = Array.isArray(empData)
+        ? empData
+        : Array.isArray(empData?.data)
+        ? empData.data
+        : Array.isArray(empData?.employees)
+        ? empData.employees
+        : [];
+
+      const targetEmail = (user?.email || '').toLowerCase().trim();
+      const targetName = (user?.name || user?.username || '').toLowerCase().trim();
+      const targetUserId = String(user?.id ?? user?.user_id ?? '').trim();
+
+      const matchedEmp = empList.find(emp => {
+        const empId = String(emp.employee_id || emp.id || '').trim();
+        const empUserId = String(emp.user_id || '').trim();
+        const empEmail = String(emp.email || '').toLowerCase().trim();
+        const empName = String(emp.full_name || emp.name || '').toLowerCase().trim();
+
+        if (targetUserId && empUserId && empUserId === targetUserId) return true;
+        if (targetEmail && empEmail && empEmail === targetEmail) return true;
+        if (targetName && empName && empName === targetName) return true;
+        if (activeEmpId && empId === String(activeEmpId)) return true;
+        return false;
+      });
+
+      if (matchedEmp) {
+        const realEmpId = (matchedEmp.employee_id ?? matchedEmp.id) as string | number;
+        if (realEmpId) {
+          setStoredEmployeeId(realEmpId);
+          setServerEmployeeId(realEmpId);
+        }
+      }
+    }
 
     setOrders(
       orderResult.status === 'fulfilled' ? rows(orderResult.value.data) : [],
@@ -2355,7 +2405,7 @@ export default function ServerHome({
         ? (rows(tableResult.value.data) as ServerTable[])
         : [],
     );
-  }, []);
+  }, [user]);
 
   const initData = useCallback(async () => {
     setLoading(true);
@@ -2447,35 +2497,90 @@ export default function ServerHome({
     [],
   );
 
-  const openTableOrder = useCallback(async (table: ServerTable) => {
-    const tableId = table.id ?? table.table_id;
-    if (tableId === undefined || tableId === null) {
-      Alert.alert('Table unavailable', 'This table does not have a valid ID.');
-      return;
-    }
-    const status = String(table.status ?? '').toLowerCase();
-    if (!['occupied', 'reserved'].includes(status)) {
+  const openTableOrder = useCallback(
+    async (table: ServerTable) => {
+      const tableId = table.id ?? table.table_id;
+      if (tableId === undefined || tableId === null) {
+        Alert.alert('Table unavailable', 'This table does not have a valid ID.');
+        return;
+      }
+
+      const activeEmpId =
+        serverEmployeeId ??
+        user?.employee_id ??
+        user?.employeeId ??
+        storedEmployeeId ??
+        user?.id;
+
+      const serverName = user?.name ?? user?.username ?? 'Server';
+
       try {
-        await api.put(`/server-tables/${tableId}`, { status: 'Occupied' });
+        await api
+          .put(`/server-tables/${tableId}`, {
+            status: 'Occupied',
+            ...(activeEmpId
+              ? {
+                  assigned_server_id: activeEmpId,
+                  assigned_employee_id: activeEmpId,
+                  server_id: activeEmpId,
+                  assigned_server_name: serverName,
+                  server_name: serverName,
+                }
+              : {}),
+          })
+          .catch(async () => {
+            return await api.patch(`/server-tables/${tableId}`, {
+              status: 'Occupied',
+              ...(activeEmpId
+                ? {
+                    assigned_server_id: activeEmpId,
+                    assigned_employee_id: activeEmpId,
+                    server_id: activeEmpId,
+                    assigned_server_name: serverName,
+                    server_name: serverName,
+                  }
+                : {}),
+            });
+          });
+
+        if (activeEmpId) {
+          const numericTableId = !isNaN(Number(tableId)) ? Number(tableId) : tableId;
+          const numericEmpId = !isNaN(Number(activeEmpId)) ? Number(activeEmpId) : activeEmpId;
+          await api
+            .post('/server-tables/assign', {
+              employee_id: numericEmpId,
+              table_ids: [numericTableId],
+            })
+            .catch(() => {});
+        }
+
         setTables(current =>
           current.map(item =>
             String(item.id ?? item.table_id) === String(tableId)
-              ? { ...item, status: 'occupied' }
+              ? {
+                  ...item,
+                  status: 'occupied',
+                  assigned_server_id: activeEmpId ?? item.assigned_server_id,
+                  assigned_server_name: serverName ?? item.assigned_server_name,
+                }
               : item,
           ),
         );
-      } catch (error) {
-        const message =
-          error && typeof error === 'object' && 'message' in error
-            ? String((error as { message?: unknown }).message)
-            : 'Unable to update this table.';
-        Alert.alert('Table update failed', message);
-        return;
+      } catch {
+        // Table update non-blocking
       }
-    }
-    setIsAssignedTablesOpen(false);
-    setSelectedTable({ ...table, id: tableId, status: 'occupied' });
-  }, []);
+
+      setIsAssignedTablesOpen(false);
+      setSelectedTable({
+        ...table,
+        id: tableId,
+        status: 'occupied',
+        assigned_server_id: activeEmpId ?? table.assigned_server_id,
+        assigned_server_name: serverName ?? table.assigned_server_name,
+      });
+    },
+    [serverEmployeeId, storedEmployeeId, user],
+  );
 
   const mainContent = useMemo(() => {
     if (loading) {
@@ -2493,14 +2598,12 @@ export default function ServerHome({
       return (
         <ServerItems
           table={selectedTable}
-          tables={assignedTables}
+          tables={assignedTables.length > 0 ? assignedTables : tables.slice(0, 8)}
+          user={user}
+          serverEmployeeId={serverEmployeeId ?? storedEmployeeId}
           onBack={() => setSelectedTable(null)}
           onTableChange={table => {
-            setSelectedTable({
-              ...table,
-              id: table.id ?? table.table_id,
-              status: table.status || 'occupied',
-            });
+            void openTableOrder(table);
           }}
           onTableStatusChange={status => {
             setSelectedTable(current =>
@@ -2543,22 +2646,29 @@ export default function ServerHome({
         <ServerTables
           tables={tables}
           user={user}
+          serverEmployeeId={serverEmployeeId ?? storedEmployeeId}
           orders={orders}
           onRefresh={onRefresh}
           onSelectTable={tableNumber => {
-            const table = assignedTables.find(
-              item => String(item.table_number ?? item.id ?? item.table_id) === tableNumber,
-            );
+            const table =
+              assignedTables.find(
+                item =>
+                  String(item.table_number ?? item.id ?? item.table_id) === tableNumber,
+              ) ??
+              tables.find(
+                item =>
+                  String(item.table_number ?? item.id ?? item.table_id) === tableNumber,
+              );
             if (table) {
-              setSelectedTable({
-                ...table,
-                id: table.id ?? table.table_id,
-                status: 'occupied',
-              });
+              void openTableOrder(table);
             }
           }}
         />
       );
+    }
+
+    if (activeTab === 'orders') {
+      return <ServerOrders user={user} />;
     }
 
     if (activeTab === 'foods') {
@@ -2596,6 +2706,8 @@ export default function ServerHome({
         onClockOut={clockOut}
         onRefreshWorkspace={onRefresh}
         onOpenProfile={() => setActiveTab('profile')}
+        onOpenFoods={() => setActiveTab('foods')}
+        onOpenOrders={() => setActiveTab('orders')}
       />
     );
   }, [

@@ -373,6 +373,8 @@ export type ServerMoreProps = {
   onClockOut?: () => Promise<void>;
   onRefreshWorkspace?: () => void;
   onOpenProfile?: () => void;
+  onOpenFoods?: () => void;
+  onOpenOrders?: () => void;
 };
 
 export default function ServerMore({
@@ -381,6 +383,8 @@ export default function ServerMore({
   onClockOut,
   onRefreshWorkspace,
   onOpenProfile,
+  onOpenFoods,
+  onOpenOrders,
 }: ServerMoreProps) {
   const name = user.name?.trim() || user.username?.trim() || 'Team Server';
   const email = user.email?.trim() || 'server@dineserve.com';
@@ -598,6 +602,22 @@ export default function ServerMore({
         </View>
 
         <View className="mt-3 gap-3.5">
+          <View className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
+            <SettingRow
+              icon={HistorySvg}
+              title="Kitchen Orders"
+              subtitle="View orders assigned to your server account"
+              badge="LIVE"
+              onPress={onOpenOrders}
+            />
+            <View className="mx-4 border-t border-[#F1F5F9]" />
+            <SettingRow
+              icon={GlobeSvg}
+              title="Food Menu"
+              subtitle="Browse food items and start an order"
+              onPress={onOpenFoods}
+            />
+          </View>
           {/* Card 1: Kitchen & Receipt Printers Card */}
           <Pressable
             onPress={() => setIsPrinterModalOpen(true)}
