@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import api, { API_BASE_URL } from '../../../api';
+import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 import { ProductIcon } from '../Navigation/NavigationIcons';
 
 type FoodRecord = Record<string, unknown>;
@@ -190,45 +191,37 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
 
   return (
     <View className="flex-1 bg-[#F9FAFB]">
-      <View className="flex-row items-center gap-3 border-b border-[#E5E7EB] bg-white px-4 py-3">
-        <Pressable
-          accessibilityLabel="Back to items"
-          accessibilityRole="button"
-          onPress={onBack}
-          className="h-10 w-10 items-center justify-center rounded-xl bg-[#F3F4F6]"
-        >
-          <Text className="text-2xl font-bold text-[#374151]">←</Text>
-        </Pressable>
-        <View className="flex-1">
-          <Text numberOfLines={1} className="text-lg font-bold text-[#012711]">
-            Food details
-          </Text>
-          <Text className="text-xs text-[#6B7280]">{foodId}</Text>
-        </View>
-        {!isLoading && !error && food ? (
-          <View className="flex-row gap-2">
-            <Pressable
-              accessibilityLabel={`Edit ${displayText(food.food_name, 'food')}`}
-              accessibilityRole="button"
-              onPress={onEdit}
-              className="rounded-xl bg-[#F0F7EE] px-3 py-2"
-            >
-              <Text className="font-semibold text-[#116C0B]">Edit</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={`Delete ${displayText(food.food_name, 'food')}`}
-              accessibilityRole="button"
-              onPress={() => {
-                setDeleteError('');
-                setIsDeleteConfirmationOpen(true);
-              }}
-              className="rounded-xl bg-red-50 px-3 py-2"
-            >
-              <Text className="font-semibold text-red-700">Delete</Text>
-            </Pressable>
-          </View>
-        ) : null}
-      </View>
+      <MoreInnerHeader
+        title="Food details"
+        destination="Items"
+        onBack={onBack}
+        subtitle={foodId}
+        rightContent={
+          !isLoading && !error && food ? (
+            <View className="flex-row gap-2">
+              <Pressable
+                accessibilityLabel={`Edit ${displayText(food.food_name, 'food')}`}
+                accessibilityRole="button"
+                onPress={onEdit}
+                className="rounded-xl bg-white/15 px-3 py-2"
+              >
+                <Text className="font-semibold text-white">Edit</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel={`Delete ${displayText(food.food_name, 'food')}`}
+                accessibilityRole="button"
+                onPress={() => {
+                  setDeleteError('');
+                  setIsDeleteConfirmationOpen(true);
+                }}
+                className="rounded-xl bg-red-50 px-3 py-2"
+              >
+                <Text className="font-semibold text-red-700">Delete</Text>
+              </Pressable>
+            </View>
+          ) : null
+        }
+      />
 
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
