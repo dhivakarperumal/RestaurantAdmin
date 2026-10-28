@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
+import colors from '../../theme/colors';
 
 export type ChefFood = {
   food_id?: string | number;
@@ -424,14 +425,21 @@ function ChefFoodsScreen({
 
       <View className="mb-4 flex-row flex-wrap gap-2">
         {[
-          { label: 'Total dishes', value: foods.length, color: 'bg-green-50' },
-          { label: 'Active', value: activeCount, color: 'bg-emerald-50' },
-          { label: 'Menu visible', value: visibleCount, color: 'bg-blue-50' },
-          { label: 'Hidden', value: foods.length - visibleCount, color: 'bg-pink-50' },
+          { label: 'Total dishes', value: foods.length, usesBrandColor: true, color: '' },
+          { label: 'Active', value: activeCount, usesBrandColor: false, color: 'bg-emerald-50' },
+          { label: 'Menu visible', value: visibleCount, usesBrandColor: false, color: 'bg-blue-50' },
+          { label: 'Hidden', value: foods.length - visibleCount, usesBrandColor: false, color: 'bg-pink-50' },
         ].map(stat => (
           <View
             key={stat.label}
-            className={`min-w-[46%] flex-1 rounded-xl border border-slate-200 p-3 ${stat.color}`}
+            className={`min-w-[46%] flex-1 rounded-xl border border-slate-200 p-3 ${
+              stat.usesBrandColor ? '' : stat.color
+            }`}
+            style={
+              stat.usesBrandColor
+                ? { backgroundColor: colors.surfaceSecondary }
+                : undefined
+            }
           >
             <Text className="text-[11px] font-medium text-slate-600">
               {stat.label}

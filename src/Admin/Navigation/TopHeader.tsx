@@ -22,6 +22,7 @@ import {
   BellIcon,
   HamburgerIcon,
 } from './NavigationIcons';
+import colors from '../../theme/colors';
 
 export type HeaderUser = {
   id?: string | number;
@@ -158,12 +159,12 @@ function TopHeader({
             <Stop offset="100%" stopColor="#147524" stopOpacity="1" />
           </LinearGradient>
           <LinearGradient id="glowG" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#81C238" stopOpacity="0.26" />
-            <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+            <Stop offset="0%" stopColor={colors.primaryLight} stopOpacity="0.26" />
+            <Stop offset="100%" stopColor={colors.primaryLight} stopOpacity="0" />
           </LinearGradient>
           <LinearGradient id="accentG" x1="100%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#81C238" stopOpacity="0.18" />
-            <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+            <Stop offset="0%" stopColor={colors.primaryLight} stopOpacity="0.18" />
+            <Stop offset="100%" stopColor={colors.primaryLight} stopOpacity="0" />
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#headerGrad)" />

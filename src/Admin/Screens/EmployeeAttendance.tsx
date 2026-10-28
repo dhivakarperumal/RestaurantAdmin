@@ -18,6 +18,7 @@ import DateTimePicker, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import api from '../../../api';
+import colors from '../../theme/colors';
 
 type AttendanceRecord = {
   employee_id: string | number;
@@ -1002,7 +1003,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                         status === 'Absent' || status === 'On Leave'
                           ? 'bg-[#FEE2E2] text-[#B91C1C]'
                           : status === 'Late'
-                            ? 'bg-[#F0F7EE] text-[#116C0B]'
+                            ? ''
                             : 'bg-[#D1FAE5] text-[#047857]';
 
                       return (
@@ -1031,6 +1032,14 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                           <View className="w-[102px] px-3">
                             <Text
                               className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}
+                              style={
+                                status === 'Late'
+                                  ? {
+                                      backgroundColor: colors.surfaceSecondary,
+                                      color: colors.primary,
+                                    }
+                                  : undefined
+                              }
                             >
                               {status}
                             </Text>

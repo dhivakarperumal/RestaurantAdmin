@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../../api';
+import colors from '../../theme/colors';
 
 type ServerEmployee = {
   employee_id: string | number;
@@ -456,9 +457,14 @@ function AssignServerTables({
                                 : isSelected
                                   ? 'font-semibold text-[#116C0B]'
                                   : disabled
-                                    ? 'text-[#116C0B]'
+                                    ? ''
                                     : 'text-[#6B7280]'
                             }`}
+                            style={
+                              isSelected || disabled
+                                ? { color: colors.primary }
+                                : undefined
+                            }
                           >
                             {assignedToOther
                               ? reason

@@ -13,6 +13,8 @@ const colors = {
   primary: '#116C0B',
   primaryDark: '#02480B',
   primaryLight: '#81C238',
+  primaryGlow: 'rgba(129, 194, 56, 0.22)',
+  primaryGlowSoft: 'rgba(34, 197, 94, 0.14)',
 
   // Supporting green accents
   secondary: '#81C238',

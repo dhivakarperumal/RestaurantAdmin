@@ -2205,7 +2205,7 @@ function HomePage({
                   Stock is running low
                 </Text>
               </View>
-              <Text className="text-[13px] font-bold text-[#116C0B]">
+              <Text className="text-[13px] font-bold" style={{ color: colors.primary }}>
                 {getItemStock(item)} left
               </Text>
             </View>
@@ -3619,7 +3619,13 @@ function KitchenRequestsScreen() {
                     {requestId}
                   </Text>
                 </View>
-                <Text className="rounded-lg bg-[#F0F7EE] px-2.5 py-1 text-xs font-bold capitalize text-[#116C0B]">
+                <Text
+                  className="rounded-lg px-2.5 py-1 text-xs font-bold capitalize"
+                  style={{
+                    backgroundColor: colors.surfaceSecondary,
+                    color: colors.primary,
+                  }}
+                >
                   {status}
                 </Text>
               </View>
@@ -3658,7 +3664,13 @@ const statCardGradients: Record<
     glow2: string;
   }
 > = {
-  green:  { bg: '#052E10', bgMid: '#0B4D1A', bgDark: '#147524', glow1: 'rgba(129,194,56,0.22)', glow2: 'rgba(34,197,94,0.14)' },
+  green:  {
+    bg: colors.primaryDark,
+    bgMid: colors.primary,
+    bgDark: colors.primaryLight,
+    glow1: colors.primaryGlow,
+    glow2: colors.primaryGlowSoft,
+  },
   blue:   { bg: '#0B1E4D', bgMid: '#1230A0', bgDark: '#1D4ED8', glow1: 'rgba(96,165,250,0.22)', glow2: 'rgba(59,130,246,0.14)' },
   purple: { bg: '#2E1065', bgMid: '#5B21B6', bgDark: '#7C3AED', glow1: 'rgba(167,139,250,0.22)', glow2: 'rgba(139,92,246,0.14)' },
   cyan:   { bg: '#083344', bgMid: '#0E7490', bgDark: '#0891B2', glow1: 'rgba(34,211,238,0.22)',  glow2: 'rgba(6,182,212,0.14)' },
@@ -3913,13 +3925,13 @@ function StatusPill({
 }) {
   const tint =
     status === 'Pending'
-      ? '#116C0B'
+      ? colors.primary
       : status === 'Completed'
-      ? '#15803D'
+      ? colors.success
       : colors.error;
   const bg =
     status === 'Pending'
-      ? '#F0F7EE'
+      ? colors.surfaceSecondary
       : status === 'Completed'
       ? '#F0FDF4'
       : '#FEF2F2';

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../../api';
+import colors from '../../theme/colors';
 
 type EventOrder = Record<string, unknown> & {
   id?: string | number;
@@ -117,14 +118,24 @@ function OrderStatus({
 }) {
   const badgeColor =
     status === 'Confirmed'
-      ? 'bg-green-50 text-green-800'
+      ? ''
       : status === 'Preparing'
         ? 'bg-blue-50 text-blue-800'
         : status === 'Ready'
           ? 'bg-emerald-50 text-emerald-800'
           : 'bg-slate-100 text-slate-700';
   return (
-    <Text className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${badgeColor}`}>
+    <Text
+      className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${badgeColor}`}
+      style={
+        status === 'Confirmed'
+          ? {
+              backgroundColor: colors.surfaceSecondary,
+              color: colors.primary,
+            }
+          : undefined
+      }
+    >
       {status}
     </Text>
   );
@@ -576,20 +587,38 @@ function ChefEventOrdersScreen() {
                 contentContainerClassName="gap-3 p-4"
                 keyboardShouldPersistTaps="handled"
               >
-                <View className="flex-row gap-2 rounded-xl border border-green-100 bg-green-50 p-3">
+                <View
+                  className="flex-row gap-2 rounded-xl border p-3"
+                  style={{
+                    borderColor: colors.borderLight,
+                    backgroundColor: colors.surfaceSecondary,
+                  }}
+                >
                   <View className="flex-1">
-                    <Text className="text-[9px] font-bold uppercase text-green-700">
+                    <Text
+                      className="text-[9px] font-bold uppercase"
+                      style={{ color: colors.primary }}
+                    >
                       Event timing
                     </Text>
-                    <Text className="mt-1 text-xs font-extrabold text-green-950">
+                    <Text
+                      className="mt-1 text-xs font-extrabold"
+                      style={{ color: colors.primaryDark }}
+                    >
                       {formatDate(selectedOrder.event_date)}
                     </Text>
-                    <Text className="text-[10px] font-semibold text-green-800">
+                    <Text
+                      className="text-[10px] font-semibold"
+                      style={{ color: colors.primary }}
+                    >
                       {formatTime(selectedOrder.event_time)}
                     </Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="text-[9px] font-bold uppercase text-green-700">
+                    <Text
+                      className="text-[9px] font-bold uppercase"
+                      style={{ color: colors.primary }}
+                    >
                       Catering details
                     </Text>
                     <Text className="mt-1 text-xs font-extrabold text-[#123B2D]">

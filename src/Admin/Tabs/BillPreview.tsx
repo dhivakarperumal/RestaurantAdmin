@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlusIcon } from '../Navigation/NavigationIcons';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
+import colors from '../../theme/colors';
 
 export type BillPreviewItem = {
   id: string;
@@ -166,16 +167,24 @@ function BillPreview({
                     accessibilityState={{ selected: orderType === type }}
                     key={type}
                     onPress={() => setOrderType(type)}
-                    className={`rounded-md border px-2 py-1 ${
+                    className="rounded-md border px-2 py-1"
+                    style={
                       orderType === type
-                        ? 'border-[#116C0B] bg-[#F0F7EE]'
-                        : 'border-[#E5E7EB] bg-white'
-                    }`}
+                        ? {
+                            borderColor: colors.primary,
+                            backgroundColor: colors.surfaceSecondary,
+                          }
+                        : { borderColor: colors.border, backgroundColor: colors.surface }
+                    }
                   >
                     <Text
-                      className={`text-[10px] font-semibold ${
-                        orderType === type ? 'text-[#116C0B]' : 'text-[#6B7280]'
-                      }`}
+                      className="text-[10px] font-semibold"
+                      style={{
+                        color:
+                          orderType === type
+                            ? colors.primary
+                            : colors.textSecondary,
+                      }}
                     >
                       {type}
                     </Text>
@@ -187,11 +196,14 @@ function BillPreview({
 
           <ScrollView horizontal showsHorizontalScrollIndicator>
             <View>
-              <View className="w-[520px] flex-row items-center bg-[#F0F7EE] px-3 py-2.5">
-                <Text className="w-8 text-xs font-bold text-[#116C0B]">#</Text>
-                <Text className="flex-1 text-xs font-bold text-[#116C0B]">Item</Text>
-                <Text className="w-[140px] text-center text-xs font-bold text-[#116C0B]">Qty</Text>
-                <Text className="w-[96px] text-right text-xs font-bold text-[#116C0B]">Price / Total</Text>
+              <View
+                className="w-[520px] flex-row items-center px-3 py-2.5"
+                style={{ backgroundColor: colors.surfaceSecondary }}
+              >
+                <Text className="w-8 text-xs font-bold" style={{ color: colors.primary }}>#</Text>
+                <Text className="flex-1 text-xs font-bold" style={{ color: colors.primary }}>Item</Text>
+                <Text className="w-[140px] text-center text-xs font-bold" style={{ color: colors.primary }}>Qty</Text>
+                <Text className="w-[96px] text-right text-xs font-bold" style={{ color: colors.primary }}>Price / Total</Text>
               </View>
               {items.map((item, index) => {
                 const lineTotal = (item.amount ?? 0) * item.quantity;
@@ -228,9 +240,10 @@ function BillPreview({
                             onQuantityChange(item.id, item.quantity - 1);
                           }
                         }}
-                        className="h-8 w-8 items-center justify-center rounded-md border border-[#DCE8D8]"
+                        className="h-8 w-8 items-center justify-center rounded-md border"
+                        style={{ borderColor: colors.borderLight }}
                       >
-                        <Text className="text-base text-[#116C0B]">−</Text>
+                        <Text className="text-base" style={{ color: colors.primary }}>−</Text>
                       </Pressable>
                       <Text className="min-w-4 text-center text-xs text-[#111827]">
                         {item.quantity}
@@ -239,14 +252,15 @@ function BillPreview({
                         accessibilityLabel={`Increase ${item.name} quantity`}
                         accessibilityRole="button"
                         onPress={() => onQuantityChange(item.id, item.quantity + 1)}
-                        className="h-8 w-8 items-center justify-center rounded-md border border-[#DCE8D8]"
+                        className="h-8 w-8 items-center justify-center rounded-md border"
+                        style={{ borderColor: colors.borderLight }}
                       >
-                        <PlusIcon color="#116C0B" size={14} />
+                        <PlusIcon color={colors.primary} size={14} />
                       </Pressable>
                     </View>
                     <View className="w-[96px] items-end">
                       {item.amount === null ? (
-                        <Text className="text-[10px] font-semibold text-[#116C0B]">Price needed</Text>
+                        <Text className="text-[10px] font-semibold" style={{ color: colors.primary }}>Price needed</Text>
                       ) : (
                         <>
                           <Text className="text-[10px] text-[#6B7280]">
@@ -285,11 +299,20 @@ function BillPreview({
         </ScrollView>
 
         {hasUnpricedItems ? (
-          <Text className="bg-[#F0F7EE] px-4 py-2 text-center text-xs text-[#116C0B]">
+          <Text
+            className="px-4 py-2 text-center text-xs"
+            style={{
+              backgroundColor: colors.surfaceSecondary,
+              color: colors.primary,
+            }}
+          >
             Enter prices for all items before sending the bill.
           </Text>
         ) : null}
-        <View className="flex-row items-center justify-between bg-[#116C0B] px-5 py-3.5">
+        <View
+          className="flex-row items-center justify-between px-5 py-3.5"
+          style={{ backgroundColor: colors.primary }}
+        >
           <Text className="text-lg font-extrabold text-white">Grand Total</Text>
           <Text className="text-lg font-extrabold text-white">
             {formatCurrency(grandTotal)}
@@ -300,15 +323,17 @@ function BillPreview({
             accessibilityLabel="Preview Bill"
             accessibilityRole="button"
             onPress={() => setIsReceiptPreviewOpen(true)}
-            className="h-12 flex-1 items-center justify-center rounded-xl border border-[#116C0B] bg-white"
+            className="h-12 flex-1 items-center justify-center rounded-xl border bg-white"
+            style={{ borderColor: colors.primary }}
           >
-            <Text className="text-sm font-bold text-[#116C0B]">Preview Bill</Text>
+            <Text className="text-sm font-bold" style={{ color: colors.primary }}>Preview Bill</Text>
           </Pressable>
           <Pressable
             accessibilityLabel="Print Bill"
             accessibilityRole="button"
             onPress={printBill}
-            className="h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
+            className="h-12 flex-1 items-center justify-center rounded-xl"
+            style={{ backgroundColor: colors.primary }}
           >
             <Text className="text-sm font-bold text-white">Print Bill</Text>
           </Pressable>
@@ -332,7 +357,8 @@ function BillPreview({
               accessibilityLabel="Close bill preview"
               accessibilityRole="button"
               onPress={() => setIsReceiptPreviewOpen(false)}
-              className="mt-4 items-center rounded-xl bg-[#116C0B] py-3"
+              className="mt-4 items-center rounded-xl py-3"
+              style={{ backgroundColor: colors.primary }}
             >
               <Text className="text-sm font-bold text-white">Close Preview</Text>
             </Pressable>

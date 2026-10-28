@@ -180,11 +180,11 @@ function getStatusTheme(status: NormalizedStatus) {
   switch (status) {
     case 'Pending':
       return {
-        badgeBg: '#F0F7EE',
-        badgeBorder: '#DCE8D8',
-        badgeText: '#116C0B',
-        accentColor: '#81C238',
-        dotColor: '#81C238',
+        badgeBg: colors.surfaceSecondary,
+        badgeBorder: colors.borderLight,
+        badgeText: colors.primary,
+        accentColor: colors.primaryLight,
+        dotColor: colors.primaryLight,
         label: 'Pending',
         nextStatus: 'Preparing' as NormalizedStatus,
         nextActionText: 'Accept & Cook 👨‍🍳',
@@ -270,9 +270,9 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
     return {
       label: 'Takeaway',
       icon: '🛍️',
-      bg: '#F0F7EE',
-      border: '#DCE8D8',
-      text: '#116C0B',
+      bg: colors.surfaceSecondary,
+      border: colors.borderLight,
+      text: colors.primary,
     };
   }
   return {
@@ -795,17 +795,32 @@ export function OrdersScreen({
                 className={`rounded-md px-2 py-0.5 border ${
                   item.payment_method?.toLowerCase().includes('cash') ||
                   item.payment_method?.toLowerCase().includes('cod')
-                    ? 'bg-[#F0F7EE] border-[#DCE8D8]'
+                  ? ''
                     : 'bg-[#DCFCE7] border-[#BBF7D0]'
                 }`}
+                style={
+                  item.payment_method?.toLowerCase().includes('cash') ||
+                  item.payment_method?.toLowerCase().includes('cod')
+                  ? {
+                      backgroundColor: colors.surfaceSecondary,
+                      borderColor: colors.borderLight,
+                    }
+                  : undefined
+                }
               >
                 <Text
                   className={`text-[10px] font-extrabold uppercase tracking-wider ${
                     item.payment_method?.toLowerCase().includes('cash') ||
                     item.payment_method?.toLowerCase().includes('cod')
-                      ? 'text-[#116C0B]'
+                      ? ''
                       : 'text-[#166534]'
                   }`}
+                  style={
+                    item.payment_method?.toLowerCase().includes('cash') ||
+                    item.payment_method?.toLowerCase().includes('cod')
+                      ? { color: colors.primary }
+                      : undefined
+                  }
                 >
                   {item.payment_method || 'PAID'}
                 </Text>
@@ -929,20 +944,27 @@ export function OrdersScreen({
           {/* 1. Pending Action */}
           <Pressable
             onPress={() => setStatusFilter(statusFilter === 'Pending' ? 'All' : 'Pending')}
-            className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
-              statusFilter === 'Pending'
-                ? 'bg-green-100 border-green-400 shadow-sm'
-                : 'bg-[#F0F7EE] border-[#DCE8D8]'
-            }`}
+            className="flex-row min-w-[125px] items-center gap-3 rounded-2xl border px-3.5 py-2.5"
+            style={{
+              backgroundColor: colors.surfaceSecondary,
+              borderColor: statusFilter === 'Pending' ? colors.primary : colors.borderLight,
+              ...(statusFilter === 'Pending' ? { elevation: 2 } : {}),
+            }}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-green-200">
+            <View
+              className="h-8 w-8 items-center justify-center rounded-xl"
+              style={{ backgroundColor: colors.borderLight }}
+            >
               <Text className="text-base">⚡</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-green-800">
+              <Text
+                className="text-[10px] font-extrabold uppercase tracking-wider"
+                style={{ color: colors.primary }}
+              >
                 Pending
               </Text>
-              <Text className="text-lg font-black text-green-950">
+              <Text className="text-lg font-black" style={{ color: colors.primaryDark }}>
                 {metrics.pending}
               </Text>
             </View>

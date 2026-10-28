@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../../api';
+import colors from '../../theme/colors';
 
 export type ChefOrderPage =
   | 'kitchen'
@@ -564,8 +565,9 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                     </View>
                     <Text
                       className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                        statusColor(currentStatus)
+                        statusColor(currentStatus).className
                       }`}
+                      style={statusColor(currentStatus).style}
                     >
                       {isKitchen ? currentStatus : statusLabel(currentStatus)}
                     </Text>
@@ -618,7 +620,8 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                       label="Assign delivery partner"
                       disabled={isUpdating}
                       onPress={() => startAssignment(order)}
-                      className="bg-[#116C0B]"
+                      className=""
+                      style={{ backgroundColor: colors.primary }}
                     />
                   ) : null}
                   {nextStatus &&
@@ -828,7 +831,10 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                               {text(item.quantity, '1')} × ₹{Number(item.unit_price || 0).toFixed(2)}
                             </Text>
                             {item.cooking_notes || item.notes ? (
-                              <Text className="mt-1 text-[10px] text-green-700">
+                              <Text
+                                className="mt-1 text-[10px]"
+                                style={{ color: colors.primary }}
+                              >
                                 Note: {text(item.cooking_notes ?? item.notes)}
                               </Text>
                             ) : null}
@@ -838,11 +844,23 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                     },
                   )}
                   {selectedOrder.special_requests ? (
-                    <View className="rounded-xl border border-green-100 bg-green-50 p-3">
-                      <Text className="text-[10px] font-bold uppercase text-green-800">
+                    <View
+                      className="rounded-xl border p-3"
+                      style={{
+                        borderColor: colors.borderLight,
+                        backgroundColor: colors.surfaceSecondary,
+                      }}
+                    >
+                      <Text
+                        className="text-[10px] font-bold uppercase"
+                        style={{ color: colors.primary }}
+                      >
                         Special requests
                       </Text>
-                      <Text className="mt-1 text-xs leading-5 text-green-950">
+                      <Text
+                        className="mt-1 text-xs leading-5"
+                        style={{ color: colors.primaryDark }}
+                      >
                         {text(selectedOrder.special_requests)}
                       </Text>
                     </View>
@@ -862,7 +880,8 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                             setSelectedOrder(null);
                             startAssignment(selectedOrder);
                           }}
-                          className="bg-[#116C0B]"
+                          className=""
+                          style={{ backgroundColor: colors.primary }}
                         />
                       ) : (
                         <ActionButton
@@ -902,21 +921,29 @@ function statusLabel(status: string) {
   return labels[status] || status.replaceAll('_', ' ');
 }
 
-function statusColor(status: string) {
+function statusColor(
+  status: string,
+): { className: string; style?: { backgroundColor: string; color: string } } {
   const normalized = status.toLowerCase();
   if (normalized === 'pending' || normalized === 'placed') {
-    return 'bg-green-50 text-green-800';
+    return {
+      className: '',
+      style: {
+        backgroundColor: colors.surfaceSecondary,
+        color: colors.primary,
+      },
+    };
   }
   if (normalized === 'preparing') {
-    return 'bg-blue-50 text-blue-800';
+    return { className: 'bg-blue-50 text-blue-800' };
   }
   if (normalized === 'ready' || normalized === 'ready to serve') {
-    return 'bg-emerald-50 text-emerald-800';
+    return { className: 'bg-emerald-50 text-emerald-800' };
   }
   if (normalized === 'cancelled') {
-    return 'bg-rose-50 text-rose-700';
+    return { className: 'bg-rose-50 text-rose-700' };
   }
-  return 'bg-slate-100 text-slate-700';
+  return { className: 'bg-slate-100 text-slate-700' };
 }
 
 function actionLabel(status: string) {
@@ -940,11 +967,13 @@ function ActionButton({
   label,
   disabled,
   className,
+  style,
   onPress,
 }: {
   label: string;
   disabled: boolean;
   className: string;
+  style?: { backgroundColor: string };
   onPress: () => void;
 }) {
   return (
@@ -952,6 +981,7 @@ function ActionButton({
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
+      style={style}
       className={`items-center rounded-xl px-3 py-2.5 ${className} ${
         disabled ? 'opacity-50' : 'opacity-100'
       }`}
