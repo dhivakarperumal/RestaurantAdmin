@@ -179,10 +179,46 @@ function formatTime(value?: string | null) {
   if (!value) {
     return '--:--';
   }
+  const databaseDateTime = value.match(
+    /^\d{4}-\d{2}-\d{2}[ T](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/,
+  );
+  if (databaseDateTime) {
+    const date = new Date();
+    date.setHours(Number(databaseDateTime[1]), Number(databaseDateTime[2]), 0, 0);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? '--:--'
     : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatAttendanceDate(value?: string | null) {
+  if (!value) {
+    return '—';
+  }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) {
+    return value;
+  }
+  return new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+  ).toLocaleDateString();
+}
+
+function formatHistoryDuration(record: AttendanceRecord) {
+  const hours = Number(record.total_hours);
+  if (
+    record.total_hours !== null &&
+    record.total_hours !== undefined &&
+    String(record.total_hours).trim() !== '' &&
+    Number.isFinite(hours)
+  ) {
+    return `${hours.toFixed(2)} hrs`;
+  }
+  return `${(Math.max(0, Number(record.duration_seconds) || 0) / 3600).toFixed(2)} hrs`;
 }
 
 function formatDuration(seconds?: number | string | null) {
@@ -899,12 +935,23 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
         <View className="flex-1 justify-end bg-black/50">
           <SafeAreaView
             edges={['bottom']}
-            className="max-h-[85%] w-full rounded-t-3xl bg-white"
+            className="max-h-[88%] w-full rounded-t-3xl bg-white"
           >
-            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] p-4">
+            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4">
+              <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-[#E8F3EE]">
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M8 3v3m8-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 9 2 2 4-4"
+                    stroke="#1F4E42"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                  />
+                </Svg>
+              </View>
               <View className="flex-1">
-                <Text className="text-base font-bold text-[#012711]">Attendance history</Text>
-                <Text className="mt-1 text-xs text-[#6B7280]">
+                <Text className="text-base font-bold text-[#172033]">Attendance History</Text>
+                <Text className="mt-1 text-xs text-[#667085]">
                   {historyEmployee?.full_name} · {historyEmployee?.employee_id}
                 </Text>
               </View>
@@ -912,59 +959,113 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                 accessibilityLabel="Close attendance history"
                 accessibilityRole="button"
                 onPress={() => setHistoryEmployee(null)}
-                className="rounded-lg bg-[#F3F4F6] px-3 py-2"
+                className="h-10 w-10 items-center justify-center rounded-full"
               >
-                <Text className="font-bold text-[#374151]">×</Text>
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="m18 6-12 12M6 6l12 12"
+                    stroke="#667085"
+                    strokeLinecap="round"
+                    strokeWidth={2}
+                  />
+                </Svg>
               </Pressable>
             </View>
             {isLoadingHistory ? (
-              <View className="items-center p-8">
+              <View className="items-center justify-center p-10">
                 <ActivityIndicator color="#116C0B" />
+                <Text className="mt-3 text-xs text-[#667085]">Loading attendance history...</Text>
               </View>
             ) : historyError ? (
-              <Text accessibilityRole="alert" className="p-5 text-sm text-[#B91C1C]">
+              <Text accessibilityRole="alert" className="p-5 text-center text-sm text-[#B91C1C]">
                 {historyError}
               </Text>
             ) : historyRecords.length ? (
-              <ScrollView contentContainerClassName="gap-2 p-4">
-                {historyRecords.map((record, index) => (
-                  <View
-                    key={`${record.attendance_record_id ?? record.attendance_id ?? index}`}
-                    className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3"
-                  >
-                    <View className="flex-row justify-between gap-2">
-                      <Text className="text-sm font-bold text-[#012711]">
-                        {record.attendance_date?.slice(0, 10) || 'Unknown date'}
-                      </Text>
-                      <Text className="text-xs font-semibold text-[#4B5563]">
-                        {record.attendance_status || 'Present'}
-                      </Text>
+              <ScrollView
+                contentContainerClassName="px-4 pb-5 pt-4"
+                showsVerticalScrollIndicator={false}
+              >
+                <ScrollView horizontal showsHorizontalScrollIndicator>
+                  <View className="overflow-hidden rounded-2xl border border-[#DDE5E1]">
+                    <View className="flex-row border-b border-[#1F4E42] bg-[#E8F3EE]">
+                      <HistoryTableHeader label="Date" width={112} />
+                      <HistoryTableHeader label="Clock in" width={108} />
+                      <HistoryTableHeader label="Clock out" width={108} />
+                      <HistoryTableHeader label="Duration" width={104} />
+                      <HistoryTableHeader label="Status" width={102} />
+                      <HistoryTableHeader label="Notes" width={136} />
+                      <View className="w-12" />
                     </View>
-                    <Text className="mt-1 text-xs text-[#6B7280]">
-                      In {record.check_in ? formatTime(record.check_in) : '--'} · Out{' '}
-                      {record.check_out ? formatTime(record.check_out) : record.check_in ? 'Working' : '--'}
-                      {record.total_hours ? ` · ${record.total_hours} hrs` : ''}
-                    </Text>
-                    {record.notes ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">{record.notes}</Text>
-                    ) : null}
-                    <View className="mt-2 flex-row justify-end border-t border-[#E5E7EB] pt-2">
-                      <AttendanceIconAction
-                        accessibilityLabel={`Edit attendance for ${historyEmployee?.full_name || historyEmployee?.employee_id} on ${record.attendance_date?.slice(0, 10) || 'this date'}`}
-                        icon="edit"
-                        onPress={() => {
-                          setHistoryEmployee(null);
-                          openRecordForm(record);
-                        }}
-                      />
-                    </View>
+                    {historyRecords.map((record, index) => {
+                      const status = record.attendance_status || 'Present';
+                      const statusClass =
+                        status === 'Absent' || status === 'On Leave'
+                          ? 'bg-[#FEE2E2] text-[#B91C1C]'
+                          : status === 'Late'
+                            ? 'bg-[#FEF3C7] text-[#92400E]'
+                            : 'bg-[#D1FAE5] text-[#047857]';
+
+                      return (
+                        <View
+                          key={`${record.attendance_record_id ?? record.attendance_id ?? index}`}
+                          className={`min-h-[54px] flex-row items-center border-b border-[#EEF1F4] ${
+                            index % 2 === 0 ? 'bg-white' : 'bg-[#FCFDFC]'
+                          }`}
+                        >
+                          <Text className="w-[112px] px-3 text-xs font-bold text-[#172033]">
+                            {formatAttendanceDate(record.attendance_date)}
+                          </Text>
+                          <Text className="w-[108px] px-3 text-xs text-[#475467]">
+                            {record.check_in ? formatTime(record.check_in) : '—'}
+                          </Text>
+                          <Text className="w-[108px] px-3 text-xs text-[#475467]">
+                            {record.check_out
+                              ? formatTime(record.check_out)
+                              : record.check_in
+                                ? 'Working'
+                                : '—'}
+                          </Text>
+                          <Text className="w-[104px] px-3 font-mono text-xs text-[#344054]">
+                            {formatHistoryDuration(record)}
+                          </Text>
+                          <View className="w-[102px] px-3">
+                            <Text
+                              className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}
+                            >
+                              {status}
+                            </Text>
+                          </View>
+                          <Text
+                            numberOfLines={2}
+                            className="w-[136px] px-3 text-xs text-[#667085]"
+                          >
+                            {record.notes || '—'}
+                          </Text>
+                          <View className="w-12 items-center">
+                            <AttendanceIconAction
+                              accessibilityLabel={`Edit attendance for ${historyEmployee?.full_name || historyEmployee?.employee_id} on ${formatAttendanceDate(record.attendance_date)}`}
+                              icon="edit"
+                              onPress={() => {
+                                setHistoryEmployee(null);
+                                openRecordForm(record);
+                              }}
+                            />
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
-                ))}
+                </ScrollView>
               </ScrollView>
             ) : (
-              <Text className="p-6 text-center text-sm text-[#6B7280]">
-                No attendance history found for this employee.
-              </Text>
+              <View className="items-center px-6 py-10">
+                <Text className="text-sm font-semibold text-[#344054]">
+                  No attendance history yet
+                </Text>
+                <Text className="mt-1 text-center text-xs text-[#667085]">
+                  Attendance records for this employee will appear here.
+                </Text>
+              </View>
             )}
           </SafeAreaView>
         </View>
@@ -1025,6 +1126,17 @@ function AttendanceValue({ label, value }: { label: string; value: string }) {
   return (
     <Text className="text-[11px] text-[#6B7280]">
       {label}: <Text className="font-semibold text-[#374151]">{value}</Text>
+    </Text>
+  );
+}
+
+function HistoryTableHeader({ label, width }: { label: string; width: number }) {
+  return (
+    <Text
+      className="px-3 py-3 text-[10px] font-bold uppercase tracking-wide text-[#1F4E42]"
+      style={{ width }}
+    >
+      {label}
     </Text>
   );
 }
