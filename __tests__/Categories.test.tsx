@@ -2,7 +2,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { Text } from 'react-native';
 import api from '../api';
-import Categories from '../src/Screens/Categories';
+import Categories from '../src/Admin/Screens/Categories';
 
 jest.mock('../api', () => ({
   __esModule: true,

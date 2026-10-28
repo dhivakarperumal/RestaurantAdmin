@@ -17,7 +17,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 import {
   BellIcon,
   ChartIcon,
@@ -51,7 +51,7 @@ import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen
 import TablesScreen from '../Screens/Tables';
 import CustomersScreen from '../Screens/Customers';
 import MorePage, { type MoreFeature } from '../Tabs/More';
-import api from '../../api';
+import api from '../../../api';
 
 type DashboardScreenProps = {
   user: HeaderUser | null;

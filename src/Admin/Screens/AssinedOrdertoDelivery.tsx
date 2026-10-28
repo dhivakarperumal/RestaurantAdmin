@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import api, { getApiErrorMessage } from '../../api';
+import api, { getApiErrorMessage } from '../../../api';
 import { PlusIcon } from '../Navigation/NavigationIcons';
 
 type AssinedOrdertoDeliveryProps = {

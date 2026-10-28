@@ -6,8 +6,8 @@ import {
   SafeAreaView,
 } from 'react-native-safe-area-context';
 import { Path } from 'react-native-svg';
-import { HamburgerIcon } from '../src/Navigation/NavigationIcons';
-import TopHeader from '../src/Navigation/TopHeader';
+import { HamburgerIcon } from '../src/Admin/Navigation/NavigationIcons';
+import TopHeader from '../src/Admin/Navigation/TopHeader';
 
 test('renders the supplied hamburger icon with a shorter middle bar', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer;

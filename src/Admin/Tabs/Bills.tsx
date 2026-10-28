@@ -9,9 +9,9 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import api, { API_BASE_URL } from '../../api';
+import api, { API_BASE_URL } from '../../../api';
 import { PlusIcon, ProductIcon } from '../Navigation/NavigationIcons';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 import BillPreview, { type BillPreviewItem } from './BillPreview';
 
 export type BillFood = {

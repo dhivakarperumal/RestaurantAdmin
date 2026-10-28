@@ -13,8 +13,8 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import api, { API_BASE_URL } from '../../api';
-import colors from '../theme/colors';
+import api, { API_BASE_URL } from '../../../api';
+import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;

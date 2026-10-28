@@ -9,32 +9,32 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import api, { API_BASE_URL } from '../../api';
+import api, { API_BASE_URL } from '../../../api';
 import { ProductIcon } from '../Navigation/NavigationIcons';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 
-type CategoryForm = {
-  categoryId: string;
-  categoryName: string;
+type CuisineForm = {
+  cuisineId: string;
+  cuisineName: string;
   description: string;
-  subcategories: string[];
   image: string;
   status: 'Active' | 'Inactive';
+  featured: boolean;
 };
 
-type AddCategoriesProps = {
+type AddCuisineProps = {
   onBack: () => void;
   showBackButton?: boolean;
 };
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const INITIAL_FORM: CategoryForm = {
-  categoryId: '',
-  categoryName: '',
+const INITIAL_FORM: CuisineForm = {
+  cuisineId: '',
+  cuisineName: '',
   description: '',
-  subcategories: [],
   image: '',
   status: 'Active',
+  featured: false,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -66,14 +66,16 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function getNextId(payload: unknown) {
+function getNextCuisineId(payload: unknown) {
   const data = unwrapData(payload);
   if (typeof data === 'string') {
     return data.trim();
   }
   if (isRecord(data)) {
-    const id = data.category_id ?? data.categoryId ?? data.cate_id;
-    return typeof id === 'string' ? id.trim() : '';
+    const id = data.cuisine_id ?? data.cuisineId;
+    return typeof id === 'string' || typeof id === 'number'
+      ? String(id).trim()
+      : '';
   }
   return '';
 }
@@ -86,12 +88,11 @@ function resolveImageUrl(value: string) {
   return `${apiRoot}/${value.replace(/^\/+/, '')}`;
 }
 
-function AddCategories({
+function AddCuisine({
   onBack,
   showBackButton = true,
-}: AddCategoriesProps) {
-  const [form, setForm] = useState<CategoryForm>(INITIAL_FORM);
-  const [subcategoryInput, setSubcategoryInput] = useState('');
+}: AddCuisineProps) {
+  const [form, setForm] = useState<CuisineForm>(INITIAL_FORM);
   const [isLoadingId, setIsLoadingId] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -102,20 +103,20 @@ function AddCategories({
     let active = true;
 
     api
-      .get('/categories/next-id', { signal: controller.signal })
+      .get('/cuisines/next-id', { signal: controller.signal })
       .then(response => {
-        const categoryId = getNextId(response.data);
-        if (!categoryId) {
-          throw new Error('The server did not return a category ID.');
+        const cuisineId = getNextCuisineId(response.data);
+        if (!cuisineId) {
+          throw new Error('The server did not return a cuisine ID.');
         }
         if (active) {
-          setForm(current => ({ ...current, categoryId }));
+          setForm(current => ({ ...current, cuisineId }));
         }
       })
       .catch(error => {
         if (active && !controller.signal.aborted) {
           setFormError(
-            getErrorMessage(error, 'Unable to generate a category ID.'),
+            getErrorMessage(error, 'Unable to generate a cuisine ID.'),
           );
         }
       })
@@ -130,22 +131,6 @@ function AddCategories({
       controller.abort();
     };
   }, []);
-
-  const addSubcategory = () => {
-    const name = subcategoryInput.trim();
-    if (
-      name &&
-      !form.subcategories.some(
-        existing => existing.toLocaleLowerCase() === name.toLocaleLowerCase(),
-      )
-    ) {
-      setForm(current => ({
-        ...current,
-        subcategories: [...current.subcategories, name],
-      }));
-      setSubcategoryInput('');
-    }
-  };
 
   const chooseImage = async () => {
     setFormError('');
@@ -166,7 +151,7 @@ function AddCategories({
 
     const asset = result.assets?.[0];
     if (!asset?.uri) {
-      setFormError('Choose a valid category image.');
+      setFormError('Choose a valid cuisine image.');
       return;
     }
     const mimeType = asset.type?.toLowerCase();
@@ -178,19 +163,19 @@ function AddCategories({
       return;
     }
     if (asset.fileSize !== undefined && asset.fileSize > MAX_IMAGE_SIZE) {
-      setFormError('Category images must be 5 MB or smaller.');
+      setFormError('Cuisine images must be 5 MB or smaller.');
       return;
     }
 
     setIsUploadingImage(true);
     try {
       const body = new FormData();
-      body.append('folder', 'categories');
+      body.append('folder', 'cuisines');
       body.append('file', {
         uri: asset.uri,
         name:
           asset.fileName ||
-          `category-${Date.now()}.${mimeType?.split('/')[1] || 'jpg'}`,
+          `cuisine-${Date.now()}.${mimeType?.split('/')[1] || 'jpg'}`,
         type: mimeType || 'image/jpeg',
       } as unknown as Blob);
 
@@ -205,37 +190,37 @@ function AddCategories({
       }
       setForm(current => ({ ...current, image: imageUrl }));
     } catch (error) {
-      setFormError(getErrorMessage(error, 'Unable to upload category image.'));
+      setFormError(getErrorMessage(error, 'Unable to upload cuisine image.'));
     } finally {
       setIsUploadingImage(false);
     }
   };
 
-  const saveCategory = async () => {
-    const categoryName = form.categoryName.trim();
-    if (!form.categoryId) {
-      setFormError('A category ID is required.');
+  const saveCuisine = async () => {
+    const cuisineName = form.cuisineName.trim();
+    if (!form.cuisineId) {
+      setFormError('A cuisine ID is required.');
       return;
     }
-    if (!categoryName) {
-      setFormError('Category name is required.');
+    if (!cuisineName) {
+      setFormError('Cuisine name is required.');
       return;
     }
 
     setIsSaving(true);
     setFormError('');
     try {
-      await api.post('/categories', {
-        categoryId: form.categoryId,
-        categoryName,
+      await api.post('/cuisines', {
+        cuisine_id: form.cuisineId,
+        cuisine_name: cuisineName,
         description: form.description.trim(),
-        subcategories: form.subcategories,
         image: form.image,
         status: form.status,
+        featured: form.featured,
       });
       onBack();
     } catch (error) {
-      setFormError(getErrorMessage(error, 'Unable to add category.'));
+      setFormError(getErrorMessage(error, 'Unable to add cuisine.'));
     } finally {
       setIsSaving(false);
     }
@@ -257,60 +242,60 @@ function AddCategories({
         <View className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
           {showBackButton ? (
             <Pressable
-              accessibilityLabel="Back to categories"
+              accessibilityLabel="Back to cuisines"
               accessibilityRole="button"
               onPress={onBack}
               className="self-start rounded-lg py-1"
             >
               <Text className="text-sm font-semibold text-[#116C0B]">
-                ‹ Back to categories
+                ‹ Back
               </Text>
             </Pressable>
           ) : null}
           <Text className="mt-3 text-2xl font-extrabold text-[#012711]">
-            Add Category
+            Add Cuisine
           </Text>
           <Text className="mt-1 text-sm text-[#6B7280]">
-            Create a category for organizing your products.
+            Add a cuisine type to your restaurant.
           </Text>
         </View>
 
         <View className="gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5">
           <View>
             <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Category ID
+              Cuisine ID
             </Text>
             {isLoadingId ? (
               <View className="min-h-11 flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5">
                 <ActivityIndicator color={colors.primary} size="small" />
                 <Text className="text-sm text-[#6B7280]">
-                  Generating category ID...
+                  Generating cuisine ID...
                 </Text>
               </View>
             ) : (
               <TextInput
-                accessibilityLabel="Category ID"
+                accessibilityLabel="Cuisine ID"
                 editable={false}
                 className="rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5 py-3 text-sm text-[#6B7280]"
-                value={form.categoryId}
+                value={form.cuisineId}
               />
             )}
           </View>
 
           <View>
             <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Category name *
+              Cuisine name *
             </Text>
             <TextInput
-              accessibilityLabel="Category name"
+              accessibilityLabel="Cuisine name"
               autoCapitalize="words"
               className="rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
               onChangeText={value =>
-                setForm(current => ({ ...current, categoryName: value }))
+                setForm(current => ({ ...current, cuisineName: value }))
               }
-              placeholder="Category name"
+              placeholder="Cuisine name"
               placeholderTextColor={colors.textLight}
-              value={form.categoryName}
+              value={form.cuisineName}
             />
           </View>
 
@@ -319,7 +304,7 @@ function AddCategories({
               Description
             </Text>
             <TextInput
-              accessibilityLabel="Category description"
+              accessibilityLabel="Cuisine description"
               className="min-h-[76px] rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
               multiline
               onChangeText={value =>
@@ -334,66 +319,12 @@ function AddCategories({
 
           <View>
             <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Subcategories
-            </Text>
-            <View className="flex-row gap-2">
-              <TextInput
-                accessibilityLabel="Subcategory name"
-                autoCapitalize="words"
-                className="min-w-0 flex-1 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
-                onChangeText={setSubcategoryInput}
-                onSubmitEditing={addSubcategory}
-                placeholder="Add a subcategory"
-                placeholderTextColor={colors.textLight}
-                returnKeyType="done"
-                value={subcategoryInput}
-              />
-              <Pressable
-                accessibilityLabel="Add subcategory"
-                accessibilityRole="button"
-                onPress={addSubcategory}
-                className="justify-center rounded-xl bg-[#F0F7EE] px-3"
-              >
-                <Text className="text-xs font-semibold text-[#116C0B]">
-                  Add
-                </Text>
-              </Pressable>
-            </View>
-            {form.subcategories.length ? (
-              <View className="mt-2 flex-row flex-wrap gap-2">
-                {form.subcategories.map((name, index) => (
-                  <Pressable
-                    accessibilityLabel={`Remove subcategory ${name}`}
-                    accessibilityRole="button"
-                    key={`${name}-${index}`}
-                    onPress={() =>
-                      setForm(current => ({
-                        ...current,
-                        subcategories: current.subcategories.filter(
-                          (_, itemIndex) => itemIndex !== index,
-                        ),
-                      }))
-                    }
-                    className="flex-row items-center gap-1 rounded-full bg-[#F0F7EE] px-3 py-1.5"
-                  >
-                    <Text className="text-xs font-medium text-[#116C0B]">
-                      {name}
-                    </Text>
-                    <Text className="text-xs text-[#116C0B]">×</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-          </View>
-
-          <View>
-            <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Category image
+              Cuisine image
             </Text>
             <View className="flex-row items-center gap-3">
               {form.image ? (
                 <Image
-                  accessibilityLabel="Category image preview"
+                  accessibilityLabel="Cuisine image preview"
                   resizeMode="cover"
                   source={{ uri: resolveImageUrl(form.image) }}
                   className="h-[66px] w-[66px] rounded-xl bg-[#F3F4F6]"
@@ -404,7 +335,7 @@ function AddCategories({
                 </View>
               )}
               <Pressable
-                accessibilityLabel="Choose category image"
+                accessibilityLabel="Choose cuisine image"
                 accessibilityRole="button"
                 disabled={isUploadingImage}
                 onPress={() => void chooseImage()}
@@ -431,7 +362,7 @@ function AddCategories({
             <View className="flex-row gap-2">
               {(['Active', 'Inactive'] as const).map(status => (
                 <Pressable
-                  accessibilityLabel={`Set category ${status.toLowerCase()}`}
+                  accessibilityLabel={`Set cuisine ${status.toLowerCase()}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: form.status === status }}
                   key={status}
@@ -456,6 +387,28 @@ function AddCategories({
             </View>
           </View>
 
+          <Pressable
+            accessibilityLabel="Toggle featured cuisine"
+            accessibilityRole="button"
+            accessibilityState={{ selected: form.featured }}
+            onPress={() =>
+              setForm(current => ({ ...current, featured: !current.featured }))
+            }
+            className={`self-start rounded-full border px-4 py-2 ${
+              form.featured
+                ? 'border-[#116C0B] bg-[#F0F7EE]'
+                : 'border-[#E5E7EB] bg-white'
+            }`}
+          >
+            <Text
+              className={`text-xs font-semibold ${
+                form.featured ? 'text-[#116C0B]' : 'text-[#6B7280]'
+              }`}
+            >
+              {form.featured ? 'Featured cuisine' : 'Mark as featured'}
+            </Text>
+          </Pressable>
+
           {formError ? (
             <Text accessibilityRole="alert" className="text-sm text-[#DC2626]">
               {formError}
@@ -464,7 +417,7 @@ function AddCategories({
 
           <View className="mt-1 flex-row justify-end gap-3">
             <Pressable
-              accessibilityLabel="Cancel category"
+              accessibilityLabel="Cancel cuisine"
               accessibilityRole="button"
               disabled={isSaving || isUploadingImage}
               onPress={onBack}
@@ -473,18 +426,18 @@ function AddCategories({
               <Text className="font-semibold text-[#374151]">Cancel</Text>
             </Pressable>
             <Pressable
-              accessibilityLabel="Save category"
+              accessibilityLabel="Save cuisine"
               accessibilityRole="button"
               disabled={
-                isSaving || isUploadingImage || isLoadingId || !form.categoryId
+                isSaving || isUploadingImage || isLoadingId || !form.cuisineId
               }
-              onPress={() => void saveCategory()}
+              onPress={() => void saveCuisine()}
               className="min-w-[120px] items-center rounded-xl bg-[#116C0B] px-4 py-3"
             >
               {isSaving ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text className="font-semibold text-white">Save Category</Text>
+                <Text className="font-semibold text-white">Save Cuisine</Text>
               )}
             </Pressable>
           </View>
@@ -494,4 +447,4 @@ function AddCategories({
   );
 }
 
-export default AddCategories;
+export default AddCuisine;

@@ -30,8 +30,8 @@ import AuthScreen from './src/Auth/AuthScreen';
 import type { LoginValues } from './src/Auth/LoginPage';
 import type { RegisterValues } from './src/Auth/RegisterPage';
 import colors from './src/theme/colors';
-import DashboardScreen from './src/Navigation/DashboardScreen';
-import type { HeaderUser } from './src/Navigation/TopHeader';
+import DashboardScreen from './src/Admin/Navigation/DashboardScreen';
+import type { HeaderUser } from './src/Admin/Navigation/TopHeader';
 
 const { height, width } = Dimensions.get('window');
 const fallbackWindowMetrics = {

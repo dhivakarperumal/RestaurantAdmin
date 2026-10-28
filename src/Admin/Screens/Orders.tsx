@@ -13,10 +13,10 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import api, { getApiErrorMessage } from '../../api';
+import api, { getApiErrorMessage } from '../../../api';
 import { OrdersIcon, PlusIcon } from '../Navigation/NavigationIcons';
 import AssinedOrdertoDelivery from './AssinedOrdertoDelivery';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 
 export type ApiOrderItem = {
   food_id?: string | number;

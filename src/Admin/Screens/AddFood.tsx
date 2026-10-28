@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary, type Asset } from 'react-native-image-picker';
-import api, { API_BASE_URL } from '../../api';
+import api, { API_BASE_URL } from '../../../api';
 
 type FoodOption = {
   value: string;

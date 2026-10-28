@@ -12,8 +12,8 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import api, { API_BASE_URL } from '../../api';
-import colors from '../theme/colors';
+import api, { API_BASE_URL } from '../../../api';
+import colors from '../../theme/colors';
 
 type BannerType = 'hero' | 'offer';
 type BannerFilter = 'all' | BannerType;

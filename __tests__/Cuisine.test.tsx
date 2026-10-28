@@ -2,7 +2,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { Text } from 'react-native';
 import api from '../api';
-import Cuisine from '../src/Screens/Cuisine';
+import Cuisine from '../src/Admin/Screens/Cuisine';
 
 jest.mock('../api', () => ({
   __esModule: true,

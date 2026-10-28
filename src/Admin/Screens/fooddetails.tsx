@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import api, { API_BASE_URL } from '../../api';
+import api, { API_BASE_URL } from '../../../api';
 import { ProductIcon } from '../Navigation/NavigationIcons';
 
 type FoodRecord = Record<string, unknown>;

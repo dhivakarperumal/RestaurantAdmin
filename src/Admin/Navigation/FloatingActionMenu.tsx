@@ -14,7 +14,7 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon, ProductIcon } from './NavigationIcons';
 import AddCategoryIcon from './AddCategoryIcon';
 

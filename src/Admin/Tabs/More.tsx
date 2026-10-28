@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 
 type MoreFeatureIconProps = {
   color: string;

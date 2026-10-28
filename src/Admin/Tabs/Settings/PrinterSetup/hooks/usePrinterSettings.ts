@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../../../../api';
+import api from '../../../../../../api';
 
 const STORAGE_KEY = 'printer_settings_local';
 

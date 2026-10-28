@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 import {
   HomeIcon,
   MoreIcon,

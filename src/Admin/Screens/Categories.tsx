@@ -12,9 +12,9 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import api, { API_BASE_URL } from '../../api';
+import api, { API_BASE_URL } from '../../../api';
 import { ProductIcon } from '../Navigation/NavigationIcons';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 
 type Category = {
   id?: number;

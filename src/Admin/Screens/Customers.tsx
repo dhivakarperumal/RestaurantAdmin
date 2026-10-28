@@ -8,9 +8,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import api from '../../api';
+import api from '../../../api';
 import { CustomersIcon } from '../Navigation/NavigationIcons';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 
 type Customer = {
   id?: string | number;

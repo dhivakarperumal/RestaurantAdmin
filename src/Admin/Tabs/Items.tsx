@@ -20,11 +20,11 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
-import api, { API_BASE_URL } from '../../api';
+import api, { API_BASE_URL } from '../../../api';
 import { PlusIcon, ProductIcon } from '../Navigation/NavigationIcons';
 import AddFood from '../Screens/AddFood';
 import FoodDetails from '../Screens/fooddetails';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 
 type ItemsProps = {
   actor?: string;

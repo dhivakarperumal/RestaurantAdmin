@@ -9,9 +9,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import api, { API_BASE_URL } from '../../api';
+import api, { API_BASE_URL } from '../../../api';
 import { ProductIcon } from '../Navigation/NavigationIcons';
-import colors from '../theme/colors';
+import colors from '../../theme/colors';
 
 type CuisineRecord = {
   cuisine_id?: string | number;

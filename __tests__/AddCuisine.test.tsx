@@ -2,7 +2,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api from '../api';
-import AddCuisine from '../src/Screens/AddCuisine';
+import AddCuisine from '../src/Admin/Screens/AddCuisine';
 
 jest.mock('../api', () => ({
   __esModule: true,
