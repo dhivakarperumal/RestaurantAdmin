@@ -481,6 +481,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isFoodDetailsOpen, setIsFoodDetailsOpen] = useState(false);
+  const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(
     null,
   );
@@ -971,7 +972,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       }
       className="flex-1 bg-[#F9FAFB]"
     >
-      {!isFoodDetailsOpen && !isMoreFeatureOpen ? (
+      {!isFoodDetailsOpen && !isMoreFeatureOpen && !isDeliveryAssignmentOpen ? (
         <TopHeader
           user={user}
           unreadNotifications={0}
@@ -1063,6 +1064,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onSetDateFilter={setDateFilter}
               onSetCustomFrom={setCustomFrom}
               onSetCustomTo={setCustomTo}
+              onDeliveryAssignmentVisibilityChange={setIsDeliveryAssignmentOpen}
             />
           </View>
         </View>
@@ -1119,11 +1121,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onSetDateFilter={setDateFilter}
             onSetCustomFrom={setCustomFrom}
             onSetCustomTo={setCustomTo}
+            onDeliveryAssignmentVisibilityChange={setIsDeliveryAssignmentOpen}
           />
         </View>
       )}
 
-      {!isMoreFeatureOpen ? (
+      {!isMoreFeatureOpen && !isDeliveryAssignmentOpen ? (
         <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       ) : null}
       {!isWide && activeTab === 'items' && !isFoodDetailsOpen ? (
@@ -1487,6 +1490,7 @@ function MainContent({
   onSetDateFilter,
   onSetCustomFrom,
   onSetCustomTo,
+  onDeliveryAssignmentVisibilityChange,
 }: {
   activeTab: AppTab;
   invoices: LocalRecord[];
@@ -1528,6 +1532,7 @@ function MainContent({
   onSetDateFilter: (filter: DashboardDateFilter) => void;
   onSetCustomFrom: (date: string) => void;
   onSetCustomTo: (date: string) => void;
+  onDeliveryAssignmentVisibilityChange: (isVisible: boolean) => void;
 }) {
   if (selectedAction) {
     return (
@@ -1602,6 +1607,9 @@ function MainContent({
         <OrdersScreen
           onBack={() => onSelectFeature(null)}
           onAddOrder={() => onSelectAction('order')}
+          onDeliveryAssignmentVisibilityChange={
+            onDeliveryAssignmentVisibilityChange
+          }
         />
       );
     }
@@ -1713,6 +1721,9 @@ function MainContent({
     return (
       <OrdersScreen
         onAddOrder={() => onSelectAction('order')}
+        onDeliveryAssignmentVisibilityChange={
+          onDeliveryAssignmentVisibilityChange
+        }
       />
     );
   }

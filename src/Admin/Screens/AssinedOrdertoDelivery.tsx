@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { getApiErrorMessage } from '../../../api';
 import { PlusIcon } from '../Navigation/NavigationIcons';
 
@@ -625,29 +626,21 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
   };
 
   return (
-    <View className="flex-1 bg-[#F9FAFB]">
-      <View className="flex-row items-center justify-between border-b border-[#E5E7EB] bg-white px-4 py-4">
-        <View className="flex-1">
-          <Text className="text-xl font-extrabold text-[#111827]">
-            Assign Delivery Partner
-          </Text>
-          <Text className="mt-1 text-sm text-[#64748B]">
-            Order <Text className="font-bold text-[#334155]">{selectedOrder?.id ?? '—'}</Text>
-          </Text>
-          {selectedOrder?.status ? (
-            <Text className="mt-1 text-xs font-semibold text-[#116C0B]">
-              Status: {selectedOrder.status}
-            </Text>
-          ) : null}
-        </View>
+    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-[#F9FAFB]">
+      <View className="flex-row items-center gap-3 border-b border-[#E5E7EB] bg-white px-4 py-3">
         <Pressable
           accessibilityLabel="Back to Orders"
           accessibilityRole="button"
           onPress={onBack}
-          className="h-10 w-10 items-center justify-center"
+          className="h-10 w-10 items-center justify-center rounded-xl bg-[#F3F4F6]"
         >
-          <Text className="text-2xl text-[#64748B]">×</Text>
+          <Text className="text-2xl font-bold text-[#374151]">←</Text>
         </Pressable>
+        <View className="flex-1">
+          <Text numberOfLines={1} className="text-lg font-bold text-[#012711]">
+            Assign Delivery Partner
+          </Text>
+        </View>
       </View>
 
       <ScrollView
@@ -856,7 +849,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
           </Pressable>
         </View>
       ) : null}
-    </View>
+    </SafeAreaView>
   );
 }
 
