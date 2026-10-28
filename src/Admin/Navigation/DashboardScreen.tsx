@@ -44,6 +44,7 @@ import AddCategoriesScreen from '../Screens/AddCategories';
 import CuisineScreen from '../Screens/Cuisine';
 import AddCuisineScreen from '../Screens/AddCuisine';
 import AssignServerTables from '../Screens/AssignServerTables';
+import EmployeeAttendance from '../Screens/EmployeeAttendance';
 import OrdersScreen from '../Screens/Orders';
 import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
@@ -4175,6 +4176,8 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
           ))}
         </View>
       </View>
+
+      <EmployeeAttendance />
 
       {onBack ? (
         <View className="mt-5">

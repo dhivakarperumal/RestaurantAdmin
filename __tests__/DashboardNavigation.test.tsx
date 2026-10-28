@@ -1846,6 +1846,91 @@ test('shows employees returned in the backend employees response property', asyn
   expect(output).toContain('Server');
 }, 15000);
 
+test('loads attendance below the employee directory and marks an employee present', async () => {
+  const employee = {
+    employee_id: 48,
+    full_name: 'Morgan Patel',
+    employee_type: 'Cashier',
+    email: 'morgan@example.com',
+    status: 'Active',
+  };
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/employees') {
+      return Promise.resolve({ data: { success: true, employees: [employee] } });
+    }
+    if (path === '/attendance/admin/records') {
+      return Promise.resolve({
+        data: {
+          success: true,
+          data: [{
+            employee_id: 48,
+            full_name: 'Morgan Patel',
+            employee_type: 'Cashier',
+            attendance_record_id: null,
+            attendance_status: 'Absent',
+          }],
+        },
+      });
+    }
+    if (path === '/attendance/admin/summary') {
+      return Promise.resolve({
+        data: {
+          success: true,
+          data: {
+            total_active_staff: 1,
+            present_count: 0,
+            working_now_count: 0,
+            completed_count: 0,
+            late_count: 0,
+            absent_count: 1,
+          },
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  const post = api.post as jest.Mock;
+  post.mockResolvedValue({
+    data: { success: true, message: 'Attendance record saved.' },
+  });
+
+  const renderer = await renderDashboard();
+  await openEmployeeManagement(renderer);
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Attendance date' }),
+  ).toBeTruthy();
+  expect(get).toHaveBeenCalledWith(
+    '/attendance/admin/records',
+    expect.objectContaining({
+      params: expect.objectContaining({
+        date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+      signal: expect.any(AbortSignal),
+    }),
+  );
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Attendance summary' }),
+  ).toBeTruthy();
+
+  await press(renderer, 'Mark attendance');
+  await press(renderer, 'Set attendance status Present');
+  await press(renderer, 'Save attendance record');
+  expect(post).toHaveBeenCalledWith(
+    '/attendance/admin/mark',
+    expect.objectContaining({
+      employeeId: '48',
+      status: 'Present',
+      checkIn: null,
+      checkOut: null,
+    }),
+  );
+}, 15000);
+
 test('assigns tables to a server with existing assignments and capacity rules', async () => {
   const server = {
     employee_id: 37,
