@@ -24,6 +24,7 @@ import ChefFoodsScreen, { type ChefFood } from './Tabs/ChefFoodsScreen';
 import ChefMoreScreen from './Tabs/ChefMoreScreen';
 import ChefOrdersMenuScreen from './Tabs/ChefOrdersMenuScreen';
 import ChefOrdersScreen, { type ChefOrderPage } from './Tabs/ChefOrdersScreen';
+import ChefStockDetailsScreen from './Tabs/ChefStockDetailsScreen';
 
 type ChefDashboardScreenProps = {
   user: HeaderUser | null;
@@ -150,6 +151,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const [attendanceHistory, setAttendanceHistory] = useState<DataRow[]>([]);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestProduct, setRequestProduct] = useState('');
+  const [requestProductId, setRequestProductId] = useState<string | number | null>(
+    null,
+  );
   const [requestQuantity, setRequestQuantity] = useState('1');
   const [requestUnit, setRequestUnit] = useState('pcs');
   const [requestError, setRequestError] = useState('');
@@ -190,10 +194,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           ) {
             setError('Some dashboard information could not be loaded.');
           }
-        } else if (
-          activeTab === 'foods' ||
-          (activeTab === 'more' && selectedMorePage === 'stock')
-        ) {
+        } else if (activeTab === 'foods') {
           const response = await api.get('/foods');
           if (active) {
             setFoods(rowsFrom(response.data, ['foods', 'items']));
@@ -280,6 +281,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
   const openRequestModal = () => {
     setRequestProduct('');
+    setRequestProductId(null);
     setRequestQuantity('1');
     setRequestUnit('pcs');
     setRequestError('');
@@ -309,7 +311,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         priority: 'Normal',
         items: [
           {
-            product_id: matchedProduct?.id ?? null,
+            product_id: requestProductId ?? matchedProduct?.id ?? null,
             product_name: requestProduct.trim(),
             quantity,
             unit: requestUnit.trim() || 'pcs',
@@ -473,65 +475,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     </>
   );
 
-  const renderStock = () => {
-    const lowStock = foods.filter(
-      food =>
-        Number.isFinite(Number(food.stock_quantity ?? food.current_stock ?? 0)) &&
-        Number(food.stock_quantity ?? food.current_stock ?? 0) <= 15,
-    );
-    return (
-      <>
-        <PageHeading title="Stock Details" subtitle="Check current food stock levels." />
-        {lowStock.length > 0 ? (
-          <Card className="border-orange-200 bg-orange-50">
-            <Text className="text-[13px] font-bold text-orange-800">
-              {lowStock.length} item{lowStock.length === 1 ? '' : 's'} need a stock check
-            </Text>
-          </Card>
-        ) : null}
-        {foods.length ? (
-          foods.map((food, index) => {
-            const parsedQuantity = Number(
-              food.stock_quantity ?? food.current_stock ?? 0,
-            );
-            const quantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
-            const status = quantity <= 0 ? 'Out of stock' : quantity <= 15 ? 'Low stock' : 'In stock';
-            return (
-              <Card key={text(food.food_id ?? food.id, String(index))}>
-                <View
-                  className="flex-row items-center justify-between"
-                >
-                  <View className="flex-1 pr-2">
-                    <Text className="text-sm font-bold text-[#012711]">
-                      {text(food.food_name, 'Untitled food')}
-                    </Text>
-                    <Text className="mt-1 text-xs text-[#6B7280]">
-                      {text(food.category_name, 'Uncategorized')}
-                    </Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-base font-extrabold text-[#012711]">
-                      {quantity} units
-                    </Text>
-                    <Text
-                      className={`mt-1 text-[11px] font-bold ${
-                        quantity <= 15 ? 'text-amber-600' : 'text-green-700'
-                      }`}
-                    >
-                      {status}
-                    </Text>
-                  </View>
-                </View>
-              </Card>
-            );
-          })
-        ) : (
-          <EmptyState message="No stock details are available." />
-        )}
-      </>
-    );
-  };
-
   let pageContent: React.ReactNode;
   if (activeTab === 'dashboard') {
     pageContent = renderDashboard();
@@ -542,7 +485,23 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   } else if (activeTab === 'more' && selectedMorePage === 'inventory') {
     pageContent = renderInventory();
   } else if (activeTab === 'more' && selectedMorePage === 'stock') {
-    pageContent = renderStock();
+    pageContent = (
+      <ChefStockDetailsScreen
+        onAddRequest={() => {
+          setSelectedMorePage('inventory');
+          openRequestModal();
+        }}
+        onRequestProduct={product => {
+          setRequestProduct(String(product.product_name || ''));
+          setRequestProductId(product.id ?? null);
+          setRequestQuantity('1');
+          setRequestUnit(String(product.unit_name || 'pcs'));
+          setRequestError('');
+          setSelectedMorePage('inventory');
+          setIsRequestModalOpen(true);
+        }}
+      />
+    );
   } else if (activeTab === 'orders' && selectedOrderPage) {
     pageContent = <ChefOrdersScreen page={selectedOrderPage} />;
   } else if (activeTab === 'orders') {
