@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Image,
@@ -9,10 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, {
   Circle,
   Defs,
@@ -21,14 +18,10 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
-import colors from '../../theme/colors';
 import {
   BellIcon,
   HamburgerIcon,
-  LogoutIcon,
-  ProfileIcon,
 } from './NavigationIcons';
-import type { AppTab } from './Bottombar';
 
 export type HeaderUser = {
   id?: string | number;
@@ -40,7 +33,6 @@ export type HeaderUser = {
 
 type TopHeaderProps = {
   user: HeaderUser | null;
-  activeTab: AppTab;
   unreadNotifications: number;
   onToggleSidebar: () => void;
   onOpenNotifications: () => void;
@@ -90,16 +82,13 @@ function IconButton({
 
 function TopHeader({
   user,
-  activeTab,
   unreadNotifications,
   onToggleSidebar,
   onOpenNotifications,
   onOpenProfile,
   onLogout,
 }: TopHeaderProps) {
-  const insets = useSafeAreaInsets();
-  const { height, width } = useWindowDimensions();
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { width } = useWindowDimensions();
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const userName = getUserName(user);
   const initial =
@@ -109,23 +98,30 @@ function TopHeader({
   const badgeCount = Math.max(0, Math.floor(unreadNotifications));
   const compact = width < 480;
 
-  useEffect(() => {
-    setIsProfileOpen(false);
-  }, [activeTab]);
-
-  const openProfile = () => {
-    setIsProfileOpen(false);
-    onOpenProfile();
-  };
-
-  const logout = () => {
-    setIsProfileOpen(false);
+  const confirmLogout = () => {
     Alert.alert(
       'Log out?',
       'Are you sure you want to log out of your account?',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Log out', style: 'destructive', onPress: onLogout },
+      ],
+      { cancelable: true },
+    );
+  };
+
+  const openAccountActions = () => {
+    Alert.alert(
+      'Account',
+      `${userName}\n${user?.email?.trim() || 'admin@buyfood.com'}`,
+      [
+        { text: 'Profile', onPress: onOpenProfile },
+        {
+          text: 'Log out',
+          style: 'destructive',
+          onPress: confirmLogout,
+        },
+        { text: 'Cancel', style: 'cancel' },
       ],
       { cancelable: true },
     );
@@ -236,22 +232,15 @@ function TopHeader({
           </IconButton>
 
           <Pressable
-            accessibilityLabel={`Open profile menu for ${userName}`}
+            accessibilityLabel={`Open account actions for ${userName}`}
             accessibilityRole="button"
-            accessibilityState={{ expanded: isProfileOpen }}
             onHoverIn={() => setIsAvatarHovered(true)}
             onHoverOut={() => setIsAvatarHovered(false)}
-            onPress={() => setIsProfileOpen(open => !open)}
-            className={`relative h-10 w-10 items-center justify-center rounded-xl border ${
-              isProfileOpen
-                ? 'border-emerald-300 bg-white shadow-md'
-                : 'border-white/40 bg-white/95'
-            }`}
+            onPress={openAccountActions}
+            className="relative h-10 w-10 items-center justify-center rounded-xl border border-white/40 bg-white/95"
             style={({ pressed }) => ({
               backgroundColor:
                 pressed || isAvatarHovered
-                  ? '#FFFFFF'
-                  : isProfileOpen
                   ? '#FFFFFF'
                   : 'rgba(255, 255, 255, 0.95)',
             })}
@@ -266,116 +255,7 @@ function TopHeader({
 
       {/* Subtle bottom highlight divider */}
       <View className="h-px w-full bg-white/10" />
-
-      {/* Profile menu dropdown */}
-      {isProfileOpen ? (
-        <View
-          accessibilityLabel="Profile menu overlay"
-          pointerEvents="box-none"
-          className="absolute left-0 right-0 z-20"
-          style={{
-            top: insets.top + HEADER_HEIGHT,
-            height: Math.max(0, height - (insets.top + HEADER_HEIGHT)),
-          }}
-        >
-          <View
-            className={`z-[21] w-[310px] max-w-[92%] self-end overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl ${
-              compact ? 'mx-3 mt-2' : 'mx-5 mt-2'
-            }`}
-            style={{ elevation: 16 }}
-          >
-            <View className="flex-row items-center gap-3 border-b border-[#DCE8D8] bg-[#F0F7EE] px-4 py-4">
-              <View className="h-11 w-11 items-center justify-center rounded-xl border border-[#DCE8D8] bg-white shadow-sm">
-                <Text className="text-[17px] font-black text-[#116C0B]">
-                  {initial}
-                </Text>
-              </View>
-              <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-1.5">
-                  <Text
-                    numberOfLines={1}
-                    className="text-sm font-bold text-[#012711]"
-                  >
-                    {userName}
-                  </Text>
-                  <View className="rounded-full bg-[#116C0B]/10 px-1.5 py-0.5">
-                    <Text className="text-[9px] font-bold text-[#116C0B]">
-                      Admin
-                    </Text>
-                  </View>
-                </View>
-                <Text
-                  numberOfLines={1}
-                  className="mt-[2px] text-xs text-[#6B7280]"
-                >
-                  {user?.email?.trim() || 'admin@buyfood.com'}
-                </Text>
-              </View>
-            </View>
-            <MenuAction
-              icon={<ProfileIcon color={colors.textSecondary} size={18} />}
-              label="Profile"
-              onPress={openProfile}
-            />
-            <View className="h-px bg-[#F3F4F6]" />
-            <MenuAction
-              icon={<LogoutIcon color={colors.error} size={18} />}
-              label="Logout"
-              onPress={logout}
-              destructive
-            />
-          </View>
-        </View>
-      ) : null}
     </SafeAreaView>
-  );
-}
-
-function MenuAction({
-  icon,
-  label,
-  onPress,
-  destructive = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-  destructive?: boolean;
-}) {
-  const [isHovered, setIsHovered] = useState(false);
-  return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      onHoverIn={() => setIsHovered(true)}
-      onHoverOut={() => setIsHovered(false)}
-      onPress={onPress}
-      className="min-h-12 flex-row items-center gap-3 px-[18px]"
-      style={({ pressed }) => ({
-        backgroundColor:
-          pressed || isHovered ? '#F9FAFB' : colors.surface,
-      })}
-    >
-      {icon}
-      <Text
-        className={`text-sm font-medium ${destructive ? 'text-[#DC2626]' : 'text-[#012711]'}`}
-      >
-        {label}
-      </Text>
-      {label === 'Profile' ? (
-        <View className="ml-auto">
-          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="m9 18 6-6-6-6"
-              stroke={colors.textSecondary}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </View>
-      ) : null}
-    </Pressable>
   );
 }
 

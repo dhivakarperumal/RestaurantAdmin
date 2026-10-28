@@ -974,7 +974,6 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       {!isFoodDetailsOpen && !isMoreFeatureOpen ? (
         <TopHeader
           user={user}
-          activeTab={activeTab}
           unreadNotifications={0}
           onToggleSidebar={() => {
             setIsNotificationsOpen(false);

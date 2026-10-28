@@ -24,7 +24,7 @@ test('renders the supplied hamburger icon with a shorter middle bar', async () =
   expect(bars.props.strokeLinecap).toBe('round');
 });
 
-test('opens and dismisses the profile menu and connects its actions', async () => {
+test('opens native account actions and connects profile and logout', async () => {
   const onToggleSidebar = jest.fn();
   const onOpenNotifications = jest.fn();
   const onOpenProfile = jest.fn();
@@ -42,7 +42,6 @@ test('opens and dismisses the profile menu and connects its actions', async () =
       >
         <TopHeader
           user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
-          activeTab="home"
           unreadNotifications={4}
           onToggleSidebar={onToggleSidebar}
           onOpenNotifications={onOpenNotifications}
@@ -72,36 +71,35 @@ test('opens and dismisses the profile menu and connects its actions', async () =
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Open profile menu for Maya Rivera' })
+      .findByProps({ accessibilityLabel: 'Open account actions for Maya Rivera' })
       .props.onPress();
   });
-  expect(JSON.stringify(renderer!.toJSON())).toContain('maya@example.com');
-
+  expect(alertSpy).toHaveBeenCalledWith(
+    'Account',
+    'Maya Rivera\nmaya@example.com',
+    expect.arrayContaining([
+      expect.objectContaining({ text: 'Profile' }),
+      expect.objectContaining({ text: 'Log out', style: 'destructive' }),
+      expect.objectContaining({ text: 'Cancel', style: 'cancel' }),
+    ]),
+    { cancelable: true },
+  );
+  const accountButtons = alertSpy.mock.calls[0][2];
   await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Profile' }).props.onPress();
+    accountButtons?.find(button => button.text === 'Profile')?.onPress?.();
   });
   expect(onOpenProfile).toHaveBeenCalledTimes(1);
-  expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Profile' })).toHaveLength(0);
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Open profile menu for Maya Rivera' })
+      .findByProps({ accessibilityLabel: 'Open account actions for Maya Rivera' })
       .props.onPress();
   });
+  const logoutFromAccount = alertSpy.mock.calls[1][2]?.find(
+    button => button.text === 'Log out',
+  );
   await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Open profile menu for Maya Rivera' })
-      .props.onPress();
-  });
-  expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Logout' })).toHaveLength(0);
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Open profile menu for Maya Rivera' })
-      .props.onPress();
-  });
-  await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Logout' }).props.onPress();
+    logoutFromAccount?.onPress?.();
   });
   expect(alertSpy).toHaveBeenCalledWith(
     'Log out?',
@@ -113,8 +111,8 @@ test('opens and dismisses the profile menu and connects its actions', async () =
     { cancelable: true },
   );
   expect(onLogout).not.toHaveBeenCalled();
-  const alertButtons = alertSpy.mock.calls[0][2];
-  const confirmLogout = alertButtons?.find(button => button.text === 'Log out');
+  const confirmationButtons = alertSpy.mock.calls[2][2];
+  const confirmLogout = confirmationButtons?.find(button => button.text === 'Log out');
   await ReactTestRenderer.act(() => {
     confirmLogout?.onPress?.();
   });
@@ -135,7 +133,6 @@ test('uses a fallback avatar initial when user details are missing', async () =>
       >
         <TopHeader
           user={null}
-          activeTab="home"
           unreadNotifications={0}
           onToggleSidebar={jest.fn()}
           onOpenNotifications={jest.fn()}

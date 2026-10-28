@@ -152,20 +152,18 @@ test('opens the items screen from the bottom navigation', async () => {
   ).toBeTruthy();
 });
 
-test('allows bottom navigation while the profile menu is open', async () => {
+test('navigates to Profile from the native account actions', async () => {
   const renderer = await renderDashboard();
+  const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
-  await press(renderer, 'Open profile menu for Maya Rivera');
-  expect(
-    renderer.root.findByProps({ accessibilityLabel: 'Profile menu overlay' }).props
-      .pointerEvents,
-  ).toBe('box-none');
+  await press(renderer, 'Open account actions for Maya Rivera');
+  const accountButtons = alertSpy.mock.calls[0][2];
+  await ReactTestRenderer.act(() => {
+    accountButtons?.find(button => button.text === 'Profile')?.onPress?.();
+  });
 
-  await press(renderer, 'Orders');
-
-  expect(
-    renderer.root.findAllByProps({ accessibilityLabel: 'Profile menu overlay' }),
-  ).toHaveLength(0);
+  expect(JSON.stringify(renderer.toJSON())).toContain('Your account details');
+  alertSpy.mockRestore();
 });
 
 test('opens category management from the More tab', async () => {
