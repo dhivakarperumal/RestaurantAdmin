@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BellIcon,
@@ -36,10 +36,34 @@ export default function ServerTopHeader({
       style={{ elevation: 100, position: 'relative', zIndex: 100 }}
     >
       <View className="relative flex-row items-center justify-between px-5 pb-4 pt-3">
-        <View className="flex-1">
-          <Text className="text-xs font-semibold text-[#B8D7BE]">RESTAURANT TEAM</Text>
-          <Text className="mt-1 text-xl font-bold text-white">Hello, {name}</Text>
+        {/* Left Side Logo & User Info */}
+        <View className="flex-1 flex-row items-center gap-3">
+          <View className="h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white shadow-sm overflow-hidden">
+            <Image
+              accessibilityLabel="Restaurant logo"
+              resizeMode="contain"
+              source={require('../../images/buy-food-logo.png')}
+              className="h-8 w-8"
+            />
+          </View>
+          <View className="flex-1">
+            <View className="flex-row items-center gap-1.5">
+              <Text className="text-[10px] font-extrabold uppercase tracking-widest text-[#B8D7BE]">
+                RESTAURANT TEAM
+              </Text>
+              <View className="rounded bg-emerald-400/20 px-1 py-0.5">
+                <Text className="text-[9px] font-extrabold text-[#86EFAC]">
+                  SERVER
+                </Text>
+              </View>
+            </View>
+            <Text numberOfLines={1} className="mt-0.5 text-base font-black text-white">
+              Hello, {name}
+            </Text>
+          </View>
         </View>
+
+        {/* Right Side Notification & Profile Avatar */}
         <Pressable
           accessibilityLabel="Notifications"
           accessibilityRole="button"
@@ -51,11 +75,14 @@ export default function ServerTopHeader({
           accessibilityLabel="Open profile menu"
           accessibilityRole="button"
           onPress={() => setIsProfileMenuOpen(open => !open)}
-          className="h-11 w-11 items-center justify-center rounded-full bg-[#F97316]"
+          className="relative h-11 w-11 items-center justify-center rounded-full border border-white/40 bg-white shadow-md"
         >
-          <Text className="text-lg font-extrabold text-white">{initial}</Text>
+          <Text className="text-lg font-black text-[#012711]">{initial}</Text>
+          <View className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#012711] bg-[#22C55E]" />
         </Pressable>
       </View>
+
+      {/* Profile Popup Menu */}
       <Modal
         visible={isProfileMenuOpen}
         transparent

@@ -25,6 +25,12 @@ type CartItem = {
   quantity: number;
 };
 
+const tableApiStatus = {
+  available: 'Available',
+  occupied: 'Occupied',
+  reserved: 'Reserved',
+} as const;
+
 function readRows(payload: unknown, keys: string[]): FoodRow[] {
   if (Array.isArray(payload)) {
     return payload.filter(
@@ -84,9 +90,11 @@ function formatPrice(value: number): string {
 export default function ServerItems({
   table,
   onBack,
+  onTableStatusChange,
 }: {
   table: ServerOrderTable;
   onBack: () => void;
+  onTableStatusChange?: (status: string) => void;
 }) {
   const [foods, setFoods] = useState<FoodRow[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -96,6 +104,10 @@ export default function ServerItems({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [activeBill, setActiveBill] = useState<unknown>(null);
+  const [tableStatus, setTableStatus] = useState(
+    String(table.status ?? 'occupied').toLowerCase(),
+  );
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const tableId = String(table.id ?? table.table_id ?? '');
   const tableLabel = String(table.table_number ?? table.id ?? table.table_id ?? '');
@@ -164,6 +176,26 @@ export default function ServerItems({
   );
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const updateTableStatus = async (status: 'available' | 'occupied' | 'reserved') => {
+    if (updatingStatus || status === tableStatus) return;
+    setUpdatingStatus(true);
+    try {
+      await api.put(`/server-tables/${tableId}`, {
+        status: tableApiStatus[status],
+      });
+      setTableStatus(status);
+      onTableStatusChange?.(status);
+    } catch (requestError) {
+      const message =
+        requestError && typeof requestError === 'object' && 'message' in requestError
+          ? String((requestError as { message?: unknown }).message)
+          : 'Unable to update the table status.';
+      Alert.alert('Status update failed', message);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const sendToKitchen = async () => {
     if (!cart.length || submitting) return;
     setSubmitting(true);
@@ -223,11 +255,35 @@ export default function ServerItems({
             Table {tableLabel} · {table.no_of_seats ?? 4} seats
           </Text>
         </View>
-        <View className="rounded-full bg-[#DCFCE7] px-3 py-2">
-          <Text className="text-xs font-extrabold capitalize text-[#15803D]">
-            {table.status ?? 'Occupied'}
-          </Text>
-        </View>
+      </View>
+
+      <View className="mb-4 flex-row items-center rounded-2xl bg-white p-2">
+        {(['available', 'occupied', 'reserved'] as const).map(status => {
+          const selected = tableStatus === status;
+          return (
+            <Pressable
+              key={status}
+              accessibilityLabel={`Set table ${status}`}
+              accessibilityRole="button"
+              disabled={updatingStatus}
+              onPress={() => void updateTableStatus(status)}
+              className={`mr-2 rounded-xl px-3 py-2 ${
+                selected ? 'bg-[#FF7800]' : 'bg-[#F1F5F9]'
+              }`}
+            >
+              <Text
+                className={`text-xs font-extrabold capitalize ${
+                  selected ? 'text-white' : 'text-[#475569]'
+                }`}
+              >
+                {status}
+              </Text>
+            </Pressable>
+          );
+        })}
+        {updatingStatus ? (
+          <ActivityIndicator size="small" color="#FF7800" />
+        ) : null}
       </View>
 
       <View className="mb-4 rounded-2xl border border-[#E2E8F0] bg-white p-3">

@@ -19,6 +19,7 @@ import ServerTopHeader from '../SNavigations/STopHeder';
 import ServerFoods from './SFoods';
 import ServerMore from './SMore';
 import ServerItems, { type ServerOrderTable } from './SItems';
+import ServerTables from './STables';
 
 /* ==========================================================================
    Types & Utilities
@@ -1976,7 +1977,7 @@ export default function ServerHome({
     const status = String(table.status ?? '').toLowerCase();
     if (!['occupied', 'reserved'].includes(status)) {
       try {
-        await api.put(`/server-tables/${tableId}`, { status: 'occupied' });
+        await api.put(`/server-tables/${tableId}`, { status: 'Occupied' });
         setTables(current =>
           current.map(item =>
             String(item.id ?? item.table_id) === String(tableId)
@@ -2050,13 +2051,9 @@ export default function ServerHome({
 
     if (activeTab === 'tables') {
       return (
-        <TablesTabContent
+        <ServerTables
           tables={tables}
-          orders={orders}
           user={user}
-          onSelectTable={tableNum => {
-            setActiveTab('home');
-          }}
         />
       );
     }
