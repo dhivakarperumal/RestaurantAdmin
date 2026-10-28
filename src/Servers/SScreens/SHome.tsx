@@ -2014,6 +2014,19 @@ export default function ServerHome({
         <ServerItems
           table={selectedTable}
           onBack={() => setSelectedTable(null)}
+          onTableStatusChange={status => {
+            setSelectedTable(current =>
+              current ? { ...current, status } : current,
+            );
+            setTables(current =>
+              current.map(item =>
+                String(item.id ?? item.table_id) ===
+                String(selectedTable.id ?? selectedTable.table_id)
+                  ? { ...item, status }
+                  : item,
+              ),
+            );
+          }}
         />
       );
     }
