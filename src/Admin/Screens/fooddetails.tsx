@@ -122,6 +122,7 @@ function DetailSection({
 
 function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
   const [food, setFood] = useState<FoodRecord | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -136,6 +137,7 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
     const loadFood = async () => {
       setIsLoading(true);
       setError('');
+      setSelectedImageIndex(0);
       try {
         const response = await api.get(`/foods/${encodeURIComponent(foodId)}`, {
           signal: controller.signal,
@@ -186,6 +188,7 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
   };
 
   const images = readImageUrls(food?.food_images ?? food?.image);
+  const selectedImage = images[selectedImageIndex] ?? images[0];
   const addons = readRows(food?.addons);
   const customizations = readRows(food?.customizations);
 
@@ -254,20 +257,46 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
           }
           contentContainerStyle={{ alignSelf: 'center', maxWidth: 900, padding: 16, width: '100%' }}
         >
-          {images.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-              <View className="flex-row gap-3">
-                {images.map((uri, index) => (
-                  <Image
-                    accessibilityLabel={`${displayText(food.food_name, foodId)} image ${index + 1}`}
-                    key={`${uri}-${index}`}
-                    resizeMode="cover"
-                    source={{ uri }}
-                    className="h-56 w-72 rounded-2xl bg-[#E5E7EB]"
-                  />
-                ))}
-              </View>
-            </ScrollView>
+          {selectedImage ? (
+            <View className="mb-4">
+              <Image
+                accessibilityLabel={`${displayText(food.food_name, foodId)} image ${selectedImageIndex + 1}`}
+                resizeMode="contain"
+                source={{ uri: selectedImage }}
+                className="h-72 w-full rounded-2xl bg-[#E5E7EB]"
+              />
+              {images.length > 1 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mt-3"
+                >
+                  <View className="flex-row gap-3">
+                    {images.map((uri, index) => (
+                      <Pressable
+                        accessibilityLabel={`View ${displayText(food.food_name, foodId)} image ${index + 1}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: index === selectedImageIndex }}
+                        key={`${uri}-${index}`}
+                        onPress={() => setSelectedImageIndex(index)}
+                        className={`overflow-hidden rounded-xl border-2 ${
+                          index === selectedImageIndex
+                            ? 'border-[#116C0B]'
+                            : 'border-transparent'
+                        }`}
+                      >
+                        <Image
+                          accessibilityLabel={`${displayText(food.food_name, foodId)} thumbnail ${index + 1}`}
+                          resizeMode="cover"
+                          source={{ uri }}
+                          className="h-20 w-24 bg-[#E5E7EB]"
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              ) : null}
+            </View>
           ) : (
             <View className="mb-4 h-44 items-center justify-center rounded-2xl bg-[#F0F7EE]">
               <ProductIcon color="#116C0B" size={42} />
