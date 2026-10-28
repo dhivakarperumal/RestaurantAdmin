@@ -18,6 +18,7 @@ import ServerBottomBar, { type ServerTab } from '../SNavigations/SBottombsr';
 import ServerTopHeader from '../SNavigations/STopHeder';
 import ServerFoods from './SFoods';
 import ServerMore from './SMore';
+import ServerItems, { type ServerOrderTable } from './SItems';
 
 /* ==========================================================================
    Types & Utilities
@@ -1839,6 +1840,7 @@ export default function ServerHome({
 
   // Selected order details modal
   const [selectedOrder, setSelectedOrder] = useState<Row | null>(null);
+  const [selectedTable, setSelectedTable] = useState<ServerOrderTable | null>(null);
   const [isAssignedTablesOpen, setIsAssignedTablesOpen] = useState(false);
 
   const assignedTables = useMemo(() => {
@@ -1965,6 +1967,36 @@ export default function ServerHome({
     [],
   );
 
+  const openTableOrder = useCallback(async (table: ServerTable) => {
+    const tableId = table.id ?? table.table_id;
+    if (tableId === undefined || tableId === null) {
+      Alert.alert('Table unavailable', 'This table does not have a valid ID.');
+      return;
+    }
+    const status = String(table.status ?? '').toLowerCase();
+    if (!['occupied', 'reserved'].includes(status)) {
+      try {
+        await api.put(`/server-tables/${tableId}`, { status: 'occupied' });
+        setTables(current =>
+          current.map(item =>
+            String(item.id ?? item.table_id) === String(tableId)
+              ? { ...item, status: 'occupied' }
+              : item,
+          ),
+        );
+      } catch (error) {
+        const message =
+          error && typeof error === 'object' && 'message' in error
+            ? String((error as { message?: unknown }).message)
+            : 'Unable to update this table.';
+        Alert.alert('Table update failed', message);
+        return;
+      }
+    }
+    setIsAssignedTablesOpen(false);
+    setSelectedTable({ ...table, id: tableId, status: 'occupied' });
+  }, []);
+
   const mainContent = useMemo(() => {
     if (loading) {
       return (
@@ -1974,6 +2006,15 @@ export default function ServerHome({
             Loading restaurant workspace...
           </Text>
         </View>
+      );
+    }
+
+    if (selectedTable) {
+      return (
+        <ServerItems
+          table={selectedTable}
+          onBack={() => setSelectedTable(null)}
+        />
       );
     }
 
@@ -2046,11 +2087,12 @@ export default function ServerHome({
     onRefresh,
     orders,
     tables,
+    selectedTable,
     user,
   ]);
 
   return (
-    <SafeAreaView edges={['bottom']} className="flex-1 bg-[#F8FAFC]">
+    <SafeAreaView edges={[]} className="flex-1 bg-[#F8FAFC]">
       {/* Pinned Server Top Header */}
       <ServerTopHeader
         user={user}
@@ -2134,7 +2176,10 @@ export default function ServerHome({
       {/* Pinned Server Bottom Navigation Bar */}
       <ServerBottomBar
         activeTab={activeTab}
-        onPress={setActiveTab}
+        onPress={tab => {
+          setSelectedTable(null);
+          setActiveTab(tab);
+        }}
         onPlusPress={() => setIsAssignedTablesOpen(true)}
       />
       <Modal
@@ -2164,8 +2209,9 @@ export default function ServerHome({
             </View>
             {assignedTables.length ? (
               assignedTables.map((table, index) => (
-                <View
+                <Pressable
                   key={`${table.table_id ?? table.id ?? index}`}
+                  onPress={() => void openTableOrder(table)}
                   className="mb-2 flex-row items-center justify-between rounded-xl bg-[#F8FAFC] p-4"
                 >
                   <View>
@@ -2179,7 +2225,7 @@ export default function ServerHome({
                   <Text className="font-bold capitalize text-[#15803D]">
                     {table.status ?? 'Available'}
                   </Text>
-                </View>
+                </Pressable>
               ))
             ) : (
               <Text className="py-6 text-center text-sm text-[#64748B]">

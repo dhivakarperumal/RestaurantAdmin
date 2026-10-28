@@ -179,10 +179,17 @@ function TabButton({
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       onPress={() => onPress(tab.key)}
-      style={{ alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 44 }}
+      style={{ alignItems: 'center', flex: 1, justifyContent: 'center', height: 48 }}
     >
-      <Icon color={selected ? activeColor : inactiveColor} size={21} active={selected} />
-      <Text style={{ color: selected ? activeColor : inactiveColor, fontSize: 10.5, fontWeight: selected ? '800' : '600', marginTop: 2 }}>
+      <Icon color={selected ? activeColor : inactiveColor} size={18} active={selected} />
+      <Text
+        style={{
+          color: selected ? activeColor : inactiveColor,
+          fontSize: 9.5,
+          fontWeight: selected ? '800' : '600',
+          marginTop: 1,
+        }}
+      >
         {tab.label}
       </Text>
     </Pressable>
@@ -199,57 +206,81 @@ export default function ServerBottomBar({
   onPlusPress: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom > 0 ? insets.bottom : 6;
 
   return (
     <View
-      accessibilityRole="tablist"
       style={{
-        alignItems: 'center',
         backgroundColor: '#FFFFFF',
-        borderTopColor: '#F1F5F9',
+        borderTopColor: '#E2E8F0',
         borderTopWidth: 1,
         elevation: 16,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        minHeight: 54 + insets.bottom,
-        paddingBottom: Math.max(insets.bottom, 3),
-        paddingHorizontal: 6,
-        paddingTop: 2,
         shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.06,
-        shadowRadius: 12,
+        shadowRadius: 10,
       }}
     >
-      {tabs.slice(0, 2).map(tab => (
-        <TabButton
-          key={tab.key}
-          tab={tab}
-          activeTab={activeTab}
-          onPress={onPress}
-        />
-      ))}
-      <Pressable
-        accessibilityLabel="Open assigned tables"
-        accessibilityRole="button"
-        onPress={onPlusPress}
-        style={{ alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 44 }}
+      <View
+        accessibilityRole="tablist"
+        style={{
+          alignItems: 'center',
+          backgroundColor: '#FFFFFF',
+          flexDirection: 'row',
+          height: 48,
+          justifyContent: 'space-around',
+          paddingHorizontal: 6,
+        }}
       >
-        <View className="-mt-5 h-12 w-12 items-center justify-center rounded-full bg-[#FF7800] shadow-lg">
-          <Text className="text-3xl font-light leading-9 text-white">+</Text>
-        </View>
-        <Text className="mt-1 text-[10.5px] font-extrabold text-[#FF7800]">
-          Tables
-        </Text>
-      </Pressable>
-      {tabs.slice(2).map(tab => (
-        <TabButton
-          key={tab.key}
-          tab={tab}
-          activeTab={activeTab}
-          onPress={onPress}
-        />
-      ))}
+        {tabs.slice(0, 2).map(tab => (
+          <TabButton
+            key={tab.key}
+            tab={tab}
+            activeTab={activeTab}
+            onPress={onPress}
+          />
+        ))}
+        <Pressable
+          accessibilityLabel="Open assigned tables"
+          accessibilityRole="button"
+          onPress={onPlusPress}
+          style={{ alignItems: 'center', flex: 1, justifyContent: 'center', height: 48 }}
+        >
+          <View
+            style={{
+              alignItems: 'center',
+              backgroundColor: '#116C0B',
+              borderColor: '#FFFFFF',
+              borderRadius: 9999,
+              borderWidth: 2,
+              elevation: 6,
+              height: 40,
+              justifyContent: 'center',
+              marginTop: -14,
+              shadowColor: '#052E10',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 6,
+              width: 40,
+            }}
+          >
+            <Text className="text-2xl font-light leading-6 text-white">+</Text>
+          </View>
+          <Text className="mt-0.5 text-[9.5px] font-extrabold text-[#116C0B]">
+            Tables
+          </Text>
+        </Pressable>
+        {tabs.slice(2).map(tab => (
+          <TabButton
+            key={tab.key}
+            tab={tab}
+            activeTab={activeTab}
+            onPress={onPress}
+          />
+        ))}
+      </View>
+      {/* Seamless white bottom safe area background */}
+      <View style={{ backgroundColor: '#FFFFFF', height: bottomInset }} />
     </View>
   );
 }
