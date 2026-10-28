@@ -96,9 +96,9 @@ function readRows(value: unknown): FoodRecord[] {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-row justify-between gap-3 border-b border-[#F3F4F6] py-3">
-      <Text className="flex-1 text-sm text-[#6B7280]">{label}</Text>
-      <Text className="flex-1 text-right text-sm font-semibold text-[#111827]">
+    <View className="min-h-9 flex-row items-center justify-between gap-3 border-b border-[#EEF2F0] py-2">
+      <Text className="flex-1 text-xs text-[#667085]">{label}</Text>
+      <Text className="flex-1 text-right text-xs font-medium text-[#1F2937]">
         {value}
       </Text>
     </View>
@@ -113,9 +113,11 @@ function DetailSection({
   children: React.ReactNode;
 }) {
   return (
-    <View className="mb-4 rounded-2xl border border-[#E5E7EB] bg-white p-4">
-      <Text className="mb-2 text-base font-bold text-[#012711]">{title}</Text>
-      {children}
+    <View className="mb-4 overflow-hidden rounded-2xl border border-[#E4EEE7] bg-white">
+      <View className="bg-[#EAF6ED] px-4 py-3">
+        <Text className="text-sm font-bold text-[#123B27]">{title}</Text>
+      </View>
+      <View className="px-4 pb-2 pt-1">{children}</View>
     </View>
   );
 }
@@ -206,7 +208,7 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
                 accessibilityLabel={`Edit ${displayText(food.food_name, 'food')}`}
                 accessibilityRole="button"
                 onPress={onEdit}
-                className="rounded-xl bg-white/15 px-3 py-2"
+                className="rounded-lg border border-white/30 bg-white/10 px-3 py-2"
               >
                 <Text className="font-semibold text-white">Edit</Text>
               </Pressable>
@@ -217,9 +219,9 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
                   setDeleteError('');
                   setIsDeleteConfirmationOpen(true);
                 }}
-                className="rounded-xl bg-red-50 px-3 py-2"
+                className="rounded-lg bg-red-500 px-3 py-2"
               >
-                <Text className="font-semibold text-red-700">Delete</Text>
+                <Text className="font-semibold text-white">Delete</Text>
               </Pressable>
             </View>
           ) : null
@@ -259,12 +261,45 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
         >
           {selectedImage ? (
             <View className="mb-4">
-              <Image
-                accessibilityLabel={`${displayText(food.food_name, foodId)} image ${selectedImageIndex + 1}`}
-                resizeMode="contain"
-                source={{ uri: selectedImage }}
-                className="h-72 w-full rounded-2xl bg-[#E5E7EB]"
-              />
+              <View className="relative overflow-hidden rounded-2xl bg-[#E5E7EB]">
+                <Image
+                  accessibilityLabel={`${displayText(food.food_name, foodId)} image ${selectedImageIndex + 1}`}
+                  resizeMode="cover"
+                  source={{ uri: selectedImage }}
+                  className="h-56 w-full"
+                />
+                {images.length > 1 ? (
+                  <>
+                    <View className="absolute right-3 top-3 rounded-full bg-black/70 px-2.5 py-1">
+                      <Text className="text-xs font-semibold text-white">
+                        {selectedImageIndex + 1} / {images.length}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityLabel="Show previous food image"
+                      accessibilityRole="button"
+                      onPress={() =>
+                        setSelectedImageIndex(
+                          (selectedImageIndex - 1 + images.length) % images.length,
+                        )
+                      }
+                      className="absolute left-3 top-1/2 h-10 w-10 -translate-y-5 items-center justify-center rounded-full bg-white/95"
+                    >
+                      <Text className="text-2xl leading-7 text-[#123B27]">‹</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel="Show next food image"
+                      accessibilityRole="button"
+                      onPress={() =>
+                        setSelectedImageIndex((selectedImageIndex + 1) % images.length)
+                      }
+                      className="absolute right-3 top-1/2 h-10 w-10 -translate-y-5 items-center justify-center rounded-full bg-white/95"
+                    >
+                      <Text className="text-2xl leading-7 text-[#123B27]">›</Text>
+                    </Pressable>
+                  </>
+                ) : null}
+              </View>
               {images.length > 1 ? (
                 <ScrollView
                   horizontal
@@ -289,7 +324,7 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
                           accessibilityLabel={`${displayText(food.food_name, foodId)} thumbnail ${index + 1}`}
                           resizeMode="cover"
                           source={{ uri }}
-                          className="h-20 w-24 bg-[#E5E7EB]"
+                          className="h-16 w-20 bg-[#E5E7EB]"
                         />
                       </Pressable>
                     ))}
@@ -303,7 +338,7 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
             </View>
           )}
 
-          <View className="mb-4 rounded-2xl border border-[#E5E7EB] bg-white p-4">
+          <View className="mb-4 rounded-2xl border border-[#E4EEE7] bg-white p-4">
             <View className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
                 <Text className="text-xl font-extrabold text-[#012711]">
@@ -314,13 +349,33 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
                   {food.subcategory_name ? ` · ${displayText(food.subcategory_name)}` : ''}
                 </Text>
               </View>
-              <Text className="rounded-full bg-[#F0F7EE] px-3 py-1.5 text-xs font-bold text-[#116C0B]">
-                {displayText(food.status, 'Available')}
-              </Text>
+              <View className="rounded-full bg-[#E6F8EC] px-3 py-1.5">
+                <Text className="text-xs font-bold text-[#13733A]">
+                  {displayText(
+                    food.status,
+                    food.is_available === false ||
+                      String(food.is_available).toLowerCase() === 'false'
+                      ? 'Unavailable'
+                      : 'Available',
+                  )}
+                </Text>
+              </View>
             </View>
-            <Text className="mt-4 text-2xl font-extrabold text-[#116C0B]">
-              {formatCurrency(food.final_price)}
-            </Text>
+            <View className="mt-3 flex-row flex-wrap items-center gap-2">
+              <Text className="text-2xl font-extrabold text-[#116C0B]">
+                {formatCurrency(food.final_price ?? food.mrp)}
+              </Text>
+              {Number(food.discount) > 0 ? (
+                <>
+                  <Text className="text-sm text-[#98A2B3] line-through">
+                    {formatCurrency(food.mrp)}
+                  </Text>
+                  <Text className="rounded-lg bg-[#FFF0F1] px-2 py-1 text-xs font-semibold text-[#D83A4E]">
+                    {displayText(food.discount)}% OFF
+                  </Text>
+                </>
+              ) : null}
+            </View>
             {food.description ? (
               <Text className="mt-3 text-sm leading-5 text-[#4B5563]">
                 {displayText(food.description)}
@@ -377,7 +432,7 @@ function FoodDetails({ foodId, onBack, onEdit, onDeleted }: FoodDetailsProps) {
               {customizations.map((customization, index) => (
                 <View
                   key={String(customization.id ?? customization.name ?? index)}
-                  className="border-b border-[#F3F4F6] py-3"
+                  className="border-b border-[#EEF2F0] py-3"
                 >
                   <Text className="text-sm font-semibold text-[#111827]">
                     {displayText(customization.name, `Customization ${index + 1}`)}
