@@ -63,22 +63,8 @@ function ChefBottomNavigation({
   return (
     <View
       accessibilityRole="tablist"
-      style={{
-        alignItems: 'center',
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        borderTopWidth: 1,
-        elevation: 12,
-        flexDirection: 'row',
-        minHeight: 62 + insets.bottom,
-        paddingBottom: Math.max(insets.bottom, 5),
-        paddingHorizontal: 2,
-        paddingTop: 4,
-        shadowColor: '#111827',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      }}
+      className="min-h-[62px] flex-row items-center border-t border-[#E5E7EB] bg-white px-0.5 pt-1 shadow-lg"
+      style={{ paddingBottom: Math.max(insets.bottom, 5) }}
     >
       {tabs.map(tab => {
         const selected = activeTab === tab.key;
@@ -90,25 +76,18 @@ function ChefBottomNavigation({
             accessibilityState={{ selected }}
             key={tab.key}
             onPress={() => onTabPress(tab.key)}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              backgroundColor: pressed ? colors.surfaceSecondary : 'transparent',
-              borderRadius: 10,
-              flex: 1,
-              justifyContent: 'center',
-              minHeight: 52,
-              paddingHorizontal: 1,
-            })}
+            className={`min-h-[52px] flex-1 items-center justify-center rounded-xl px-px ${
+              selected ? 'bg-[#F0F7EE]' : 'bg-transparent'
+            }`}
           >
             {tab.icon(iconColor)}
             <Text
               numberOfLines={1}
-              style={{
-                color: iconColor,
-                fontSize: 9,
-                fontWeight: selected ? '700' : '500',
-                marginTop: 3,
-              }}
+              className={`mt-[3px] text-[9px] ${
+                selected
+                  ? 'font-bold text-[#116C0B]'
+                  : 'font-medium text-[#6B7280]'
+              }`}
             >
               {tab.label}
             </Text>

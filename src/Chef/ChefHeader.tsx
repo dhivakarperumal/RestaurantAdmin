@@ -1,7 +1,6 @@
 import { Alert, Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
-import colors from '../theme/colors';
 
 type ChefHeaderProps = {
   user: HeaderUser | null;
@@ -21,42 +20,28 @@ function ChefHeader({ user, activeTitle, onLogout }: ChefHeaderProps) {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={{ backgroundColor: '#123B2D' }}>
+    <SafeAreaView edges={['top']} className="bg-[#123B2D]">
       <View
-        style={{
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          minHeight: 68,
-          paddingHorizontal: 16,
-        }}
+        className="min-h-[68px] flex-row items-center justify-between px-4"
       >
-        <View style={{ alignItems: 'center', flexDirection: 'row', flex: 1 }}>
+        <View className="flex-1 flex-row items-center">
           <View
-            style={{
-              alignItems: 'center',
-              backgroundColor: colors.surface,
-              borderRadius: 12,
-              height: 42,
-              justifyContent: 'center',
-              marginRight: 10,
-              width: 42,
-            }}
+            className="mr-2.5 h-[42px] w-[42px] items-center justify-center rounded-xl bg-white"
           >
             <Image
               accessibilityLabel="Buy Food logo"
               resizeMode="contain"
               source={require('../images/buy-food-logo.png')}
-              style={{ height: 34, width: 34 }}
+              className="h-[34px] w-[34px]"
             />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>
+          <View className="flex-1">
+            <Text className="text-base font-extrabold text-white">
               Chef workspace
             </Text>
             <Text
               numberOfLines={1}
-              style={{ color: '#CDE5D6', fontSize: 12, marginTop: 2 }}
+              className="mt-0.5 text-xs text-[#CDE5D6]"
             >
               {activeTitle} · {name}
             </Text>
@@ -66,17 +51,9 @@ function ChefHeader({ user, activeTitle, onLogout }: ChefHeaderProps) {
           accessibilityLabel="Account and log out"
           accessibilityRole="button"
           onPress={confirmLogout}
-          style={{
-            alignItems: 'center',
-            backgroundColor: '#FFFFFF',
-            borderRadius: 18,
-            height: 36,
-            justifyContent: 'center',
-            marginLeft: 10,
-            width: 36,
-          }}
+          className="ml-2.5 h-9 w-9 items-center justify-center rounded-full bg-white"
         >
-          <Text style={{ color: '#123B2D', fontSize: 15, fontWeight: '800' }}>
+          <Text className="text-[15px] font-extrabold text-[#123B2D]">
             {initial}
           </Text>
         </Pressable>

@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
-import colors from '../theme/colors';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
 import ChefHeader from './ChefHeader';
 
@@ -78,25 +77,13 @@ function text(value: unknown, fallback = '—') {
 
 function Card({
   children,
-  style,
+  className = '',
 }: {
   children: React.ReactNode;
-  style?: object;
+  className?: string;
 }) {
   return (
-    <View
-      style={[
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderRadius: 16,
-          borderWidth: 1,
-          marginBottom: 12,
-          padding: 16,
-        },
-        style,
-      ]}
-    >
+    <View className={`mb-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 ${className}`}>
       {children}
     </View>
   );
@@ -110,11 +97,11 @@ function PageHeading({
   subtitle: string;
 }) {
   return (
-    <View style={{ marginBottom: 16 }}>
-      <Text style={{ color: colors.textPrimary, fontSize: 23, fontWeight: '800' }}>
+    <View className="mb-4">
+      <Text className="text-[23px] font-extrabold text-[#012711]">
         {title}
       </Text>
-      <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 4 }}>
+      <Text className="mt-1 text-[13px] text-[#6B7280]">
         {subtitle}
       </Text>
     </View>
@@ -124,7 +111,7 @@ function PageHeading({
 function EmptyState({ message }: { message: string }) {
   return (
     <Card>
-      <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center' }}>
+      <Text className="text-center text-sm text-[#6B7280]">
         {message}
       </Text>
     </Card>
@@ -147,6 +134,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const [requestProduct, setRequestProduct] = useState('');
   const [requestQuantity, setRequestQuantity] = useState('1');
   const [requestUnit, setRequestUnit] = useState('pcs');
+  const [requestError, setRequestError] = useState('');
   const [isSavingRequest, setIsSavingRequest] = useState(false);
   const [isAttendanceBusy, setIsAttendanceBusy] = useState(false);
 
@@ -268,13 +256,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     setRequestProduct('');
     setRequestQuantity('1');
     setRequestUnit('pcs');
+    setRequestError('');
     setIsRequestModalOpen(true);
   };
 
   const submitInventoryRequest = async () => {
     const quantity = Number(requestQuantity);
     if (!requestProduct.trim() || !Number.isFinite(quantity) || quantity <= 0) {
-      setError('Enter an item name and a quantity greater than zero.');
+      setRequestError('Enter an item name and a quantity greater than zero.');
       return;
     }
 
@@ -284,7 +273,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         requestProduct.trim().toLowerCase(),
     );
     setIsSavingRequest(true);
-    setError('');
+    setRequestError('');
     try {
       await api.post('/inventory/kitchen-requests', {
         request_number: `KR-${Date.now()}`,
@@ -304,7 +293,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       setIsRequestModalOpen(false);
       setRefreshCount(count => count + 1);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setRequestError(errorMessage(requestError));
     } finally {
       setIsSavingRequest(false);
     }
@@ -341,7 +330,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         title={`Welcome${chefName ? `, ${chefName}` : ''}`}
         subtitle="Your kitchen workspace overview."
       />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      <View className="flex-row flex-wrap gap-2.5">
         {[
           { label: 'Active Orders', value: orderCounts.active },
           { label: 'Pending', value: orderCounts.pending },
@@ -350,42 +339,27 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         ].map(stat => (
           <Card
             key={stat.label}
-            style={{ flexBasis: '47%', flexGrow: 1, marginBottom: 2 }}
+            className="mb-0 w-[48%] flex-grow"
           >
-            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+            <Text className="text-xs text-[#6B7280]">
               {stat.label}
             </Text>
-            <Text
-              style={{
-                color: colors.textPrimary,
-                fontSize: 26,
-                fontWeight: '800',
-                marginTop: 7,
-              }}
-            >
+            <Text className="mt-2 text-[26px] font-extrabold text-[#012711]">
               {stat.value}
             </Text>
           </Card>
         ))}
       </View>
-      <Text
-        style={{
-          color: colors.textPrimary,
-          fontSize: 17,
-          fontWeight: '700',
-          marginBottom: 10,
-          marginTop: 22,
-        }}
-      >
+      <Text className="mb-2.5 mt-[22px] text-[17px] font-bold text-[#012711]">
         Recent kitchen orders
       </Text>
       {orders.length ? (
         orders.slice(0, 6).map((order, index) => (
           <Card key={text(order.id ?? order.order_id, String(index))}>
-            <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
+            <Text className="text-sm font-bold text-[#012711]">
               Order {text(order.order_number ?? order.order_id ?? order.id, `#${index + 1}`)}
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
+            <Text className="mt-1.5 text-xs text-[#6B7280]">
               {text(order.status, 'Pending')}
               {Array.isArray(order.items) ? ` · ${order.items.length} items` : ''}
             </Text>
@@ -403,10 +377,10 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       {foods.length ? (
         foods.map((food, index) => (
           <Card key={text(food.food_id ?? food.id, String(index))}>
-            <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '700' }}>
+            <Text className="text-[15px] font-bold text-[#012711]">
               {text(food.food_name, 'Untitled food')}
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
+            <Text className="mt-1.5 text-xs text-[#6B7280]">
               {text(food.category_name, 'Uncategorized')}
               {food.final_price !== undefined
                 ? ` · ₹${text(food.final_price, '0')}`
@@ -423,14 +397,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const renderInventory = () => (
     <>
       <View
-        style={{
-          alignItems: 'center',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          marginBottom: 16,
-        }}
+        className="mb-4 flex-row items-center justify-between"
       >
-        <View style={{ flex: 1, paddingRight: 8 }}>
+        <View className="flex-1 pr-2">
           <PageHeading
             title="Inventory Requests"
             subtitle="Track kitchen stock requests."
@@ -439,14 +408,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         <Pressable
           accessibilityRole="button"
           onPress={openRequestModal}
-          style={{
-            backgroundColor: colors.primary,
-            borderRadius: 10,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-          }}
+          className="rounded-xl bg-[#116C0B] px-3 py-2.5"
         >
-          <Text style={{ color: colors.surface, fontSize: 12, fontWeight: '700' }}>
+          <Text className="text-xs font-bold text-white">
             New request
           </Text>
         </Pressable>
@@ -457,14 +421,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           const firstItem = isRecord(itemList[0]) ? itemList[0] : null;
           return (
             <Card key={text(request.id ?? request.request_number, String(index))}>
-              <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
+              <Text className="text-sm font-bold text-[#012711]">
                 {text(request.request_number, `Request ${index + 1}`)}
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
+              <Text className="mt-1.5 text-xs text-[#6B7280]">
                 {firstItem ? text(firstItem.product_name, 'Kitchen supplies') : 'Kitchen supplies'}
                 {firstItem ? ` · ${text(firstItem.quantity)} ${text(firstItem.unit, '')}` : ''}
               </Text>
-              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700', marginTop: 9 }}>
+              <Text className="mt-2 text-xs font-bold text-[#116C0B]">
                 {text(request.status, 'Pending')}
               </Text>
             </Card>
@@ -477,49 +441,49 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   );
 
   const renderStock = () => {
-    const lowStock = foods.filter(food => Number(food.stock_quantity || 0) <= 15);
+    const lowStock = foods.filter(
+      food =>
+        Number.isFinite(Number(food.stock_quantity ?? food.current_stock ?? 0)) &&
+        Number(food.stock_quantity ?? food.current_stock ?? 0) <= 15,
+    );
     return (
       <>
         <PageHeading title="Stock Details" subtitle="Check current food stock levels." />
         {lowStock.length > 0 ? (
-          <Card style={{ backgroundColor: '#FFF7ED', borderColor: '#FED7AA' }}>
-            <Text style={{ color: '#9A3412', fontSize: 13, fontWeight: '700' }}>
+          <Card className="border-orange-200 bg-orange-50">
+            <Text className="text-[13px] font-bold text-orange-800">
               {lowStock.length} item{lowStock.length === 1 ? '' : 's'} need a stock check
             </Text>
           </Card>
         ) : null}
         {foods.length ? (
           foods.map((food, index) => {
-            const quantity = Number(food.stock_quantity ?? food.current_stock ?? 0);
+            const parsedQuantity = Number(
+              food.stock_quantity ?? food.current_stock ?? 0,
+            );
+            const quantity = Number.isFinite(parsedQuantity) ? parsedQuantity : 0;
             const status = quantity <= 0 ? 'Out of stock' : quantity <= 15 ? 'Low stock' : 'In stock';
             return (
               <Card key={text(food.food_id ?? food.id, String(index))}>
                 <View
-                  style={{
-                    alignItems: 'center',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}
+                  className="flex-row items-center justify-between"
                 >
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
+                  <View className="flex-1 pr-2">
+                    <Text className="text-sm font-bold text-[#012711]">
                       {text(food.food_name, 'Untitled food')}
                     </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+                    <Text className="mt-1 text-xs text-[#6B7280]">
                       {text(food.category_name, 'Uncategorized')}
                     </Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '800' }}>
+                  <View className="items-end">
+                    <Text className="text-base font-extrabold text-[#012711]">
                       {quantity} units
                     </Text>
                     <Text
-                      style={{
-                        color: quantity <= 15 ? colors.warning : colors.success,
-                        fontSize: 11,
-                        fontWeight: '700',
-                        marginTop: 3,
-                      }}
+                      className={`mt-1 text-[11px] font-bold ${
+                        quantity <= 15 ? 'text-amber-600' : 'text-green-700'
+                      }`}
                     >
                       {status}
                     </Text>
@@ -542,13 +506,13 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       <>
         <PageHeading title="Attendance" subtitle="Record and review your kitchen shifts." />
         <Card>
-          <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '600' }}>
+          <Text className="text-xs font-semibold text-[#6B7280]">
             TODAY&apos;S SHIFT
           </Text>
-          <Text style={{ color: colors.textPrimary, fontSize: 19, fontWeight: '800', marginTop: 8 }}>
+          <Text className="mt-2 text-[19px] font-extrabold text-[#012711]">
             {isWorking ? 'You are clocked in' : isCompleted ? 'Shift completed' : 'Not clocked in'}
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 6 }}>
+          <Text className="mt-1.5 text-[13px] text-[#6B7280]">
             {attendance?.check_in
               ? `Clock in: ${new Date(String(attendance.check_in)).toLocaleTimeString([], {
                   hour: '2-digit',
@@ -560,35 +524,29 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             accessibilityRole="button"
             disabled={isAttendanceBusy || isCompleted}
             onPress={updateAttendance}
-            style={{
-              alignItems: 'center',
-              backgroundColor: isWorking ? colors.secondary : colors.primary,
-              borderRadius: 11,
-              marginTop: 16,
-              minHeight: 46,
-              justifyContent: 'center',
-              opacity: isAttendanceBusy || isCompleted ? 0.6 : 1,
-            }}
+            className={`mt-4 min-h-[46px] items-center justify-center rounded-xl ${
+              isWorking ? 'bg-[#FC5805]' : 'bg-[#116C0B]'
+            } ${isAttendanceBusy || isCompleted ? 'opacity-60' : 'opacity-100'}`}
           >
             {isAttendanceBusy ? (
-              <ActivityIndicator color={colors.surface} />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '700' }}>
+              <Text className="text-sm font-bold text-white">
                 {isWorking ? 'Clock out' : isCompleted ? 'Shift complete' : 'Clock in'}
               </Text>
             )}
           </Pressable>
         </Card>
-        <Text style={{ color: colors.textPrimary, fontSize: 17, fontWeight: '700', marginBottom: 10, marginTop: 10 }}>
+        <Text className="mb-2.5 mt-2.5 text-[17px] font-bold text-[#012711]">
           Attendance history
         </Text>
         {attendanceHistory.length ? (
           attendanceHistory.slice(0, 20).map((record, index) => (
             <Card key={text(record.id, `${text(record.date, 'shift')}-${index}`)}>
-              <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700' }}>
+              <Text className="text-sm font-bold text-[#012711]">
                 {text(record.date ?? record.attendance_date, 'Previous shift')}
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 5 }}>
+              <Text className="mt-1.5 text-xs text-[#6B7280]">
                 In: {text(record.check_in)} · Out: {text(record.check_out)}
               </Text>
             </Card>
@@ -614,41 +572,35 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   }
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ backgroundColor: colors.background, flex: 1 }}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-[#F9FAFB]">
       <ChefHeader
         activeTitle={pageTitles[activeTab]}
         onLogout={onLogout}
         user={user}
       />
       <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+        className="flex-1"
+        contentContainerClassName="p-4 pb-6"
         refreshControl={
           <RefreshControl
-            colors={[colors.primary]}
+            colors={['#116C0B']}
             onRefresh={() => setRefreshCount(count => count + 1)}
             refreshing={isLoading}
-            tintColor={colors.primary}
+            tintColor="#116C0B"
           />
         }
       >
         {error ? (
           <View
             accessibilityRole="alert"
-            style={{
-              backgroundColor: '#FEF2F2',
-              borderColor: '#FECACA',
-              borderRadius: 12,
-              borderWidth: 1,
-              marginBottom: 14,
-              padding: 12,
-            }}
+            className="mb-3.5 rounded-xl border border-red-200 bg-red-50 p-3"
           >
-            <Text style={{ color: colors.error, fontSize: 13 }}>{error}</Text>
+            <Text className="text-[13px] text-red-600">{error}</Text>
           </View>
         ) : null}
         {isLoading ? (
-          <View style={{ alignItems: 'center', paddingVertical: 28 }}>
-            <ActivityIndicator color={colors.primary} />
+          <View className="items-center py-7">
+            <ActivityIndicator color="#116C0B" />
           </View>
         ) : null}
         {pageContent}
@@ -662,67 +614,65 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         visible={isRequestModalOpen}
       >
         <View
-          style={{
-            backgroundColor: 'rgba(0,0,0,0.45)',
-            flex: 1,
-            justifyContent: 'flex-end',
-          }}
+          className="flex-1 justify-end bg-black/45"
         >
           <View
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 22,
-              borderTopRightRadius: 22,
-              padding: 20,
-              paddingBottom: 30,
-            }}
+            className="rounded-t-[22px] bg-white px-5 pb-[30px] pt-5"
           >
-            <Text style={{ color: colors.textPrimary, fontSize: 19, fontWeight: '800', marginBottom: 16 }}>
+            <Text className="mb-4 text-[19px] font-extrabold text-[#012711]">
               New inventory request
             </Text>
             <TextInput
               accessibilityLabel="Product name"
+              className="mb-2.5 min-h-12 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
               onChangeText={setRequestProduct}
               placeholder="Product name"
               value={requestProduct}
-              style={inputStyle}
             />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View className="flex-row gap-2.5">
               <TextInput
                 accessibilityLabel="Quantity"
+                className="mb-2.5 min-h-12 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
                 keyboardType="decimal-pad"
                 onChangeText={setRequestQuantity}
                 placeholder="Quantity"
                 value={requestQuantity}
-                style={[inputStyle, { flex: 1 }]}
               />
               <TextInput
                 accessibilityLabel="Unit"
+                className="mb-2.5 min-h-12 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
                 onChangeText={setRequestUnit}
                 placeholder="Unit"
                 value={requestUnit}
-                style={[inputStyle, { flex: 1 }]}
               />
             </View>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>
+            {requestError ? (
+              <Text
+                accessibilityRole="alert"
+                className="mb-2.5 text-[13px] text-red-600"
+              >
+                {requestError}
+              </Text>
+            ) : null}
+            <View className="mt-1.5 flex-row gap-2.5">
               <Pressable
                 accessibilityRole="button"
                 disabled={isSavingRequest}
                 onPress={() => setIsRequestModalOpen(false)}
-                style={[modalButtonStyle, { backgroundColor: colors.surfaceSecondary }]}
+                className="min-h-[46px] flex-1 items-center justify-center rounded-xl bg-[#F0F7EE]"
               >
-                <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Cancel</Text>
+                <Text className="font-bold text-[#012711]">Cancel</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 disabled={isSavingRequest}
                 onPress={submitInventoryRequest}
-                style={[modalButtonStyle, { backgroundColor: colors.primary }]}
+                className="min-h-[46px] flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
               >
                 {isSavingRequest ? (
-                  <ActivityIndicator color={colors.surface} />
+                  <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={{ color: colors.surface, fontWeight: '700' }}>Send request</Text>
+                  <Text className="font-bold text-white">Send request</Text>
                 )}
               </Pressable>
             </View>
@@ -732,25 +682,5 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     </SafeAreaView>
   );
 }
-
-const inputStyle = {
-  backgroundColor: colors.surface,
-  borderColor: colors.border,
-  borderRadius: 10,
-  borderWidth: 1,
-  color: colors.textPrimary,
-  fontSize: 14,
-  marginBottom: 10,
-  minHeight: 48,
-  paddingHorizontal: 12,
-} as const;
-
-const modalButtonStyle = {
-  alignItems: 'center' as const,
-  borderRadius: 10,
-  flex: 1,
-  justifyContent: 'center' as const,
-  minHeight: 46,
-};
 
 export default ChefDashboardScreen;
