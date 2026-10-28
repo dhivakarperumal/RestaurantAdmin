@@ -43,6 +43,7 @@ import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
 import CuisineScreen from '../Screens/Cuisine';
 import AddCuisineScreen from '../Screens/AddCuisine';
+import AssignServerTables from '../Screens/AssignServerTables';
 import OrdersScreen from '../Screens/Orders';
 import BannerManagementPage from '../Tabs/BannerManagement';
 import GalleryManagementPage from '../Tabs/GalleryManagement';
@@ -181,6 +182,11 @@ type ApiEmployee = {
   today_shift_state?: string;
   today_check_in?: string;
   today_check_out?: string;
+};
+
+type AssignableServer = {
+  employee_id: string | number;
+  full_name?: string;
 };
 
 type ApiCatalogItem = {
@@ -3735,6 +3741,9 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
   const [editorDetailsLoaded, setEditorDetailsLoaded] = useState(false);
   const [isSavingEmployee, setIsSavingEmployee] = useState(false);
   const [editorError, setEditorError] = useState('');
+  const [assigningServer, setAssigningServer] = useState<AssignableServer | null>(
+    null,
+  );
   const [formValues, setFormValues] = useState<EmployeeFormValues>(() =>
     createEmployeeFormValues(),
   );
@@ -4088,6 +4097,7 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
               .slice(0, 2)
               .join('')
               .toUpperCase();
+            const employeeId = employee.employee_id;
 
             return (
               <View
@@ -4119,6 +4129,25 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
                   >
                     <Text className="text-[11px] font-semibold text-[#116C0B]">Edit</Text>
                   </Pressable>
+                  {employee.employee_type === 'Server' &&
+                  employeeId !== undefined &&
+                  employeeId !== null ? (
+                    <Pressable
+                      accessibilityLabel={`Assign tables to ${employee.full_name || 'server'}`}
+                      accessibilityRole="button"
+                      onPress={() =>
+                        setAssigningServer({
+                          employee_id: employeeId,
+                          full_name: employee.full_name,
+                        })
+                      }
+                      className="mt-2 rounded-lg bg-[#1F3228] px-2.5 py-1.5"
+                    >
+                      <Text className="text-[11px] font-semibold text-white">
+                        Assign tables
+                      </Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               </View>
             );
@@ -4423,6 +4452,11 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
           </SafeAreaView>
         </View>
       </Modal>
+      <AssignServerTables
+        server={assigningServer}
+        onClose={() => setAssigningServer(null)}
+        onSaved={() => setAssigningServer(null)}
+      />
     </ScrollView>
   );
 }

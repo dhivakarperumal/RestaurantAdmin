@@ -1846,6 +1846,101 @@ test('shows employees returned in the backend employees response property', asyn
   expect(output).toContain('Server');
 }, 15000);
 
+test('assigns tables to a server with existing assignments and capacity rules', async () => {
+  const server = {
+    employee_id: 37,
+    full_name: 'Casey Rivers',
+    employee_type: 'Server',
+    status: 'Active',
+  };
+  const tables = [
+    {
+      table_id: 101,
+      table_number: 'T1',
+      no_of_seats: 2,
+      status: 'Available',
+      assigned_server_id: 37,
+      assigned_server_name: 'Casey Rivers',
+    },
+    {
+      table_id: 102,
+      table_number: 'T2',
+      no_of_seats: 2,
+      status: 'Available',
+      assigned_server_id: null,
+    },
+    {
+      table_id: 103,
+      table_number: 'T3',
+      no_of_seats: 6,
+      status: 'Available',
+      assigned_server_id: null,
+    },
+    {
+      table_id: 104,
+      table_number: 'T4',
+      no_of_seats: 4,
+      status: 'Available',
+      assigned_server_id: 82,
+      assigned_server_name: 'Jordan Lee',
+    },
+  ];
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/employees') {
+      return Promise.resolve({ data: { success: true, employees: [server] } });
+    }
+    if (path === '/server-tables') {
+      return Promise.resolve({ data: { success: true, tables } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  const post = api.post as jest.Mock;
+  post.mockResolvedValue({ data: { success: true, message: 'Assigned' } });
+
+  const renderer = await renderDashboard();
+  await openEmployeeManagement(renderer);
+  await press(renderer, 'Assign tables to Casey Rivers');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(get).toHaveBeenCalledWith(
+    '/server-tables',
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
+  );
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Deselect table T1' }).props
+      .accessibilityState.checked,
+  ).toBe(true);
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Select table T3' }).props
+      .accessibilityState.disabled,
+  ).toBe(true);
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Select table T4' }).props
+      .accessibilityState.disabled,
+  ).toBe(true);
+
+  await press(renderer, 'Select table T2');
+  await ReactTestRenderer.act(async () => {
+    renderer.root
+      .findByProps({ accessibilityLabel: 'Save table assignments' })
+      .props.onPress();
+    await Promise.resolve();
+  });
+
+  expect(post).toHaveBeenCalledWith('/server-tables/assign', {
+    employee_id: 37,
+    table_ids: ['101', '102'],
+  });
+  expect(
+    renderer.root.findAllByProps({
+      accessibilityLabel: 'Save table assignments',
+    }),
+  ).toHaveLength(0);
+}, 15000);
+
 test('creates an employee from the employee form', async () => {
   const get = api.get as jest.Mock;
   get.mockImplementation(() => Promise.resolve({ data: { employees: [] } }));
