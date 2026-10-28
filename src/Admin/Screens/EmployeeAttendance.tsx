@@ -827,6 +827,16 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                     {record.notes ? (
                       <Text className="mt-1 text-xs text-[#6B7280]">{record.notes}</Text>
                     ) : null}
+                    <View className="mt-2 flex-row justify-end border-t border-[#E5E7EB] pt-2">
+                      <AttendanceIconAction
+                        accessibilityLabel={`Edit attendance for ${historyEmployee?.full_name || historyEmployee?.employee_id} on ${record.attendance_date?.slice(0, 10) || 'this date'}`}
+                        icon="edit"
+                        onPress={() => {
+                          setHistoryEmployee(null);
+                          openRecordForm(record);
+                        }}
+                      />
+                    </View>
                   </View>
                 ))}
               </ScrollView>
