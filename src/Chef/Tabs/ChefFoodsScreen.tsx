@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
 
 export type ChefFood = {
@@ -180,6 +181,7 @@ function ChefFoodsScreen({
   onRefresh,
   onFoodVisibilityChange,
 }: ChefFoodsScreenProps) {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -579,7 +581,10 @@ function ChefFoodsScreen({
         visible={isVisibilityModalOpen}
       >
         <View className="flex-1 justify-end bg-slate-950/45">
-          <View className="max-h-[85%] rounded-t-2xl border border-slate-200 bg-white">
+          <View
+            className="max-h-[85%] rounded-t-2xl border border-slate-200 bg-white"
+            style={{ paddingBottom: insets.bottom }}
+          >
             <View className="flex-row items-center justify-between border-b border-slate-200 p-4">
               <View className="flex-1 pr-3">
                 <Text className="text-base font-bold text-slate-900">

@@ -63,8 +63,11 @@ function ChefBottomNavigation({
   return (
     <View
       accessibilityRole="tablist"
-      className="min-h-[62px] flex-row items-center border-t border-[#E5E7EB] bg-white px-0.5 pt-1 shadow-lg"
-      style={{ paddingBottom: Math.max(insets.bottom, 5) }}
+      className="flex-row items-center border-t border-[#E5E7EB] bg-white px-0.5 pt-1 shadow-lg"
+      style={{
+        minHeight: 62 + insets.bottom,
+        paddingBottom: Math.max(insets.bottom, 5),
+      }}
     >
       {tabs.map(tab => {
         const selected = activeTab === tab.key;

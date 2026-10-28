@@ -9,7 +9,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
@@ -121,6 +124,7 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<ChefTab>('dashboard');
   const [refreshCount, setRefreshCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -522,7 +526,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   }
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-[#F9FAFB]">
+    <SafeAreaView edges={['left', 'right']} className="flex-1 bg-[#F9FAFB]">
       <ChefHeader
         activeTitle={pageTitles[activeTab]}
         onLogout={onLogout}
@@ -568,6 +572,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         >
           <View
             className="rounded-t-[22px] bg-white px-5 pb-[30px] pt-5"
+            style={{ paddingBottom: 24 + insets.bottom }}
           >
             <Text className="mb-4 text-[19px] font-extrabold text-[#012711]">
               New inventory request
