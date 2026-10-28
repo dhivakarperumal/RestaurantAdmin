@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AppState,
   ActivityIndicator,
   Pressable,
   ScrollView,
@@ -23,7 +24,6 @@ type DeliveryPartner = {
   id: string;
   name: string;
   phone: string;
-  shiftStatus: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -78,12 +78,200 @@ function readString(
   return fallback;
 }
 
+function readBoolean(
+  record: Record<string, unknown>,
+  keys: string[],
+  positiveState: string,
+  negativeStates: string[],
+): boolean | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'number' && (value === 0 || value === 1)) {
+      return value === 1;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (
+        ['true', '1', 'yes', positiveState].includes(normalized)
+      ) {
+        return true;
+      }
+      if (
+        ['false', '0', 'no', ...negativeStates].includes(normalized)
+      ) {
+        return false;
+      }
+    }
+  }
+  return null;
+}
+
+function isPartnerOnline(partner: Record<string, unknown>) {
+  const attendanceStatus = readString(
+    partner,
+    [
+      'attendance_status',
+      'today_attendance_status',
+      'today_status',
+      'attendance',
+      'today_shift_state',
+      'shift_status',
+      'presence_status',
+      'status',
+    ],
+    '',
+  ).toLowerCase();
+  if (
+    ['clocked out', 'checked out', 'absent', 'off shift', 'offline'].includes(
+      attendanceStatus,
+    )
+  ) {
+    return false;
+  }
+
+  const explicitOnline = readBoolean(partner, [
+    'is_online',
+    'isOnline',
+    'online',
+  ], 'online', ['offline']);
+  if (explicitOnline !== null) {
+    return explicitOnline;
+  }
+
+  if (
+    ['clocked in', 'checked in', 'present', 'working', 'on duty', 'online'].includes(
+      attendanceStatus,
+    )
+  ) {
+    return true;
+  }
+  if (
+    ['clocked out', 'checked out', 'absent', 'off shift', 'offline'].includes(
+      attendanceStatus,
+    )
+  ) {
+    return false;
+  }
+
+  const checkOut = readString(
+    partner,
+    ['today_check_out', 'check_out_time', 'check_out', 'clock_out_time'],
+    '',
+  );
+  const checkIn = readString(
+    partner,
+    ['today_check_in', 'check_in_time', 'check_in', 'clock_in_time'],
+    '',
+  );
+  if (checkOut) {
+    return false;
+  }
+  if (checkIn) {
+    return true;
+  }
+
+  return (
+    readString(
+      partner,
+      ['online_status', 'connectivity_status'],
+      '',
+    ).toLowerCase() === 'online'
+  );
+}
+
+function isPartnerAvailable(partner: Record<string, unknown>) {
+  const explicitAvailability = readBoolean(partner, [
+    'is_available',
+    'isAvailable',
+    'available',
+    'available_for_delivery',
+  ], 'available', ['unavailable', 'busy', 'offline']);
+  if (explicitAvailability !== null) {
+    return explicitAvailability;
+  }
+
+  const status = readString(
+    partner,
+    ['availability_status', 'today_shift_state', 'shift_status'],
+    '',
+  ).toLowerCase();
+  return !['unavailable', 'busy', 'off shift', 'offline'].includes(status);
+}
+
+function readAttendanceRows(payload: unknown) {
+  return readRows(payload, [
+    'attendance',
+    'attendances',
+    'attendance_records',
+    'records',
+    'employees',
+    'results',
+    'rows',
+  ]);
+}
+
+function readEmployeeRows(payload: unknown) {
+  return readRows(payload, ['employees', 'results', 'rows']);
+}
+
+function readPartnerId(record: Record<string, unknown>) {
+  return readString(
+    record,
+    ['delivery_partner_id', 'employee_id', 'staff_id', 'user_id', 'id'],
+    '',
+  );
+}
+
 function readOrders(payload: unknown): DeliveryOrder[] {
   return readRows(payload, ['orders', 'results', 'rows']).flatMap(order => {
     const orderType = readString(order, ['order_type', 'orderType'], '')
       .toLowerCase()
       .replace(/[\s-]+/g, '_');
     if (orderType !== 'home_delivery') {
+      return [];
+    }
+
+    const orderStatus = readString(
+      order,
+      ['customer_order_status', 'order_status', 'status'],
+      '',
+    ).toLowerCase();
+    const assignedPartnerId = readString(
+      order,
+      [
+        'delivery_partner_id',
+        'deliveryPartnerId',
+        'assigned_delivery_partner_id',
+        'assigned_partner_id',
+        'delivery_partner',
+        'assigned_to',
+      ],
+      '',
+    );
+    const assignmentStatus = readString(
+      order,
+      ['assignment_status', 'delivery_status', 'delivery_assignment_status'],
+      '',
+    ).toLowerCase();
+    const isAssigned = readBoolean(
+      order,
+      ['is_assigned', 'isAssigned', 'delivery_assigned'],
+      'assigned',
+      ['unassigned', 'not_assigned'],
+    );
+    if (
+      assignedPartnerId ||
+      isAssigned === true ||
+      ['confirmed', 'assigned', 'accepted', 'picked_up', 'out_for_delivery', 'delivered'].includes(
+        orderStatus,
+      ) ||
+      ['assigned', 'accepted', 'picked_up', 'out_for_delivery', 'delivered'].includes(
+        assignmentStatus,
+      )
+    ) {
       return [];
     }
 
@@ -110,47 +298,89 @@ function readOrders(payload: unknown): DeliveryOrder[] {
   });
 }
 
-function readPartners(payload: unknown): DeliveryPartner[] {
-  return readRows(payload, [
+function readPartners(
+  payload: unknown,
+  employeePayload: unknown,
+  attendancePayload: unknown,
+): DeliveryPartner[] {
+  const attendanceByPartnerId = new Map(
+    readAttendanceRows(attendancePayload)
+      .map(attendance => [readPartnerId(attendance), attendance] as const)
+      .filter(([id]) => id !== ''),
+  );
+
+  const employees = readEmployeeRows(employeePayload);
+  const partnerRows = readRows(payload, [
     'delivery_partners',
     'deliveryPartners',
     'partners',
     'employees',
     'results',
     'rows',
-  ]).flatMap(partner => {
-    const id = readString(
-      partner,
-      ['delivery_partner_id', 'employee_id', 'id'],
-      '',
-    );
+  ]);
+  const candidates = [
+    ...partnerRows,
+    ...employees.filter(employee =>
+      readString(employee, ['employee_type', 'role', 'type'], '')
+        .toLowerCase()
+        .includes('delivery'),
+    ),
+  ];
+  const candidatesById = new Map<string, Record<string, unknown>>();
+  candidates.forEach((candidate, index) => {
+    const id = readPartnerId(candidate) || `missing-id-${index}`;
+    candidatesById.set(id, {
+      ...(candidatesById.get(id) ?? {}),
+      ...candidate,
+    });
+  });
+
+  return [...candidatesById.values()].flatMap(partner => {
+    const id = readPartnerId(partner);
     if (!id) {
       return [];
     }
 
-    const shiftStatus = readString(
-      partner,
-      ['today_shift_state', 'current_status', 'shift_status', 'status'],
-      'Off Shift',
+    const employee = employees.find(
+      row => readPartnerId(row) === id,
     );
-    if (shiftStatus.trim().toLowerCase() !== 'available') {
+    const attendance = attendanceByPartnerId.get(id);
+    const statusRecord = {
+      ...partner,
+      ...(employee ?? {}),
+      ...(attendance ?? {}),
+    };
+    const isActiveEmployee = readString(
+      employee ?? statusRecord,
+      ['employee_status', 'employeeStatus', 'current_status', 'status'],
+      '',
+    ).toLowerCase();
+    if (
+      !isPartnerOnline(statusRecord) ||
+      !isPartnerAvailable(statusRecord) ||
+      isActiveEmployee === 'inactive'
+    ) {
+      return [];
+    }
+
+    const name = readString(
+      partner,
+      ['full_name', 'name', 'employee_name'],
+      readString(employee ?? {}, ['full_name', 'name', 'employee_name'], ''),
+    );
+    if (!name) {
       return [];
     }
 
     return [
       {
         id,
-        name: readString(
-          partner,
-          ['full_name', 'name', 'employee_name'],
-          'Delivery Partner',
-        ),
+        name,
         phone: readString(
-          partner,
+          { ...(employee ?? {}), ...partner },
           ['phone_number', 'mobile_number', 'phone'],
           'No phone number',
         ),
-        shiftStatus,
       },
     ];
   });
@@ -172,7 +402,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
   const [successMessage, setSuccessMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const loadData = useCallback(async (signal: AbortSignal) => {
+  const loadData = useCallback(async (signal: AbortSignal, showLoading = true) => {
     const config = {
       signal,
       headers: {
@@ -198,22 +428,40 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
       }
     };
 
-    setIsLoading(true);
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setErrorMessage('');
     try {
-      const [ordersResponse, partnersResponse] = await Promise.all([
+      const [ordersResponse, partnersResponse, employeesResponse] =
+        await Promise.all([
         getFreshResponse('/orders/management', {
           order_type: 'home_delivery',
         }),
         getFreshResponse('/delivery-partners', { all: true }),
+        getFreshResponse('/employees', {}),
       ]);
+      let attendancePayload: unknown = null;
+      try {
+        const attendanceResponse = await getFreshResponse(
+          '/attendance/today',
+          {},
+        );
+        attendancePayload = attendanceResponse.data;
+      } catch {
+        attendancePayload = null;
+      }
 
       if (signal.aborted) {
         return;
       }
 
       const nextOrders = readOrders(ordersResponse.data);
-      const nextPartners = readPartners(partnersResponse.data);
+      const nextPartners = readPartners(
+        partnersResponse.data,
+        employeesResponse.data,
+        attendancePayload,
+      );
       setOrders(nextOrders);
       setPartners(nextPartners);
       setSelectedOrderId(current =>
@@ -231,7 +479,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
         );
       }
     } finally {
-      if (!signal.aborted) {
+      if (!signal.aborted && showLoading) {
         setIsLoading(false);
       }
     }
@@ -240,7 +488,19 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
   useEffect(() => {
     const controller = new AbortController();
     loadData(controller.signal);
-    return () => controller.abort();
+    const interval = setInterval(() => {
+      loadData(controller.signal, false);
+    }, 15000);
+    const appStateSubscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        loadData(controller.signal, false);
+      }
+    });
+    return () => {
+      controller.abort();
+      appStateSubscription.remove();
+      clearInterval(interval);
+    };
   }, [loadData, refreshKey]);
 
   const selectedOrder = useMemo(
@@ -264,22 +524,96 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
 
     setIsSaving(true);
     try {
+      let latestPartnersResponse;
+      let latestEmployeesResponse;
+      let latestAttendanceResponse: { data: unknown } | null = null;
+      try {
+        const params = { all: true, _refresh: String(Date.now()) };
+        const config = {
+          params,
+          headers: {
+            'Cache-Control': 'no-cache, no-store',
+            Pragma: 'no-cache',
+          },
+        };
+        [latestPartnersResponse, latestEmployeesResponse] = await Promise.all([
+          api.get('/delivery-partners', config),
+          api.get('/employees', {
+            ...config,
+            params: { _refresh: params._refresh },
+          }),
+        ]);
+        try {
+          latestAttendanceResponse = await api.get('/attendance/today', {
+            ...config,
+            params: { _refresh: params._refresh },
+          });
+        } catch {
+          latestAttendanceResponse = null;
+        }
+      } catch (error) {
+        if (!isNotModified(error)) {
+          throw error;
+        }
+        const refresh = String(Date.now() + 1);
+        [latestPartnersResponse, latestEmployeesResponse] = await Promise.all([
+          api.get('/delivery-partners', {
+            params: { all: true, _refresh: refresh },
+            headers: {
+              'Cache-Control': 'no-cache, no-store',
+              Pragma: 'no-cache',
+            },
+          }),
+          api.get('/employees', {
+            params: { _refresh: refresh },
+            headers: {
+              'Cache-Control': 'no-cache, no-store',
+              Pragma: 'no-cache',
+            },
+          }),
+        ]);
+        try {
+          latestAttendanceResponse = await api.get('/attendance/today', {
+            params: { _refresh: refresh },
+            headers: {
+              'Cache-Control': 'no-cache, no-store',
+              Pragma: 'no-cache',
+            },
+          });
+        } catch {
+          latestAttendanceResponse = null;
+        }
+      }
+      const latestPartners = readPartners(
+        latestPartnersResponse.data,
+        latestEmployeesResponse.data,
+        latestAttendanceResponse?.data ?? null,
+      );
+      setPartners(latestPartners);
+      if (!latestPartners.some(partner => partner.id === selectedPartnerId)) {
+        setSelectedPartnerId('');
+        setErrorMessage(
+          'This delivery partner is offline. Please select another online partner.',
+        );
+        return;
+      }
+
       await api.patch(
         `/orders/management/${encodeURIComponent(selectedOrder.id)}/status`,
         {
-          status: 'Confirmed',
+          status: 'assigned',
           delivery_partner_id: selectedPartnerId,
         },
       );
-      setOrders(currentOrders =>
-        currentOrders.map(order =>
-          order.id === selectedOrder.id
-            ? { ...order, status: 'Confirmed' }
-            : order,
-        ),
-      );
+      setOrders(currentOrders => {
+        const remainingOrders = currentOrders.filter(
+          order => order.id !== selectedOrder.id,
+        );
+        setSelectedOrderId(remainingOrders[0]?.id ?? '');
+        return remainingOrders;
+      });
       setSuccessMessage(
-        'Delivery partner assigned successfully. Order status updated to Confirmed.',
+        'Delivery partner assigned successfully. The order was removed from the assignment list.',
       );
     } catch (error) {
       setErrorMessage(
@@ -391,6 +725,20 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
             ) : null}
 
             <View className="gap-3 pt-1">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm font-semibold text-[#475569]">
+                  Online delivery partners
+                </Text>
+                <Pressable
+                  accessibilityLabel="Refresh delivery partners"
+                  accessibilityRole="button"
+                  disabled={isLoading}
+                  onPress={() => setRefreshKey(count => count + 1)}
+                  className="rounded-lg px-3 py-2"
+                >
+                  <Text className="font-semibold text-[#F97316]">Refresh</Text>
+                </Pressable>
+              </View>
               {partners.length ? (
                 partners.map(partner => {
                   const isSelected = partner.id === selectedPartnerId;
@@ -434,15 +782,18 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
                           {partner.phone}
                         </Text>
                       </View>
-                      <Text className="rounded-full bg-[#F1F5F9] px-3 py-2 text-xs font-semibold text-[#64748B]">
-                        {partner.shiftStatus}
+                      <Text className="rounded-full bg-[#ECFDF5] px-3 py-2 text-xs font-semibold text-[#047857]">
+                        Online · Available
                       </Text>
                     </Pressable>
                   );
                 })
               ) : (
-                <Text className="rounded-xl border border-[#E2E8F0] bg-white p-4 text-sm text-[#64748B]">
-                  No delivery partners are currently available.
+                <Text
+                  accessibilityRole="alert"
+                  className="rounded-xl border border-[#E2E8F0] bg-white p-4 text-sm text-[#64748B]"
+                >
+                  No delivery partners are currently online.
                 </Text>
               )}
             </View>
@@ -470,6 +821,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
               !selectedOrder ||
               !selectedOrder.status ||
               !selectedPartnerId ||
+              !partners.some(partner => partner.id === selectedPartnerId) ||
               isSaving
             }
             onPress={() => handleAssign()}
@@ -477,6 +829,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
               selectedOrder &&
               selectedOrder.status &&
               selectedPartnerId &&
+              partners.some(partner => partner.id === selectedPartnerId) &&
               !isSaving
                 ? 'bg-[#FF9F70]'
                 : 'bg-[#FDBA9B]'

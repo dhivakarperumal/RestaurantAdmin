@@ -511,6 +511,28 @@ test('opens the delivery assignment page from the Orders floating action button'
               customer_name: 'Dine In Customer',
               order_type: 'dine_in',
             },
+            {
+              order_id: 'ORD019',
+              customer_name: 'Takeaway Customer',
+              order_type: 'takeaway',
+            },
+            {
+              order_id: 'ORD017',
+              customer_name: 'Unspecified Order Type',
+            },
+            {
+              order_id: 'ORD016',
+              customer_name: 'Already Assigned',
+              order_type: 'home_delivery',
+              delivery_partner_id: 13,
+              order_status: 'Confirmed',
+            },
+            {
+              order_id: 'ORD015',
+              customer_name: 'Assignment Status',
+              order_type: 'home_delivery',
+              assignment_status: 'assigned',
+            },
           ],
         },
       });
@@ -527,14 +549,50 @@ test('opens the delivery assignment page from the Orders floating action button'
               delivery_partner_id: 12,
               full_name: 'Akshayaa',
               phone_number: '06929592041',
+              is_online: false,
+              available_for_delivery: true,
               today_shift_state: 'Off Shift',
             },
             {
               delivery_partner_id: 13,
               full_name: 'Thanvika',
               phone_number: '9078438392',
+              is_online: true,
+              available_for_delivery: true,
               today_shift_state: 'Available',
             },
+            {
+              delivery_partner_id: 14,
+              full_name: 'Offline but available',
+              is_online: false,
+              available_for_delivery: true,
+              today_shift_state: 'Available',
+            },
+            {
+              delivery_partner_id: 17,
+              full_name: 'On shift but not online',
+              available_for_delivery: true,
+              today_shift_state: 'Available',
+            },
+            {
+              delivery_partner_id: 18,
+              full_name: 'Online but unavailable',
+              available_for_delivery: false,
+              today_shift_state: 'Available',
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/attendance/today') {
+      return Promise.resolve({
+        data: {
+          attendance: [
+            { employee_id: 12, status: 'offline' },
+            { employee_id: 13, status: 'online' },
+            { employee_id: 14, status: 'offline' },
+            { employee_id: 17, status: 'available' },
+            { employee_id: 18, status: 'online' },
           ],
         },
       });
@@ -554,7 +612,18 @@ test('opens the delivery assignment page from the Orders floating action button'
   expect(JSON.stringify(renderer.toJSON())).toContain('Assign Delivery Partner');
   expect(JSON.stringify(renderer.toJSON())).toContain('ORD020 · Nishanth');
   expect(JSON.stringify(renderer.toJSON())).not.toContain('ORD018');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('ORD019');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('ORD017');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('ORD016');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('ORD015');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Takeaway Customer');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Unspecified Order Type');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Already Assigned');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Assignment Status');
   expect(JSON.stringify(renderer.toJSON())).not.toContain('Akshayaa');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Offline but available');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('On shift but not online');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Online but unavailable');
   expect(JSON.stringify(renderer.toJSON())).toContain('Thanvika');
   expect(get).toHaveBeenCalledWith(
     '/orders/management',
@@ -580,14 +649,20 @@ test('opens the delivery assignment page from the Orders floating action button'
   expect(patch).toHaveBeenCalledWith(
     '/orders/management/ORD020/status',
     {
-      status: 'Confirmed',
+      status: 'assigned',
       delivery_partner_id: '13',
     },
   );
-  expect(JSON.stringify(renderer.toJSON())).toContain(
-    'Delivery partner assigned successfully. Order status updated to Confirmed.',
+  expect(get).toHaveBeenCalledWith(
+    '/delivery-partners',
+    expect.objectContaining({
+      params: { all: true, _refresh: expect.any(String) },
+    }),
   );
-  expect(hasText(renderer, 'Status: Confirmed')).toBe(true);
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Delivery partner assigned successfully. The order was removed from the assignment list.',
+  );
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('ORD020 · Nishanth');
 
   await press(renderer, 'Back to Orders');
   expect(
@@ -596,6 +671,208 @@ test('opens the delivery assignment page from the Orders floating action button'
     }),
   ).toBeTruthy();
 });
+
+test('blocks assignment when a selected partner goes offline', async () => {
+  const get = api.get as jest.Mock;
+  const patch = api.patch as jest.Mock;
+  let attendanceRequestCount = 0;
+  get.mockImplementation((path: string) => {
+    if (path === '/orders/management') {
+      return Promise.resolve({
+        data: {
+          orders: [
+            {
+              order_id: 'ORD021',
+              customer_name: 'Nishanth',
+              order_type: 'home_delivery',
+              order_status: 'Pending',
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/delivery-partners') {
+      return Promise.resolve({
+        data: {
+          delivery_partners: [
+            {
+              delivery_partner_id: 15,
+              full_name: 'Thanvika',
+              is_online: true,
+              available_for_delivery: true,
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/attendance/today') {
+      attendanceRequestCount += 1;
+      return Promise.resolve({
+        data: {
+          attendance: [
+            {
+              employee_id: 15,
+              status: attendanceRequestCount === 1 ? 'online' : 'offline',
+            },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  patch.mockClear();
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'Orders');
+  await press(renderer, 'Assign order to delivery');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+  const assignButton = renderer.root.findByProps({
+    accessibilityLabel: 'Assign Delivery Partner',
+  });
+  expect(assignButton.props.disabled).toBe(true);
+
+  await press(renderer, 'Select delivery partner Thanvika');
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Assign Delivery Partner',
+    }).props.disabled,
+  ).toBe(false);
+  await press(renderer, 'Assign Delivery Partner');
+
+  expect(patch).not.toHaveBeenCalled();
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'This delivery partner is offline. Please select another online partner.',
+  );
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Assign Delivery Partner',
+    }).props.disabled,
+  ).toBe(true);
+}, 15000);
+
+test('shows an empty state and refresh action when all partners are offline', async () => {
+  const get = api.get as jest.Mock;
+  let partnerRequestCount = 0;
+  get.mockImplementation((path: string) => {
+    if (path === '/orders/management') {
+      return Promise.resolve({
+        data: {
+          orders: [
+            {
+              order_id: 'ORD022',
+              customer_name: 'Nishanth',
+              order_type: 'home_delivery',
+              order_status: 'Pending',
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/delivery-partners') {
+      partnerRequestCount += 1;
+      return Promise.resolve({
+        data: {
+          delivery_partners: [
+            {
+              delivery_partner_id: 16,
+              full_name: 'Offline partner',
+              is_online: false,
+              available_for_delivery: true,
+              today_shift_state: 'Available',
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/attendance/today') {
+      return Promise.resolve({
+        data: {
+          attendance: [{ employee_id: 16, status: 'offline' }],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'Orders');
+  await press(renderer, 'Assign order to delivery');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'No delivery partners are currently online.',
+  );
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Offline partner');
+  const previousRequestCount = partnerRequestCount;
+  await press(renderer, 'Refresh delivery partners');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+  expect(partnerRequestCount).toBeGreaterThan(previousRequestCount);
+}, 15000);
+
+test('shows clocked-in delivery partners returned by the employees endpoint', async () => {
+  const get = api.get as jest.Mock;
+  get.mockImplementation((path: string) => {
+    if (path === '/orders/management') {
+      return Promise.resolve({
+        data: {
+          orders: [
+            {
+              order_id: 'ORD023',
+              customer_name: 'Nishanth',
+              order_type: 'home_delivery',
+              order_status: 'Pending',
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/delivery-partners') {
+      return Promise.resolve({ data: { delivery_partners: [] } });
+    }
+    if (path === '/employees') {
+      return Promise.resolve({
+        data: {
+          employees: [
+            {
+              employee_id: 23,
+              employee_type: 'Delivery Partner',
+              full_name: 'Clocked In Partner',
+              available_for_delivery: true,
+              today_attendance_status: 'Clocked In',
+            },
+            {
+              employee_id: 24,
+              employee_type: 'Delivery Partner',
+              full_name: 'Not Clocked In Partner',
+              available_for_delivery: true,
+              today_attendance_status: 'Not Clocked In',
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/attendance/today') {
+      return Promise.resolve({ data: { attendance: [] } });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+
+  const renderer = await renderDashboard();
+  await press(renderer, 'Orders');
+  await press(renderer, 'Assign order to delivery');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Clocked In Partner');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Not Clocked In Partner');
+}, 15000);
 
 test('renders the plus icon as visible horizontal and vertical strokes', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer;
