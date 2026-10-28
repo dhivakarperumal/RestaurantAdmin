@@ -278,7 +278,10 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
     if (!form) {
       return;
     }
-    if (!form.attendance_record_id) {
+    if (
+      form.attendance_record_id === null ||
+      String(form.attendance_record_id).trim() === ''
+    ) {
       setFormError('This attendance record cannot be edited.');
       return;
     }
@@ -663,97 +666,100 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
           <View className="flex-1 justify-end bg-black/50">
             <SafeAreaView
               edges={['bottom']}
-              className="max-h-[90%] rounded-t-3xl bg-white"
+              className="max-h-[90%] w-full rounded-t-3xl bg-white"
             >
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <Text className="text-lg font-bold text-[#012711]">
-                Edit attendance
-              </Text>
-              <Text className="mt-1 text-xs text-[#6B7280]">
-                {form?.employee_name} · {form?.employee_id}
-              </Text>
-              <FormField
-                label="Date"
-                accessibilityLabel="Attendance record date"
-                value={form?.date || ''}
-                placeholder="YYYY-MM-DD"
-                onChangeText={value =>
-                  setForm(current => (current ? { ...current, date: value } : current))
-                }
-              />
-              <Text className="mt-4 text-xs font-semibold text-[#374151]">Status</Text>
-              <View className="mt-2 flex-row flex-wrap gap-2">
-                {recordStatuses.map(status => (
-                  <FilterChip
-                    key={status}
-                    label={status}
-                    accessibilityLabel={`Set attendance status ${status}`}
-                    selected={form?.status === status}
-                    onPress={() =>
-                      setForm(current =>
-                        current ? { ...current, status } : current,
-                      )
-                    }
-                  />
-                ))}
-              </View>
-              <FormField
-                label="Clock-in date and time"
-                accessibilityLabel="Attendance clock in"
-                value={form?.check_in || ''}
-                placeholder="YYYY-MM-DDTHH:MM"
-                onChangeText={value =>
-                  setForm(current =>
-                    current ? { ...current, check_in: value } : current,
-                  )
-                }
-              />
-              <FormField
-                label="Clock-out date and time"
-                accessibilityLabel="Attendance clock out"
-                value={form?.check_out || ''}
-                placeholder="YYYY-MM-DDTHH:MM"
-                onChangeText={value =>
-                  setForm(current =>
-                    current ? { ...current, check_out: value } : current,
-                  )
-                }
-              />
-              <Text className="mt-4 text-xs font-semibold text-[#374151]">Notes / remarks</Text>
-              <TextInput
-                accessibilityLabel="Attendance notes"
-                className="mt-2 min-h-20 rounded-xl border border-[#D1D5DB] px-3 py-2.5 text-sm text-[#111827]"
-                multiline
-                onChangeText={value =>
-                  setForm(current =>
-                    current ? { ...current, notes: value } : current,
-                  )
-                }
-                placeholder="Optional notes"
-                textAlignVertical="top"
-                value={form?.notes || ''}
-              />
-              {formError ? (
-                <Text accessibilityRole="alert" className="mt-3 text-sm text-[#B91C1C]">
-                  {formError}
+              <ScrollView
+                contentContainerClassName="p-5"
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text className="text-lg font-bold text-[#012711]">
+                  Edit attendance
                 </Text>
-              ) : null}
-              <View className="mt-5 flex-row justify-end gap-2">
-                <SmallAction label="Cancel" onPress={() => setForm(null)} />
-                <Pressable
-                  accessibilityLabel="Save attendance record"
-                  accessibilityRole="button"
-                  disabled={isSaving}
-                  onPress={saveRecord}
-                  className="min-w-[120px] flex-row items-center justify-center gap-2 rounded-xl bg-[#1F4E42] px-4 py-2.5"
-                >
-                  {isSaving ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
-                  <Text className="text-xs font-bold text-white">
-                    {isSaving ? 'Saving...' : 'Save record'}
+                <Text className="mt-1 text-xs text-[#6B7280]">
+                  {form?.employee_name} · {form?.employee_id}
+                </Text>
+                <FormField
+                  label="Date"
+                  accessibilityLabel="Attendance record date"
+                  value={form?.date || ''}
+                  placeholder="YYYY-MM-DD"
+                  onChangeText={value =>
+                    setForm(current => (current ? { ...current, date: value } : current))
+                  }
+                />
+                <Text className="mt-4 text-xs font-semibold text-[#374151]">Status</Text>
+                <View className="mt-2 flex-row flex-wrap gap-2">
+                  {recordStatuses.map(status => (
+                    <FilterChip
+                      key={status}
+                      label={status}
+                      accessibilityLabel={`Set attendance status ${status}`}
+                      selected={form?.status === status}
+                      onPress={() =>
+                        setForm(current =>
+                          current ? { ...current, status } : current,
+                        )
+                      }
+                    />
+                  ))}
+                </View>
+                <FormField
+                  label="Clock-in date and time"
+                  accessibilityLabel="Attendance clock in"
+                  value={form?.check_in || ''}
+                  placeholder="YYYY-MM-DDTHH:MM"
+                  onChangeText={value =>
+                    setForm(current =>
+                      current ? { ...current, check_in: value } : current,
+                    )
+                  }
+                />
+                <FormField
+                  label="Clock-out date and time"
+                  accessibilityLabel="Attendance clock out"
+                  value={form?.check_out || ''}
+                  placeholder="YYYY-MM-DDTHH:MM"
+                  onChangeText={value =>
+                    setForm(current =>
+                      current ? { ...current, check_out: value } : current,
+                    )
+                  }
+                />
+                <Text className="mt-4 text-xs font-semibold text-[#374151]">Notes / remarks</Text>
+                <TextInput
+                  accessibilityLabel="Attendance notes"
+                  className="mt-2 min-h-20 rounded-xl border border-[#D1D5DB] px-3 py-2.5 text-sm text-[#111827]"
+                  multiline
+                  onChangeText={value =>
+                    setForm(current =>
+                      current ? { ...current, notes: value } : current,
+                    )
+                  }
+                  placeholder="Optional notes"
+                  textAlignVertical="top"
+                  value={form?.notes || ''}
+                />
+                {formError ? (
+                  <Text accessibilityRole="alert" className="mt-3 text-sm text-[#B91C1C]">
+                    {formError}
                   </Text>
-                </Pressable>
-              </View>
-            </ScrollView>
+                ) : null}
+                <View className="mt-5 flex-row justify-end gap-2">
+                  <SmallAction label="Cancel" onPress={() => setForm(null)} />
+                  <Pressable
+                    accessibilityLabel="Save attendance record"
+                    accessibilityRole="button"
+                    disabled={isSaving}
+                    onPress={saveRecord}
+                    className="min-w-[120px] flex-row items-center justify-center gap-2 rounded-xl bg-[#1F4E42] px-4 py-2.5"
+                  >
+                    {isSaving ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
+                    <Text className="text-xs font-bold text-white">
+                      {isSaving ? 'Saving...' : 'Save record'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </ScrollView>
             </SafeAreaView>
           </View>
         </KeyboardAvoidingView>
@@ -770,7 +776,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
         <View className="flex-1 justify-end bg-black/50">
           <SafeAreaView
             edges={['bottom']}
-            className="max-h-[85%] rounded-t-3xl bg-white"
+            className="max-h-[85%] w-full rounded-t-3xl bg-white"
           >
             <View className="flex-row items-center justify-between border-b border-[#E5E7EB] p-4">
               <View className="flex-1">
@@ -913,6 +919,48 @@ function SmallAction({
       <Text className={`text-xs font-semibold ${destructive ? 'text-[#B91C1C]' : 'text-[#374151]'}`}>
         {label}
       </Text>
+    </Pressable>
+  );
+}
+
+function AttendanceIconAction({
+  accessibilityLabel,
+  icon,
+  onPress,
+}: {
+  accessibilityLabel: string;
+  icon: 'edit' | 'history';
+  onPress: () => void;
+}) {
+  const label = icon === 'edit' ? 'Edit' : 'History';
+
+  return (
+    <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      onPress={onPress}
+      className="flex-row items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2"
+    >
+      <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
+        {icon === 'edit' ? (
+          <Path
+            d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"
+            stroke="#374151"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+          />
+        ) : (
+          <Path
+            d="M3 12a9 9 0 1 0 2.64-6.36L3 8m0-5v5h5m4-1v5l3 2"
+            stroke="#374151"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+          />
+        )}
+      </Svg>
+      <Text className="text-xs font-semibold text-[#374151]">{label}</Text>
     </Pressable>
   );
 }
