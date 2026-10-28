@@ -207,6 +207,72 @@ function CheckSvg({ color = '#15803D', size = 18 }: { color?: string; size?: num
   );
 }
 
+function WifiSvg({ color = '#15803D', size = 16 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"
+        stroke={color}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function TableChairSvg({ color = '#EA580C', size = 20 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="4" y="7" width="16" height="5" rx="1.5" stroke={color} strokeWidth="2" />
+      <Path d="M7 12v7M17 12v7M3 5v3.5M21 5v3.5" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function ReceiptTextSvg({ color = '#B45309', size = 20 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2-3-2Zm4 7h8m-8 4h8m-8 4h4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function ShieldCheckSvg({ color = '#7C3AED', size = 20 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="m9 12 2 2 4-4" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function HeadsetSvg({ color = '#DC2626', size = 20 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /* ==========================================================================
    Setting Item Row Component
    ========================================================================== */
@@ -508,159 +574,681 @@ export default function ServerMore({
           Section 1: Service & Station Tools
           ==================================================================== */}
       <View className="mt-6">
-        <Text className="px-1 text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
-          Service & Station Tools
-        </Text>
+        <View className="flex-row items-center justify-between px-1">
+          <Text className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
+            Service & Station Tools
+          </Text>
+          <Text className="text-[11px] font-bold text-[#116C0B]">
+            ● Hardware Connected
+          </Text>
+        </View>
 
-        <View className="mt-2 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
-          <SettingRow
-            icon={PrinterSvg}
-            iconBg="#ECFDF5"
-            iconColor="#116C0B"
-            title="Kitchen & Receipt Printers"
-            subtitle="KOT & Cashier thermal printer setup"
-            badge="Online"
-            badgeBg="#DCFCE7"
-            badgeColor="#15803D"
+        <View className="mt-3 gap-3.5">
+          {/* Card 1: Kitchen & Receipt Printers Card */}
+          <Pressable
             onPress={() => setIsPrinterModalOpen(true)}
-          />
-          <View className="h-[1px] bg-[#F1F5F9] mx-4" />
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#BBF7D0',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#ECFDF5]">
+                  <PrinterSvg color="#116C0B" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Kitchen & Receipt Printers
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    EPSON KOT & Star Receipt Hardware
+                  </Text>
+                </View>
+              </View>
 
-          <SettingRow
-            icon={MapPinSvg}
-            iconBg="#FFF7ED"
-            iconColor="#EA580C"
-            title="Floor Station Assignment"
-            subtitle="Dining Floor A • Tables 1 to 12"
-            badge="Station A"
-            badgeBg="#FFF7ED"
-            badgeColor="#EA580C"
+              <View className="flex-row items-center gap-1.5 rounded-full bg-[#DCFCE7] px-2.5 py-1">
+                <View className="h-2 w-2 rounded-full bg-[#15803D]" />
+                <Text className="text-[11px] font-extrabold text-[#15803D]">
+                  2 Connected
+                </Text>
+              </View>
+            </View>
+
+            {/* Sub-status pills inside Card 1 */}
+            <View className="mt-3.5 flex-row gap-2">
+              <View className="flex-1 flex-row items-center justify-between rounded-xl border border-[#DCFCE7] bg-[#F0FDF4] p-2.5">
+                <View>
+                  <Text className="text-[10px] font-bold uppercase tracking-wider text-[#15803D]">
+                    Kitchen KOT
+                  </Text>
+                  <Text className="text-xs font-bold text-[#0F172A]">
+                    EPSON TM-T88
+                  </Text>
+                </View>
+                <WifiSvg color="#15803D" size={16} />
+              </View>
+
+              <View className="flex-1 flex-row items-center justify-between rounded-xl border border-[#DCFCE7] bg-[#F0FDF4] p-2.5">
+                <View>
+                  <Text className="text-[10px] font-bold uppercase tracking-wider text-[#15803D]">
+                    Cashier Bill
+                  </Text>
+                  <Text className="text-xs font-bold text-[#0F172A]">
+                    Star TSP143
+                  </Text>
+                </View>
+                <WifiSvg color="#15803D" size={16} />
+              </View>
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Thermal slip diagnostics & connection test
+              </Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-xs font-bold text-[#116C0B]">
+                  Test Print
+                </Text>
+                <ChevronRightSvg color="#116C0B" size={14} />
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Card 2: Floor Station Assignment Card */}
+          <Pressable
             onPress={() =>
               Alert.alert(
                 'Station Assignment',
-                'You are currently assigned to Station A covering Tables 1 to 12. Speak to your supervisor to change stations.',
+                'You are currently assigned to Station A covering Tables 1 to 12. Speak to your floor supervisor to adjust assigned tables.',
               )
             }
-          />
-          <View className="h-[1px] bg-[#F1F5F9] mx-4" />
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#FED7AA',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF7ED]">
+                  <TableChairSvg color="#EA580C" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Floor Station Assignment
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Dining Floor A • Tables 1 to 12
+                  </Text>
+                </View>
+              </View>
 
-          <SettingRow
-            icon={BellSvg}
-            iconBg="#EEF2FF"
-            iconColor="#4F46E5"
-            title="Kitchen Order Alerts"
-            subtitle="Sound & vibration on ready dishes"
-            rightElement={
+              <View className="rounded-full border border-[#FFEDD5] bg-[#FFF7ED] px-2.5 py-1">
+                <Text className="text-[11px] font-extrabold text-[#EA580C]">
+                  Station A
+                </Text>
+              </View>
+            </View>
+
+            {/* Station stats bar */}
+            <View className="mt-3.5 flex-row items-center justify-between rounded-xl border border-[#FED7AA] bg-[#FFFBF7] p-2.5">
+              <View className="flex-row items-center gap-2">
+                <View className="h-2 w-2 rounded-full bg-[#EA580C]" />
+                <Text className="text-xs font-bold text-[#0F172A]">
+                  12 Dining Tables Assigned
+                </Text>
+              </View>
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Main Dining Room
+              </Text>
+            </View>
+          </Pressable>
+
+          {/* Card 3: Kitchen Order Audio & Vibration Alerts Card */}
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#C7D2FE',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 flex-row items-center gap-3 pr-2">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF]">
+                  <BellSvg color="#4F46E5" size={22} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Kitchen Order Chimes
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Sound & vibration when dishes are ready
+                  </Text>
+                </View>
+              </View>
+
               <Switch
                 value={soundAlerts}
                 onValueChange={setSoundAlerts}
                 trackColor={{ false: '#E2E8F0', true: '#86EFAC' }}
                 thumbColor={soundAlerts ? '#116C0B' : '#94A3B8'}
               />
-            }
-          />
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Status: {soundAlerts ? '🔔 Audio & Haptics Active' : '🔕 Muted'}
+              </Text>
+              <View className="rounded-md bg-[#EEF2FF] px-2 py-0.5">
+                <Text className="text-[10px] font-bold text-[#4F46E5]">
+                  Instant Alert
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Card 4: Daily Service Order History Card */}
+          <Pressable
+            onPress={() => {
+              Alert.alert(
+                'Shift Tickets',
+                '24 completed orders and tickets logged for your shift. Receipts are synchronized with the central cashier database.',
+              );
+            }}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#FDE68A',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#FEF3C7]">
+                  <ReceiptTextSvg color="#B45309" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Shift Order Tickets
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Review table tickets & duplicate slips
+                  </Text>
+                </View>
+              </View>
+
+              <View className="rounded-full bg-[#FEF3C7] px-2.5 py-1">
+                <Text className="text-[11px] font-extrabold text-[#B45309]">
+                  24 Tickets
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                View delivered bills & duplicate receipts
+              </Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-xs font-bold text-[#B45309]">
+                  View Logs
+                </Text>
+                <ChevronRightSvg color="#B45309" size={14} />
+              </View>
+            </View>
+          </Pressable>
         </View>
       </View>
 
       {/* ====================================================================
-          Section 2: App & Workflow Preferences
+          Section 2: App & Workflow Management
           ==================================================================== */}
       <View className="mt-6">
-        <Text className="px-1 text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
-          App & Workflow
-        </Text>
+        <View className="flex-row items-center justify-between px-1">
+          <Text className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
+            App & Workflow Management
+          </Text>
+          <Text className="text-[11px] font-bold text-[#16A34A]">
+            ● Terminal Connected
+          </Text>
+        </View>
 
-        <View className="mt-2 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
-          <SettingRow
-            icon={RefreshSvg}
-            iconBg="#F0FDF4"
-            iconColor="#16A34A"
-            title="Sync Workspace Data"
-            subtitle="Refresh menu catalog, orders & tables"
+        <View className="mt-3 gap-3.5">
+          {/* Card 1: Cloud Sync & Workspace Card */}
+          <Pressable
             onPress={handleSyncWorkspace}
-            rightElement={
-              isSyncing ? (
-                <ActivityIndicator color="#116C0B" size="small" />
-              ) : undefined
-            }
-          />
-          <View className="h-[1px] bg-[#F1F5F9] mx-4" />
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#A7F3D0',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#ECFDF5]">
+                  <RefreshSvg color="#16A34A" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Cloud Sync & Workspace
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Menu catalog, active tables & orders cache
+                  </Text>
+                </View>
+              </View>
 
-          <SettingRow
-            icon={GlobeSvg}
-            iconBg="#F0FDFA"
-            iconColor="#0D9488"
-            title="App Language"
-            subtitle="English (US)"
-            onPress={() =>
-              Alert.alert('Language', 'App language is set to English (Default).')
-            }
-          />
-          <View className="h-[1px] bg-[#F1F5F9] mx-4" />
+              <View className="flex-row items-center gap-1.5 rounded-full bg-[#DCFCE7] px-2.5 py-1">
+                <View className="h-2 w-2 rounded-full bg-[#16A34A]" />
+                <Text className="text-[11px] font-extrabold text-[#15803D]">
+                  Sync OK
+                </Text>
+              </View>
+            </View>
 
-          <SettingRow
-            icon={LockSvg}
-            iconBg="#FAF5FF"
-            iconColor="#9333EA"
-            title="Passcode & Terminal Lock"
-            subtitle="Lock screen security during breaks"
+            {/* Sync status strip */}
+            <View className="mt-3.5 flex-row items-center justify-between rounded-xl border border-[#D1FAE5] bg-[#F0FDF4] p-2.5">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-xs font-bold text-[#0F172A]">
+                  Database: Menu & Orders v2.4
+                </Text>
+              </View>
+              <Text className="text-[11px] font-semibold text-[#15803D]">
+                ● Live WebSocket
+              </Text>
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Manual cloud sync with restaurant server
+              </Text>
+              <View className="flex-row items-center gap-1.5">
+                {isSyncing ? (
+                  <ActivityIndicator color="#116C0B" size="small" />
+                ) : (
+                  <>
+                    <Text className="text-xs font-bold text-[#16A34A]">
+                      Sync Now
+                    </Text>
+                    <ChevronRightSvg color="#16A34A" size={14} />
+                  </>
+                )}
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Card 2: Terminal Security & Passcode Lock Card */}
+          <Pressable
             onPress={() =>
               Alert.alert(
-                'Terminal Lock',
-                'Screen lock PIN is enabled. Enter your staff PIN to unlock during breaks.',
+                'Terminal Security',
+                'Passcode lock is active. The terminal automatically locks after 5 minutes of inactivity during staff breaks.',
               )
             }
-          />
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#DDD6FE',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#FAF5FF]">
+                  <ShieldCheckSvg color="#7C3AED" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Terminal Security & PIN
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Screen lock protection during breaks
+                  </Text>
+                </View>
+              </View>
+
+              <View className="rounded-full border border-[#EDE9FE] bg-[#F5F3FF] px-2.5 py-1">
+                <Text className="text-[11px] font-extrabold text-[#7C3AED]">
+                  PIN Protected
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-3.5 flex-row items-center justify-between rounded-xl border border-[#EDE9FE] bg-[#FAF5FF] p-2.5">
+              <Text className="text-xs font-bold text-[#0F172A]">
+                4-Digit Quick PIN Enabled
+              </Text>
+              <Text className="text-xs font-semibold text-[#7C3AED]">
+                Auto-Lock: 5 Mins Idle
+              </Text>
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Tap to test lock or update staff passcode
+              </Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-xs font-bold text-[#7C3AED]">
+                  Lock Settings
+                </Text>
+                <ChevronRightSvg color="#7C3AED" size={14} />
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Card 3: App Language & Regional Formatting Card */}
+          <Pressable
+            onPress={() =>
+              Alert.alert(
+                'Localization',
+                'Language: English (US)\nCurrency: Indian Rupee (₹ INR)\nTime Format: 12-Hour AM/PM\nNumber Standard: en-IN (Lakhs/Crores)',
+              )
+            }
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#99F6E4',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#F0FDFA]">
+                  <GlobeSvg color="#0D9488" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Language & Regional Format
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Hospitality currency, taxes & format
+                  </Text>
+                </View>
+              </View>
+
+              <View className="rounded-full border border-[#CCFBF1] bg-[#F0FDFA] px-2.5 py-1">
+                <Text className="text-[11px] font-extrabold text-[#0D9488]">
+                  English (₹ INR)
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-3.5 flex-row items-center justify-between rounded-xl border border-[#CCFBF1] bg-[#F0FDFA] p-2.5">
+              <Text className="text-xs font-bold text-[#0F172A]">
+                Currency: Indian Rupee (₹)
+              </Text>
+              <Text className="text-xs font-semibold text-[#0D9488]">
+                GST / VAT Ready
+              </Text>
+            </View>
+          </Pressable>
         </View>
       </View>
 
       {/* ====================================================================
-          Section 3: Operations & Support
+          Section 3: Helpdesk & Operations Hotline
           ==================================================================== */}
       <View className="mt-6">
-        <Text className="px-1 text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
-          Operations & Helpdesk
-        </Text>
+        <View className="flex-row items-center justify-between px-1">
+          <Text className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
+            Helpdesk & Operations Hotline
+          </Text>
+          <Text className="text-[11px] font-bold text-[#DC2626]">
+            ● SOS Priority
+          </Text>
+        </View>
 
-        <View className="mt-2 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
-          <SettingRow
-            icon={PhoneSvg}
-            iconBg="#FEF2F2"
-            iconColor="#DC2626"
-            title="Floor Manager Hotline"
-            subtitle="Instant contact with supervisor or chef"
+        <View className="mt-3 gap-3.5">
+          {/* Card 1: Floor Manager & Kitchen SOS Card */}
+          <Pressable
             onPress={() => setIsSupportModalOpen(true)}
-          />
-          <View className="h-[1px] bg-[#F1F5F9] mx-4" />
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#FECACA',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#FEF2F2]">
+                  <HeadsetSvg color="#DC2626" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Floor Manager & Kitchen SOS
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Instant dispatch for food delays or manager help
+                  </Text>
+                </View>
+              </View>
 
-          <SettingRow
-            icon={BookOpenSvg}
-            iconBg="#F8FAFC"
-            iconColor="#475569"
-            title="Service SOP & Guidelines"
-            subtitle="Standard guest hospitality protocol"
+              <View className="flex-row items-center gap-1 rounded-full bg-[#FEE2E2] px-2.5 py-1">
+                <View className="h-2 w-2 rounded-full bg-[#DC2626]" />
+                <Text className="text-[11px] font-extrabold text-[#DC2626]">
+                  3 Hotlines
+                </Text>
+              </View>
+            </View>
+
+            {/* Hotline extensions preview */}
+            <View className="mt-3.5 flex-row gap-2">
+              <View className="flex-1 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-2.5">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">
+                  Supervisor
+                </Text>
+                <Text className="text-xs font-bold text-[#0F172A]">
+                  Ext 101
+                </Text>
+              </View>
+
+              <View className="flex-1 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-2.5">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">
+                  Head Chef
+                </Text>
+                <Text className="text-xs font-bold text-[#0F172A]">
+                  Ext 104
+                </Text>
+              </View>
+
+              <View className="flex-1 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-2.5">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">
+                  IT Support
+                </Text>
+                <Text className="text-xs font-bold text-[#0F172A]">
+                  Ext 110
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Tap to dial floor manager or kitchen chef
+              </Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-xs font-bold text-[#DC2626]">
+                  Open Hotlines
+                </Text>
+                <ChevronRightSvg color="#DC2626" size={14} />
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Card 2: Service SOP & Guidelines Card */}
+          <Pressable
             onPress={() =>
               Alert.alert(
-                'Service Guidelines',
-                '1. Greet guests within 2 mins.\n2. Confirm allergy requests with the kitchen.\n3. Verify table bills before processing checkout.',
+                'Service Standards & Protocol',
+                '1. Greet guests within 2 mins of table seating.\n2. Confirm allergy requests with the kitchen immediately.\n3. Verify all food tickets against table bills before checkout.\n4. Clear plates within 3 mins of guests finishing.',
               )
             }
-          />
-          <View className="h-[1px] bg-[#F1F5F9] mx-4" />
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#BFDBFE',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF]">
+                  <BookOpenSvg color="#2563EB" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    Service Standards & Protocol
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    Table turnaround & guest care handbook
+                  </Text>
+                </View>
+              </View>
 
-          <SettingRow
-            icon={InfoSvg}
-            iconBg="#F1F5F9"
-            iconColor="#334155"
-            title="About Restaurant Server App"
-            subtitle="v1.2.0 • Station POS Build 42"
+              <View className="rounded-full border border-[#DBEAFE] bg-[#EFF6FF] px-2.5 py-1">
+                <Text className="text-[11px] font-extrabold text-[#2563EB]">
+                  SOP Guide
+                </Text>
+              </View>
+            </View>
+
+            {/* Checklist summary */}
+            <View className="mt-3.5 rounded-xl border border-[#DBEAFE] bg-[#F8FAFC] p-2.5 gap-1.5">
+              <Text className="text-xs text-[#334155]">
+                • <Text className="font-bold">Greet guests</Text> within 2 minutes of seating
+              </Text>
+              <Text className="text-xs text-[#334155]">
+                • <Text className="font-bold">Double-check allergy</Text> and kitchen prep notes
+              </Text>
+              <Text className="text-xs text-[#334155]">
+                • <Text className="font-bold">Verify table billing</Text> before checkout
+              </Text>
+            </View>
+
+            <View className="mt-3 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Hospitality procedures & checklist
+              </Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-xs font-bold text-[#2563EB]">
+                  Read Standards
+                </Text>
+                <ChevronRightSvg color="#2563EB" size={14} />
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Card 3: POS Terminal & Station Info Card */}
+          <Pressable
             onPress={() =>
               Alert.alert(
-                'About App',
-                'Restaurant Server POS App v1.2.0\nBuild: 42 (Release)\nDevice: Station A\nRestaurant: DineServe POS',
+                'POS Terminal Diagnostics',
+                'Restaurant Server POS Terminal\nVersion: 1.2.0 (Build 42 Release)\nStation: Station A • Main Dining Floor\nNetwork: High-Speed Local LAN\nServer API: https://restaurant.qtechx.com/api\nPrinter Queue: 0 Pending Jobs',
               )
             }
-          />
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#E2E8F0',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              elevation: 2,
+              padding: 16,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-[#F8FAFC]">
+                  <InfoSvg color="#475569" size={22} />
+                </View>
+                <View>
+                  <Text className="text-base font-extrabold text-[#0F172A]">
+                    POS Terminal Diagnostics
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    DineServe Server Station A • v1.2.0
+                  </Text>
+                </View>
+              </View>
+
+              <View className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1">
+                <Text className="text-[11px] font-extrabold text-[#475569]">
+                  Build 42
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-3.5 flex-row items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+              <Text className="text-xs font-bold text-[#0F172A]">
+                Network: Online • High-Speed LAN
+              </Text>
+              <Text className="text-[11px] font-semibold text-[#15803D]">
+                ● API Connected
+              </Text>
+            </View>
+          </Pressable>
         </View>
       </View>
 
