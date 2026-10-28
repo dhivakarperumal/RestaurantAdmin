@@ -491,8 +491,8 @@ function Items({
             <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
           </LinearGradient>
           <LinearGradient id="pageGlow2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#FC5805" stopOpacity="0.05" />
-            <Stop offset="100%" stopColor="#FC5805" stopOpacity="0" />
+            <Stop offset="0%" stopColor="#81C238" stopOpacity="0.05" />
+            <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
           </LinearGradient>
         </Defs>
         <Circle cx="94%" cy="8%" r="180" fill="url(#pageGlow1)" />

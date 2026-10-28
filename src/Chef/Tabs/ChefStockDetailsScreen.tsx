@@ -169,9 +169,9 @@ function ChefStockDetailsScreen({
 
       <View className="flex-row flex-wrap gap-2">
         {[
-          { title: 'Stock Items', value: products.length, color: 'bg-orange-50' },
+          { title: 'Stock Items', value: products.length, color: 'bg-green-50' },
           { title: 'Categories', value: categoryCount, color: 'bg-emerald-50' },
-          { title: 'Low Stock', value: lowStockCount, color: 'bg-amber-50' },
+          { title: 'Low Stock', value: lowStockCount, color: 'bg-green-50' },
           { title: 'Out of Stock', value: outOfStockCount, color: 'bg-rose-50' },
         ].map(stat => (
           <View
@@ -384,7 +384,7 @@ function sortLabel(order: SortOrder) {
 
 function stockLevelClass(level: Exclude<StockLevel, 'All Stock'>) {
   if (level === 'Out of Stock') return 'bg-rose-50 text-rose-700';
-  if (level === 'Low Stock') return 'bg-amber-50 text-amber-800';
+  if (level === 'Low Stock') return 'bg-green-50 text-green-800';
   return 'bg-emerald-50 text-emerald-700';
 }
 

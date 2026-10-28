@@ -285,7 +285,7 @@ function Cuisine({
                         {name}
                       </Text>
                       {isFeatured(cuisine.featured) ? (
-                        <Text className="rounded-full bg-[#FFF7D6] px-2 py-1 text-[10px] font-semibold text-[#8A6100]">
+                        <Text className="rounded-full bg-[#F0F7EE] px-2 py-1 text-[10px] font-semibold text-[#116C0B]">
                           Featured
                         </Text>
                       ) : null}

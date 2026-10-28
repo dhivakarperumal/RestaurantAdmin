@@ -117,7 +117,7 @@ function OrderStatus({
 }) {
   const badgeColor =
     status === 'Confirmed'
-      ? 'bg-amber-50 text-amber-800'
+      ? 'bg-green-50 text-green-800'
       : status === 'Preparing'
         ? 'bg-blue-50 text-blue-800'
         : status === 'Ready'
@@ -576,20 +576,20 @@ function ChefEventOrdersScreen() {
                 contentContainerClassName="gap-3 p-4"
                 keyboardShouldPersistTaps="handled"
               >
-                <View className="flex-row gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
+                <View className="flex-row gap-2 rounded-xl border border-green-100 bg-green-50 p-3">
                   <View className="flex-1">
-                    <Text className="text-[9px] font-bold uppercase text-amber-700">
+                    <Text className="text-[9px] font-bold uppercase text-green-700">
                       Event timing
                     </Text>
-                    <Text className="mt-1 text-xs font-extrabold text-amber-950">
+                    <Text className="mt-1 text-xs font-extrabold text-green-950">
                       {formatDate(selectedOrder.event_date)}
                     </Text>
-                    <Text className="text-[10px] font-semibold text-amber-800">
+                    <Text className="text-[10px] font-semibold text-green-800">
                       {formatTime(selectedOrder.event_time)}
                     </Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="text-[9px] font-bold uppercase text-amber-700">
+                    <Text className="text-[9px] font-bold uppercase text-green-700">
                       Catering details
                     </Text>
                     <Text className="mt-1 text-xs font-extrabold text-[#123B2D]">

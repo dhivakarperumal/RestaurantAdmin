@@ -246,7 +246,7 @@ function BillPreview({
                     </View>
                     <View className="w-[96px] items-end">
                       {item.amount === null ? (
-                        <Text className="text-[10px] font-semibold text-[#B45309]">Price needed</Text>
+                        <Text className="text-[10px] font-semibold text-[#116C0B]">Price needed</Text>
                       ) : (
                         <>
                           <Text className="text-[10px] text-[#6B7280]">
@@ -285,7 +285,7 @@ function BillPreview({
         </ScrollView>
 
         {hasUnpricedItems ? (
-          <Text className="bg-[#FFFBEB] px-4 py-2 text-center text-xs text-[#B45309]">
+          <Text className="bg-[#F0F7EE] px-4 py-2 text-center text-xs text-[#116C0B]">
             Enter prices for all items before sending the bill.
           </Text>
         ) : null}

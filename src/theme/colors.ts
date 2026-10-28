@@ -14,10 +14,10 @@ const colors = {
   primaryDark: '#02480B',
   primaryLight: '#81C238',
 
-  // Orange accents
-  secondary: '#FC5805',
-  secondaryLight: '#FE7705',
-  accent: '#F03006',
+  // Supporting green accents
+  secondary: '#81C238',
+  secondaryLight: '#A3D977',
+  accent: '#15803D',
 
   // Text
   textPrimary: '#012711',
@@ -29,12 +29,12 @@ const colors = {
   // Status colors
   success: '#15803D',
   error: '#DC2626',
-  warning: '#F59E0B',
+  warning: '#81C238',
   info: '#2563EB',
 
   // Interactive states
   primaryPressed: '#02480B',
-  secondaryPressed: '#D94805',
+  secondaryPressed: '#02480B',
   disabled: '#D1D5DB',
 
   // Overlays
@@ -42,4 +42,3 @@ const colors = {
 } as const;
 
 export default colors;
-

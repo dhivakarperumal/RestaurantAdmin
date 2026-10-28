@@ -949,7 +949,7 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
                             ? 'text-red-700'
                             : image.url
                               ? 'text-[#116C0B]'
-                              : 'text-[#9A6700]'
+                              : 'text-[#116C0B]'
                         }`}
                       >
                         {image.isUploading
@@ -965,9 +965,9 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
                           accessibilityLabel={`Retry upload image ${index + 1}`}
                           accessibilityRole="button"
                           onPress={() => uploadImage(image)}
-                          className="mx-2 mb-1.5 items-center rounded-md bg-[#FFF7ED] py-1"
+                          className="mx-2 mb-1.5 items-center rounded-md bg-[#F0F7EE] py-1"
                         >
-                          <Text className="text-[10px] font-semibold text-[#C2410C]">
+                          <Text className="text-[10px] font-semibold text-[#116C0B]">
                             Retry upload
                           </Text>
                         </Pressable>
@@ -1169,9 +1169,9 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
             accessibilityLabel="Add add-on"
             accessibilityRole="button"
             onPress={addAddon}
-            className="items-center rounded-xl border border-dashed border-[#FF5A00] py-3"
+            className="items-center rounded-xl border border-dashed border-[#116C0B] py-3"
           >
-            <Text className="font-semibold text-[#EA580C]">+ Add add-on</Text>
+            <Text className="font-semibold text-[#116C0B]">+ Add add-on</Text>
           </Pressable>
         </Section>
 
@@ -1303,9 +1303,9 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
                     ),
                   )
                 }
-                className="mb-2 items-center rounded-lg bg-[#FFF7ED] py-2"
+                className="mb-2 items-center rounded-lg bg-[#F0F7EE] py-2"
               >
-                <Text className="font-semibold text-[#EA580C]">+ Add option</Text>
+                <Text className="font-semibold text-[#116C0B]">+ Add option</Text>
               </Pressable>
               <Pressable
                 accessibilityLabel={`Remove customization ${groupIndex + 1}`}
@@ -1325,9 +1325,9 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
             accessibilityLabel="Add customization"
             accessibilityRole="button"
             onPress={addCustomization}
-            className="items-center rounded-xl border border-dashed border-[#FF5A00] py-3"
+            className="items-center rounded-xl border border-dashed border-[#116C0B] py-3"
           >
-            <Text className="font-semibold text-[#EA580C]">+ Add customization group</Text>
+            <Text className="font-semibold text-[#116C0B]">+ Add customization group</Text>
           </Pressable>
         </Section>
       </ScrollView>
@@ -1354,7 +1354,7 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
           className={`h-12 flex-1 items-center justify-center rounded-xl ${
             isSaving || isUploadingImages || images.some(image => !image.url) || !isFoodLoaded
               ? 'bg-[#86A980]'
-              : 'bg-[#FF5A00]'
+              : 'bg-[#116C0B]'
           }`}
         >
           {isSaving ? (

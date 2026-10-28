@@ -676,7 +676,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
               accessibilityLabel="Choose home delivery order"
               accessibilityRole="button"
               onPress={() => setIsOrderPickerOpen(open => !open)}
-              className="flex-row items-center justify-between rounded-xl border border-[#F97316] bg-white px-4 py-4"
+              className="flex-row items-center justify-between rounded-xl border border-[#116C0B] bg-white px-4 py-4"
             >
               <Text className="font-bold text-[#1E293B]">
                 {selectedOrder
@@ -729,7 +729,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
                   onPress={() => setRefreshKey(count => count + 1)}
                   className="rounded-lg px-3 py-2"
                 >
-                  <Text className="font-semibold text-[#F97316]">Refresh</Text>
+                  <Text className="font-semibold text-[#116C0B]">Refresh</Text>
                 </Pressable>
               </View>
               {partners.length ? (

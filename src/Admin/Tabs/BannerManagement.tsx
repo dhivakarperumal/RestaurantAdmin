@@ -410,7 +410,7 @@ function BannerManagementPage({
                     </View>
                   </View>
                   <View className="flex-row items-center justify-between">
-                    <Text className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase text-orange-700">
+                    <Text className="rounded-full bg-green-50 px-2.5 py-1 text-[10px] font-bold uppercase text-green-700">
                       {banner.type} section
                     </Text>
                     <Text className="text-xs text-[#6B7280]">No. {index + 1}</Text>
@@ -589,13 +589,13 @@ function BannerManagementPage({
                 onPress={() => updateDraft('active', !draft.active)}
                 className={`min-h-12 flex-row items-center justify-center rounded-xl border ${
                   draft.active
-                    ? 'border-orange-100 bg-orange-50'
+                    ? 'border-green-100 bg-green-50'
                     : 'border-[#E5E7EB] bg-[#F9FAFB]'
                 }`}
               >
                 <Text
                   className={`text-sm font-bold ${
-                    draft.active ? 'text-orange-700' : 'text-[#6B7280]'
+                    draft.active ? 'text-green-700' : 'text-[#6B7280]'
                   }`}
                 >
                   {draft.active ? 'Published on website' : 'Saved as draft'}

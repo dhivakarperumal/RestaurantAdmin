@@ -162,8 +162,8 @@ function TopHeader({
             <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
           </LinearGradient>
           <LinearGradient id="accentG" x1="100%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#FC5805" stopOpacity="0.18" />
-            <Stop offset="100%" stopColor="#FC5805" stopOpacity="0" />
+            <Stop offset="0%" stopColor="#81C238" stopOpacity="0.18" />
+            <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#headerGrad)" />

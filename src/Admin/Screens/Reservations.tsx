@@ -29,7 +29,7 @@ type ReservationApiRecord = {
 };
 
 const reservationStatusStyles: Record<ReservationStatus, string> = {
-  Pending: 'border-amber-200 bg-amber-50 text-amber-700',
+  Pending: 'border-green-200 bg-green-50 text-green-700',
   Confirmed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   Declined: 'border-rose-200 bg-rose-50 text-rose-700',
   Cancelled: 'border-slate-200 bg-slate-100 text-slate-600',

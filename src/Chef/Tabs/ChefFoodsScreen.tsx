@@ -424,7 +424,7 @@ function ChefFoodsScreen({
 
       <View className="mb-4 flex-row flex-wrap gap-2">
         {[
-          { label: 'Total dishes', value: foods.length, color: 'bg-orange-50' },
+          { label: 'Total dishes', value: foods.length, color: 'bg-green-50' },
           { label: 'Active', value: activeCount, color: 'bg-emerald-50' },
           { label: 'Menu visible', value: visibleCount, color: 'bg-blue-50' },
           { label: 'Hidden', value: foods.length - visibleCount, color: 'bg-pink-50' },

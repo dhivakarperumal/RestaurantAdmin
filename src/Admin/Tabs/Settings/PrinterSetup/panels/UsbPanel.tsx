@@ -11,8 +11,8 @@ export function UsbPanel() {
         <Text className="mt-1 text-[13px] leading-5 text-[#475569]">
           Connect your printer using a USB OTG cable or adapter. The printer will be detected automatically once plugged in.
         </Text>
-        <View className="mt-3 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2">
-          <Text className="text-[12px] leading-[18px] text-[#92400E]">
+        <View className="mt-3 rounded-xl border border-[#DCE8D8] bg-[#F0F7EE] px-3 py-2">
+          <Text className="text-[12px] leading-[18px] text-[#116C0B]">
             <Text className="font-bold">Note: </Text>
             Android requires a USB OTG cable. USB printing is not supported on iOS — use Bluetooth or Wi-Fi instead.
           </Text>

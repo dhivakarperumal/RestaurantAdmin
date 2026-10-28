@@ -716,7 +716,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                   <Text
                     className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
                       status === 'Late'
-                        ? 'bg-[#FEF3C7] text-[#92400E]'
+                        ? 'bg-[#F0F7EE] text-[#116C0B]'
                         : status === 'Absent'
                           ? 'bg-[#FEE2E2] text-[#991B1B]'
                           : isWorking
@@ -1002,7 +1002,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                         status === 'Absent' || status === 'On Leave'
                           ? 'bg-[#FEE2E2] text-[#B91C1C]'
                           : status === 'Late'
-                            ? 'bg-[#FEF3C7] text-[#92400E]'
+                            ? 'bg-[#F0F7EE] text-[#116C0B]'
                             : 'bg-[#D1FAE5] text-[#047857]';
 
                       return (

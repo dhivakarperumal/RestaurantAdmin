@@ -180,11 +180,11 @@ function getStatusTheme(status: NormalizedStatus) {
   switch (status) {
     case 'Pending':
       return {
-        badgeBg: '#FFFBEB',
-        badgeBorder: '#FDE68A',
-        badgeText: '#B45309',
-        accentColor: '#F59E0B',
-        dotColor: '#F59E0B',
+        badgeBg: '#F0F7EE',
+        badgeBorder: '#DCE8D8',
+        badgeText: '#116C0B',
+        accentColor: '#81C238',
+        dotColor: '#81C238',
         label: 'Pending',
         nextStatus: 'Preparing' as NormalizedStatus,
         nextActionText: 'Accept & Cook 👨‍🍳',
@@ -270,9 +270,9 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
     return {
       label: 'Takeaway',
       icon: '🛍️',
-      bg: '#FFFBEB',
-      border: '#FEF3C7',
-      text: '#92400E',
+      bg: '#F0F7EE',
+      border: '#DCE8D8',
+      text: '#116C0B',
     };
   }
   return {
@@ -778,9 +778,9 @@ export function OrdersScreen({
 
           {/* Notes / Special Request Banner */}
           {item.notes ? (
-            <View className="mt-2.5 rounded-lg bg-amber-50 border border-amber-200 p-2 flex-row items-start gap-1.5">
+            <View className="mt-2.5 rounded-lg bg-green-50 border border-green-200 p-2 flex-row items-start gap-1.5">
               <Text className="text-xs">📝</Text>
-              <Text className="text-[11px] text-amber-900 flex-1 font-medium">
+              <Text className="text-[11px] text-green-900 flex-1 font-medium">
                 "{item.notes}"
               </Text>
             </View>
@@ -795,7 +795,7 @@ export function OrdersScreen({
                 className={`rounded-md px-2 py-0.5 border ${
                   item.payment_method?.toLowerCase().includes('cash') ||
                   item.payment_method?.toLowerCase().includes('cod')
-                    ? 'bg-[#FEF3C7] border-[#FDE68A]'
+                    ? 'bg-[#F0F7EE] border-[#DCE8D8]'
                     : 'bg-[#DCFCE7] border-[#BBF7D0]'
                 }`}
               >
@@ -803,7 +803,7 @@ export function OrdersScreen({
                   className={`text-[10px] font-extrabold uppercase tracking-wider ${
                     item.payment_method?.toLowerCase().includes('cash') ||
                     item.payment_method?.toLowerCase().includes('cod')
-                      ? 'text-[#92400E]'
+                      ? 'text-[#116C0B]'
                       : 'text-[#166534]'
                   }`}
                 >
@@ -931,18 +931,18 @@ export function OrdersScreen({
             onPress={() => setStatusFilter(statusFilter === 'Pending' ? 'All' : 'Pending')}
             className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
               statusFilter === 'Pending'
-                ? 'bg-amber-100 border-amber-400 shadow-sm'
-                : 'bg-[#FFFBEB] border-[#FDE68A]'
+                ? 'bg-green-100 border-green-400 shadow-sm'
+                : 'bg-[#F0F7EE] border-[#DCE8D8]'
             }`}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-amber-200">
+            <View className="h-8 w-8 items-center justify-center rounded-xl bg-green-200">
               <Text className="text-base">⚡</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800">
+              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-green-800">
                 Pending
               </Text>
-              <Text className="text-lg font-black text-amber-950">
+              <Text className="text-lg font-black text-green-950">
                 {metrics.pending}
               </Text>
             </View>

@@ -456,7 +456,7 @@ function AssignServerTables({
                                 : isSelected
                                   ? 'font-semibold text-[#116C0B]'
                                   : disabled
-                                    ? 'text-[#92400E]'
+                                    ? 'text-[#116C0B]'
                                     : 'text-[#6B7280]'
                             }`}
                           >

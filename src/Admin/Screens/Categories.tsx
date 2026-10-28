@@ -813,7 +813,7 @@ function Categories({
             {foodError ? (
               <Text
                 accessibilityRole="alert"
-                className="text-xs text-[#B45309]"
+                className="text-xs text-[#116C0B]"
               >
                 Product counts could not be loaded: {foodError}
               </Text>

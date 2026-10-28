@@ -618,7 +618,7 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                       label="Assign delivery partner"
                       disabled={isUpdating}
                       onPress={() => startAssignment(order)}
-                      className="bg-[#FC5805]"
+                      className="bg-[#116C0B]"
                     />
                   ) : null}
                   {nextStatus &&
@@ -828,7 +828,7 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                               {text(item.quantity, '1')} × ₹{Number(item.unit_price || 0).toFixed(2)}
                             </Text>
                             {item.cooking_notes || item.notes ? (
-                              <Text className="mt-1 text-[10px] text-amber-700">
+                              <Text className="mt-1 text-[10px] text-green-700">
                                 Note: {text(item.cooking_notes ?? item.notes)}
                               </Text>
                             ) : null}
@@ -838,11 +838,11 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                     },
                   )}
                   {selectedOrder.special_requests ? (
-                    <View className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-                      <Text className="text-[10px] font-bold uppercase text-amber-800">
+                    <View className="rounded-xl border border-green-100 bg-green-50 p-3">
+                      <Text className="text-[10px] font-bold uppercase text-green-800">
                         Special requests
                       </Text>
-                      <Text className="mt-1 text-xs leading-5 text-amber-950">
+                      <Text className="mt-1 text-xs leading-5 text-green-950">
                         {text(selectedOrder.special_requests)}
                       </Text>
                     </View>
@@ -862,7 +862,7 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
                             setSelectedOrder(null);
                             startAssignment(selectedOrder);
                           }}
-                          className="bg-[#FC5805]"
+                          className="bg-[#116C0B]"
                         />
                       ) : (
                         <ActionButton
@@ -905,7 +905,7 @@ function statusLabel(status: string) {
 function statusColor(status: string) {
   const normalized = status.toLowerCase();
   if (normalized === 'pending' || normalized === 'placed') {
-    return 'bg-amber-50 text-amber-800';
+    return 'bg-green-50 text-green-800';
   }
   if (normalized === 'preparing') {
     return 'bg-blue-50 text-blue-800';

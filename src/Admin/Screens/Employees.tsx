@@ -664,7 +664,7 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
               employeeStatus.toLowerCase() === 'working' || employeeStatus.toLowerCase() === 'on duty' || employeeStatus.toLowerCase() === 'available'
                 ? 'bg-[#DCFCE7] text-[#166534]'
                 : employeeStatus.toLowerCase() === 'break'
-                  ? 'bg-[#FEF3C7] text-[#92400E]'
+                  ? 'bg-[#F0F7EE] text-[#116C0B]'
                   : 'bg-[#F3F4F6] text-[#4B5563]';
             const initials = String(employee.full_name || 'E')
               .split(' ')
