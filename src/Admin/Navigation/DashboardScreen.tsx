@@ -449,6 +449,11 @@ const moreFeatures: MoreFeature[] = [
     icon: ProductIcon,
     action: 'product' as QuickActionId,
   },
+  {
+    title: 'Kitchen Requests',
+    subtitle: 'Review and manage kitchen inventory requests',
+    icon: MenuIcon,
+  },
 
   {
     title: 'Reports & Analytics',
@@ -488,6 +493,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isFoodDetailsOpen, setIsFoodDetailsOpen] = useState(false);
+  const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(
     null,
   );
@@ -595,9 +601,18 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               );
               break;
             case 'kitchenRequests':
-              nextData.kitchenRequests = readResponseRows<ApiKitchenRequest>(
-                result.value.data as ApiListResponse<ApiCatalogItem>,
-              );
+              {
+                const kitchenRequestRows = readResponseRows<ApiKitchenRequest>(
+                  result.value.data,
+                );
+                nextData.kitchenRequests =
+                  kitchenRequestRows.length > 0
+                    ? kitchenRequestRows
+                    : readResponsePropertyRows<ApiKitchenRequest>(
+                        result.value.data,
+                        'kitchen_requests',
+                      );
+              }
               nextData.kitchenRequestsLoaded = true;
               break;
             case 'categories':
@@ -978,7 +993,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       }
       className="flex-1 bg-[#F9FAFB]"
     >
-      {!isFoodDetailsOpen && !isMoreFeatureOpen ? (
+      {!isFoodDetailsOpen && !isMoreFeatureOpen && !isDeliveryAssignmentOpen ? (
         <TopHeader
           user={user}
           unreadNotifications={0}
@@ -1070,6 +1085,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onSetDateFilter={setDateFilter}
               onSetCustomFrom={setCustomFrom}
               onSetCustomTo={setCustomTo}
+              onDeliveryAssignmentVisibilityChange={setIsDeliveryAssignmentOpen}
             />
           </View>
         </View>
@@ -1126,11 +1142,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onSetDateFilter={setDateFilter}
             onSetCustomFrom={setCustomFrom}
             onSetCustomTo={setCustomTo}
+            onDeliveryAssignmentVisibilityChange={setIsDeliveryAssignmentOpen}
           />
         </View>
       )}
 
-      {!isMoreFeatureOpen ? (
+      {!isMoreFeatureOpen && !isDeliveryAssignmentOpen ? (
         <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       ) : null}
       {!isWide && activeTab === 'items' && !isFoodDetailsOpen ? (
@@ -1401,7 +1418,7 @@ function readCatalogRows(payload: unknown, depth = 0): ApiCatalogItem[] {
 
 function readResponsePropertyRows<T>(
   payload: unknown,
-  property: 'bills' | 'orders',
+  property: 'bills' | 'orders' | 'kitchen_requests',
 ): T[] {
   if (typeof payload !== 'object' || payload === null) {
     return [];
@@ -1494,6 +1511,7 @@ function MainContent({
   onSetDateFilter,
   onSetCustomFrom,
   onSetCustomTo,
+  onDeliveryAssignmentVisibilityChange,
 }: {
   activeTab: AppTab;
   invoices: LocalRecord[];
@@ -1535,6 +1553,7 @@ function MainContent({
   onSetDateFilter: (filter: DashboardDateFilter) => void;
   onSetCustomFrom: (date: string) => void;
   onSetCustomTo: (date: string) => void;
+  onDeliveryAssignmentVisibilityChange: (isVisible: boolean) => void;
 }) {
   if (selectedAction) {
     return (
@@ -1609,8 +1628,14 @@ function MainContent({
         <OrdersScreen
           onBack={() => onSelectFeature(null)}
           onAddOrder={() => onSelectAction('order')}
+          onDeliveryAssignmentVisibilityChange={
+            onDeliveryAssignmentVisibilityChange
+          }
         />
       );
+    }
+    if (selectedFeature === 'Kitchen Requests') {
+      return <KitchenRequestsScreen />;
     }
 
     if (selectedFeature === 'Printer Setup') {
@@ -1720,6 +1745,9 @@ function MainContent({
     return (
       <OrdersScreen
         onAddOrder={() => onSelectAction('order')}
+        onDeliveryAssignmentVisibilityChange={
+          onDeliveryAssignmentVisibilityChange
+        }
       />
     );
   }
@@ -4901,6 +4929,230 @@ function PageShell({
       </Text>
       <View className="mt-6 gap-3.5">{children}</View>
     </ScrollView>
+  );
+}
+
+type KitchenRequestRow = Record<string, unknown>;
+
+function readKitchenRequestRows(payload: unknown): KitchenRequestRow[] {
+  if (Array.isArray(payload)) {
+    return payload.filter(
+      (row): row is KitchenRequestRow =>
+        typeof row === 'object' && row !== null,
+    );
+  }
+  if (typeof payload !== 'object' || payload === null) {
+    return [];
+  }
+
+  const record = payload as Record<string, unknown>;
+  for (const key of [
+    'data',
+    'kitchen_requests',
+    'kitchenRequests',
+    'requests',
+    'items',
+  ]) {
+    if (key in record) {
+      const rows = readKitchenRequestRows(record[key]);
+      if (rows.length > 0 || Array.isArray(record[key])) {
+        return rows;
+      }
+    }
+  }
+  return [];
+}
+
+function kitchenRequestValue(
+  request: KitchenRequestRow,
+  keys: string[],
+  fallback: string,
+) {
+  for (const key of keys) {
+    const value = request[key];
+    if (typeof value === 'string' || typeof value === 'number') {
+      const text = String(value).trim();
+      if (text) {
+        return text;
+      }
+    }
+  }
+  return fallback;
+}
+
+function KitchenRequestsScreen() {
+  const [requests, setRequests] = useState<KitchenRequestRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  const loadRequests = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await api.get('/inventory/kitchen-requests');
+      setRequests(readKitchenRequestRows(response.data));
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadRequests();
+  }, [loadRequests]);
+
+  const filteredRequests = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return requests.filter(request => {
+      const status = kitchenRequestValue(request, ['status', 'state'], 'Pending');
+      const matchesStatus =
+        statusFilter === 'All' ||
+        status.trim().toLowerCase() === statusFilter.toLowerCase();
+      if (!matchesStatus) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      return [
+        kitchenRequestValue(
+          request,
+          ['request_id', 'requestId', 'id'],
+          '',
+        ),
+        kitchenRequestValue(
+          request,
+          ['item_name', 'product_name', 'food_name', 'item', 'name'],
+          '',
+        ),
+        kitchenRequestValue(
+          request,
+          ['requested_by', 'requestedBy', 'employee_name', 'user_name'],
+          '',
+        ),
+      ].some(value => value.toLowerCase().includes(query));
+    });
+  }, [requests, search, statusFilter]);
+
+  return (
+    <PageShell
+      title="Kitchen Requests"
+      subtitle="Review and manage kitchen inventory requests"
+    >
+      <TextInput
+        accessibilityLabel="Search kitchen requests"
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Search item, request ID, or requester"
+        placeholderTextColor="#94A3B8"
+        className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#012711]"
+      />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-2"
+      >
+        {['All', 'Pending', 'Approved', 'Rejected', 'Completed'].map(status => (
+          <Pressable
+            key={status}
+            accessibilityLabel={`Filter kitchen requests by ${status}`}
+            accessibilityRole="button"
+            onPress={() => setStatusFilter(status)}
+            className={`rounded-full border px-4 py-2 ${
+              statusFilter === status
+                ? 'border-[#116C0B] bg-[#116C0B]'
+                : 'border-[#E5E7EB] bg-white'
+            }`}
+          >
+            <Text
+              className={`text-xs font-bold ${
+                statusFilter === status ? 'text-white' : 'text-[#475569]'
+              }`}
+            >
+              {status}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {isLoading ? (
+        <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
+          <ActivityIndicator color="#116C0B" />
+          <Text className="mt-3 text-sm text-[#6B7280]">
+            Loading kitchen requests...
+          </Text>
+        </View>
+      ) : error ? (
+        <View className="rounded-2xl border border-[#FECACA] bg-white p-[18px]">
+          <Text accessibilityRole="alert" className="text-sm text-[#B91C1C]">
+            {error}
+          </Text>
+        </View>
+      ) : filteredRequests.length === 0 ? (
+        <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
+          <Text className="text-sm text-[#6B7280]">
+            {requests.length === 0
+              ? 'No kitchen requests found.'
+              : 'No kitchen requests match the selected filters.'}
+          </Text>
+        </View>
+      ) : (
+        filteredRequests.map((request, index) => {
+          const requestId = kitchenRequestValue(
+            request,
+            ['request_id', 'requestId', 'id'],
+            `Request ${index + 1}`,
+          );
+          const item = kitchenRequestValue(
+            request,
+            ['item_name', 'product_name', 'food_name', 'item', 'name'],
+            'Inventory item',
+          );
+          const quantity = kitchenRequestValue(
+            request,
+            ['quantity', 'requested_quantity', 'qty'],
+            '—',
+          );
+          const status = kitchenRequestValue(request, ['status', 'state'], 'Pending');
+          const requestedBy = kitchenRequestValue(
+            request,
+            ['requested_by', 'requestedBy', 'employee_name', 'user_name'],
+            '',
+          );
+          return (
+            <View
+              key={`${requestId}-${index}`}
+              className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
+            >
+              <View className="flex-row items-start justify-between gap-3">
+                <View className="flex-1">
+                  <Text className="text-base font-bold text-[#012711]">
+                    {item}
+                  </Text>
+                  <Text className="mt-1 text-xs text-[#6B7280]">
+                    {requestId}
+                  </Text>
+                </View>
+                <Text className="rounded-lg bg-[#FFF7ED] px-2.5 py-1 text-xs font-bold capitalize text-[#C2410C]">
+                  {status}
+                </Text>
+              </View>
+              <Text className="mt-3 text-sm text-[#475569]">
+                Quantity: <Text className="font-bold">{quantity}</Text>
+              </Text>
+              {requestedBy ? (
+                <Text className="mt-1 text-sm text-[#475569]">
+                  Requested by: <Text className="font-bold">{requestedBy}</Text>
+                </Text>
+              ) : null}
+            </View>
+          );
+        })
+      )}
+    </PageShell>
   );
 }
 

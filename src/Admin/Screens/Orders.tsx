@@ -75,6 +75,7 @@ export type SortOption = 'newest' | 'oldest' | 'amount_high' | 'amount_low';
 type OrdersScreenProps = {
   onBack?: () => void;
   onAddOrder?: () => void;
+  onDeliveryAssignmentVisibilityChange?: (isVisible: boolean) => void;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -292,7 +293,11 @@ const STATUS_TABS: ('All' | NormalizedStatus)[] = [
   'Cancelled',
 ];
 
-export function OrdersScreen({ onBack, onAddOrder }: OrdersScreenProps) {
+export function OrdersScreen({
+  onBack,
+  onAddOrder,
+  onDeliveryAssignmentVisibilityChange,
+}: OrdersScreenProps) {
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -312,6 +317,10 @@ export function OrdersScreen({ onBack, onAddOrder }: OrdersScreenProps) {
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
+
+  useEffect(() => {
+    onDeliveryAssignmentVisibilityChange?.(isDeliveryAssignmentOpen);
+  }, [isDeliveryAssignmentOpen, onDeliveryAssignmentVisibilityChange]);
 
   // Radar Pulse Animation
   const pulseAnim = useRef(new Animated.Value(1)).current;
