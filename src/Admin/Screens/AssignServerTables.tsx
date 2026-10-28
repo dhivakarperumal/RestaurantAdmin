@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../../api';
 
 type ServerEmployee = {
@@ -295,12 +296,17 @@ function AssignServerTables({
   return (
     <Modal
       animationType="slide"
+      navigationBarTranslucent
       onRequestClose={onClose}
+      statusBarTranslucent
       transparent
       visible={server !== null}
     >
       <View className="flex-1 justify-end bg-black/50">
-        <View className="max-h-[94%] flex-1 rounded-t-3xl bg-[#F9FAFB]">
+        <SafeAreaView
+          edges={['top', 'bottom']}
+          className="max-h-[94%] flex-1 rounded-t-3xl bg-[#F9FAFB]"
+        >
           <View className="flex-row items-center justify-between rounded-t-3xl bg-[#1F3228] px-5 py-4">
             <View className="flex-1 pr-3">
               <Text className="text-lg font-bold text-white">Assign Tables</Text>
@@ -534,7 +540,7 @@ function AssignServerTables({
               </Pressable>
             </View>
           </View>
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
