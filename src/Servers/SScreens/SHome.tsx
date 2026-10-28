@@ -11,12 +11,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
-import colors from '../../theme/colors';
 import ServerBottomBar, { type ServerTab } from '../SNavigations/SBottombsr';
 import ServerTopHeader from '../SNavigations/STopHeder';
+import ServerFoods from './SFoods';
 
 /* ==========================================================================
    Types & Utilities
@@ -1966,7 +1966,7 @@ export default function ServerHome({
     }
 
     if (activeTab === 'foods') {
-      return <FoodsTabContent foods={foods} />;
+      return <ServerFoods />;
     }
 
     if (activeTab === 'attendee') {
