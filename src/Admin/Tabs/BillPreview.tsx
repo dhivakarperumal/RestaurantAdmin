@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlusIcon } from '../Navigation/NavigationIcons';
+import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 
 export type BillPreviewItem = {
   id: string;
@@ -27,6 +28,7 @@ type BillPreviewProps = {
   onRemoveItem: (id: string) => void;
   onQuantityChange: (id: string, quantity: number) => void;
   onConfirm: () => void;
+  onBack: () => void;
 };
 
 function formatCurrency(amount: number) {
@@ -41,6 +43,7 @@ function BillPreview({
   onRemoveItem,
   onQuantityChange,
   onConfirm,
+  onBack,
 }: BillPreviewProps) {
   const [tableNumber, setTableNumber] = useState('T-05');
   const [orderType, setOrderType] = useState<'Dine In' | 'Take Away' | 'Delivery'>('Dine In');
@@ -97,23 +100,27 @@ function BillPreview({
   return (
     <SafeAreaView edges={['bottom']} className="flex-1 bg-white">
       <View className="flex-1">
-        <View className="flex-row items-center justify-between bg-[#FF5A00] px-5 py-3.5">
-          <View className="flex-row items-center gap-3">
-            <Text className="text-2xl font-bold text-white">▤</Text>
-            <Text className="text-lg font-extrabold text-white">Invoice / Bill</Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Send bill"
-            accessibilityRole="button"
-            disabled={hasUnpricedItems || items.length === 0}
-            onPress={onConfirm}
-            className={`h-11 w-11 items-center justify-center rounded-xl ${
-              hasUnpricedItems || items.length === 0 ? 'bg-[#C2410C]' : 'bg-[#E84D00]'
-            }`}
-          >
-            <Text className="text-2xl font-bold text-white">✓</Text>
-          </Pressable>
-        </View>
+        <MoreInnerHeader
+          title="Invoice / Bill"
+          destination="Add food"
+          subtitle="Items / Food Details"
+          onBack={onBack}
+          rightContent={
+            <Pressable
+              accessibilityLabel="Send bill"
+              accessibilityRole="button"
+              disabled={hasUnpricedItems || items.length === 0}
+              onPress={onConfirm}
+              className={`h-10 w-10 items-center justify-center rounded-xl ${
+                hasUnpricedItems || items.length === 0
+                  ? 'bg-white/10'
+                  : 'bg-white/20'
+              }`}
+            >
+              <Text className="text-xl font-bold text-white">✓</Text>
+            </Pressable>
+          }
+        />
 
         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
           <View className="flex-row flex-wrap justify-between gap-y-2 px-4 py-3.5">
@@ -161,13 +168,13 @@ function BillPreview({
                     onPress={() => setOrderType(type)}
                     className={`rounded-md border px-2 py-1 ${
                       orderType === type
-                        ? 'border-[#FF5A00] bg-[#FFF7ED]'
+                        ? 'border-[#116C0B] bg-[#F0F7EE]'
                         : 'border-[#E5E7EB] bg-white'
                     }`}
                   >
                     <Text
                       className={`text-[10px] font-semibold ${
-                        orderType === type ? 'text-[#FF5A00]' : 'text-[#6B7280]'
+                        orderType === type ? 'text-[#116C0B]' : 'text-[#6B7280]'
                       }`}
                     >
                       {type}
@@ -180,11 +187,11 @@ function BillPreview({
 
           <ScrollView horizontal showsHorizontalScrollIndicator>
             <View>
-              <View className="w-[520px] flex-row items-center bg-[#FFF7ED] px-3 py-2.5">
-                <Text className="w-8 text-xs font-bold text-[#C2410C]">#</Text>
-                <Text className="flex-1 text-xs font-bold text-[#C2410C]">Item</Text>
-                <Text className="w-[140px] text-center text-xs font-bold text-[#C2410C]">Qty</Text>
-                <Text className="w-[96px] text-right text-xs font-bold text-[#C2410C]">Price / Total</Text>
+              <View className="w-[520px] flex-row items-center bg-[#F0F7EE] px-3 py-2.5">
+                <Text className="w-8 text-xs font-bold text-[#116C0B]">#</Text>
+                <Text className="flex-1 text-xs font-bold text-[#116C0B]">Item</Text>
+                <Text className="w-[140px] text-center text-xs font-bold text-[#116C0B]">Qty</Text>
+                <Text className="w-[96px] text-right text-xs font-bold text-[#116C0B]">Price / Total</Text>
               </View>
               {items.map((item, index) => {
                 const lineTotal = (item.amount ?? 0) * item.quantity;
@@ -221,9 +228,9 @@ function BillPreview({
                             onQuantityChange(item.id, item.quantity - 1);
                           }
                         }}
-                        className="h-8 w-8 items-center justify-center rounded-md border border-[#FED7AA]"
+                        className="h-8 w-8 items-center justify-center rounded-md border border-[#DCE8D8]"
                       >
-                        <Text className="text-base text-[#EA580C]">−</Text>
+                        <Text className="text-base text-[#116C0B]">−</Text>
                       </Pressable>
                       <Text className="min-w-4 text-center text-xs text-[#111827]">
                         {item.quantity}
@@ -232,9 +239,9 @@ function BillPreview({
                         accessibilityLabel={`Increase ${item.name} quantity`}
                         accessibilityRole="button"
                         onPress={() => onQuantityChange(item.id, item.quantity + 1)}
-                        className="h-8 w-8 items-center justify-center rounded-md border border-[#FED7AA]"
+                        className="h-8 w-8 items-center justify-center rounded-md border border-[#DCE8D8]"
                       >
-                        <PlusIcon color="#EA580C" size={14} />
+                        <PlusIcon color="#116C0B" size={14} />
                       </Pressable>
                     </View>
                     <View className="w-[96px] items-end">
@@ -282,7 +289,7 @@ function BillPreview({
             Enter prices for all items before sending the bill.
           </Text>
         ) : null}
-        <View className="flex-row items-center justify-between bg-[#FF5A00] px-5 py-3.5">
+        <View className="flex-row items-center justify-between bg-[#116C0B] px-5 py-3.5">
           <Text className="text-lg font-extrabold text-white">Grand Total</Text>
           <Text className="text-lg font-extrabold text-white">
             {formatCurrency(grandTotal)}
@@ -293,15 +300,15 @@ function BillPreview({
             accessibilityLabel="Preview Bill"
             accessibilityRole="button"
             onPress={() => setIsReceiptPreviewOpen(true)}
-            className="h-12 flex-1 items-center justify-center rounded-xl border border-[#FF5A00] bg-white"
+            className="h-12 flex-1 items-center justify-center rounded-xl border border-[#116C0B] bg-white"
           >
-            <Text className="text-sm font-bold text-[#EA580C]">Preview Bill</Text>
+            <Text className="text-sm font-bold text-[#116C0B]">Preview Bill</Text>
           </Pressable>
           <Pressable
             accessibilityLabel="Print Bill"
             accessibilityRole="button"
             onPress={printBill}
-            className="h-12 flex-1 items-center justify-center rounded-xl bg-[#FF5A00]"
+            className="h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
           >
             <Text className="text-sm font-bold text-white">Print Bill</Text>
           </Pressable>

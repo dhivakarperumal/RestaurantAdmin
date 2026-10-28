@@ -291,6 +291,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isItemsInnerPageOpen, setIsItemsInnerPageOpen] = useState(false);
+  const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(
     null,
@@ -511,6 +512,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const navigateToTab = (tab: AppTab) => {
     setActiveTab(tab);
     setIsItemsInnerPageOpen(false);
+    setIsBillPreviewOpen(false);
     setSelectedAction(null);
     setSelectedFeature(null);
     setIsSidebarOpen(false);
@@ -757,6 +759,11 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           moreFeatureBack();
           return true;
         }
+        if (isBillPreviewOpen) {
+          setIsBillPreviewOpen(false);
+          setActiveTab('home');
+          return true;
+        }
         // 5. Non-home tab → go to home
         if (activeTab !== 'home') {
           setActiveTab('home');
@@ -776,6 +783,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     isNotificationsOpen,
     selectedAction,
     isMoreFeatureOpen,
+    isBillPreviewOpen,
     selectedFeature,
     activeTab,
   ]);
@@ -787,11 +795,16 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           ? ['bottom']
           : isMoreFeatureOpen
           ? ['bottom']
+          : isBillPreviewOpen
+          ? ['bottom']
           : []
       }
       className="flex-1 bg-[#F9FAFB]"
     >
-      {!isItemsInnerPageOpen && !isMoreFeatureOpen && !isDeliveryAssignmentOpen ? (
+      {!isItemsInnerPageOpen &&
+      !isMoreFeatureOpen &&
+      !isDeliveryAssignmentOpen &&
+      !isBillPreviewOpen ? (
         <TopHeader
           user={user}
           unreadNotifications={0}
@@ -872,6 +885,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onRemoveFoodFromBilling={removeFoodFromBilling}
               onQuantityChange={updateBillingItemQuantity}
               onOpenBilling={() => navigateToTab('billing')}
+              onBillPreviewVisibilityChange={setIsBillPreviewOpen}
               onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
               onCompleteBill={() => {
                 createInvoiceFromBillingItems();
@@ -929,6 +943,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onRemoveFoodFromBilling={removeFoodFromBilling}
             onQuantityChange={updateBillingItemQuantity}
             onOpenBilling={() => navigateToTab('billing')}
+            onBillPreviewVisibilityChange={setIsBillPreviewOpen}
             onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
             onCompleteBill={() => {
               createInvoiceFromBillingItems();
@@ -945,7 +960,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         </View>
       )}
 
-      {!isMoreFeatureOpen && !isDeliveryAssignmentOpen && !isItemsInnerPageOpen ? (
+      {!isMoreFeatureOpen &&
+      !isDeliveryAssignmentOpen &&
+      !isItemsInnerPageOpen &&
+      !isBillPreviewOpen ? (
         <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       ) : null}
       {!isWide && activeTab === 'items' && !isItemsInnerPageOpen ? (
@@ -1282,6 +1300,7 @@ function MainContent({
   onRemoveFoodFromBilling,
   onQuantityChange,
   onOpenBilling,
+  onBillPreviewVisibilityChange,
   onCreateInvoiceFromBillingItems,
   onCompleteBill,
   onSelectFeature,
@@ -1321,6 +1340,7 @@ function MainContent({
   onRemoveFoodFromBilling: (itemId: string) => void;
   onQuantityChange: (itemId: string, quantity: number) => void;
   onOpenBilling: () => void;
+  onBillPreviewVisibilityChange: (isVisible: boolean) => void;
   onCreateInvoiceFromBillingItems: () => void;
   onCompleteBill: () => void;
   onSelectFeature: (feature: string | null) => void;
@@ -1557,6 +1577,7 @@ function MainContent({
         onQuantityChange={onQuantityChange}
         onOpenBilling={onOpenBilling}
         onConfirmBill={onCompleteBill}
+        onBillPreviewVisibilityChange={onBillPreviewVisibilityChange}
       />
     );
   }
