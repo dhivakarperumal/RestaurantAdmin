@@ -12,6 +12,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import api from '../../../api';
@@ -60,6 +63,11 @@ type AttendanceForm = {
   check_out: string;
   status: string;
   notes: string;
+};
+
+type ActivePicker = {
+  field: 'date' | 'check_in' | 'check_out';
+  mode: 'date' | 'time';
 };
 
 type EmployeeAttendanceProps = {
@@ -122,6 +130,40 @@ function localDateTimeInput(value?: string | null) {
   ).padStart(2, '0')}`;
 }
 
+function parseLocalDateTime(value: string) {
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/,
+  );
+  if (!match) {
+    return null;
+  }
+  return new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    Number(match[4] || 0),
+    Number(match[5] || 0),
+  );
+}
+
+function localDateTimeValue(date: Date) {
+  return `${localDateString(date)}T${String(date.getHours()).padStart(2, '0')}:${String(
+    date.getMinutes(),
+  ).padStart(2, '0')}`;
+}
+
+function displayDate(value: string) {
+  const date = parseLocalDateTime(value);
+  return date ? date.toLocaleDateString() : 'Select date';
+}
+
+function displayTime(value: string) {
+  const date = parseLocalDateTime(value);
+  return date
+    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : 'Select time';
+}
+
 function toIsoDateTime(value: string) {
   if (!value.trim()) {
     return null;
@@ -175,6 +217,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
   const [form, setForm] = useState<AttendanceForm | null>(null);
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [activePicker, setActivePicker] = useState<ActivePicker | null>(null);
   const [historyEmployee, setHistoryEmployee] = useState<AttendanceRecord | null>(
     null,
   );
@@ -266,6 +309,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
       return;
     }
     setFormError('');
+    setActivePicker(null);
     setForm({
       employee_id: String(record.employee_id),
       employee_name: record.full_name || 'Employee',
@@ -275,6 +319,43 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
       check_out: localDateTimeInput(record.check_out),
       status: record.attendance_status || 'Present',
       notes: record.notes || '',
+    });
+  };
+
+  const handlePickerChange = (
+    event: DateTimePickerEvent,
+    pickedValue?: Date,
+  ) => {
+    if (Platform.OS === 'android') {
+      setActivePicker(null);
+    }
+    if (event.type === 'dismissed' || !pickedValue || !activePicker) {
+      return;
+    }
+
+    setForm(current => {
+      if (!current) {
+        return current;
+      }
+      if (activePicker.field === 'date') {
+        return { ...current, date: localDateString(pickedValue) };
+      }
+
+      const currentValue = current[activePicker.field];
+      const date =
+        parseLocalDateTime(currentValue) ||
+        parseLocalDateTime(current.date) ||
+        new Date();
+      if (activePicker.mode === 'date') {
+        date.setFullYear(
+          pickedValue.getFullYear(),
+          pickedValue.getMonth(),
+          pickedValue.getDate(),
+        );
+      } else {
+        date.setHours(pickedValue.getHours(), pickedValue.getMinutes(), 0, 0);
+      }
+      return { ...current, [activePicker.field]: localDateTimeValue(date) };
     });
   };
 
@@ -296,6 +377,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
 
     setIsSaving(true);
     setFormError('');
+    setActivePicker(null);
     try {
       const checkIn = toIsoDateTime(form.check_in);
       const checkOut = toIsoDateTime(form.check_out);
@@ -680,14 +762,11 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                 <Text className="mt-1 text-xs text-[#6B7280]">
                   {form?.employee_name} · {form?.employee_id}
                 </Text>
-                <FormField
-                  label="Date"
-                  accessibilityLabel="Attendance record date"
-                  value={form?.date || ''}
-                  placeholder="YYYY-MM-DD"
-                  onChangeText={value =>
-                    setForm(current => (current ? { ...current, date: value } : current))
-                  }
+                <PickerButton
+                  accessibilityLabel="Select attendance date"
+                  label="Attendance date"
+                  value={displayDate(form?.date || '')}
+                  onPress={() => setActivePicker({ field: 'date', mode: 'date' })}
                 />
                 <Text className="mt-4 text-xs font-semibold text-[#374151]">Status</Text>
                 <View className="mt-2 flex-row flex-wrap gap-2">
@@ -705,28 +784,64 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                     />
                   ))}
                 </View>
-                <FormField
-                  label="Clock-in date and time"
-                  accessibilityLabel="Attendance clock in"
-                  value={form?.check_in || ''}
-                  placeholder="YYYY-MM-DDTHH:MM"
-                  onChangeText={value =>
-                    setForm(current =>
-                      current ? { ...current, check_in: value } : current,
-                    )
-                  }
-                />
-                <FormField
-                  label="Clock-out date and time"
-                  accessibilityLabel="Attendance clock out"
-                  value={form?.check_out || ''}
-                  placeholder="YYYY-MM-DDTHH:MM"
-                  onChangeText={value =>
-                    setForm(current =>
-                      current ? { ...current, check_out: value } : current,
-                    )
-                  }
-                />
+                {(['check_in', 'check_out'] as const).map(field => {
+                  const label = field === 'check_in' ? 'Clock-in' : 'Clock-out';
+                  const value = form?.[field] || '';
+                  return (
+                    <View key={field} className="mt-4">
+                      <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                        {label}
+                      </Text>
+                      <View className="flex-row gap-2">
+                        <PickerButton
+                          accessibilityLabel={`Select ${label.toLowerCase()} date`}
+                          label="Date"
+                          value={displayDate(value)}
+                          onPress={() =>
+                            setActivePicker({ field, mode: 'date' })
+                          }
+                        />
+                        <PickerButton
+                          accessibilityLabel={`Select ${label.toLowerCase()} time`}
+                          label="Time"
+                          value={displayTime(value)}
+                          onPress={() =>
+                            setActivePicker({ field, mode: 'time' })
+                          }
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+                {activePicker && form ? (
+                  <View className="mt-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+                    <Text className="mb-2 text-xs font-semibold text-[#374151]">
+                      Select {activePicker.mode === 'date' ? 'date' : 'time'}
+                    </Text>
+                    <DateTimePicker
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      mode={activePicker.mode}
+                      onChange={handlePickerChange}
+                      value={
+                        activePicker.field === 'date'
+                          ? parseLocalDateTime(form.date) || new Date()
+                          : parseLocalDateTime(form[activePicker.field]) ||
+                            parseLocalDateTime(form.date) ||
+                            new Date()
+                      }
+                    />
+                    {Platform.OS === 'ios' ? (
+                      <Pressable
+                        accessibilityLabel="Done selecting date or time"
+                        accessibilityRole="button"
+                        onPress={() => setActivePicker(null)}
+                        className="mt-2 self-end rounded-lg bg-[#1F4E42] px-4 py-2"
+                      >
+                        <Text className="text-xs font-bold text-white">Done</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : null}
                 <Text className="mt-4 text-xs font-semibold text-[#374151]">Notes / remarks</Text>
                 <TextInput
                   accessibilityLabel="Attendance notes"
@@ -747,7 +862,13 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                   </Text>
                 ) : null}
                 <View className="mt-5 flex-row justify-end gap-2">
-                  <SmallAction label="Cancel" onPress={() => setForm(null)} />
+                  <SmallAction
+                    label="Cancel"
+                    onPress={() => {
+                      setActivePicker(null);
+                      setForm(null);
+                    }}
+                  />
                   <Pressable
                     accessibilityLabel="Save attendance record"
                     accessibilityRole="button"
@@ -977,29 +1098,28 @@ function AttendanceIconAction({
   );
 }
 
-function FormField({
+function PickerButton({
   label,
   accessibilityLabel,
   value,
-  placeholder,
-  onChangeText,
+  onPress,
 }: {
   label: string;
   accessibilityLabel: string;
   value: string;
-  placeholder: string;
-  onChangeText: (value: string) => void;
+  onPress: () => void;
 }) {
   return (
-    <View className="mt-4">
+    <View className="min-w-0 flex-1">
       <Text className="mb-1.5 text-xs font-semibold text-[#374151]">{label}</Text>
-      <TextInput
+      <Pressable
         accessibilityLabel={accessibilityLabel}
-        className="rounded-xl border border-[#D1D5DB] px-3 py-2.5 text-sm text-[#111827]"
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        value={value}
-      />
+        accessibilityRole="button"
+        onPress={onPress}
+        className="min-h-11 justify-center rounded-xl border border-[#D1D5DB] bg-white px-3 py-2.5"
+      >
+        <Text className="text-sm text-[#111827]">{value}</Text>
+      </Pressable>
     </View>
   );
 }
