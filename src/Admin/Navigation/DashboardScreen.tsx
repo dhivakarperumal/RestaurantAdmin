@@ -664,6 +664,17 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setBillingItems([]);
   };
 
+  const updateOrderStatus = (
+    orderId: number,
+    status: NonNullable<LocalRecord['status']>,
+  ) => {
+    setRecords(current =>
+      current.map(record =>
+        record.id === orderId ? { ...record, status } : record,
+      ),
+    );
+  };
+
   const handleLogout = async () => {
     setLogoutError('');
     try {
@@ -678,6 +689,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   };
 
   const invoices = records.filter(record => record.action === 'invoice');
+  const orders = records.filter(record => record.action === 'order');
   const selectedActionDetails = quickActions.find(
     action => action.id === selectedAction,
   );
@@ -816,6 +828,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               activeTab={activeTab}
               invoices={invoices}
               billingItems={billingItems}
+              orders={orders}
               records={records}
               dashboardData={dashboardData}
               dashboardReport={dashboardReport}
@@ -849,6 +862,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
                 navigateToTab('billing');
               }}
               onSelectFeature={navigateToMoreFeature}
+              onUpdateOrderStatus={updateOrderStatus}
               onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
               onSetDateFilter={setDateFilter}
               onSetCustomFrom={setCustomFrom}
@@ -870,6 +884,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             activeTab={activeTab}
             invoices={invoices}
             billingItems={billingItems}
+            orders={orders}
             records={records}
             dashboardData={dashboardData}
             dashboardReport={dashboardReport}
@@ -903,6 +918,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               navigateToTab('billing');
             }}
             onSelectFeature={navigateToMoreFeature}
+            onUpdateOrderStatus={updateOrderStatus}
             onRefreshDashboard={() => setDashboardRefresh(count => count + 1)}
             onSetDateFilter={setDateFilter}
             onSetCustomFrom={setCustomFrom}
@@ -1222,6 +1238,7 @@ function MainContent({
   activeTab,
   invoices,
   billingItems,
+  orders,
   records,
   dashboardData,
   dashboardReport,
@@ -1250,6 +1267,7 @@ function MainContent({
   onCreateInvoiceFromBillingItems,
   onCompleteBill,
   onSelectFeature,
+  onUpdateOrderStatus,
   onRefreshDashboard,
   onSetDateFilter,
   onSetCustomFrom,
@@ -1258,6 +1276,7 @@ function MainContent({
   activeTab: AppTab;
   invoices: LocalRecord[];
   billingItems: BillingLineItem[];
+  orders: LocalRecord[];
   records: LocalRecord[];
   dashboardData: DashboardData;
   dashboardReport: DashboardReport;
@@ -1286,6 +1305,10 @@ function MainContent({
   onCreateInvoiceFromBillingItems: () => void;
   onCompleteBill: () => void;
   onSelectFeature: (feature: string | null) => void;
+  onUpdateOrderStatus: (
+    orderId: number,
+    status: NonNullable<LocalRecord['status']>,
+  ) => void;
   onRefreshDashboard: () => void;
   onSetDateFilter: (filter: DashboardDateFilter) => void;
   onSetCustomFrom: (date: string) => void;
@@ -2882,6 +2905,180 @@ function BillingPage({
           description="Invoices you create will be listed here."
         />
       )}
+    </ScrollView>
+  );
+}
+
+function OrdersPage({
+  orders,
+  onAddOrder,
+  onUpdateOrderStatus,
+}: {
+  orders: LocalRecord[];
+  onAddOrder: () => void;
+  onUpdateOrderStatus: (
+    orderId: number,
+    status: NonNullable<LocalRecord['status']>,
+  ) => void;
+}) {
+  const [filter, setFilter] = useState<
+    'All' | 'Pending' | 'Completed' | 'Cancelled'
+  >('All');
+  const [selectedOrder, setSelectedOrder] = useState<LocalRecord | null>(null);
+  const filters = ['All', 'Pending', 'Completed', 'Cancelled'] as const;
+  const filteredOrders =
+    filter === 'All' ? orders : orders.filter(order => order.status === filter);
+  return (
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+      <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+        FULFILLMENT
+      </Text>
+      <View className="mt-1 flex-row items-center gap-3">
+        <View className="flex-1">
+          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+            Orders
+          </Text>
+          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+            Keep track of every customer order.
+          </Text>
+        </View>
+        <Pressable
+          accessibilityLabel="Add Order"
+          accessibilityRole="button"
+          onPress={onAddOrder}
+          className="flex-row items-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        >
+          <PlusIcon color={colors.surface} size={18} />
+          <Text className="text-[13px] font-bold text-white">Add order</Text>
+        </Pressable>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-2 py-5"
+      >
+        {filters.map(item => (
+          <Pressable
+            accessibilityLabel={`Filter orders by ${item}`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: item === filter }}
+            key={item}
+            onPress={() => setFilter(item)}
+            className={`rounded-full border px-4 py-[9px] ${
+              item === filter
+                ? 'border-[#116C0B] bg-[#116C0B]'
+                : 'border-[#E5E7EB] bg-white'
+            }`}
+          >
+            <Text
+              className={`text-[13px] font-semibold ${
+                item === filter ? 'text-white' : 'text-[#6B7280]'
+              }`}
+            >
+              {item}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      {filteredOrders.length ? (
+        filteredOrders.map(order => (
+          <Pressable
+            accessibilityLabel={`View order ${order.name}`}
+            accessibilityRole="button"
+            key={order.id}
+            onPress={() => setSelectedOrder(order)}
+          >
+            <RecordRow record={order} />
+          </Pressable>
+        ))
+      ) : (
+        <EmptyState
+          icon={OrdersIcon}
+          title={`No ${
+            filter === 'All' ? '' : `${filter.toLowerCase()} `
+          }orders`}
+          description="Orders you add will show up here."
+        />
+      )}
+      <Modal
+        animationType="slide"
+        onRequestClose={() => setSelectedOrder(null)}
+        transparent
+        visible={selectedOrder !== null}
+      >
+        {selectedOrder ? (
+          <SafeAreaView
+            edges={['bottom']}
+            className="mt-auto rounded-t-3xl bg-white p-[22px]"
+          >
+            <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
+              ORDER DETAILS
+            </Text>
+            <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+              {selectedOrder.name}
+            </Text>
+            <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+              Created at {selectedOrder.createdAt}
+            </Text>
+            <View className="mt-[18px] rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
+              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+                Order total
+              </Text>
+              <Text className="mt-1 text-2xl font-bold text-[#012711]">
+                {formatCurrency(selectedOrder.amount || 0)}
+              </Text>
+              <View className="mt-3.5 flex-row items-center gap-2">
+                <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
+                  Status
+                </Text>
+                <StatusPill status={selectedOrder.status || 'Pending'} />
+              </View>
+            </View>
+            <Text className="mb-2 mt-[18px] text-[13px] font-semibold text-[#012711]">
+              Update status
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(['Pending', 'Completed', 'Cancelled'] as const).map(status => (
+                <Pressable
+                  accessibilityLabel={`Set order status to ${status}`}
+                  accessibilityRole="button"
+                  key={status}
+                  onPress={() => {
+                    onUpdateOrderStatus(selectedOrder.id, status);
+                    setSelectedOrder({ ...selectedOrder, status });
+                  }}
+                  className={`rounded-full border px-3.5 py-[9px] ${
+                    selectedOrder.status === status
+                      ? 'border-[#116C0B] bg-[#116C0B]'
+                      : 'border-[#E5E7EB] bg-[#F9FAFB]'
+                  }`}
+                >
+                  <Text
+                    className={`text-[13px] font-semibold ${
+                      selectedOrder.status === status
+                        ? 'text-white'
+                        : 'text-[#6B7280]'
+                    }`}
+                  >
+                    {status}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              accessibilityLabel="Close order details"
+              accessibilityRole="button"
+              onPress={() => setSelectedOrder(null)}
+              className="items-center py-[18px]"
+            >
+              <Text className="font-semibold text-[#116C0B]">
+                Close details
+              </Text>
+            </Pressable>
+          </SafeAreaView>
+        ) : null}
+      </Modal>
     </ScrollView>
   );
 }
