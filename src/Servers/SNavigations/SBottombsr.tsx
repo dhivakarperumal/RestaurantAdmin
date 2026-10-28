@@ -159,6 +159,36 @@ const tabs: {
   { key: 'more', label: 'More', icon: MoreTabIcon },
 ];
 
+function TabButton({
+  tab,
+  activeTab,
+  onPress,
+}: {
+  tab: (typeof tabs)[number];
+  activeTab: ServerTab;
+  onPress: (tab: ServerTab) => void;
+}) {
+  const selected = tab.key === activeTab;
+  const Icon = tab.icon;
+  const activeColor = colors.primary || '#116C0B';
+  const inactiveColor = '#64748B';
+
+  return (
+    <Pressable
+      accessibilityLabel={tab.label}
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={() => onPress(tab.key)}
+      style={{ alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 44 }}
+    >
+      <Icon color={selected ? activeColor : inactiveColor} size={21} active={selected} />
+      <Text style={{ color: selected ? activeColor : inactiveColor, fontSize: 10.5, fontWeight: selected ? '800' : '600', marginTop: 2 }}>
+        {tab.label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function ServerBottomBar({
   activeTab,
   onPress,
@@ -181,125 +211,45 @@ export default function ServerBottomBar({
         elevation: 16,
         flexDirection: 'row',
         justifyContent: 'space-around',
-        minHeight: 64 + insets.bottom,
-        paddingBottom: Math.max(insets.bottom, 6),
+        minHeight: 54 + insets.bottom,
+        paddingBottom: Math.max(insets.bottom, 3),
         paddingHorizontal: 6,
-        paddingTop: 6,
+        paddingTop: 2,
         shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.06,
         shadowRadius: 12,
       }}
     >
-      {tabs.slice(0, 2).map(tab => {
-        const selected = tab.key === activeTab;
-        const Icon = tab.icon;
-        const activeColor = colors.primary || '#116C0B';
-        const inactiveColor = '#64748B';
-
-        return (
-          <Pressable
-            key={tab.key}
-            accessibilityLabel={tab.label}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            onPress={() => onPress(tab.key)}
-            style={({ pressed }) => ({
-              alignItems: 'center',
-              flex: 1,
-              justifyContent: 'center',
-              minHeight: 52,
-              opacity: pressed ? 0.75 : 1,
-              transform: [{ scale: pressed ? 0.94 : 1 }],
-            })}
-            <Pressable
-              accessibilityLabel="Open assigned tables"
-              accessibilityRole="button"
-              onPress={onPlusPress}
-              style={({ pressed }) => ({
-                alignItems: 'center',
-                flex: 1,
-                justifyContent: 'center',
-                minHeight: 52,
-                opacity: pressed ? 0.8 : 1,
-                transform: [{ scale: pressed ? 0.94 : 1 }],
-              })}
-            >
-              <View className="-mt-7 h-14 w-14 items-center justify-center rounded-full bg-[#FF7800] shadow-lg">
-                <Text className="text-4xl font-light leading-10 text-white">+</Text>
-              </View>
-              <Text className="mt-1 text-[10.5px] font-extrabold text-[#FF7800]">
-                Tables
-              </Text>
-            </Pressable>
-            {tabs.slice(2).map(tab => {
-              const selected = tab.key === activeTab;
-              const Icon = tab.icon;
-              const activeColor = colors.primary || '#116C0B';
-              const inactiveColor = '#64748B';
-              return (
-                <Pressable
-                  key={tab.key}
-                  accessibilityLabel={tab.label}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                  onPress={() => onPress(tab.key)}
-                  style={{ alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 52 }}
-                >
-                  <Icon color={selected ? activeColor : inactiveColor} size={21} active={selected} />
-                  <Text style={{ color: selected ? activeColor : inactiveColor, fontSize: 10.5, fontWeight: selected ? '800' : '600', marginTop: 2 }}>
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          >
-            {/* Active Capsule Glow */}
-            <View
-              style={{
-                alignItems: 'center',
-                backgroundColor: selected ? '#E8F5E9' : 'transparent',
-                borderRadius: 16,
-                height: 32,
-                justifyContent: 'center',
-                paddingHorizontal: 12,
-                width: 48,
-              }}
-            >
-              <Icon
-                color={selected ? activeColor : inactiveColor}
-                size={21}
-                active={selected}
-              />
-            </View>
-
-            {/* Label */}
-            <Text
-              style={{
-                color: selected ? activeColor : inactiveColor,
-                fontSize: 10.5,
-                fontWeight: selected ? '800' : '600',
-                letterSpacing: selected ? 0.2 : 0,
-                marginTop: 2,
-              }}
-              numberOfLines={1}
-            >
-              {tab.label}
-            </Text>
-
-            {/* Active Indicator Micro-Dot */}
-            <View
-              style={{
-                backgroundColor: selected ? activeColor : 'transparent',
-                borderRadius: 9999,
-                height: 3.5,
-                marginTop: 2,
-                width: selected ? 12 : 0,
-              }}
-            />
-          </Pressable>
-        );
-      })}
+      {tabs.slice(0, 2).map(tab => (
+        <TabButton
+          key={tab.key}
+          tab={tab}
+          activeTab={activeTab}
+          onPress={onPress}
+        />
+      ))}
+      <Pressable
+        accessibilityLabel="Open assigned tables"
+        accessibilityRole="button"
+        onPress={onPlusPress}
+        style={{ alignItems: 'center', flex: 1, justifyContent: 'center', minHeight: 44 }}
+      >
+        <View className="-mt-5 h-12 w-12 items-center justify-center rounded-full bg-[#FF7800] shadow-lg">
+          <Text className="text-3xl font-light leading-9 text-white">+</Text>
+        </View>
+        <Text className="mt-1 text-[10.5px] font-extrabold text-[#FF7800]">
+          Tables
+        </Text>
+      </Pressable>
+      {tabs.slice(2).map(tab => (
+        <TabButton
+          key={tab.key}
+          tab={tab}
+          activeTab={activeTab}
+          onPress={onPress}
+        />
+      ))}
     </View>
   );
 }

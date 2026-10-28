@@ -17,6 +17,7 @@ import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
 import ServerBottomBar, { type ServerTab } from '../SNavigations/SBottombsr';
 import ServerTopHeader from '../SNavigations/STopHeder';
 import ServerFoods from './SFoods';
+import ServerMore from './SMore';
 
 /* ==========================================================================
    Types & Utilities
@@ -1838,6 +1839,21 @@ export default function ServerHome({
 
   // Selected order details modal
   const [selectedOrder, setSelectedOrder] = useState<Row | null>(null);
+  const [isAssignedTablesOpen, setIsAssignedTablesOpen] = useState(false);
+
+  const assignedTables = useMemo(() => {
+    const employeeId = user.employee_id ?? user.employeeId;
+    return tables.filter(table => {
+      const assignedId =
+        table.assigned_server_id ??
+        table.assigned_employee_id ??
+        table.server_id;
+      if (assignedId === null || assignedId === undefined || assignedId === '') {
+        return false;
+      }
+      return employeeId === undefined || String(assignedId) === String(employeeId);
+    });
+  }, [tables, user]);
 
   const loadHome = useCallback(async () => {
     const [orderResult, foodResult, tableResult] = await Promise.allSettled([
@@ -2009,11 +2025,11 @@ export default function ServerHome({
     }
 
     return (
-      <MoreTabContent
+      <ServerMore
         user={user}
         onLogout={onLogout}
-        onRefresh={onRefresh}
-        onOpenShift={() => setActiveTab('attendee')}
+        onClockOut={clockOut}
+        onRefreshWorkspace={onRefresh}
       />
     );
   }, [
@@ -2116,7 +2132,63 @@ export default function ServerHome({
       />
 
       {/* Pinned Server Bottom Navigation Bar */}
-      <ServerBottomBar activeTab={activeTab} onPress={setActiveTab} />
+      <ServerBottomBar
+        activeTab={activeTab}
+        onPress={setActiveTab}
+        onPlusPress={() => setIsAssignedTablesOpen(true)}
+      />
+      <Modal
+        visible={isAssignedTablesOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsAssignedTablesOpen(false)}
+      >
+        <View className="flex-1 justify-end bg-black/40">
+          <Pressable
+            className="flex-1"
+            onPress={() => setIsAssignedTablesOpen(false)}
+          />
+          <View className="rounded-t-3xl bg-white px-5 pb-8 pt-5">
+            <View className="mb-4 flex-row items-center justify-between">
+              <Text className="text-xl font-extrabold text-[#012711]">
+                Assigned Tables
+              </Text>
+              <Pressable
+                accessibilityLabel="Close assigned tables"
+                accessibilityRole="button"
+                onPress={() => setIsAssignedTablesOpen(false)}
+                className="h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9]"
+              >
+                <Text className="text-xl text-[#475569]">×</Text>
+              </Pressable>
+            </View>
+            {assignedTables.length ? (
+              assignedTables.map((table, index) => (
+                <View
+                  key={`${table.table_id ?? table.id ?? index}`}
+                  className="mb-2 flex-row items-center justify-between rounded-xl bg-[#F8FAFC] p-4"
+                >
+                  <View>
+                    <Text className="font-bold text-[#012711]">
+                      Table {table.table_number ?? table.id ?? table.table_id}
+                    </Text>
+                    <Text className="mt-1 text-xs text-[#64748B]">
+                      {table.no_of_seats ?? 4} seats
+                    </Text>
+                  </View>
+                  <Text className="font-bold capitalize text-[#15803D]">
+                    {table.status ?? 'Available'}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text className="py-6 text-center text-sm text-[#64748B]">
+                No tables are assigned to you.
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
