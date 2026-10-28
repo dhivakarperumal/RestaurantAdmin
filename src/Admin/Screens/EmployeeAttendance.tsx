@@ -4,6 +4,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  Share,
   ScrollView,
   Text,
   TextInput,
@@ -358,18 +359,93 @@ function EmployeeAttendance() {
     );
   };
 
+  const exportCsv = async () => {
+    if (!records.length) {
+      Alert.alert('Nothing to export', 'No attendance records are available for this date.');
+      return;
+    }
+
+    const csvValue = (value: unknown) =>
+      `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const headers = [
+      'Employee ID',
+      'Full Name',
+      'Department / Role',
+      'Date',
+      'Scheduled Shift',
+      'Clock In',
+      'Clock Out',
+      'Duration',
+      'Attendance Status',
+      'Notes',
+    ];
+    const rows = records.map(record => [
+      record.employee_id,
+      record.full_name,
+      record.employee_type,
+      record.attendance_date || selectedDate,
+      formatShift(record),
+      record.check_in ? formatTime(record.check_in) : '--',
+      record.check_out
+        ? formatTime(record.check_out)
+        : record.check_in
+          ? 'Working'
+          : '--',
+      record.total_hours || formatDuration(record.duration_seconds),
+      record.attendance_status || 'Absent',
+      record.notes,
+    ]);
+
+    try {
+      await Share.share({
+        title: `Staff attendance ${selectedDate}`,
+        message: [headers, ...rows]
+          .map(row => row.map(csvValue).join(','))
+          .join('\n'),
+      });
+    } catch (shareError) {
+      Alert.alert(
+        'Could not export attendance',
+        getErrorMessage(shareError, 'Unable to share the attendance CSV.'),
+      );
+    }
+  };
+
   return (
     <View className="mt-7 gap-4">
-      <View>
-        <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-          DAILY TRACKING
-        </Text>
-        <Text className="mt-1 text-base font-bold text-[#012711]">
-          Employee attendance
-        </Text>
-        <Text className="mt-1 text-xs leading-5 text-[#6B7280]">
-          Review shifts, mark attendance, and view employee history.
-        </Text>
+      <View className="flex-row items-start justify-between gap-2">
+        <View className="flex-1">
+          <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
+            DAILY TRACKING
+          </Text>
+          <Text className="mt-1 text-base font-bold text-[#012711]">
+            Employee attendance
+          </Text>
+          <Text className="mt-1 text-xs leading-5 text-[#6B7280]">
+            Review shifts, mark attendance, and view employee history.
+          </Text>
+        </View>
+        <View className="flex-row gap-2">
+          <Pressable
+            accessibilityLabel="Refresh attendance"
+            accessibilityRole="button"
+            disabled={isLoading}
+            onPress={() => setRefreshKey(current => current + 1)}
+            className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5"
+          >
+            <Text className="text-xs font-semibold text-[#374151]">
+              {isLoading ? 'Loading' : 'Refresh'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Export attendance CSV"
+            accessibilityRole="button"
+            onPress={exportCsv}
+            className="rounded-xl bg-[#1F4E42] px-3 py-2.5"
+          >
+            <Text className="text-xs font-semibold text-white">Export</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View accessibilityLabel="Attendance summary" className="flex-row flex-wrap gap-2">
