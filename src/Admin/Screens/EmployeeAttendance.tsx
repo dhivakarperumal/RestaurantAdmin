@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   Share,
   ScrollView,
@@ -10,12 +12,15 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import api from '../../../api';
 
 type AttendanceRecord = {
   employee_id: string | number;
   full_name?: string;
   employee_type?: string;
+  id?: number | string | null;
   attendance_record_id?: number | string | null;
   attendance_id?: string;
   attendance_date?: string;
@@ -102,6 +107,12 @@ function localDateTimeInput(value?: string | null) {
   if (!value) {
     return '';
   }
+  const databaseDateTime = value.match(
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/,
+  );
+  if (databaseDateTime) {
+    return `${databaseDateTime[1]}T${databaseDateTime[2]}`;
+  }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return '';
@@ -141,6 +152,13 @@ function formatDuration(seconds?: number | string | null) {
 
 function isSuccessfulResponse(payload: unknown): payload is Record<string, unknown> {
   return isRecord(payload) && payload.success === true;
+}
+
+function getAttendanceRecordId(record: AttendanceRecord) {
+  const id = record.attendance_record_id ?? record.id;
+  return id === null || id === undefined || String(id).trim() === ''
+    ? null
+    : id;
 }
 
 function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
@@ -239,14 +257,15 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
   }, [selectedDate, selectedRole, selectedStatus, search, refreshKey]);
 
   const openRecordForm = (record: AttendanceRecord) => {
-    if (!record.attendance_record_id) {
+    const recordId = getAttendanceRecordId(record);
+    if (recordId === null) {
       return;
     }
     setFormError('');
     setForm({
       employee_id: String(record.employee_id),
       employee_name: record.full_name || 'Employee',
-      attendance_record_id: record.attendance_record_id,
+      attendance_record_id: recordId,
       date: record.attendance_date?.slice(0, 10) || selectedDate,
       check_in: localDateTimeInput(record.check_in),
       check_out: localDateTimeInput(record.check_out),
@@ -599,13 +618,15 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                   <Text className="text-xs text-[#6B7280]">Note: {record.notes}</Text>
                 ) : null}
                 <View className="flex-row flex-wrap gap-2 border-t border-[#F3F4F6] pt-2">
-                  <SmallAction
-                    label="History"
+                  <AttendanceIconAction
+                    accessibilityLabel={`View attendance history for ${record.full_name || record.employee_id}`}
+                    icon="history"
                     onPress={() => loadHistory(record)}
                   />
-                  {record.attendance_record_id ? (
-                    <SmallAction
-                      label="Edit"
+                  {getAttendanceRecordId(record) !== null ? (
+                    <AttendanceIconAction
+                      accessibilityLabel={`Edit attendance for ${record.full_name || record.employee_id}`}
+                      icon="edit"
                       onPress={() => openRecordForm(record)}
                     />
                   ) : null}
@@ -627,14 +648,23 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
 
       <Modal
         animationType="slide"
+        navigationBarTranslucent
         onRequestClose={() => {
           if (!isSaving) setForm(null);
         }}
+        statusBarTranslucent
         transparent
         visible={form !== null}
       >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1"
+        >
+          <View className="flex-1 justify-end bg-black/50">
+            <SafeAreaView
+              edges={['bottom']}
+              className="max-h-[90%] rounded-t-3xl bg-white"
+            >
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text className="text-lg font-bold text-[#012711]">
                 Edit attendance
@@ -724,18 +754,24 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                 </Pressable>
               </View>
             </ScrollView>
+            </SafeAreaView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
         animationType="slide"
+        navigationBarTranslucent
         onRequestClose={() => setHistoryEmployee(null)}
+        statusBarTranslucent
         transparent
         visible={historyEmployee !== null}
       >
         <View className="flex-1 justify-end bg-black/50">
-          <View className="max-h-[85%] rounded-t-3xl bg-white">
+          <SafeAreaView
+            edges={['bottom']}
+            className="max-h-[85%] rounded-t-3xl bg-white"
+          >
             <View className="flex-row items-center justify-between border-b border-[#E5E7EB] p-4">
               <View className="flex-1">
                 <Text className="text-base font-bold text-[#012711]">Attendance history</Text>
@@ -791,7 +827,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                 No attendance history found for this employee.
               </Text>
             )}
-          </View>
+          </SafeAreaView>
         </View>
       </Modal>
       </View>
