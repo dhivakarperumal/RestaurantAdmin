@@ -22,6 +22,7 @@ import ChefAttendanceScreen from './Tabs/ChefAttendanceScreen';
 import ChefEventOrdersScreen from './Tabs/ChefEventOrdersScreen';
 import ChefFoodsScreen, { type ChefFood } from './Tabs/ChefFoodsScreen';
 import ChefMoreScreen from './Tabs/ChefMoreScreen';
+import ChefOrdersMenuScreen from './Tabs/ChefOrdersMenuScreen';
 import ChefOrdersScreen, { type ChefOrderPage } from './Tabs/ChefOrdersScreen';
 
 type ChefDashboardScreenProps = {
@@ -34,8 +35,8 @@ type DataRow = Record<string, unknown>;
 const pageTitles: Record<ChefTab, string> = {
   dashboard: 'Dashboard',
   foods: 'Foods',
-  inventory: 'Inventory Requests',
-  stock: 'Stock Details',
+  orders: 'Orders',
+  'event-orders': 'Event Orders',
   attendance: 'Attendance',
   more: 'More',
 };
@@ -132,8 +133,10 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<ChefTab>('dashboard');
   const [selectedMorePage, setSelectedMorePage] = useState<
-    ChefOrderPage | 'event-orders' | 'inventory' | null
+    'inventory' | 'stock' | null
   >(null);
+  const [selectedOrderPage, setSelectedOrderPage] =
+    useState<ChefOrderPage | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -187,13 +190,15 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           ) {
             setError('Some dashboard information could not be loaded.');
           }
-        } else if (activeTab === 'foods' || activeTab === 'stock') {
+        } else if (
+          activeTab === 'foods' ||
+          (activeTab === 'more' && selectedMorePage === 'stock')
+        ) {
           const response = await api.get('/foods');
           if (active) {
             setFoods(rowsFrom(response.data, ['foods', 'items']));
           }
         } else if (
-          activeTab === 'inventory' ||
           (activeTab === 'more' && selectedMorePage === 'inventory')
         ) {
           const [requestResponse, productResponse] = await Promise.all([
@@ -348,10 +353,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const navigateToChefTab = (tab: ChefTab) => {
     setActiveTab(tab);
     setSelectedMorePage(null);
+    setSelectedOrderPage(null);
   };
 
   const isMoreInnerPage =
     activeTab === 'more' && selectedMorePage !== null;
+  const isOrderInnerPage =
+    activeTab === 'orders' && selectedOrderPage !== null;
+  const isInnerPage = isMoreInnerPage || isOrderInnerPage;
 
   const renderDashboard = () => (
     <>
@@ -528,21 +537,18 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     pageContent = renderDashboard();
   } else if (activeTab === 'foods') {
     pageContent = renderFoods();
-  } else if (activeTab === 'inventory') {
-    pageContent = renderInventory();
-  } else if (activeTab === 'stock') {
-    pageContent = renderStock();
-  } else if (activeTab === 'more' && selectedMorePage === 'event-orders') {
+  } else if (activeTab === 'event-orders') {
     pageContent = <ChefEventOrdersScreen />;
   } else if (activeTab === 'more' && selectedMorePage === 'inventory') {
     pageContent = renderInventory();
-  } else if (
-    activeTab === 'more' &&
-    selectedMorePage &&
-    selectedMorePage !== 'event-orders' &&
-    selectedMorePage !== 'inventory'
-  ) {
-    pageContent = <ChefOrdersScreen page={selectedMorePage} />;
+  } else if (activeTab === 'more' && selectedMorePage === 'stock') {
+    pageContent = renderStock();
+  } else if (activeTab === 'orders' && selectedOrderPage) {
+    pageContent = <ChefOrdersScreen page={selectedOrderPage} />;
+  } else if (activeTab === 'orders') {
+    pageContent = (
+      <ChefOrdersMenuScreen onSelectPage={setSelectedOrderPage} />
+    );
   } else if (activeTab === 'more') {
     pageContent = (
       <ChefMoreScreen
@@ -569,35 +575,34 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
   return (
     <SafeAreaView
-      edges={isMoreInnerPage ? ['left', 'right', 'bottom'] : ['left', 'right']}
+      edges={isInnerPage ? ['left', 'right', 'bottom'] : ['left', 'right']}
       className="flex-1 bg-[#F9FAFB]"
     >
-      {isMoreInnerPage ? (
+      {isInnerPage ? (
         <MoreInnerHeader
-          title={
-            selectedMorePage === 'event-orders'
-              ? 'Event Orders'
-              : selectedMorePage === 'inventory'
-                ? 'Inventory Requests'
-                : selectedMorePage === 'kitchen'
-                  ? 'Kitchen Orders'
-                  : selectedMorePage === 'home-delivery'
-                    ? 'Home Delivery Orders'
-                    : selectedMorePage === 'pickup'
-                      ? 'Pickup Orders'
-                      : selectedMorePage === 'dining'
-                        ? 'Dining Orders'
-                        : selectedMorePage === 'new'
-                          ? 'New Orders'
-                          : selectedMorePage === 'delivery'
-                            ? 'Delivery Orders'
-                            : selectedMorePage === 'cancelled'
-                              ? 'Cancelled Orders'
-                              : 'All Orders'
-          }
-          destination="More"
+          title={isOrderInnerPage
+            ? {
+                kitchen: 'Kitchen Orders',
+                'home-delivery': 'Home Delivery Orders',
+                pickup: 'Pickup Orders',
+                dining: 'Dining Orders',
+                new: 'New Order',
+                all: 'All Orders',
+                delivery: 'Delivery Orders',
+                cancelled: 'Cancelled Orders',
+              }[selectedOrderPage]
+            : selectedMorePage === 'inventory'
+              ? 'Inventory Requests'
+              : 'Stock Details'}
+          destination={isOrderInnerPage ? 'Orders' : 'More'}
           subtitle="Chef workspace"
-          onBack={() => setSelectedMorePage(null)}
+          onBack={() => {
+            if (isOrderInnerPage) {
+              setSelectedOrderPage(null);
+            } else {
+              setSelectedMorePage(null);
+            }
+          }}
         />
       ) : (
         <ChefHeader
@@ -620,7 +625,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       >
         {error &&
         activeTab !== 'foods' &&
-        (activeTab !== 'more' || selectedMorePage === 'inventory') ? (
+        activeTab !== 'orders' &&
+        activeTab !== 'event-orders' &&
+        (activeTab !== 'more' || selectedMorePage !== null) ? (
           <View
             accessibilityRole="alert"
             className="mb-3.5 rounded-xl border border-red-200 bg-red-50 p-3"
@@ -630,14 +637,16 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         ) : null}
         {isLoading &&
         activeTab !== 'foods' &&
-        (activeTab !== 'more' || selectedMorePage === 'inventory') ? (
+        activeTab !== 'orders' &&
+        activeTab !== 'event-orders' &&
+        (activeTab !== 'more' || selectedMorePage !== null) ? (
           <View className="items-center py-7">
             <ActivityIndicator color="#116C0B" />
           </View>
         ) : null}
         {pageContent}
       </ScrollView>
-      {!isMoreInnerPage ? (
+      {!isInnerPage ? (
         <ChefBottomNavigation
           activeTab={activeTab}
           onTabPress={navigateToChefTab}

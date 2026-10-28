@@ -7,15 +7,15 @@ import {
   DashboardIcon,
   MenuIcon,
   MoreIcon,
-  ProductIcon,
+  OrdersIcon,
   ReceiptIcon,
 } from '../Admin/Navigation/NavigationIcons';
 
 export type ChefTab =
   | 'dashboard'
   | 'foods'
-  | 'inventory'
-  | 'stock'
+  | 'orders'
+  | 'event-orders'
   | 'attendance'
   | 'more';
 
@@ -37,14 +37,14 @@ const tabs: ChefTabItem[] = [
     icon: color => <MenuIcon color={color} size={20} />,
   },
   {
-    key: 'inventory',
-    label: 'Requests',
-    icon: color => <ReceiptIcon color={color} size={20} />,
+    key: 'orders',
+    label: 'Orders',
+    icon: color => <OrdersIcon color={color} size={20} />,
   },
   {
-    key: 'stock',
-    label: 'Stock Details',
-    icon: color => <ProductIcon color={color} size={20} />,
+    key: 'event-orders',
+    label: 'Event Orders',
+    icon: color => <ReceiptIcon color={color} size={20} />,
   },
   {
     key: 'attendance',

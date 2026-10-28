@@ -1,32 +1,20 @@
 import { Pressable, Text, View } from 'react-native';
-import { ReceiptIcon } from '../../Admin/Navigation/NavigationIcons';
+import { ProductIcon, ReceiptIcon } from '../../Admin/Navigation/NavigationIcons';
 import colors from '../../theme/colors';
-import type { ChefOrderPage } from './ChefOrdersScreen';
 
 type ChefMoreScreenProps = {
-  onSelectPage: (
-    page: ChefOrderPage | 'event-orders' | 'inventory' | 'back-home',
-  ) => void;
+  onSelectPage: (page: 'inventory' | 'stock' | 'back-home') => void;
 };
-
-const orderPages: { key: ChefOrderPage; label: string; subtitle: string }[] = [
-  { key: 'kitchen', label: 'Kitchen Orders', subtitle: 'Dining tickets for kitchen preparation.' },
-  { key: 'home-delivery', label: 'Home Delivery Orders', subtitle: 'Customer orders for home delivery.' },
-  { key: 'pickup', label: 'Pickup Orders', subtitle: 'Orders prepared for customer pickup.' },
-  { key: 'dining', label: 'Dining Orders', subtitle: 'Kitchen tickets from dining tables.' },
-  { key: 'new', label: 'New Order', subtitle: 'New customer orders waiting to be prepared.' },
-  { key: 'all', label: 'All Orders', subtitle: 'Review all customer orders.' },
-  { key: 'delivery', label: 'Delivery Orders', subtitle: 'Assign active deliveries to available partners.' },
-  { key: 'cancelled', label: 'Cancelled Orders', subtitle: 'Review cancelled customer orders.' },
-];
 
 function MenuRow({
   title,
   subtitle,
+  icon,
   onPress,
 }: {
   title: string;
   subtitle: string;
+  icon: 'inventory' | 'stock';
   onPress: () => void;
 }) {
   return (
@@ -40,7 +28,11 @@ function MenuRow({
       })}
     >
       <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF]">
-        <ReceiptIcon color={colors.primary} size={18} />
+        {icon === 'inventory' ? (
+          <ReceiptIcon color={colors.primary} size={18} />
+        ) : (
+          <ProductIcon color={colors.primary} size={18} />
+        )}
       </View>
       <View className="flex-1">
         <Text className="text-[13px] font-semibold text-[#012711]">{title}</Text>
@@ -65,32 +57,20 @@ function ChefMoreScreen({ onSelectPage }: ChefMoreScreenProps) {
       </Text>
 
       <Text className="mb-2 mt-5 text-xs font-bold uppercase tracking-[1px] text-[#6B7280]">
-        Orders
-      </Text>
-      <View className="gap-2">
-        {orderPages.map(page => (
-          <MenuRow
-            key={page.key}
-            title={page.label}
-            subtitle={page.subtitle}
-            onPress={() => onSelectPage(page.key)}
-          />
-        ))}
-        <MenuRow
-          title="Event Orders"
-          subtitle="Confirmed catering orders and kitchen progress."
-          onPress={() => onSelectPage('event-orders')}
-        />
-      </View>
-
-      <Text className="mb-2 mt-5 text-xs font-bold uppercase tracking-[1px] text-[#6B7280]">
-        Kitchen
+        Inventory
       </Text>
       <View className="gap-2">
         <MenuRow
           title="Inventory Requests"
           subtitle="Track kitchen stock requests."
+          icon="inventory"
           onPress={() => onSelectPage('inventory')}
+        />
+        <MenuRow
+          title="Stock Details"
+          subtitle="Check current food stock levels."
+          icon="stock"
+          onPress={() => onSelectPage('stock')}
         />
       </View>
 
