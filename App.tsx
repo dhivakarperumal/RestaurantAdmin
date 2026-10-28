@@ -31,6 +31,7 @@ import type { LoginValues } from './src/Auth/LoginPage';
 import type { RegisterValues } from './src/Auth/RegisterPage';
 import colors from './src/theme/colors';
 import DashboardScreen from './src/Admin/Navigation/DashboardScreen';
+import ChefDashboardScreen from './src/Chef/ChefDashboardScreen';
 import type { HeaderUser } from './src/Admin/Navigation/TopHeader';
 
 const { height, width } = Dimensions.get('window');
@@ -151,10 +152,15 @@ function AppContent() {
     );
   }
 
-  return user ? (
-    <DashboardScreen user={user} onLogout={handleLogout} />
+  if (!user) {
+    return <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
+  }
+
+  const role = String(user.role || '').trim().toLowerCase();
+  return role === 'chef' ? (
+    <ChefDashboardScreen user={user} onLogout={handleLogout} />
   ) : (
-    <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />
+    <DashboardScreen user={user} onLogout={handleLogout} />
   );
 }
 

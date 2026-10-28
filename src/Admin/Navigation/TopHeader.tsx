@@ -29,6 +29,7 @@ export type HeaderUser = {
   name?: string;
   username?: string;
   email?: string;
+  role?: string;
 };
 
 type TopHeaderProps = {
