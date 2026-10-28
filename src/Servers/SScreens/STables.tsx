@@ -168,7 +168,6 @@ export default function ServerTables({
   const [statuses, setStatuses] = useState<Record<string, TableStatus>>({});
   const [updating, setUpdating] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'available' | 'occupied' | 'reserved'>('all');
-  const [scope, setScope] = useState<'all' | 'assigned'>('all');
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTableDetails, setSelectedTableDetails] = useState<ServerTablesRow | null>(null);
@@ -223,22 +222,26 @@ export default function ServerTables({
     });
   }, [tables, occupiedOrderMap, employeeId]);
 
-  // Filter by assignment
-  const scopedTables = useMemo(() => {
-    if (scope === 'assigned') {
-      const assigned = normalizedTableList.filter(t => {
-        const aId = t.assigned_server_id ?? t.assigned_employee_id ?? t.server_id;
-        return aId !== undefined && aId !== null && String(aId) === String(employeeId);
-      });
-      // If none explicitly assigned, fallback to first 4 or all so screen is never empty
-      return assigned.length > 0 ? assigned : normalizedTableList.slice(0, 4);
-    }
-    return normalizedTableList;
-  }, [normalizedTableList, scope, employeeId]);
+  // Only show tables assigned to this server
+  const assignedTables = useMemo(() => {
+    const list = normalizedTableList.filter(table => {
+      const aId = table.assigned_server_id ?? table.assigned_employee_id ?? table.server_id;
+      if (aId === null || aId === undefined || aId === '') return false;
+      return employeeId === undefined || String(aId) === String(employeeId);
+    });
+
+    if (list.length > 0) return list;
+
+    // Fallback if no tables in db have assigned servers, show first 4 so screen is not empty during testing
+    const anyAssigned = normalizedTableList.some(
+      t => t.assigned_server_id || t.assigned_employee_id || t.server_id,
+    );
+    return !anyAssigned ? normalizedTableList.slice(0, 4) : list;
+  }, [normalizedTableList, employeeId]);
 
   // Filter by status & search
   const displayedTables = useMemo(() => {
-    let list = scopedTables;
+    let list = assignedTables;
     if (filter !== 'all') {
       list = list.filter(t => {
         const key = String(t.id ?? t.table_number);
@@ -256,19 +259,19 @@ export default function ServerTables({
     }
 
     return list;
-  }, [scopedTables, filter, search, statuses]);
+  }, [assignedTables, filter, search, statuses]);
 
-  // Floor Counts
-  const totalCount = normalizedTableList.length;
-  const availableCount = normalizedTableList.filter(t => {
+  // Assigned Tables Floor Counts
+  const totalCount = assignedTables.length;
+  const availableCount = assignedTables.filter(t => {
     const key = String(t.id ?? t.table_number);
     return (statuses[key] ?? normalizedStatus(t.status)) === 'available';
   }).length;
-  const occupiedCount = normalizedTableList.filter(t => {
+  const occupiedCount = assignedTables.filter(t => {
     const key = String(t.id ?? t.table_number);
     return (statuses[key] ?? normalizedStatus(t.status)) === 'occupied';
   }).length;
-  const reservedCount = normalizedTableList.filter(t => {
+  const reservedCount = assignedTables.filter(t => {
     const key = String(t.id ?? t.table_number);
     return (statuses[key] ?? normalizedStatus(t.status)) === 'reserved';
   }).length;
@@ -367,21 +370,21 @@ export default function ServerTables({
           <View className="flex-row items-center gap-2">
             <View className="h-2 w-2 rounded-full bg-[#86EFAC]" />
             <Text className="text-[11px] font-bold tracking-widest text-[#B8D7BE]">
-              FLOOR SEATING & OCCUPANCY
+              MY ASSIGNED STATION
             </Text>
           </View>
           <View className="rounded-full bg-[#114D26] px-3 py-1">
             <Text className="text-[11px] font-bold text-[#86EFAC]">
-              {totalCount} TOTAL TABLES
+              {totalCount} ASSIGNED TABLES
             </Text>
           </View>
         </View>
 
         <Text className="mt-3 text-2xl font-black text-white">
-          Table Management
+          My Assigned Tables
         </Text>
         <Text className="mt-1 text-xs text-[#CBD5E1]">
-          Monitor table occupancy, guest seating, and turnaround
+          Live occupancy, order status, and turnaround for your station
         </Text>
 
         {/* 3 Metric Summary Boxes */}
@@ -402,56 +405,22 @@ export default function ServerTables({
       </View>
 
       {/* ====================================================================
-          Scope Switcher (All Tables vs Assigned) & Search
+          Full-Width Search Bar
           ==================================================================== */}
-      <View className="mt-4 flex-row items-center justify-between gap-2">
-        {/* Scope Pill Toggle */}
-        <View className="flex-row rounded-2xl border border-[#CBD5E1] bg-white p-1 shadow-sm">
-          <Pressable
-            onPress={() => setScope('all')}
-            className={`rounded-xl px-3 py-1.5 ${
-              scope === 'all' ? 'bg-[#116C0B]' : 'bg-transparent'
-            }`}
-          >
-            <Text
-              className={`text-xs font-bold ${
-                scope === 'all' ? 'text-white' : 'text-[#64748B]'
-              }`}
-            >
-              All Tables ({totalCount})
-            </Text>
+      <View className="mt-4 w-full flex-row items-center rounded-2xl border border-[#CBD5E1] bg-white px-3.5 py-2.5 shadow-sm">
+        <SearchSvg size={18} color="#64748B" />
+        <TextInput
+          placeholder="Search assigned table number..."
+          placeholderTextColor="#94A3B8"
+          value={search}
+          onChangeText={setSearch}
+          className="ml-2.5 flex-1 text-sm font-medium text-[#0F172A]"
+        />
+        {search ? (
+          <Pressable onPress={() => setSearch('')} className="p-1">
+            <CloseSvg size={16} />
           </Pressable>
-          <Pressable
-            onPress={() => setScope('assigned')}
-            className={`rounded-xl px-3 py-1.5 ${
-              scope === 'assigned' ? 'bg-[#116C0B]' : 'bg-transparent'
-            }`}
-          >
-            <Text
-              className={`text-xs font-bold ${
-                scope === 'assigned' ? 'text-white' : 'text-[#64748B]'
-              }`}
-            >
-              My Station
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Search input */}
-        <View className="flex-1 flex-row items-center rounded-2xl border border-[#CBD5E1] bg-white px-3 py-2 shadow-sm">
-          <SearchSvg size={16} />
-          <TextInput
-            placeholder="Search table #..."
-            value={search}
-            onChangeText={setSearch}
-            className="ml-2 flex-1 text-xs text-[#0F172A]"
-          />
-          {search ? (
-            <Pressable onPress={() => setSearch('')}>
-              <CloseSvg size={14} />
-            </Pressable>
-          ) : null}
-        </View>
+        ) : null}
       </View>
 
       {/* ====================================================================
@@ -460,7 +429,7 @@ export default function ServerTables({
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3 py-1">
         <View className="flex-row gap-2">
           {[
-            { id: 'all', label: `All Tables (${scopedTables.length})` },
+            { id: 'all', label: `All Assigned (${assignedTables.length})` },
             { id: 'available', label: `Available (${availableCount})`, color: '#15803D' },
             { id: 'occupied', label: `Occupied (${occupiedCount})`, color: '#C2410C' },
             { id: 'reserved', label: `Reserved (${reservedCount})`, color: '#4338CA' },
@@ -686,7 +655,6 @@ export default function ServerTables({
                 onPress={() => {
                   setSearch('');
                   setFilter('all');
-                  setScope('all');
                 }}
                 className="mt-4 rounded-xl bg-[#116C0B] px-4 py-2"
               >

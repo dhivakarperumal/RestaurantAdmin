@@ -2014,7 +2014,15 @@ export default function ServerHome({
       return (
         <ServerItems
           table={selectedTable}
+          tables={assignedTables}
           onBack={() => setSelectedTable(null)}
+          onTableChange={table => {
+            setSelectedTable({
+              ...table,
+              id: table.id ?? table.table_id,
+              status: table.status || 'occupied',
+            });
+          }}
           onTableStatusChange={status => {
             setSelectedTable(current =>
               current ? { ...current, status } : current,
@@ -2100,6 +2108,7 @@ export default function ServerHome({
     orders,
     tables,
     selectedTable,
+    assignedTables,
     user,
   ]);
 
