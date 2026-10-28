@@ -1576,7 +1576,7 @@ function MainContent({
       return (
         <AddCuisineScreen
           onBack={onCloseAddCuisine}
-          showBackButton={false}
+          showBackButton={true}
         />
       );
     }
@@ -1593,7 +1593,7 @@ function MainContent({
       return (
         <AddCategoriesScreen
           onBack={() => onSelectFeature('Categories')}
-          showBackButton={false}
+          showBackButton={true}
         />
       );
     }

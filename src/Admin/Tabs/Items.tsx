@@ -606,11 +606,10 @@ function Items({
               <View className="mt-3.5 flex-row items-end justify-between gap-3">
                 <View className="flex-1">
                   <Text className="text-2xl font-black tracking-tight text-white">
-                    All Menu Items
+                    All items
                   </Text>
                   <Text className="mt-0.5 text-xs text-emerald-100/80">
-                    {items.length} {items.length === 1 ? 'item' : 'items'}{' '}
-                    configured in your restaurant
+                    {items.length} {items.length === 1 ? 'item' : 'items'} in your menu
                   </Text>
                 </View>
 
