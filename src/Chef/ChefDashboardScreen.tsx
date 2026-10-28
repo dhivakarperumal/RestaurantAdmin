@@ -14,6 +14,7 @@ import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
 import ChefHeader from './ChefHeader';
+import ChefFoodsScreen, { type ChefFood } from './Tabs/ChefFoodsScreen';
 
 type ChefDashboardScreenProps = {
   user: HeaderUser | null;
@@ -372,26 +373,21 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   );
 
   const renderFoods = () => (
-    <>
-      <PageHeading title="Foods" subtitle="Browse the restaurant food menu." />
-      {foods.length ? (
-        foods.map((food, index) => (
-          <Card key={text(food.food_id ?? food.id, String(index))}>
-            <Text className="text-[15px] font-bold text-[#012711]">
-              {text(food.food_name, 'Untitled food')}
-            </Text>
-            <Text className="mt-1.5 text-xs text-[#6B7280]">
-              {text(food.category_name, 'Uncategorized')}
-              {food.final_price !== undefined
-                ? ` · ₹${text(food.final_price, '0')}`
-                : ''}
-            </Text>
-          </Card>
-        ))
-      ) : (
-        <EmptyState message="No foods are available." />
-      )}
-    </>
+    <ChefFoodsScreen
+      error={error}
+      foods={foods as ChefFood[]}
+      isLoading={isLoading}
+      onFoodVisibilityChange={(foodId, isVisible) => {
+        setFoods(current =>
+          current.map(food =>
+            food.food_id === foodId
+              ? { ...food, is_menu_visible: isVisible }
+              : food,
+          ),
+        );
+      }}
+      onRefresh={() => setRefreshCount(count => count + 1)}
+    />
   );
 
   const renderInventory = () => (
@@ -590,7 +586,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           />
         }
       >
-        {error ? (
+        {error && activeTab !== 'foods' ? (
           <View
             accessibilityRole="alert"
             className="mb-3.5 rounded-xl border border-red-200 bg-red-50 p-3"
@@ -598,7 +594,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             <Text className="text-[13px] text-red-600">{error}</Text>
           </View>
         ) : null}
-        {isLoading ? (
+        {isLoading && activeTab !== 'foods' ? (
           <View className="items-center py-7">
             <ActivityIndicator color="#116C0B" />
           </View>
