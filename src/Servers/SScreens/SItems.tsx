@@ -12,9 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import api, { API_BASE_URL, getStoredUser } from '../../../api';
+import api, { API_BASE_URL } from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
-import { resolveServerEmployeeId } from './SHome';
 
 /* ==========================================================================
    Types
@@ -384,8 +383,8 @@ export default function ServerItems({
   );
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  const tableId = String(table.id ?? table.table_id ?? '');
-  const tableLabel = String(table.table_number ?? table.id ?? table.table_id ?? '1');
+  const tableId = String(table.table_id ?? table.id ?? '');
+  const tableLabel = String(table.table_number ?? table.table_id ?? table.id ?? '1');
   const seats = table.no_of_seats ?? 4;
 
   // Effective server employee ID and name resolution
@@ -411,47 +410,85 @@ export default function ServerItems({
     );
   }, [user, table]);
 
-  // Pre-emptively link/assign table in backend database
-  const ensureTableAssigned = useCallback(
-    async (tId: string | number, empId: string | number) => {
-      const cleanTableId = !isNaN(Number(tId)) ? Number(tId) : tId;
-      const cleanEmpId = !isNaN(Number(empId)) ? Number(empId) : empId;
-
-      // 1. Try assignment endpoint
-      try {
-        await api.post('/server-tables/assign', {
-          employee_id: cleanEmpId,
-          table_ids: [cleanTableId],
-        });
-      } catch {
-        // Fallback: update table directly
-        try {
-          await api.put(`/server-tables/${tId}`, {
-            assigned_server_id: cleanEmpId,
-            assigned_employee_id: cleanEmpId,
-            server_id: cleanEmpId,
-            assigned_server_name: effectiveServerName,
-            server_name: effectiveServerName,
-            status: 'Occupied',
-          });
-        } catch {
-          try {
-            await api.patch(`/server-tables/${tId}`, {
-              assigned_server_id: cleanEmpId,
-              assigned_employee_id: cleanEmpId,
-              server_id: cleanEmpId,
-              assigned_server_name: effectiveServerName,
-              server_name: effectiveServerName,
-              status: 'Occupied',
-            });
-          } catch {
-            // non-blocking
-          }
-        }
-      }
-    },
-    [effectiveServerName],
+  const currentServerIds = useMemo(
+    () =>
+      [
+        effectiveServerId,
+        user?.employee_id,
+        user?.employeeId,
+        user?.id,
+        user?.user_id,
+        (user as Record<string, unknown>)?.uuid,
+        (user as Record<string, unknown>)?.emp_id,
+      ]
+        .filter(id => id !== undefined && id !== null && String(id).trim() !== '')
+        .map(id => String(id).trim().toLowerCase()),
+    [effectiveServerId, user],
   );
+
+  const getTableAssignment = useCallback(async () => {
+    if (!tableId) {
+      return { state: 'verification_failed' as const, table: null };
+    }
+
+    try {
+      const response = await api.get('/server-tables');
+      const rows = readRows(response.data, ['data', 'tables', 'server_tables']);
+      const selectedIdentifiers = [tableId, table.table_id, table.id, table.table_number]
+        .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
+        .map(value => String(value).trim().toLowerCase());
+      const freshTable = rows.find(row =>
+        [row.table_id, row.id, row.table_number]
+          .filter(value => value !== undefined && value !== null)
+          .some(value => selectedIdentifiers.includes(String(value).trim().toLowerCase())),
+      );
+
+      if (!freshTable) {
+        return { state: 'verification_failed' as const, table: null };
+      }
+
+      const assignedIds = [
+        freshTable.assigned_server_id,
+        freshTable.assigned_employee_id,
+        freshTable.server_id,
+        freshTable.employee_id,
+        freshTable.user_id,
+        freshTable.assigned_to,
+        freshTable.waiter_id,
+        (freshTable.assigned_server as Record<string, unknown> | undefined)?.id,
+        (freshTable.assigned_server as Record<string, unknown> | undefined)?.employee_id,
+      ]
+        .filter(id => id !== undefined && id !== null && String(id).trim() !== '')
+        .map(id => String(id).trim().toLowerCase());
+
+      if (assignedIds.length === 0) {
+        return { state: 'unassigned' as const, table: freshTable };
+      }
+      if (currentServerIds.some(id => assignedIds.includes(id))) {
+        return { state: 'assigned_to_current' as const, table: freshTable };
+      }
+      if (currentServerIds.length === 0) {
+        return { state: 'verification_failed' as const, table: freshTable };
+      }
+      return { state: 'assigned_to_other' as const, table: freshTable };
+    } catch {
+      return { state: 'verification_failed' as const, table: null };
+    }
+  }, [currentServerIds, tableId, table.id, table.table_id, table.table_number]);
+
+  const claimTable = useCallback(async () => {
+    if (!effectiveServerId) {
+      throw new Error('Your server employee identity could not be verified.');
+    }
+    await api.post('/server-tables/assign', {
+      employee_id: effectiveServerId,
+      table_ids: [tableId],
+    });
+    const verification = await getTableAssignment();
+    if (verification.state !== 'assigned_to_current') {
+      throw new Error('The table assignment could not be verified after claiming.');
+    }
+  }, [effectiveServerId, getTableAssignment, tableId]);
 
   useEffect(() => {
     setCart([]);
@@ -621,14 +658,33 @@ export default function ServerItems({
     submissionLock.current = true;
     setSubmitting(true);
 
-    let assignedServerId: string | number | null =
-      table.assigned_server_id ??
-      table.assigned_employee_id ??
-      table.server_id ??
-      effectiveServerId ??
-      null;
-
     try {
+      let assignment = await getTableAssignment();
+      if (assignment.state === 'unassigned' && forceClaim) {
+        await claimTable();
+        assignment = await getTableAssignment();
+      }
+      if (assignment.state === 'unassigned') {
+        const error = new Error('Table is unassigned and can be claimed.');
+        error.name = 'TABLE_UNASSIGNED';
+        throw error;
+      }
+      if (assignment.state === 'assigned_to_other') {
+        const error = new Error('Table is assigned to another server.');
+        error.name = 'TABLE_ASSIGNED_TO_OTHER';
+        throw error;
+      }
+      if (assignment.state === 'verification_failed') {
+        const error = new Error('Table assignment could not be verified. Please retry.');
+        error.name = 'TABLE_ASSIGNMENT_VERIFICATION_FAILED';
+        throw error;
+      }
+
+      const assignedServerId =
+        assignment.table?.assigned_server_id ??
+        assignment.table?.assigned_employee_id ??
+        assignment.table?.server_id ??
+        effectiveServerId;
       const billRecord =
         activeBill && typeof activeBill === 'object'
           ? (activeBill as Record<string, unknown>)
@@ -647,34 +703,15 @@ export default function ServerItems({
         price: priceValue(food),
       }));
 
-      // Resolve current server ID:
-      // 1. If table is already assigned, preserve its assigned server ID
-      // 2. Otherwise use the server's resolved employee ID
-      if (!assignedServerId) {
-        try {
-          const empRes = await api.get('/employees');
-          const empList = readRows(empRes.data, ['data', 'employees']);
-          const resolved = resolveServerEmployeeId(empList, user, tables as ServerOrderTable[]);
-          if (resolved) assignedServerId = resolved;
-        } catch {
-          // ignore
-        }
-      }
-
-      // Pre-emptively link/assign the table in the backend
-      if (assignedServerId) {
-        await ensureTableAssigned(tableId, assignedServerId);
-      }
-
-      const postKitchenOrder = async (serverIdToSend?: string | number | null) => {
+      const postKitchenOrder = async () => {
         const cleanTId = !isNaN(Number(tableId)) ? Number(tableId) : tableId;
         const cleanSId =
-          serverIdToSend !== undefined &&
-          serverIdToSend !== null &&
-          String(serverIdToSend).trim() !== ''
-            ? !isNaN(Number(serverIdToSend))
-              ? Number(serverIdToSend)
-              : serverIdToSend
+          assignedServerId !== undefined &&
+          assignedServerId !== null &&
+          String(assignedServerId).trim() !== ''
+            ? !isNaN(Number(assignedServerId))
+              ? Number(assignedServerId)
+              : assignedServerId
             : undefined;
 
         return await api.post('/kitchen-orders', {
@@ -703,68 +740,7 @@ export default function ServerItems({
         });
       };
 
-      let kitchenResponse;
-      try {
-        kitchenResponse = await postKitchenOrder(assignedServerId);
-      } catch (firstErr) {
-        const errStr = String(
-          (firstErr as { message?: string })?.message || '',
-        ).toLowerCase();
-
-        // If error is about table assignment to server account:
-        // Attempt automatic assignment repair and retry once!
-        if (
-          errStr.includes('not assigned') ||
-          errStr.includes('assigned') ||
-          errStr.includes('server account')
-        ) {
-          let recovered = false;
-          try {
-            const empRes = await api.get('/employees');
-            const empList = readRows(empRes.data, ['data', 'employees']);
-            const resolvedId = resolveServerEmployeeId(empList, user, tables as ServerOrderTable[]);
-
-            const candidateIds: (string | number)[] = [];
-            if (table.assigned_server_id) candidateIds.push(table.assigned_server_id as string | number);
-            if (resolvedId && !candidateIds.includes(resolvedId)) candidateIds.push(resolvedId);
-            if (user?.employee_id && !candidateIds.includes(user.employee_id as string | number)) {
-              candidateIds.push(user.employee_id as string | number);
-            }
-
-            empList
-              .filter(e => String(e.employee_type || '').toLowerCase().includes('server'))
-              .forEach(e => {
-                const eid = (e.employee_id ?? e.id) as string | number;
-                if (eid && !candidateIds.includes(eid)) candidateIds.push(eid);
-              });
-
-            for (const candId of candidateIds) {
-              try {
-                await ensureTableAssigned(tableId, candId);
-                kitchenResponse = await postKitchenOrder(candId);
-                recovered = true;
-                break;
-              } catch {
-                // try next candidate
-              }
-            }
-          } catch {
-            // ignore
-          }
-
-          if (!recovered) {
-            // Also try sending without server_id (let backend associate from auth token)
-            try {
-              kitchenResponse = await postKitchenOrder(undefined);
-              recovered = true;
-            } catch {
-              throw firstErr;
-            }
-          }
-        } else {
-          throw firstErr;
-        }
-      }
+      const kitchenResponse = await postKitchenOrder();
 
       const kitchenPayload =
         kitchenResponse?.data && typeof kitchenResponse.data === 'object'
@@ -801,14 +777,15 @@ export default function ServerItems({
           ? String((requestError as { message?: unknown }).message)
           : 'Unable to send the order to the kitchen. Please check connection and try again.';
 
-      const isAssignmentIssue =
-        message.toLowerCase().includes('not assigned') ||
-        message.toLowerCase().includes('server account');
+      const errorName =
+        requestError && typeof requestError === 'object' && 'name' in requestError
+          ? String((requestError as { name?: unknown }).name)
+          : '';
 
-      if (isAssignmentIssue) {
+      if (errorName === 'TABLE_UNASSIGNED') {
         Alert.alert(
           'Table Assignment Notice',
-          `Table ${tableLabel} is currently unassigned or assigned to another station in the restaurant system. Would you like to link Table ${tableLabel} and send the order?`,
+          `Table ${tableLabel} is unassigned. Would you like to claim it and send the order?`,
           [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -816,23 +793,22 @@ export default function ServerItems({
               onPress: async () => {
                 submissionLock.current = false;
                 setSubmitting(false);
-                try {
-                  const empRes = await api.get('/employees');
-                  const empList = readRows(empRes.data, ['data', 'employees']);
-                  const resolvedId = resolveServerEmployeeId(empList, user, tables as ServerOrderTable[]);
-                  const targetId = resolvedId ?? assignedServerId;
-                  if (targetId) {
-                    await ensureTableAssigned(tableId, targetId);
-                  }
-                } catch {
-                  // ignore
-                }
                 setTimeout(() => {
                   void sendToKitchen(true);
                 }, 300);
               },
             },
           ],
+        );
+      } else if (errorName === 'TABLE_ASSIGNED_TO_OTHER') {
+        Alert.alert(
+          'Table Assigned to Another Server',
+          `Table ${tableLabel} is assigned to another server. Ask a manager to reassign it before sending an order.`,
+        );
+      } else if (errorName === 'TABLE_ASSIGNMENT_VERIFICATION_FAILED') {
+        Alert.alert(
+          'Assignment Verification Failed',
+          'The table assignment could not be verified. Refresh the table and try again.',
         );
       } else {
         Alert.alert('Order Placement Failed', message);

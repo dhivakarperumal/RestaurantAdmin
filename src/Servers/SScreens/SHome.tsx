@@ -2578,93 +2578,21 @@ export default function ServerHome({
 
   const openTableOrder = useCallback(
     async (table: ServerTable) => {
-      const tableId = table.id ?? table.table_id;
+      const tableId = table.table_id ?? table.id;
       if (tableId === undefined || tableId === null) {
         Alert.alert('Table unavailable', 'This table does not have a valid ID.');
         return;
-      }
-
-      // PRESERVE existing assignment if already set on table
-      const existingTableServerId =
-        table.assigned_server_id ?? table.assigned_employee_id ?? table.server_id;
-      const existingTableServerName =
-        table.assigned_server_name ?? table.server_name;
-
-      const activeEmpId =
-        existingTableServerId ??
-        serverEmployeeId ??
-        user?.employee_id ??
-        user?.employeeId ??
-        storedEmployeeId;
-
-      const serverName = existingTableServerName ?? user?.name ?? user?.username ?? 'Server';
-
-      try {
-        await api
-          .put(`/server-tables/${tableId}`, {
-            status: 'Occupied',
-            ...(activeEmpId
-              ? {
-                  assigned_server_id: activeEmpId,
-                  assigned_employee_id: activeEmpId,
-                  server_id: activeEmpId,
-                  assigned_server_name: serverName,
-                  server_name: serverName,
-                }
-              : {}),
-          })
-          .catch(async () => {
-            return await api.patch(`/server-tables/${tableId}`, {
-              status: 'Occupied',
-              ...(activeEmpId
-                ? {
-                    assigned_server_id: activeEmpId,
-                    assigned_employee_id: activeEmpId,
-                    server_id: activeEmpId,
-                    assigned_server_name: serverName,
-                    server_name: serverName,
-                  }
-                : {}),
-            });
-          });
-
-        if (activeEmpId) {
-          const numericTableId = !isNaN(Number(tableId)) ? Number(tableId) : tableId;
-          const numericEmpId = !isNaN(Number(activeEmpId)) ? Number(activeEmpId) : activeEmpId;
-          await api
-            .post('/server-tables/assign', {
-              employee_id: numericEmpId,
-              table_ids: [numericTableId],
-            })
-            .catch(() => {});
-        }
-
-        setTables(current =>
-          current.map(item =>
-            String(item.id ?? item.table_id) === String(tableId)
-              ? {
-                  ...item,
-                  status: 'occupied',
-                  assigned_server_id: activeEmpId ?? item.assigned_server_id,
-                  assigned_server_name: serverName ?? item.assigned_server_name,
-                }
-              : item,
-          ),
-        );
-      } catch {
-        // Table update non-blocking
       }
 
       setIsAssignedTablesOpen(false);
       setSelectedTable({
         ...table,
         id: tableId,
-        status: 'occupied',
-        assigned_server_id: activeEmpId ?? table.assigned_server_id,
-        assigned_server_name: serverName ?? table.assigned_server_name,
+        table_id: tableId,
+        status: table.status || 'occupied',
       });
     },
-    [serverEmployeeId, storedEmployeeId, user],
+    [],
   );
 
   const mainContent = useMemo(() => {
@@ -2812,10 +2740,13 @@ export default function ServerHome({
     loading,
     onLogout,
     onRefresh,
+    openTableOrder,
     orders,
     tables,
     selectedTable,
     assignedTables,
+    serverEmployeeId,
+    storedEmployeeId,
     user,
   ]);
 

@@ -8,15 +8,20 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { getApiErrorMessage } from '../../../api';
-import { OrdersIcon, PlusIcon } from '../Navigation/NavigationIcons';
-import AssinedOrdertoDelivery from './AssinedOrdertoDelivery';
 import colors from '../../theme/colors';
+import AssinedOrdertoDelivery from './AssinedOrdertoDelivery';
+
+/* ==========================================================================
+   Types & Models
+   ========================================================================== */
 
 export type ApiOrderItem = {
   food_id?: string | number;
@@ -77,6 +82,10 @@ type OrdersScreenProps = {
   onAddOrder?: () => void;
   onDeliveryAssignmentVisibilityChange?: (isVisible: boolean) => void;
 };
+
+/* ==========================================================================
+   Utility Functions
+   ========================================================================== */
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -165,6 +174,26 @@ function getRelativeTime(date: Date | null): string {
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+function checkIsNonVeg(name: string): boolean {
+  const n = String(name || '').toLowerCase();
+  return (
+    n.includes('chicken') ||
+    n.includes('mutton') ||
+    n.includes('fish') ||
+    n.includes('prawn') ||
+    n.includes('meat') ||
+    n.includes('egg') ||
+    n.includes('beef') ||
+    n.includes('pork') ||
+    n.includes('wings') ||
+    n.includes('tikka') ||
+    n.includes('omelette') ||
+    n.includes('seafood') ||
+    n.includes('non-veg') ||
+    n.includes('nonveg')
+  );
+}
+
 function normalizeStatus(statusRaw?: string): NormalizedStatus {
   const s = String(statusRaw || '').trim().toLowerCase();
   if (['pending', 'new', 'placed', 'order_placed', 'draft'].includes(s)) return 'Pending';
@@ -183,50 +212,55 @@ function getStatusTheme(status: NormalizedStatus) {
         badgeBg: '#FFFBEB',
         badgeBorder: '#FDE68A',
         badgeText: '#B45309',
+        headerBg: '#FFFBEB',
         accentColor: '#F59E0B',
-        dotColor: '#F59E0B',
+        dotColor: '#D97706',
         label: 'Pending',
         nextStatus: 'Preparing' as NormalizedStatus,
-        nextActionText: 'Accept & Cook 👨‍🍳',
+        nextActionText: 'Start Preparing',
       };
     case 'Confirmed':
       return {
         badgeBg: '#EFF6FF',
         badgeBorder: '#BFDBFE',
         badgeText: '#1D4ED8',
+        headerBg: '#F0F7FF',
         accentColor: '#3B82F6',
-        dotColor: '#3B82F6',
+        dotColor: '#2563EB',
         label: 'Confirmed',
         nextStatus: 'Preparing' as NormalizedStatus,
-        nextActionText: 'Start Cooking 👨‍🍳',
+        nextActionText: 'Start Preparing',
       };
     case 'Preparing':
       return {
         badgeBg: '#F5F3FF',
         badgeBorder: '#DDD6FE',
         badgeText: '#6D28D9',
+        headerBg: '#F5F3FF',
         accentColor: '#8B5CF6',
-        dotColor: '#8B5CF6',
+        dotColor: '#7C3AED',
         label: 'Preparing',
         nextStatus: 'Ready' as NormalizedStatus,
-        nextActionText: 'Mark Ready 🔔',
+        nextActionText: 'Mark as Ready',
       };
     case 'Ready':
       return {
         badgeBg: '#ECFDF5',
         badgeBorder: '#A7F3D0',
         badgeText: '#047857',
+        headerBg: '#F0FDF4',
         accentColor: '#10B981',
-        dotColor: '#10B981',
+        dotColor: '#16A34A',
         label: 'Ready to Serve',
         nextStatus: 'Delivered' as NormalizedStatus,
-        nextActionText: 'Complete / Deliver ✅',
+        nextActionText: 'Complete Order',
       };
     case 'Delivered':
       return {
         badgeBg: '#F0FDF4',
         badgeBorder: '#BBF7D0',
         badgeText: '#15803D',
+        headerBg: '#F0FDF4',
         accentColor: '#16A34A',
         dotColor: '#22C55E',
         label: 'Delivered',
@@ -238,8 +272,9 @@ function getStatusTheme(status: NormalizedStatus) {
         badgeBg: '#FEF2F2',
         badgeBorder: '#FECACA',
         badgeText: '#B91C1C',
+        headerBg: '#FEF2F2',
         accentColor: '#EF4444',
-        dotColor: '#EF4444',
+        dotColor: '#DC2626',
         label: 'Cancelled',
         nextStatus: null,
         nextActionText: 'Cancelled',
@@ -259,28 +294,28 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
   const type = normalizeOrderType(orderType);
   if (type === 'Dine-in') {
     return {
+      type: 'dine-in',
       label: tableNumber ? `Table ${tableNumber}` : 'Dine-in',
-      icon: '🍽️',
-      bg: '#F0FDF4',
-      border: '#DCFCE7',
-      text: '#166534',
+      bg: '#ECFDF5',
+      border: '#A7F3D0',
+      text: '#065F46',
     };
   }
   if (type === 'Takeaway') {
     return {
+      type: 'takeaway',
       label: 'Takeaway',
-      icon: '🛍️',
       bg: '#FFFBEB',
-      border: '#FEF3C7',
+      border: '#FDE68A',
       text: '#92400E',
     };
   }
   return {
+    type: 'delivery',
     label: 'Delivery',
-    icon: '🛵',
-    bg: '#F0F9FF',
-    border: '#E0F2FE',
-    text: '#0369A1',
+    bg: '#EFF6FF',
+    border: '#BFDBFE',
+    text: '#1E40AF',
   };
 }
 
@@ -292,6 +327,228 @@ const STATUS_TABS: ('All' | NormalizedStatus)[] = [
   'Delivered',
   'Cancelled',
 ];
+
+/* ==========================================================================
+   Crisp SVG Icons & Badges
+   ========================================================================== */
+
+function DietaryBadge({ isNonVeg }: { isNonVeg: boolean }) {
+  const borderColor = isNonVeg ? '#DC2626' : '#16A34A';
+  return (
+    <View
+      style={{
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderColor,
+        borderRadius: 3.5,
+        borderWidth: 1.2,
+        height: 14,
+        justifyContent: 'center',
+        width: 14,
+      }}
+    >
+      {isNonVeg ? (
+        <Svg width={7} height={7} viewBox="0 0 10 10">
+          <Path d="M5 1L9 8H1L5 1Z" fill="#DC2626" />
+        </Svg>
+      ) : (
+        <View
+          style={{
+            backgroundColor: '#16A34A',
+            borderRadius: 9999,
+            height: 5.5,
+            width: 5.5,
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
+function TableIcon({ color = '#065F46', size = 13 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="4" y="6.5" width="16" height="5.5" rx="1.8" stroke={color} strokeWidth="2" />
+      <Path d="M7 12v7M17 12v7M3 5v3.5M21 5v3.5" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function BagIcon({ color = '#92400E', size = 13 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 8V6a6 6 0 0 1 12 0v2M4 8h16l1.5 13H2.5L4 8Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function BikeIcon({ color = '#1E40AF', size = 13 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="5.5" cy="17.5" r="3.5" stroke={color} strokeWidth="2" />
+      <Circle cx="18.5" cy="17.5" r="3.5" stroke={color} strokeWidth="2" />
+      <Path
+        d="M15 6h4l-3 6.5h-5l-2-4H5m10 4-3 5m-2-5H4"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function ClockIcon({ color = '#64748B', size = 12 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2" />
+      <Path d="M12 7v5l3 2" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function UserIcon({ color = '#64748B', size = 13 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="8" r="4" stroke={color} strokeWidth="2" />
+      <Path d="M4 20a8 8 0 0 1 16 0" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function PhoneIcon({ color = '#116C0B', size = 12 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function NoteIcon({ color = '#D97706', size = 13 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function SearchIcon({ color = '#64748B', size = 18 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="11" cy="11" r="7" stroke={color} strokeWidth="2" />
+      <Path d="m20 20-4-4" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function FilterIcon({ color = '#475569', size = 16 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function RefreshIcon({ color = '#475569', size = 16 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M23 4v6h-6M1 20v-6h6"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function CheckIcon({ color = '#FFFFFF', size = 14 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M20 6 9 17l-5-5"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function PlusIcon({ color = '#FFFFFF', size = 24 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth="3" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function OrdersBoxIcon({ color = '#64748B', size = 28 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M8 4H6a2 2 0 0 0-2 2v14h16V6a2 2 0 0 0-2-2h-2M8 4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2M8 4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2M8 12h8M8 16h8"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function PrinterIcon({ color = '#334155', size = 16 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Rect x="6" y="14" width="12" height="8" rx="1" stroke={color} strokeWidth="2" />
+    </Svg>
+  );
+}
+
+/* ==========================================================================
+   Main OrdersScreen Component
+   ========================================================================== */
 
 export function OrdersScreen({
   onBack,
@@ -322,7 +579,7 @@ export function OrdersScreen({
     onDeliveryAssignmentVisibilityChange?.(isDeliveryAssignmentOpen);
   }, [isDeliveryAssignmentOpen, onDeliveryAssignmentVisibilityChange]);
 
-  // Radar Pulse Animation
+  // Live Pulse Animation
   const pulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -602,6 +859,46 @@ export function OrdersScreen({
     setSearchQuery('');
   };
 
+  const printOrderReceipt = async (order: ApiOrder) => {
+    const rawId = order.order_number || order.order_id || order.id || 'Order';
+    const orderId = String(rawId).startsWith('#') ? String(rawId) : `#${rawId}`;
+    const dateFormatted = formatOrderDate(parseOrderDate(order));
+    const status = normalizeStatus(order.order_status || order.status);
+    const orderType = normalizeOrderType(order.order_type);
+    const table = order.table_number ? `Table ${order.table_number}` : orderType;
+    const customer = order.customer_name || 'Walk-in Guest';
+    const amount = formatCurrency(order.total_amount || order.grand_total || order.amount || 0);
+    const items = order.items || [];
+
+    const receiptLines = [
+      '================================',
+      '         ORDER RECEIPT          ',
+      '================================',
+      `Order: ${orderId}`,
+      `Date: ${dateFormatted}`,
+      `Customer: ${customer}`,
+      `Type: ${table}`,
+      `Status: ${status.toUpperCase()}`,
+      '--------------------------------',
+      ...items.map(item => {
+        const name = item.food_name || item.product_name || item.name || 'Item';
+        const qty = item.quantity || 1;
+        const p = item.total_price || item.price || 0;
+        return `• ${name} x${qty}  ${formatCurrency(p)}`;
+      }),
+      '--------------------------------',
+      `TOTAL: ${amount}`,
+      ...(order.notes ? ['', `NOTES: ${order.notes}`] : []),
+      '================================',
+    ];
+
+    try {
+      await Share.share({ title: `Order ${orderId}`, message: receiptLines.join('\n') });
+    } catch {
+      // ignore
+    }
+  };
+
   // Render Modern Order Card
   const renderOrderItem = ({ item }: { item: ApiOrder }) => {
     const rawId = item.order_number || item.order_id || item.id || 'Order';
@@ -621,137 +918,196 @@ export function OrdersScreen({
 
     return (
       <View
-        className="mb-4 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm"
+        className="mb-3.5 overflow-hidden rounded-2xl border border-[#CBD5E1] bg-white shadow-sm"
         style={{
-          borderLeftWidth: 5,
-          borderLeftColor: theme.accentColor,
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+          elevation: 2,
         }}
       >
-        {/* Card Header Strip */}
-        <View className="flex-row items-center justify-between border-b border-[#F3F4F6] px-4 py-3 bg-[#FAFAFA]">
+        {/* TICKET TOP HEADER BAR */}
+        <View
+          style={{
+            backgroundColor: theme.headerBg,
+            borderColor: theme.badgeBorder,
+          }}
+          className="border-b px-4 py-2.5 flex-row items-center justify-between"
+        >
+          {/* Left: Order # Badge + Order Type Badge */}
           <View className="flex-row items-center gap-2">
-            <Text className="text-base font-black text-[#012711] tracking-tight">
-              {orderDisplayId}
-            </Text>
-            {/* Order Type Badge */}
+            <View className="rounded-md bg-[#0F172A] px-2.5 py-1">
+              <Text className="text-xs font-black tracking-wider text-white">
+                {orderDisplayId}
+              </Text>
+            </View>
+
             <View
-              className="flex-row items-center rounded-lg px-2.5 py-1"
               style={{
                 backgroundColor: typeConfig.bg,
                 borderColor: typeConfig.border,
-                borderWidth: 1,
               }}
+              className="flex-row items-center rounded-md border px-2 py-0.5"
             >
-              <Text className="mr-1 text-[11px]">{typeConfig.icon}</Text>
+              {typeConfig.type === 'dine-in' ? (
+                <TableIcon color={typeConfig.text} size={12} />
+              ) : typeConfig.type === 'takeaway' ? (
+                <BagIcon color={typeConfig.text} size={12} />
+              ) : (
+                <BikeIcon color={typeConfig.text} size={12} />
+              )}
               <Text
-                className="text-[11px] font-bold"
                 style={{ color: typeConfig.text }}
+                className="ml-1 text-xs font-black"
               >
                 {typeConfig.label}
               </Text>
             </View>
           </View>
 
-          {/* Status Pill with Pulsing or Solid Dot */}
-          <View
-            className="flex-row items-center rounded-full px-3 py-1"
-            style={{
-              backgroundColor: theme.badgeBg,
-              borderColor: theme.badgeBorder,
-              borderWidth: 1,
-            }}
-          >
-            {status === 'Pending' ? (
-              <Animated.View
-                className="mr-1.5 h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor: theme.dotColor,
-                  transform: [{ scale: pulseAnim }],
-                }}
-              />
-            ) : (
-              <View
-                className="mr-1.5 h-2 w-2 rounded-full"
-                style={{ backgroundColor: theme.dotColor }}
-              />
-            )}
-            <Text
-              className="text-[11px] font-extrabold uppercase tracking-wide"
-              style={{ color: theme.badgeText }}
+          {/* Right: Time Ago + Status Pill */}
+          <View className="flex-row items-center gap-2">
+            {relativeTime ? (
+              <View className="flex-row items-center">
+                <ClockIcon color="#64748B" size={12} />
+                <Text className="ml-1 text-[11px] font-bold text-[#64748B]">
+                  {relativeTime}
+                </Text>
+              </View>
+            ) : null}
+
+            <View
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderColor: theme.badgeBorder,
+              }}
+              className="flex-row items-center rounded-full border px-2.5 py-1"
             >
-              {theme.label}
-            </Text>
+              {status === 'Pending' ? (
+                <Animated.View
+                  style={{
+                    backgroundColor: theme.dotColor,
+                    transform: [{ scale: pulseAnim }],
+                  }}
+                  className="mr-1.5 h-2 w-2 rounded-full"
+                />
+              ) : (
+                <View
+                  style={{ backgroundColor: theme.dotColor }}
+                  className="mr-1.5 h-2 w-2 rounded-full"
+                />
+              )}
+              <Text
+                style={{ color: theme.badgeText }}
+                className="text-[11px] font-black"
+              >
+                {theme.label}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Customer & Time Information */}
-        <View className="px-4 pt-3 pb-2.5 flex-row items-center justify-between border-b border-[#F3F4F6]">
-          <View className="flex-1 pr-2">
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-xs">👤</Text>
-              <Text className="text-sm font-bold text-[#111827]" numberOfLines={1}>
-                {item.customer_name || 'Walk-in Guest'}
-              </Text>
-            </View>
+        {/* CUSTOMER & PAYMENT ROW */}
+        <View className="px-4 py-2.5 border-b border-[#F1F5F9] flex-row items-center justify-between bg-white">
+          <View className="flex-1 flex-row items-center pr-2">
+            <UserIcon color="#475569" size={13} />
+            <Text className="ml-1.5 text-xs font-bold text-[#0F172A]" numberOfLines={1}>
+              {item.customer_name || 'Walk-in Guest'}
+            </Text>
+
             {item.customer_phone || item.customer_mobile || item.phone ? (
               <Pressable
                 onPress={() => {
                   const p = item.customer_phone || item.customer_mobile || item.phone;
                   if (p) Linking.openURL(`tel:${p}`);
                 }}
-                className="mt-1 inline-flex flex-row items-center gap-1 rounded-md bg-[#F0FDF4] border border-[#DCFCE7] px-2 py-0.5 self-start"
+                className="ml-2 flex-row items-center rounded-md bg-[#F0FDF4] border border-[#DCFCE7] px-2 py-0.5"
               >
-                <Text className="text-[11px] font-bold text-[#116C0B]">
-                  📞 {item.customer_phone || item.customer_mobile || item.phone}
+                <PhoneIcon color="#116C0B" size={10} />
+                <Text className="ml-1 text-[11px] font-bold text-[#116C0B]">
+                  Call
                 </Text>
               </Pressable>
             ) : null}
           </View>
 
-          <View className="items-end">
-            <View className="flex-row items-center gap-1">
-              <Text className="text-[11px] text-[#6B7280]">⏱️</Text>
-              <Text className="text-xs font-semibold text-[#374151]">
-                {relativeTime || 'Just now'}
-              </Text>
-            </View>
-            <Text className="text-[10px] text-[#9CA3AF] mt-0.5">
-              {dateFormatted}
+          {/* Payment Method Badge */}
+          <View
+            className={`rounded-md px-2 py-0.5 border ${
+              item.payment_method?.toLowerCase().includes('cash') ||
+              item.payment_method?.toLowerCase().includes('cod')
+                ? 'bg-[#FEF3C7] border-[#FDE68A]'
+                : 'bg-[#ECFDF5] border-[#A7F3D0]'
+            }`}
+          >
+            <Text
+              className={`text-[10px] font-black uppercase tracking-wider ${
+                item.payment_method?.toLowerCase().includes('cash') ||
+                item.payment_method?.toLowerCase().includes('cod')
+                  ? 'text-[#92400E]'
+                  : 'text-[#065F46]'
+              }`}
+            >
+              {item.payment_method || 'PAID'}
             </Text>
           </View>
         </View>
 
-        {/* Itemized Food List Section */}
+        {/* FOOD ITEMS LIST SECTION */}
         <View className="px-4 py-3 bg-white">
+          {/* Notes Callout if present */}
+          {item.notes ? (
+            <View className="mb-2.5 flex-row items-center rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2">
+              <NoteIcon color="#D97706" size={13} />
+              <Text
+                className="ml-2 flex-1 text-xs font-semibold text-[#92400E]"
+                numberOfLines={2}
+              >
+                Note: {item.notes}
+              </Text>
+            </View>
+          ) : null}
+
           {items.length > 0 ? (
-            <View className="gap-2">
+            <View>
               {visibleItems.map((food, idx) => {
                 const name = food.food_name || food.product_name || food.name || 'Food item';
                 const qty = Number(food.quantity) || 1;
                 const unitPrice = Number(food.unit_price || food.price || 0);
                 const itemTotal = Number(food.total_price) || unitPrice * qty;
+                const isNonVeg = checkIsNonVeg(name);
 
                 return (
                   <View
                     key={idx}
-                    className="flex-row items-center justify-between py-1.5 border-b border-[#F9FAFB]"
+                    className={`flex-row items-center justify-between py-2 ${
+                      idx > 0 ? 'border-t border-[#F8FAFC]' : ''
+                    }`}
                   >
-                    <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      <View className="h-6 w-6 items-center justify-center rounded-md bg-[#F0FDF4] border border-[#DCFCE7]">
-                        <Text className="text-[11px] font-black text-[#116C0B]">
-                          {qty}
-                        </Text>
-                      </View>
+                    {/* Left: Dietary Icon + Food Name */}
+                    <View className="flex-1 flex-row items-center pr-3">
+                      <DietaryBadge isNonVeg={isNonVeg} />
                       <Text
-                        className="text-xs font-bold text-[#1F2937] flex-1"
+                        className="ml-2.5 flex-1 text-sm font-bold text-[#1E293B]"
                         numberOfLines={1}
                       >
                         {name}
                       </Text>
                     </View>
-                    <Text className="text-xs font-bold text-[#374151]">
-                      {itemTotal > 0 ? formatCurrency(itemTotal) : '—'}
-                    </Text>
+
+                    {/* Right: Quantity Badge + Price */}
+                    <View className="flex-row items-center gap-2.5">
+                      <View className="rounded-md bg-[#F1F5F9] border border-[#E2E8F0] px-2 py-0.5">
+                        <Text className="text-xs font-black text-[#475569]">
+                          × {qty}
+                        </Text>
+                      </View>
+
+                      <Text className="text-sm font-black text-[#0F172A] min-w-[65px] text-right">
+                        {itemTotal > 0 ? formatCurrency(itemTotal) : '—'}
+                      </Text>
+                    </View>
                   </View>
                 );
               })}
@@ -760,9 +1116,9 @@ export function OrdersScreen({
               {hasMoreItems && (
                 <Pressable
                   onPress={() => toggleExpand(orderKey)}
-                  className="pt-1.5 flex-row items-center justify-center gap-1"
+                  className="pt-2 flex-row items-center justify-center gap-1"
                 >
-                  <Text className="text-[11px] font-bold text-[#116C0B]">
+                  <Text className="text-xs font-bold text-[#116C0B]">
                     {isExpanded
                       ? 'Show less items ▲'
                       : `+ ${items.length - 3} more items ▼`}
@@ -771,86 +1127,59 @@ export function OrdersScreen({
               )}
             </View>
           ) : (
-            <Text className="text-xs italic text-[#9CA3AF]">
+            <Text className="text-xs italic text-[#94A3B8] py-1">
               No individual item rows available
             </Text>
           )}
-
-          {/* Notes / Special Request Banner */}
-          {item.notes ? (
-            <View className="mt-2.5 rounded-lg bg-amber-50 border border-amber-200 p-2 flex-row items-start gap-1.5">
-              <Text className="text-xs">📝</Text>
-              <Text className="text-[11px] text-amber-900 flex-1 font-medium">
-                "{item.notes}"
-              </Text>
-            </View>
-          ) : null}
         </View>
 
-        {/* Card Pricing & Action Buttons Footer */}
-        <View className="px-4 py-3 bg-[#F9FAFB] border-t border-[#F3F4F6]">
+        {/* TICKET FOOTER: TOTAL & ACTION BUTTONS */}
+        <View className="border-t border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-3">
           <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row items-center gap-2">
-              <View
-                className={`rounded-md px-2 py-0.5 border ${
-                  item.payment_method?.toLowerCase().includes('cash') ||
-                  item.payment_method?.toLowerCase().includes('cod')
-                    ? 'bg-[#FEF3C7] border-[#FDE68A]'
-                    : 'bg-[#DCFCE7] border-[#BBF7D0]'
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-extrabold uppercase tracking-wider ${
-                    item.payment_method?.toLowerCase().includes('cash') ||
-                    item.payment_method?.toLowerCase().includes('cod')
-                      ? 'text-[#92400E]'
-                      : 'text-[#166534]'
-                  }`}
-                >
-                  {item.payment_method || 'PAID'}
-                </Text>
-              </View>
-              <Text className="text-xs text-[#6B7280]">
-                {items.length} {items.length === 1 ? 'item' : 'items'}
+            <View>
+              <Text className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
+                Order Total • {items.length} {items.length === 1 ? 'item' : 'items'}
               </Text>
-            </View>
-
-            <View className="flex-row items-baseline gap-1.5">
-              <Text className="text-xs text-[#6B7280]">Total:</Text>
-              <Text className="text-xl font-black text-[#012711]">
+              <Text className="text-base font-black text-[#116C0B] mt-0.5">
                 {formatCurrency(amount)}
               </Text>
             </View>
+
+            <Text className="text-[11px] font-semibold text-[#94A3B8]">
+              {dateFormatted}
+            </Text>
           </View>
 
           {/* Action Buttons Row */}
           <View className="flex-row items-center gap-2">
-            {/* Quick Action Button for Status Transition */}
+            {/* Quick Status Action Button */}
             {theme.nextStatus ? (
               <Pressable
                 disabled={isUpdatingStatus}
                 onPress={() => handleUpdateStatus(item, theme.nextStatus!)}
-                className="flex-1 items-center justify-center rounded-xl py-2.5 shadow-sm"
-                style={({ pressed }) => ({
-                  backgroundColor: theme.accentColor,
-                  opacity: pressed || isUpdatingStatus ? 0.85 : 1,
-                })}
+                className="flex-1 h-10 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-3 active:bg-[#0D5208] shadow-xs"
               >
-                <Text className="text-xs font-black text-white">
-                  {theme.nextActionText}
-                </Text>
+                {isUpdatingStatus ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <CheckIcon color="#FFFFFF" size={14} />
+                    <Text className="ml-1.5 text-xs font-black text-white">
+                      {theme.nextActionText}
+                    </Text>
+                  </>
+                )}
               </Pressable>
             ) : null}
 
-            {/* Quick Reject / Cancel button for Pending orders */}
+            {/* Quick Cancel for Pending orders */}
             {status === 'Pending' && (
               <Pressable
                 disabled={isUpdatingStatus}
                 onPress={() => handleUpdateStatus(item, 'Cancelled')}
-                className="px-3 items-center justify-center rounded-xl bg-red-50 border border-red-200 py-2.5"
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                className="h-10 px-3 items-center justify-center rounded-xl bg-[#FEF2F2] border border-[#FECACA] active:bg-[#FEE2E2]"
               >
-                <Text className="text-xs font-bold text-red-600">Cancel</Text>
+                <Text className="text-xs font-black text-[#DC2626]">Cancel</Text>
               </Pressable>
             )}
 
@@ -859,14 +1188,12 @@ export function OrdersScreen({
               onPress={() => setSelectedOrder(item)}
               className={`${
                 theme.nextStatus ? 'flex-1' : 'w-full'
-              } items-center justify-center rounded-xl bg-white border border-[#D1D5DB] py-2.5 shadow-sm`}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? '#F3F4F6' : '#FFFFFF',
-              })}
+              } h-10 flex-row items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-3 active:bg-[#F1F5F9] shadow-xs`}
             >
-              <Text className="text-xs font-bold text-[#374151]">
-                View Receipt 📄
+              <Text className="text-xs font-black text-[#0F172A]">
+                View Receipt
               </Text>
+              <Text className="ml-1 text-xs font-black text-[#64748B]">›</Text>
             </Pressable>
           </View>
         </View>
@@ -883,66 +1210,76 @@ export function OrdersScreen({
   }
 
   return (
-    <View className="flex-1 bg-[#F9FAFB]">
-      {/* Clean Native Page Header */}
-      <View className="bg-white px-5 pt-3.5 pb-2.5 border-b border-[#F3F4F6]">
+    <View className="flex-1 bg-[#F8FAFC]">
+      {/* Modern Executive Page Header */}
+      <View className="bg-white px-5 pt-3.5 pb-3 border-b border-[#E2E8F0] shadow-xs">
         <View className="flex-row items-center justify-between">
-          <View>
+          <View className="flex-1">
             <View className="flex-row items-center gap-2">
-              <Text className="text-2xl font-black text-[#012711] tracking-tight">
-                Orders
+              <Text className="text-2xl font-black text-[#0F172A] tracking-tight">
+                Order Management
               </Text>
-              <View className="flex-row items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5">
+              <View className="flex-row items-center gap-1.5 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] px-2.5 py-0.5">
                 <Animated.View
-                  className="h-2 w-2 rounded-full bg-emerald-500"
+                  className="h-2 w-2 rounded-full bg-[#16A34A]"
                   style={{ transform: [{ scale: pulseAnim }] }}
                 />
-                <Text className="text-[11px] font-extrabold text-emerald-800">
+                <Text className="text-[11px] font-black text-[#065F46]">
                   LIVE ({orders.length})
                 </Text>
               </View>
             </View>
-            <Text className="text-xs text-[#6B7280] mt-0.5">
-              Live kitchen tickets & order fulfillment
+            <Text className="text-xs font-semibold text-[#64748B] mt-0.5">
+              Live orders, kitchen queue & delivery tracking
             </Text>
           </View>
 
           <View className="flex-row items-center gap-2">
+            {onAddOrder ? (
+              <Pressable
+                onPress={onAddOrder}
+                className="h-9 flex-row items-center rounded-xl bg-[#116C0B] px-3 active:bg-[#0D5208] shadow-xs"
+              >
+                <PlusIcon color="#FFFFFF" size={16} />
+                <Text className="ml-1 text-xs font-black text-white">New</Text>
+              </Pressable>
+            ) : null}
+
             <Pressable
+              accessibilityLabel="Refresh orders"
               onPress={onRefresh}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-[#F3F4F6] border border-[#E5E7EB]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              className="h-9 w-9 items-center justify-center rounded-xl bg-[#F1F5F9] border border-[#CBD5E1] active:bg-[#E2E8F0]"
             >
-              <Text className="text-base">🔄</Text>
+              <RefreshIcon color="#334155" size={16} />
             </Pressable>
           </View>
         </View>
       </View>
 
-      {/* Interactive Metric Cards Strip */}
-      <View className="bg-white px-5 py-2.5 border-b border-[#F3F4F6]">
+      {/* Interactive Metric Cards Carousel */}
+      <View className="bg-white px-5 py-2.5 border-b border-[#E2E8F0]">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-2.5 py-0.5"
+          contentContainerStyle={{ gap: 10, paddingVertical: 2 }}
         >
           {/* 1. Pending Action */}
           <Pressable
             onPress={() => setStatusFilter(statusFilter === 'Pending' ? 'All' : 'Pending')}
             className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
               statusFilter === 'Pending'
-                ? 'bg-amber-100 border-amber-400 shadow-sm'
+                ? 'bg-[#FEF3C7] border-[#F59E0B] shadow-xs'
                 : 'bg-[#FFFBEB] border-[#FDE68A]'
             }`}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-amber-200">
-              <Text className="text-base">⚡</Text>
+            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#FDE68A]">
+              <Text className="text-sm font-black text-[#B45309]">⚡</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800">
+              <Text className="text-[10px] font-black uppercase tracking-wider text-[#92400E]">
                 Pending
               </Text>
-              <Text className="text-lg font-black text-amber-950">
+              <Text className="text-lg font-black text-[#78350F]">
                 {metrics.pending}
               </Text>
             </View>
@@ -953,18 +1290,18 @@ export function OrdersScreen({
             onPress={() => setStatusFilter(statusFilter === 'Preparing' ? 'All' : 'Preparing')}
             className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
               statusFilter === 'Preparing'
-                ? 'bg-purple-100 border-purple-400 shadow-sm'
+                ? 'bg-[#EDE9FE] border-[#8B5CF6] shadow-xs'
                 : 'bg-[#F5F3FF] border-[#DDD6FE]'
             }`}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-purple-200">
-              <Text className="text-base">👨‍🍳</Text>
+            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#DDD6FE]">
+              <Text className="text-sm font-black text-[#6D28D9]">👨‍🍳</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800">
+              <Text className="text-[10px] font-black uppercase tracking-wider text-[#6D28D9]">
                 Preparing
               </Text>
-              <Text className="text-lg font-black text-purple-950">
+              <Text className="text-lg font-black text-[#5B21B6]">
                 {metrics.preparing}
               </Text>
             </View>
@@ -975,18 +1312,18 @@ export function OrdersScreen({
             onPress={() => setStatusFilter(statusFilter === 'Ready' ? 'All' : 'Ready')}
             className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
               statusFilter === 'Ready'
-                ? 'bg-emerald-100 border-emerald-400 shadow-sm'
+                ? 'bg-[#DCFCE7] border-[#10B981] shadow-xs'
                 : 'bg-[#ECFDF5] border-[#A7F3D0]'
             }`}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-emerald-200">
-              <Text className="text-base">🔔</Text>
+            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#A7F3D0]">
+              <Text className="text-sm font-black text-[#065F46]">🔔</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
+              <Text className="text-[10px] font-black uppercase tracking-wider text-[#065F46]">
                 Ready
               </Text>
-              <Text className="text-lg font-black text-emerald-950">
+              <Text className="text-lg font-black text-[#064E3B]">
                 {metrics.ready}
               </Text>
             </View>
@@ -997,33 +1334,33 @@ export function OrdersScreen({
             onPress={() => setStatusFilter(statusFilter === 'Delivered' ? 'All' : 'Delivered')}
             className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
               statusFilter === 'Delivered'
-                ? 'bg-green-100 border-green-400 shadow-sm'
+                ? 'bg-[#DCFCE7] border-[#16A34A] shadow-xs'
                 : 'bg-[#F0FDF4] border-[#BBF7D0]'
             }`}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-green-200">
-              <Text className="text-base">✅</Text>
+            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#BBF7D0]">
+              <Text className="text-sm font-black text-[#15803D]">✓</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-green-800">
+              <Text className="text-[10px] font-black uppercase tracking-wider text-[#15803D]">
                 Delivered
               </Text>
-              <Text className="text-lg font-black text-green-950">
+              <Text className="text-lg font-black text-[#14532D]">
                 {metrics.delivered}
               </Text>
             </View>
           </Pressable>
 
           {/* 5. Revenue */}
-          <View className="flex-row items-center gap-3 rounded-2xl border border-gray-200 bg-[#F9FAFB] px-3.5 py-2.5 min-w-[135px]">
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-gray-200">
-              <Text className="text-base">💰</Text>
+          <View className="flex-row items-center gap-3 rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 min-w-[135px]">
+            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#E2E8F0]">
+              <Text className="text-sm font-black text-[#334155]">₹</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-extrabold uppercase tracking-wider text-gray-600">
+              <Text className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
                 Revenue
               </Text>
-              <Text className="text-lg font-black text-[#012711]">
+              <Text className="text-lg font-black text-[#0F172A]">
                 {formatCompactNumber(metrics.revenue)}
               </Text>
             </View>
@@ -1031,39 +1368,42 @@ export function OrdersScreen({
         </ScrollView>
       </View>
 
-      {/* Search Input & Filter Row */}
-      <View className="px-5 pt-3 pb-2 bg-white border-b border-[#E5E7EB]">
+      {/* Search Bar & Filter Controls Row */}
+      <View className="bg-white px-5 pt-3 pb-2.5 border-b border-[#E2E8F0]">
         <View className="flex-row items-center gap-2">
-          {/* Search Field */}
-          <View className="flex-1 flex-row items-center rounded-xl bg-[#F3F4F6] px-3.5 py-2 border border-[#E5E7EB]">
-            <Text className="text-xs mr-2 text-[#9CA3AF]">🔍</Text>
+          {/* Search Input */}
+          <View className="flex-1 flex-row items-center rounded-xl bg-[#F8FAFC] px-3.5 py-2 border border-[#CBD5E1]">
+            <SearchIcon color="#64748B" size={17} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search order #, customer, phone, food..."
-              placeholderTextColor="#9CA3AF"
-              className="flex-1 text-xs text-[#012711] p-0 font-medium"
+              placeholder="Search order #, customer, table, food..."
+              placeholderTextColor="#94A3B8"
+              className="ml-2.5 flex-1 text-xs text-[#0F172A] p-0 font-medium"
             />
             {searchQuery ? (
               <Pressable onPress={() => setSearchQuery('')} className="p-1">
-                <Text className="text-xs font-bold text-[#9CA3AF]">✕</Text>
+                <Text className="text-xs font-black text-[#94A3B8]">✕</Text>
               </Pressable>
             ) : null}
           </View>
 
-          {/* Filter Drawer Trigger */}
+          {/* Filter Trigger Button */}
           <Pressable
             onPress={() => setShowFilterModal(true)}
-            className={`flex-row items-center gap-1.5 rounded-xl border px-3 py-2 ${
+            className={`flex-row items-center rounded-xl border px-3 py-2 shadow-2xs ${
               activeFiltersCount > 0
                 ? 'border-[#116C0B] bg-[#F0FDF4]'
-                : 'border-[#E5E7EB] bg-[#F9FAFB]'
+                : 'border-[#CBD5E1] bg-white'
             }`}
           >
-            <Text className="text-xs">⚙️</Text>
+            <FilterIcon
+              color={activeFiltersCount > 0 ? '#116C0B' : '#475569'}
+              size={15}
+            />
             <Text
-              className={`text-xs font-bold ${
-                activeFiltersCount > 0 ? 'text-[#116C0B]' : 'text-[#4B5563]'
+              className={`ml-1.5 text-xs font-black ${
+                activeFiltersCount > 0 ? 'text-[#116C0B]' : 'text-[#475569]'
               }`}
             >
               Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
@@ -1075,7 +1415,7 @@ export function OrdersScreen({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-2 pt-2.5 pb-1"
+          contentContainerStyle={{ gap: 8, paddingTop: 10, paddingBottom: 2 }}
         >
           {STATUS_TABS.map(tab => {
             const isActive = statusFilter === tab;
@@ -1084,27 +1424,27 @@ export function OrdersScreen({
               <Pressable
                 key={tab}
                 onPress={() => setStatusFilter(tab)}
-                className={`flex-row items-center rounded-full border px-3.5 py-1.5 ${
+                className={`flex-row items-center rounded-full border px-3.5 py-1.5 shadow-2xs ${
                   isActive
-                    ? 'border-[#116C0B] bg-[#116C0B] shadow-sm'
-                    : 'border-[#E5E7EB] bg-white'
+                    ? 'border-[#116C0B] bg-[#116C0B]'
+                    : 'border-[#CBD5E1] bg-white'
                 }`}
               >
                 <Text
                   className={`text-xs font-bold ${
-                    isActive ? 'text-white' : 'text-[#4B5563]'
+                    isActive ? 'text-white' : 'text-[#475569]'
                   }`}
                 >
                   {tab}
                 </Text>
                 <View
-                  className={`ml-1.5 rounded-full px-1.5 py-0.2 ${
-                    isActive ? 'bg-white/25' : 'bg-[#F3F4F6]'
+                  className={`ml-1.5 rounded-full px-1.5 py-0.5 ${
+                    isActive ? 'bg-white/25' : 'bg-[#F1F5F9]'
                   }`}
                 >
                   <Text
                     className={`text-[10px] font-black ${
-                      isActive ? 'text-white' : 'text-[#6B7280]'
+                      isActive ? 'text-white' : 'text-[#64748B]'
                     }`}
                   >
                     {count}
@@ -1116,35 +1456,35 @@ export function OrdersScreen({
         </ScrollView>
       </View>
 
-      {/* Active Filter Reminder Chip */}
+      {/* Active Filter Reminder Pill */}
       {activeFiltersCount > 0 && (
         <View className="flex-row items-center justify-between px-5 py-2 bg-[#F0FDF4] border-b border-[#DCFCE7]">
           <View className="flex-row flex-wrap items-center gap-1.5 flex-1">
             <Text className="text-[11px] font-bold text-[#166534]">Active Filters:</Text>
             {orderTypeFilter !== 'All' && (
               <View className="rounded-md bg-white border border-[#DCFCE7] px-2 py-0.5">
-                <Text className="text-[10px] font-semibold text-[#166534]">
+                <Text className="text-[10px] font-bold text-[#166534]">
                   {orderTypeFilter}
                 </Text>
               </View>
             )}
             {timeFilter !== 'All' && (
               <View className="rounded-md bg-white border border-[#DCFCE7] px-2 py-0.5">
-                <Text className="text-[10px] font-semibold text-[#166534]">
+                <Text className="text-[10px] font-bold text-[#166534]">
                   {timeFilter}
                 </Text>
               </View>
             )}
             {sortOption !== 'newest' && (
               <View className="rounded-md bg-white border border-[#DCFCE7] px-2 py-0.5">
-                <Text className="text-[10px] font-semibold text-[#166534]">
+                <Text className="text-[10px] font-bold text-[#166534]">
                   {sortOption === 'amount_high' ? 'Highest' : 'Oldest'}
                 </Text>
               </View>
             )}
           </View>
           <Pressable onPress={resetAllFilters}>
-            <Text className="text-[11px] font-bold text-red-600">Reset All</Text>
+            <Text className="text-[11px] font-black text-red-600">Reset All</Text>
           </Pressable>
         </View>
       )}
@@ -1153,24 +1493,24 @@ export function OrdersScreen({
       {isLoading && !isRefreshing ? (
         <View className="flex-1 items-center justify-center p-8">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-3 text-sm font-semibold text-[#6B7280]">
+          <Text className="mt-3 text-sm font-semibold text-[#64748B]">
             Loading real-time orders...
           </Text>
         </View>
       ) : errorMessage && orders.length === 0 ? (
         <View className="flex-1 items-center justify-center p-6">
           <View className="h-16 w-16 items-center justify-center rounded-2xl bg-red-50 border border-red-200">
-            <Text className="text-2xl">⚠️</Text>
+            <Text className="text-2xl font-black text-red-500">!</Text>
           </View>
-          <Text className="mt-4 text-center text-base font-bold text-[#1F2937]">
+          <Text className="mt-4 text-center text-base font-bold text-[#0F172A]">
             Unable to Load Orders
           </Text>
-          <Text className="mt-1 text-center text-xs text-[#6B7280]">
+          <Text className="mt-1 text-center text-xs text-[#64748B]">
             {errorMessage}
           </Text>
           <Pressable
             onPress={() => fetchOrders()}
-            className="mt-4 rounded-xl bg-[#116C0B] px-6 py-2.5 shadow-sm"
+            className="mt-4 rounded-xl bg-[#116C0B] px-6 py-2.5 shadow-sm active:bg-[#0D5208]"
           >
             <Text className="text-xs font-bold text-white">Retry</Text>
           </Pressable>
@@ -1183,7 +1523,7 @@ export function OrdersScreen({
           }
           renderItem={renderOrderItem}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 16,
             paddingTop: 14,
             paddingBottom: insets.bottom + 100,
           }}
@@ -1196,13 +1536,13 @@ export function OrdersScreen({
           }
           ListEmptyComponent={
             <View className="items-center justify-center py-16">
-              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#F3F4F6] border border-[#E5E7EB]">
-                <OrdersIcon color="#9CA3AF" size={30} />
+              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#F1F5F9] border border-[#CBD5E1]">
+                <OrdersBoxIcon color="#94A3B8" size={30} />
               </View>
-              <Text className="mt-4 text-base font-bold text-[#374151]">
+              <Text className="mt-4 text-base font-bold text-[#0F172A]">
                 No Orders in this View
               </Text>
-              <Text className="mt-1 text-center text-xs text-[#6B7280] max-w-[260px]">
+              <Text className="mt-1 text-center text-xs text-[#64748B] max-w-[260px]">
                 {searchQuery || statusFilter !== 'All' || activeFiltersCount > 0
                   ? 'No orders match your selected filters. Tap below to clear filters.'
                   : 'New orders placed by customers or staff will show up here.'}
@@ -1210,7 +1550,7 @@ export function OrdersScreen({
               {(searchQuery || statusFilter !== 'All' || activeFiltersCount > 0) && (
                 <Pressable
                   onPress={resetAllFilters}
-                  className="mt-4 rounded-xl border border-[#116C0B] bg-[#F0FDF4] px-4 py-2"
+                  className="mt-4 rounded-xl border border-[#116C0B] bg-[#F0FDF4] px-4 py-2 shadow-xs active:bg-[#DCFCE7]"
                 >
                   <Text className="text-xs font-bold text-[#116C0B]">
                     Clear All Filters
@@ -1222,11 +1562,12 @@ export function OrdersScreen({
         />
       )}
 
+      {/* Floating Action Button for Delivery Assignment */}
       <Pressable
         accessibilityLabel="Assign order to delivery"
         accessibilityRole="button"
         onPress={() => setIsDeliveryAssignmentOpen(true)}
-        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
+        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg active:bg-[#0D5208]"
         style={{
           bottom: insets.bottom + 78,
           elevation: 8,
@@ -1248,21 +1589,25 @@ export function OrdersScreen({
         >
           <Pressable
             onPress={e => e.stopPropagation()}
-            className="rounded-t-3xl bg-white p-5 max-h-[85%]"
+            className="rounded-t-3xl bg-white p-5 max-h-[85%] shadow-xl"
+            style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
           >
-            <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
-            <View className="flex-row items-center justify-between border-b border-[#F3F4F6] pb-3">
-              <Text className="text-lg font-black text-[#012711]">
+            <View className="self-center w-12 h-1.5 rounded-full bg-[#CBD5E1] mb-3" />
+            <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3">
+              <Text className="text-lg font-black text-[#0F172A]">
                 Filter & Sort Orders
               </Text>
-              <Pressable onPress={() => setShowFilterModal(false)} className="p-1">
-                <Text className="text-base font-bold text-[#6B7280]">✕</Text>
+              <Pressable
+                onPress={() => setShowFilterModal(false)}
+                className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]"
+              >
+                <Text className="text-base font-bold text-[#64748B]">✕</Text>
               </Pressable>
             </View>
 
             <ScrollView className="py-3">
               {/* Order Type */}
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#6B7280] mb-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
                 Order Type
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-4">
@@ -1276,12 +1621,12 @@ export function OrdersScreen({
                         className={`rounded-xl border px-3.5 py-2 ${
                           isSelected
                             ? 'border-[#116C0B] bg-[#F0FDF4]'
-                            : 'border-[#E5E7EB] bg-white'
+                            : 'border-[#CBD5E1] bg-white'
                         }`}
                       >
                         <Text
-                          className={`text-xs font-semibold ${
-                            isSelected ? 'text-[#116C0B]' : 'text-[#4B5563]'
+                          className={`text-xs font-bold ${
+                            isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
                           }`}
                         >
                           {type}
@@ -1293,7 +1638,7 @@ export function OrdersScreen({
               </View>
 
               {/* Time Period */}
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#6B7280] mb-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
                 Time Period
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-4">
@@ -1308,12 +1653,12 @@ export function OrdersScreen({
                       className={`rounded-xl border px-3.5 py-2 ${
                         isSelected
                           ? 'border-[#116C0B] bg-[#F0FDF4]'
-                          : 'border-[#E5E7EB] bg-white'
+                          : 'border-[#CBD5E1] bg-white'
                       }`}
                     >
                       <Text
-                        className={`text-xs font-semibold ${
-                          isSelected ? 'text-[#116C0B]' : 'text-[#4B5563]'
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
                         }`}
                       >
                         {time}
@@ -1324,7 +1669,7 @@ export function OrdersScreen({
               </View>
 
               {/* Sort Order */}
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#6B7280] mb-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
                 Sort Orders By
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-6">
@@ -1342,12 +1687,12 @@ export function OrdersScreen({
                       className={`rounded-xl border px-3.5 py-2 ${
                         isSelected
                           ? 'border-[#116C0B] bg-[#F0FDF4]'
-                          : 'border-[#E5E7EB] bg-white'
+                          : 'border-[#CBD5E1] bg-white'
                       }`}
                     >
                       <Text
-                        className={`text-xs font-semibold ${
-                          isSelected ? 'text-[#116C0B]' : 'text-[#4B5563]'
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
                         }`}
                       >
                         {sort.label}
@@ -1358,16 +1703,16 @@ export function OrdersScreen({
               </View>
             </ScrollView>
 
-            <View className="flex-row gap-3 pt-3 border-t border-[#F3F4F6]">
+            <View className="flex-row gap-3 pt-3 border-t border-[#F1F5F9]">
               <Pressable
                 onPress={resetAllFilters}
-                className="flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] py-3 bg-[#F9FAFB]"
+                className="flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] py-3 bg-[#F8FAFC]"
               >
-                <Text className="text-xs font-bold text-[#4B5563]">Reset</Text>
+                <Text className="text-xs font-bold text-[#475569]">Reset</Text>
               </Pressable>
               <Pressable
                 onPress={() => setShowFilterModal(false)}
-                className="flex-2 items-center justify-center rounded-xl bg-[#116C0B] py-3 px-6 shadow-sm"
+                className="flex-2 items-center justify-center rounded-xl bg-[#116C0B] py-3 px-6 shadow-sm active:bg-[#0D5208]"
               >
                 <Text className="text-xs font-bold text-white">Apply Filters</Text>
               </Pressable>
@@ -1385,19 +1730,20 @@ export function OrdersScreen({
       >
         <Pressable
           onPress={() => setSelectedOrder(null)}
-          className="flex-1 bg-black/60 justify-end"
+          className="flex-1 bg-black/50 justify-end"
         >
           {selectedOrder && (
             <Pressable
               onPress={e => e.stopPropagation()}
-              className="rounded-t-3xl bg-white p-5 max-h-[92%]"
+              className="rounded-t-3xl bg-white p-5 max-h-[92%] shadow-2xl"
+              style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
             >
-              <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
+              <View className="self-center w-12 h-1.5 rounded-full bg-[#CBD5E1] mb-3" />
 
               {/* Order Header in Modal */}
-              <View className="flex-row items-center justify-between pb-3 border-b border-[#F3F4F6]">
+              <View className="flex-row items-center justify-between pb-3 border-b border-[#F1F5F9]">
                 <View>
-                  <Text className="text-xl font-black text-[#012711]">
+                  <Text className="text-xl font-black text-[#0F172A]">
                     {String(
                       selectedOrder.order_number ||
                         selectedOrder.order_id ||
@@ -1415,7 +1761,7 @@ export function OrdersScreen({
                             selectedOrder.id
                         }`}
                   </Text>
-                  <Text className="text-xs text-[#6B7280] mt-0.5">
+                  <Text className="text-xs font-semibold text-[#64748B] mt-0.5">
                     {formatOrderDate(parseOrderDate(selectedOrder))}
                   </Text>
                 </View>
@@ -1428,11 +1774,10 @@ export function OrdersScreen({
                   const theme = getStatusTheme(s);
                   return (
                     <View
-                      className="flex-row items-center rounded-full px-3 py-1"
+                      className="flex-row items-center rounded-full px-3 py-1 border"
                       style={{
                         backgroundColor: theme.badgeBg,
                         borderColor: theme.badgeBorder,
-                        borderWidth: 1,
                       }}
                     >
                       <View
@@ -1440,7 +1785,7 @@ export function OrdersScreen({
                         style={{ backgroundColor: theme.dotColor }}
                       />
                       <Text
-                        className="text-xs font-bold"
+                        className="text-xs font-black"
                         style={{ color: theme.badgeText }}
                       >
                         {theme.label}
@@ -1450,15 +1795,15 @@ export function OrdersScreen({
                 })()}
               </View>
 
-              <ScrollView className="py-3">
+              <ScrollView className="py-3" showsVerticalScrollIndicator={false}>
                 {/* Guest & Table Info */}
-                <View className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3.5 mb-3.5">
+                <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5 mb-3.5">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1">
-                      <Text className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">
+                      <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
                         Customer Details
                       </Text>
-                      <Text className="text-sm font-bold text-[#111827] mt-0.5">
+                      <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
                         {selectedOrder.customer_name || 'Walk-in Customer'}
                       </Text>
                       {selectedOrder.customer_phone ||
@@ -1474,8 +1819,10 @@ export function OrdersScreen({
                           }}
                           className="mt-1 flex-row items-center gap-1"
                         >
+                          <PhoneIcon color="#116C0B" size={12} />
                           <Text className="text-xs font-bold text-[#116C0B]">
-                            📞 Call: {selectedOrder.customer_phone ||
+                            Call:{' '}
+                            {selectedOrder.customer_phone ||
                               selectedOrder.customer_mobile ||
                               selectedOrder.phone}
                           </Text>
@@ -1484,10 +1831,10 @@ export function OrdersScreen({
                     </View>
 
                     <View className="items-end">
-                      <Text className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">
+                      <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
                         Order Type
                       </Text>
-                      <Text className="text-sm font-bold text-[#012711] mt-0.5">
+                      <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
                         {normalizeOrderType(selectedOrder.order_type)}
                       </Text>
                       {selectedOrder.table_number ? (
@@ -1499,11 +1846,11 @@ export function OrdersScreen({
                   </View>
 
                   {selectedOrder.delivery_address ? (
-                    <View className="mt-2.5 pt-2 border-t border-[#E5E7EB]">
-                      <Text className="text-[10px] font-bold text-[#6B7280]">
+                    <View className="mt-2.5 pt-2 border-t border-[#E2E8F0]">
+                      <Text className="text-[10px] font-bold text-[#64748B]">
                         Delivery Address:
                       </Text>
-                      <Text className="text-xs text-[#374151] mt-0.5">
+                      <Text className="text-xs text-[#334155] mt-0.5">
                         {selectedOrder.delivery_address}
                       </Text>
                     </View>
@@ -1511,13 +1858,13 @@ export function OrdersScreen({
                 </View>
 
                 {/* Change Status Stepper Buttons */}
-                <Text className="text-xs font-bold uppercase tracking-wider text-[#6B7280] mb-2">
+                <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
                   Change Order Status
                 </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerClassName="gap-2 mb-4"
+                  contentContainerStyle={{ gap: 8, marginBottom: 16 }}
                 >
                   {(
                     [
@@ -1542,7 +1889,7 @@ export function OrdersScreen({
                         className={`rounded-xl border px-3.5 py-2 flex-row items-center gap-1.5 ${
                           isCurrent
                             ? 'border-[#116C0B] bg-[#116C0B]'
-                            : 'border-[#E5E7EB] bg-white'
+                            : 'border-[#CBD5E1] bg-white'
                         }`}
                       >
                         <View
@@ -1553,7 +1900,7 @@ export function OrdersScreen({
                         />
                         <Text
                           className={`text-xs font-bold ${
-                            isCurrent ? 'text-white' : 'text-[#374151]'
+                            isCurrent ? 'text-white' : 'text-[#334155]'
                           }`}
                         >
                           {s}
@@ -1564,12 +1911,12 @@ export function OrdersScreen({
                 </ScrollView>
 
                 {/* Itemized Bill Table */}
-                <Text className="text-xs font-bold uppercase tracking-wider text-[#6B7280] mb-2">
+                <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
                   Receipt Items ({selectedOrder.items?.length || 0})
                 </Text>
 
                 {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                  <View className="rounded-2xl border border-[#E5E7EB] bg-white overflow-hidden mb-3.5">
+                  <View className="rounded-2xl border border-[#CBD5E1] bg-white overflow-hidden mb-3.5">
                     {selectedOrder.items.map((food, idx) => {
                       const itemName =
                         food.food_name || food.product_name || food.name || 'Item';
@@ -1577,30 +1924,32 @@ export function OrdersScreen({
                       const unitPrice = Number(food.unit_price || food.price || 0);
                       const totalPrice =
                         Number(food.total_price) || unitPrice * qty;
+                      const isNonVeg = checkIsNonVeg(itemName);
 
                       return (
                         <View
                           key={idx}
                           className={`flex-row items-center justify-between p-3.5 ${
-                            idx > 0 ? 'border-t border-[#F3F4F6]' : ''
+                            idx > 0 ? 'border-t border-[#F1F5F9]' : ''
                           }`}
                         >
                           <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                            <DietaryBadge isNonVeg={isNonVeg} />
                             <View className="h-6 w-6 items-center justify-center rounded-md bg-[#F0FDF4] border border-[#DCFCE7]">
                               <Text className="text-xs font-black text-[#116C0B]">
                                 {qty}
                               </Text>
                             </View>
                             <View className="flex-1">
-                              <Text className="text-sm font-semibold text-[#111827]">
+                              <Text className="text-sm font-bold text-[#0F172A]">
                                 {itemName}
                               </Text>
-                              <Text className="text-xs text-[#6B7280]">
+                              <Text className="text-xs text-[#64748B]">
                                 {qty} × {formatCurrency(unitPrice)}
                               </Text>
                             </View>
                           </View>
-                          <Text className="text-sm font-bold text-[#012711]">
+                          <Text className="text-sm font-black text-[#0F172A]">
                             {formatCurrency(totalPrice)}
                           </Text>
                         </View>
@@ -1610,11 +1959,11 @@ export function OrdersScreen({
                 ) : null}
 
                 {/* Pricing Summary Breakdown */}
-                <View className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 mb-4">
+                <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-4 mb-4">
                   {selectedOrder.subtotal ? (
                     <View className="flex-row items-center justify-between py-1">
-                      <Text className="text-xs text-[#6B7280]">Subtotal</Text>
-                      <Text className="text-xs font-semibold text-[#374151]">
+                      <Text className="text-xs text-[#64748B]">Subtotal</Text>
+                      <Text className="text-xs font-semibold text-[#334155]">
                         {formatCurrency(selectedOrder.subtotal)}
                       </Text>
                     </View>
@@ -1622,8 +1971,8 @@ export function OrdersScreen({
 
                   {selectedOrder.tax ? (
                     <View className="flex-row items-center justify-between py-1">
-                      <Text className="text-xs text-[#6B7280]">GST / Taxes</Text>
-                      <Text className="text-xs font-semibold text-[#374151]">
+                      <Text className="text-xs text-[#64748B]">GST / Taxes</Text>
+                      <Text className="text-xs font-semibold text-[#334155]">
                         {formatCurrency(selectedOrder.tax)}
                       </Text>
                     </View>
@@ -1631,15 +1980,15 @@ export function OrdersScreen({
 
                   {selectedOrder.delivery_fee ? (
                     <View className="flex-row items-center justify-between py-1">
-                      <Text className="text-xs text-[#6B7280]">Delivery Fee</Text>
-                      <Text className="text-xs font-semibold text-[#374151]">
+                      <Text className="text-xs text-[#64748B]">Delivery Fee</Text>
+                      <Text className="text-xs font-semibold text-[#334155]">
                         {formatCurrency(selectedOrder.delivery_fee)}
                       </Text>
                     </View>
                   ) : null}
 
-                  <View className="flex-row items-center justify-between pt-2.5 mt-1 border-t border-[#E5E7EB]">
-                    <Text className="text-base font-bold text-[#012711]">
+                  <View className="flex-row items-center justify-between pt-2.5 mt-1 border-t border-[#E2E8F0]">
+                    <Text className="text-base font-black text-[#0F172A]">
                       Grand Total
                     </Text>
                     <Text className="text-xl font-black text-[#116C0B]">
@@ -1654,13 +2003,25 @@ export function OrdersScreen({
                 </View>
               </ScrollView>
 
-              {/* Modal Close Button */}
-              <Pressable
-                onPress={() => setSelectedOrder(null)}
-                className="w-full items-center justify-center rounded-xl bg-[#116C0B] py-3.5 shadow-sm"
-              >
-                <Text className="text-sm font-bold text-white">Close Receipt</Text>
-              </Pressable>
+              {/* Modal Action Buttons: Share & Close */}
+              <View className="flex-row gap-3">
+                <Pressable
+                  onPress={() => void printOrderReceipt(selectedOrder)}
+                  className="flex-row items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 shadow-xs active:bg-[#F1F5F9]"
+                >
+                  <PrinterIcon color="#334155" size={16} />
+                  <Text className="ml-1.5 text-xs font-black text-[#334155]">
+                    Share
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setSelectedOrder(null)}
+                  className="flex-1 items-center justify-center rounded-xl bg-[#116C0B] py-3.5 shadow-sm active:bg-[#0D5208]"
+                >
+                  <Text className="text-sm font-black text-white">Close Receipt</Text>
+                </Pressable>
+              </View>
             </Pressable>
           )}
         </Pressable>
