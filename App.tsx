@@ -50,6 +50,30 @@ function App() {
   );
 }
 
+function getUserRole(user: HeaderUser) {
+  const rawUser = user as HeaderUser & Record<string, unknown>;
+  const roleValue =
+    rawUser.role ??
+    rawUser.employee_type ??
+    rawUser.employeeType ??
+    rawUser.user_type ??
+    rawUser.userType ??
+    rawUser.account_type ??
+    rawUser.accountType;
+  const role = String(roleValue || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+
+  if (role.includes('chef') || role.includes('kitchen')) return 'chef';
+  if (
+    role.includes('server') ||
+    role.includes('waiter') ||
+    role.includes('waitress') ||
+    role.includes('staff')
+  ) {
+    return 'server';
+  }
+  return 'admin';
+}
+
 function AppContent() {
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -157,12 +181,14 @@ function AppContent() {
     return <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
   }
 
-  const role = String(user.role || '').trim().toLowerCase();
-  return role === 'chef' ? (
-    <ChefDashboardScreen user={user} onLogout={handleLogout} />
-  ) : (
-    <DashboardScreen user={user} onLogout={handleLogout} />
-  );
+  const role = getUserRole(user);
+  if (role === 'server') {
+    return <ServerHome user={user} onLogout={handleLogout} />;
+  }
+  if (role === 'chef') {
+    return <ChefDashboardScreen user={user} onLogout={handleLogout} />;
+  }
+  return <DashboardScreen user={user} onLogout={handleLogout} />;
 }
 
 export default App;
