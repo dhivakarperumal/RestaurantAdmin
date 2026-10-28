@@ -259,6 +259,10 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
   const openRecordForm = (record: AttendanceRecord) => {
     const recordId = getAttendanceRecordId(record);
     if (recordId === null) {
+      Alert.alert(
+        'Cannot edit attendance',
+        'The attendance record ID was not returned by the API.',
+      );
       return;
     }
     setFormError('');
@@ -626,13 +630,11 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                     icon="history"
                     onPress={() => loadHistory(record)}
                   />
-                  {getAttendanceRecordId(record) !== null ? (
-                    <AttendanceIconAction
-                      accessibilityLabel={`Edit attendance for ${record.full_name || record.employee_id}`}
-                      icon="edit"
-                      onPress={() => openRecordForm(record)}
-                    />
-                  ) : null}
+                  <AttendanceIconAction
+                    accessibilityLabel={`Edit attendance for ${record.full_name || record.employee_id}`}
+                    icon="edit"
+                    onPress={() => openRecordForm(record)}
+                  />
                 </View>
               </View>
             );
