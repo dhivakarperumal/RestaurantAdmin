@@ -2054,6 +2054,8 @@ export default function ServerHome({
         <ServerTables
           tables={tables}
           user={user}
+          orders={orders}
+          onRefresh={onRefresh}
         />
       );
     }
