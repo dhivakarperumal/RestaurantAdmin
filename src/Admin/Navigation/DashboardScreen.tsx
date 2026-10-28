@@ -249,11 +249,6 @@ const moreFeatures: MoreFeature[] = [
     subtitle: 'Review and manage kitchen inventory requests',
     icon: MenuIcon,
   },
-  {
-    title: 'Kitchen Requests',
-    subtitle: 'Review and manage kitchen inventory requests',
-    icon: MenuIcon,
-  },
 
   {
     title: 'Reports & Analytics',
