@@ -19,12 +19,6 @@ export type LocalRecord = {
   status?: 'Pending' | 'Completed' | 'Cancelled';
 };
 
-export type ReservationStatus =
-  | 'Pending'
-  | 'Confirmed'
-  | 'Declined'
-  | 'Cancelled';
-
 export type BillingLineItem = {
   id: string;
   name: string;
