@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { getApiErrorMessage } from '../../api';
-import { OrdersIcon } from '../Navigation/NavigationIcons';
+import { OrdersIcon, PlusIcon } from '../Navigation/NavigationIcons';
+import AssinedOrdertoDelivery from './AssinedOrdertoDelivery';
 import colors from '../theme/colors';
 
 export type ApiOrderItem = {
@@ -310,6 +311,7 @@ export function OrdersScreen({ onBack, onAddOrder }: OrdersScreenProps) {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
 
   // Radar Pulse Animation
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -863,6 +865,14 @@ export function OrdersScreen({ onBack, onAddOrder }: OrdersScreenProps) {
     );
   };
 
+  if (isDeliveryAssignmentOpen) {
+    return (
+      <AssinedOrdertoDelivery
+        onBack={() => setIsDeliveryAssignmentOpen(false)}
+      />
+    );
+  }
+
   return (
     <View className="flex-1 bg-[#F9FAFB]">
       {/* Clean Native Page Header */}
@@ -1202,6 +1212,19 @@ export function OrdersScreen({ onBack, onAddOrder }: OrdersScreenProps) {
           }
         />
       )}
+
+      <Pressable
+        accessibilityLabel="Assign order to delivery"
+        accessibilityRole="button"
+        onPress={() => setIsDeliveryAssignmentOpen(true)}
+        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
+        style={{
+          bottom: insets.bottom + 78,
+          elevation: 8,
+        }}
+      >
+        <PlusIcon color="#FFFFFF" size={26} />
+      </Pressable>
 
       {/* FILTER DRAWER / MODAL */}
       <Modal

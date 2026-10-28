@@ -25,6 +25,7 @@ jest.mock('../api', () => ({
   default: {
     get: jest.fn(() => Promise.resolve({ data: { data: [] } })),
     post: jest.fn(),
+    patch: jest.fn(),
     put: jest.fn(),
   },
 }));
@@ -484,6 +485,116 @@ test('adds an order and updates its status from the order details sheet', async 
   await press(renderer, 'Close order details');
   await press(renderer, 'Filter orders by Completed');
   expect(JSON.stringify(renderer.toJSON())).toContain('Order 1001');
+});
+
+test('opens the delivery assignment page from the Orders floating action button', async () => {
+  jest.setTimeout(15000);
+  const get = api.get as jest.Mock;
+  const patch = api.patch as jest.Mock;
+  let partnerRequestCount = 0;
+  get.mockImplementation((path: string, config?: { params?: Record<string, unknown> }) => {
+    if (
+      path === '/orders/management' &&
+      config?.params?.order_type === 'home_delivery'
+    ) {
+      return Promise.resolve({
+        data: {
+          orders: [
+            {
+              order_id: 'ORD020',
+              customer_name: 'Nishanth',
+              order_type: 'home_delivery',
+              order_status: 'Pending',
+            },
+            {
+              order_id: 'ORD018',
+              customer_name: 'Dine In Customer',
+              order_type: 'dine_in',
+            },
+          ],
+        },
+      });
+    }
+    if (path === '/delivery-partners') {
+      partnerRequestCount += 1;
+      if (partnerRequestCount === 1) {
+        return Promise.reject({ status: 304 });
+      }
+      return Promise.resolve({
+        data: {
+          delivery_partners: [
+            {
+              delivery_partner_id: 12,
+              full_name: 'Akshayaa',
+              phone_number: '06929592041',
+              today_shift_state: 'Off Shift',
+            },
+            {
+              delivery_partner_id: 13,
+              full_name: 'Thanvika',
+              phone_number: '9078438392',
+              today_shift_state: 'Available',
+            },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: { data: [] } });
+  });
+  patch.mockResolvedValueOnce({ data: { message: 'Assigned' } });
+
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'Orders');
+  await press(renderer, 'Assign order to delivery');
+  await ReactTestRenderer.act(
+    () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+  );
+
+  expect(JSON.stringify(renderer.toJSON())).toContain('Assign Delivery Partner');
+  expect(JSON.stringify(renderer.toJSON())).toContain('ORD020 · Nishanth');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('ORD018');
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('Akshayaa');
+  expect(JSON.stringify(renderer.toJSON())).toContain('Thanvika');
+  expect(get).toHaveBeenCalledWith(
+    '/orders/management',
+    expect.objectContaining({ params: { order_type: 'home_delivery' } }),
+  );
+  expect(get).toHaveBeenCalledWith(
+    '/delivery-partners',
+    expect.objectContaining({ params: { all: true } }),
+  );
+  expect(get).toHaveBeenCalledWith(
+    '/delivery-partners',
+    expect.objectContaining({
+      params: { all: true, _refresh: expect.any(String) },
+    }),
+  );
+
+  await press(renderer, 'Select delivery partner Thanvika');
+  await ReactTestRenderer.act(async () => {
+    await renderer.root
+      .findByProps({ accessibilityLabel: 'Assign Delivery Partner' })
+      .props.onPress();
+  });
+  expect(patch).toHaveBeenCalledWith(
+    '/orders/management/ORD020/status',
+    {
+      status: 'Confirmed',
+      delivery_partner_id: '13',
+    },
+  );
+  expect(JSON.stringify(renderer.toJSON())).toContain(
+    'Delivery partner assigned successfully. Order status updated to Confirmed.',
+  );
+  expect(hasText(renderer, 'Status: Confirmed')).toBe(true);
+
+  await press(renderer, 'Back to Orders');
+  expect(
+    renderer.root.findByProps({
+      accessibilityLabel: 'Assign order to delivery',
+    }),
+  ).toBeTruthy();
 });
 
 test('renders the plus icon as visible horizontal and vertical strokes', async () => {
