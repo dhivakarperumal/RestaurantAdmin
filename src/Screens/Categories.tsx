@@ -6,6 +6,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  RefreshControl,
   Text,
   TextInput,
   View,
@@ -676,6 +677,14 @@ function Categories({
       <FlatList
         data={visibleCategories}
         key={viewMode}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => setRefreshKey(current => current + 1)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
         keyExtractor={(item, index) =>
           getCategoryId(item) || `${item.category_name || 'category'}-${index}`
         }

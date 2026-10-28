@@ -6,6 +6,7 @@ import {
   Modal,
   Pressable,
   Platform,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -273,6 +274,14 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
   return (
     <View className="flex-1 bg-[#F8FAF8]">
       <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => setRefreshKey(current => current + 1)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
         contentContainerClassName="mx-auto w-full max-w-[1000px] gap-4 px-[18px] pb-7 pt-[18px]"
         keyboardShouldPersistTaps="handled"
       >

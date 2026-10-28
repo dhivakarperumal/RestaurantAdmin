@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import { Alert } from 'react-native';
 import {
   SafeAreaProvider,
   SafeAreaView,
@@ -28,6 +29,7 @@ test('opens and dismisses the profile menu and connects its actions', async () =
   const onOpenNotifications = jest.fn();
   const onOpenProfile = jest.fn();
   const onLogout = jest.fn();
+  const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   let renderer: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -98,7 +100,23 @@ test('opens and dismisses the profile menu and connects its actions', async () =
   await ReactTestRenderer.act(() => {
     renderer!.root.findByProps({ accessibilityLabel: 'Logout' }).props.onPress();
   });
+  expect(alertSpy).toHaveBeenCalledWith(
+    'Log out?',
+    'Are you sure you want to log out of your account?',
+    expect.arrayContaining([
+      expect.objectContaining({ text: 'Cancel', style: 'cancel' }),
+      expect.objectContaining({ text: 'Log out', style: 'destructive' }),
+    ]),
+    { cancelable: true },
+  );
+  expect(onLogout).not.toHaveBeenCalled();
+  const alertButtons = alertSpy.mock.calls[0][2];
+  const confirmLogout = alertButtons?.find(button => button.text === 'Log out');
+  await ReactTestRenderer.act(() => {
+    confirmLogout?.onPress?.();
+  });
   expect(onLogout).toHaveBeenCalledTimes(1);
+  alertSpy.mockRestore();
 });
 
 test('uses a fallback avatar initial when user details are missing', async () => {

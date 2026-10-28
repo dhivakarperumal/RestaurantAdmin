@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -15,7 +16,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import colors from '../theme/colors';
 import {
   BellIcon,
@@ -904,21 +905,60 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     }
   };
 
+  // Global hardware back button handler — covers every navigable state
+  // Priority (highest → lowest):
+  //  1. Sidebar open          → close sidebar
+  //  2. Notifications open    → close notifications
+  //  3. Action modal open     → close modal
+  //  4. More sub-feature open → go back inside More
+  //  5. Non-home tab active   → go back to Home tab
+  //  6. Home tab              → let OS handle (exit app)
   useEffect(() => {
-    if (!isMoreFeatureOpen) {
-      return undefined;
-    }
-
     const subscription = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        moreFeatureBack();
-        return true;
+        // 1. Sidebar
+        if (isSidebarOpen) {
+          setIsSidebarOpen(false);
+          return true;
+        }
+        // 2. Notifications panel
+        if (isNotificationsOpen) {
+          setIsNotificationsOpen(false);
+          return true;
+        }
+        // 3. Action modal (EntryForm)
+        if (selectedAction) {
+          setSelectedAction(null);
+          return true;
+        }
+        // 4. More sub-feature inner screen
+        if (isMoreFeatureOpen) {
+          moreFeatureBack();
+          return true;
+        }
+        // 5. Non-home tab → go to home
+        if (activeTab !== 'home') {
+          setActiveTab('home');
+          setSelectedAction(null);
+          setSelectedFeature(null);
+          setIsFoodDetailsOpen(false);
+          return true;
+        }
+        // 6. Already on home — let OS decide (exit app)
+        return false;
       },
     );
 
     return () => subscription.remove();
-  }, [isMoreFeatureOpen, selectedFeature]);
+  }, [
+    isSidebarOpen,
+    isNotificationsOpen,
+    selectedAction,
+    isMoreFeatureOpen,
+    selectedFeature,
+    activeTab,
+  ]);
 
   return (
     <SafeAreaView
@@ -1803,7 +1843,17 @@ function ReservationScreen({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-5">
+    <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={() => { void fetchReservations(); }}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
+      contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-5"
+    >
       <View className="mb-4">
         <Pressable
           accessibilityLabel="Back to More"
@@ -2144,7 +2194,17 @@ function HomePage({
       ? 'Good afternoon'
       : 'Good evening';
   return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6">
+    <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
+      contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6"
+    >
       <View className="flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5">
         <View className="mr-3 h-10 w-1 rounded-full bg-[#116C0B]" />
         <View className="flex-1">
@@ -4819,16 +4879,22 @@ type StatTone =
 
 const statCardGradients: Record<
   StatTone,
-  { grad1: string; grad2: string; grad3: string; glow: string; accent: string }
+  {
+    bg: string;
+    bgMid: string;
+    bgDark: string;
+    glow1: string;
+    glow2: string;
+  }
 > = {
-  green:  { grad1: '#052E10', grad2: '#0B4D1A', grad3: '#147524', glow: '#81C238', accent: '#22C55E' },
-  blue:   { grad1: '#0B1E4D', grad2: '#1230A0', grad3: '#1D4ED8', glow: '#60A5FA', accent: '#3B82F6' },
-  orange: { grad1: '#431407', grad2: '#9A3412', grad3: '#C2410C', glow: '#FB923C', accent: '#F97316' },
-  purple: { grad1: '#2E1065', grad2: '#5B21B6', grad3: '#7C3AED', glow: '#A78BFA', accent: '#8B5CF6' },
-  cyan:   { grad1: '#083344', grad2: '#0E7490', grad3: '#0891B2', glow: '#22D3EE', accent: '#06B6D4' },
-  pink:   { grad1: '#500724', grad2: '#9D174D', grad3: '#BE185D', glow: '#F472B6', accent: '#EC4899' },
-  teal:   { grad1: '#042F2E', grad2: '#0F766E', grad3: '#0D9488', glow: '#2DD4BF', accent: '#14B8A6' },
-  red:    { grad1: '#450A0A', grad2: '#991B1B', grad3: '#DC2626', glow: '#F87171', accent: '#EF4444' },
+  green:  { bg: '#052E10', bgMid: '#0B4D1A', bgDark: '#147524', glow1: 'rgba(129,194,56,0.22)', glow2: 'rgba(34,197,94,0.14)' },
+  blue:   { bg: '#0B1E4D', bgMid: '#1230A0', bgDark: '#1D4ED8', glow1: 'rgba(96,165,250,0.22)', glow2: 'rgba(59,130,246,0.14)' },
+  orange: { bg: '#431407', bgMid: '#9A3412', bgDark: '#C2410C', glow1: 'rgba(251,146,60,0.22)',  glow2: 'rgba(249,115,22,0.14)' },
+  purple: { bg: '#2E1065', bgMid: '#5B21B6', bgDark: '#7C3AED', glow1: 'rgba(167,139,250,0.22)', glow2: 'rgba(139,92,246,0.14)' },
+  cyan:   { bg: '#083344', bgMid: '#0E7490', bgDark: '#0891B2', glow1: 'rgba(34,211,238,0.22)',  glow2: 'rgba(6,182,212,0.14)' },
+  pink:   { bg: '#500724', bgMid: '#9D174D', bgDark: '#BE185D', glow1: 'rgba(244,114,182,0.22)', glow2: 'rgba(236,72,153,0.14)' },
+  teal:   { bg: '#042F2E', bgMid: '#0F766E', bgDark: '#0D9488', glow1: 'rgba(45,212,191,0.22)',  glow2: 'rgba(20,184,166,0.14)' },
+  red:    { bg: '#450A0A', bgMid: '#991B1B', bgDark: '#DC2626', glow1: 'rgba(248,113,113,0.22)', glow2: 'rgba(239,68,68,0.14)' },
 };
 
 function StatCard({
@@ -4848,9 +4914,6 @@ function StatCard({
 }) {
   const isLive = badge === 'LIVE';
   const g = statCardGradients[tone];
-  const gradId = `scg_${tone}`;
-  const glowId = `scglow_${tone}`;
-  const accentId = `scacc_${tone}`;
 
   return (
     <View
@@ -4859,41 +4922,69 @@ function StatCard({
         borderRadius: 18,
         minHeight: 155,
         overflow: 'hidden',
-        shadowColor: g.grad1,
+        backgroundColor: g.bgMid,
+        shadowColor: g.bg,
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.45,
+        shadowOpacity: 0.50,
         shadowRadius: 14,
         elevation: 10,
       }}
     >
-      {/* Gradient background via SVG */}
-      <Svg
+      {/* Dark top-left corner overlay */}
+      <View
         pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        width="100%"
-        height="100%"
-        preserveAspectRatio="none"
-      >
-        <Defs>
-          <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={g.grad1} stopOpacity="1" />
-            <Stop offset="50%" stopColor={g.grad2} stopOpacity="1" />
-            <Stop offset="100%" stopColor={g.grad3} stopOpacity="1" />
-          </LinearGradient>
-          <LinearGradient id={glowId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={g.glow} stopOpacity="0.28" />
-            <Stop offset="100%" stopColor={g.glow} stopOpacity="0" />
-          </LinearGradient>
-          <LinearGradient id={accentId} x1="100%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor={g.accent} stopOpacity="0.18" />
-            <Stop offset="100%" stopColor={g.accent} stopOpacity="0" />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradId})`} />
-        <Circle cx="80%" cy="25%" r="70" fill={`url(#${glowId})`} />
-        <Circle cx="10%" cy="80%" r="55" fill={`url(#${accentId})`} />
-        <Circle cx="60%" cy="70%" r="50" fill={`url(#${glowId})`} />
-      </Svg>
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: g.bg,
+          opacity: 0.55,
+        }}
+      />
+
+      {/* Glow circle — top right */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          width: 130,
+          height: 130,
+          borderRadius: 65,
+          top: -35,
+          right: -35,
+          backgroundColor: g.glow1,
+        }}
+      />
+
+      {/* Glow circle — bottom left */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          width: 100,
+          height: 100,
+          borderRadius: 50,
+          bottom: -25,
+          left: -25,
+          backgroundColor: g.glow2,
+        }}
+      />
+
+      {/* Glow circle — bottom right (accent) */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          width: 90,
+          height: 90,
+          borderRadius: 45,
+          bottom: -10,
+          right: 10,
+          backgroundColor: g.glow1,
+        }}
+      />
 
       {/* Card content */}
       <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
@@ -4918,7 +5009,7 @@ function StatCard({
               flexDirection: 'row',
               alignItems: 'center',
               gap: 4,
-              backgroundColor: 'rgba(0,0,0,0.30)',
+              backgroundColor: 'rgba(0,0,0,0.32)',
               borderRadius: 999,
               paddingHorizontal: 9,
               paddingVertical: 4,
@@ -5001,7 +5092,6 @@ function StatCard({
     </View>
   );
 }
-
 
 function Avatar({ initial, size = 42 }: { initial: string; size?: number }) {
   return (

@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -337,6 +338,14 @@ function Bills({
 
   return (
     <ScrollView
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={() => setRetry(current => current + 1)}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
       contentContainerStyle={{
         alignSelf: 'center',
         maxWidth: 1100,
