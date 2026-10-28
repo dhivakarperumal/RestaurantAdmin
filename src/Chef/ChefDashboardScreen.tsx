@@ -14,6 +14,7 @@ import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
 import ChefHeader from './ChefHeader';
+import ChefAttendanceScreen from './Tabs/ChefAttendanceScreen';
 import ChefFoodsScreen, { type ChefFood } from './Tabs/ChefFoodsScreen';
 
 type ChefDashboardScreenProps = {
@@ -130,6 +131,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const [requests, setRequests] = useState<DataRow[]>([]);
   const [inventoryProducts, setInventoryProducts] = useState<DataRow[]>([]);
   const [attendance, setAttendance] = useState<DataRow | null>(null);
+  const [shiftInfo, setShiftInfo] = useState<DataRow | null>(null);
   const [attendanceHistory, setAttendanceHistory] = useState<DataRow[]>([]);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestProduct, setRequestProduct] = useState('');
@@ -197,6 +199,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             const payload = todayResult.value.data as unknown;
             setAttendance(
               isRecord(payload) && isRecord(payload.data) ? payload.data : null,
+            );
+            setShiftInfo(
+              isRecord(payload) && isRecord(payload.shift) ? payload.shift : null,
             );
           }
           if (historyResult.status === 'fulfilled') {
@@ -495,65 +500,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     );
   };
 
-  const renderAttendance = () => {
-    const isWorking = Boolean(attendance?.check_in && !attendance?.check_out);
-    const isCompleted = Boolean(attendance?.check_in && attendance?.check_out);
-    return (
-      <>
-        <PageHeading title="Attendance" subtitle="Record and review your kitchen shifts." />
-        <Card>
-          <Text className="text-xs font-semibold text-[#6B7280]">
-            TODAY&apos;S SHIFT
-          </Text>
-          <Text className="mt-2 text-[19px] font-extrabold text-[#012711]">
-            {isWorking ? 'You are clocked in' : isCompleted ? 'Shift completed' : 'Not clocked in'}
-          </Text>
-          <Text className="mt-1.5 text-[13px] text-[#6B7280]">
-            {attendance?.check_in
-              ? `Clock in: ${new Date(String(attendance.check_in)).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}`
-              : 'Clock in to start recording your shift.'}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={isAttendanceBusy || isCompleted}
-            onPress={updateAttendance}
-            className={`mt-4 min-h-[46px] items-center justify-center rounded-xl ${
-              isWorking ? 'bg-[#FC5805]' : 'bg-[#116C0B]'
-            } ${isAttendanceBusy || isCompleted ? 'opacity-60' : 'opacity-100'}`}
-          >
-            {isAttendanceBusy ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text className="text-sm font-bold text-white">
-                {isWorking ? 'Clock out' : isCompleted ? 'Shift complete' : 'Clock in'}
-              </Text>
-            )}
-          </Pressable>
-        </Card>
-        <Text className="mb-2.5 mt-2.5 text-[17px] font-bold text-[#012711]">
-          Attendance history
-        </Text>
-        {attendanceHistory.length ? (
-          attendanceHistory.slice(0, 20).map((record, index) => (
-            <Card key={text(record.id, `${text(record.date, 'shift')}-${index}`)}>
-              <Text className="text-sm font-bold text-[#012711]">
-                {text(record.date ?? record.attendance_date, 'Previous shift')}
-              </Text>
-              <Text className="mt-1.5 text-xs text-[#6B7280]">
-                In: {text(record.check_in)} · Out: {text(record.check_out)}
-              </Text>
-            </Card>
-          ))
-        ) : (
-          <EmptyState message="No attendance history is available." />
-        )}
-      </>
-    );
-  };
-
   let pageContent: React.ReactNode;
   if (activeTab === 'dashboard') {
     pageContent = renderDashboard();
@@ -564,7 +510,15 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   } else if (activeTab === 'stock') {
     pageContent = renderStock();
   } else {
-    pageContent = renderAttendance();
+    pageContent = (
+      <ChefAttendanceScreen
+        attendance={attendance}
+        history={attendanceHistory}
+        isBusy={isAttendanceBusy}
+        onClockAction={updateAttendance}
+        shiftInfo={shiftInfo}
+      />
+    );
   }
 
   return (
