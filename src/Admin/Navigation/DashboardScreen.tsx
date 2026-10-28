@@ -58,6 +58,7 @@ import FloatingActionMenu from './FloatingActionMenu';
 import AddCategoryIcon from './AddCategoryIcon';
 import Bills, { type BillFood } from '../Tabs/Bills';
 import Items from '../Tabs/Items';
+import InventoryScreen from '../Tabs/Inventory';
 import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
 import CuisineScreen from '../Screens/Cuisine';
@@ -241,7 +242,6 @@ const moreFeatures: MoreFeature[] = [
     title: 'Products & Inventory',
     subtitle: 'Products, prices, and stock',
     icon: ProductIcon,
-    action: 'product' as QuickActionId,
   },
 
   {
@@ -1328,6 +1328,9 @@ function MainContent({
   }
 
   if (selectedFeature) {
+    if (selectedFeature === 'Products & Inventory') {
+      return <InventoryScreen />;
+    }
     if (selectedFeature === 'Reservations') {
       return <ReservationsScreen onBack={() => onSelectFeature(null)} />;
     }
