@@ -4718,7 +4718,7 @@ function Sidebar({
           <Image
             accessibilityLabel="Buy Food logo"
             resizeMode="contain"
-            source={require('../images/buy-food-logo.png')}
+            source={require('../../images/buy-food-logo.png')}
             className="h-12 w-12 shrink-0"
           />
           <Text className="flex-1 text-lg font-bold text-[#012711]">

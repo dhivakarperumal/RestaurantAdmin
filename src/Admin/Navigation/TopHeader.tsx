@@ -191,7 +191,7 @@ function TopHeader({
             <Image
               accessibilityLabel="Buy Food logo"
               resizeMode="contain"
-              source={require('../images/buy-food-logo.png')}
+              source={require('../../images/buy-food-logo.png')}
               className="h-8 w-8"
             />
           </View>

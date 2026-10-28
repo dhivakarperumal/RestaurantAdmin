@@ -3,7 +3,7 @@ import ReactTestRenderer from 'react-test-renderer';
 import { Text } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api from '../api';
-import Items from '../src/Tabs/Items';
+import Items from '../src/Admin/Tabs/Items';
 
 jest.mock('../api', () => ({
   __esModule: true,
