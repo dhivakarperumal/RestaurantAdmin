@@ -42,6 +42,7 @@ test('opens and dismisses the profile menu and connects its actions', async () =
       >
         <TopHeader
           user={{ name: 'Maya Rivera', email: 'maya@example.com' }}
+          activeTab="home"
           unreadNotifications={4}
           onToggleSidebar={onToggleSidebar}
           onOpenNotifications={onOpenNotifications}
@@ -88,7 +89,9 @@ test('opens and dismisses the profile menu and connects its actions', async () =
       .props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Close profile menu' }).props.onPress();
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Open profile menu for Maya Rivera' })
+      .props.onPress();
   });
   expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Logout' })).toHaveLength(0);
 
@@ -132,6 +135,7 @@ test('uses a fallback avatar initial when user details are missing', async () =>
       >
         <TopHeader
           user={null}
+          activeTab="home"
           unreadNotifications={0}
           onToggleSidebar={jest.fn()}
           onOpenNotifications={jest.fn()}

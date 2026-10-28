@@ -152,6 +152,22 @@ test('opens the items screen from the bottom navigation', async () => {
   ).toBeTruthy();
 });
 
+test('allows bottom navigation while the profile menu is open', async () => {
+  const renderer = await renderDashboard();
+
+  await press(renderer, 'Open profile menu for Maya Rivera');
+  expect(
+    renderer.root.findByProps({ accessibilityLabel: 'Profile menu overlay' }).props
+      .pointerEvents,
+  ).toBe('box-none');
+
+  await press(renderer, 'Orders');
+
+  expect(
+    renderer.root.findAllByProps({ accessibilityLabel: 'Profile menu overlay' }),
+  ).toHaveLength(0);
+});
+
 test('opens category management from the More tab', async () => {
   const renderer = await renderDashboard();
 

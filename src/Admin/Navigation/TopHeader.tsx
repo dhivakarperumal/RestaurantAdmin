@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -28,6 +28,7 @@ import {
   LogoutIcon,
   ProfileIcon,
 } from './NavigationIcons';
+import type { AppTab } from './Bottombar';
 
 export type HeaderUser = {
   id?: string | number;
@@ -39,6 +40,7 @@ export type HeaderUser = {
 
 type TopHeaderProps = {
   user: HeaderUser | null;
+  activeTab: AppTab;
   unreadNotifications: number;
   onToggleSidebar: () => void;
   onOpenNotifications: () => void;
@@ -88,6 +90,7 @@ function IconButton({
 
 function TopHeader({
   user,
+  activeTab,
   unreadNotifications,
   onToggleSidebar,
   onOpenNotifications,
@@ -105,6 +108,10 @@ function TopHeader({
     'U';
   const badgeCount = Math.max(0, Math.floor(unreadNotifications));
   const compact = width < 480;
+
+  useEffect(() => {
+    setIsProfileOpen(false);
+  }, [activeTab]);
 
   const openProfile = () => {
     setIsProfileOpen(false);
@@ -263,18 +270,14 @@ function TopHeader({
       {/* Profile menu dropdown */}
       {isProfileOpen ? (
         <View
-          accessibilityViewIsModal
+          accessibilityLabel="Profile menu overlay"
+          pointerEvents="box-none"
           className="absolute left-0 right-0 z-20"
           style={{
             top: insets.top + HEADER_HEIGHT,
             height: Math.max(0, height - (insets.top + HEADER_HEIGHT)),
           }}
         >
-          <Pressable
-            accessibilityLabel="Close profile menu"
-            onPress={() => setIsProfileOpen(false)}
-            className="absolute inset-0 bg-black/25"
-          />
           <View
             className={`z-[21] w-[310px] max-w-[92%] self-end overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl ${
               compact ? 'mx-3 mt-2' : 'mx-5 mt-2'
