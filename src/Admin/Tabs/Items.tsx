@@ -610,8 +610,7 @@ function Items({
                 </View>
               </View>
 
-              {/* Title & Refresh Button */}
-              <View className="mt-3.5 flex-row items-end justify-between gap-3">
+              <View className="mt-3.5 flex-row items-end gap-3">
                 <View className="flex-1">
                   <Text className="text-2xl font-black tracking-tight text-white">
                     All items
@@ -620,29 +619,6 @@ function Items({
                     {items.length} {items.length === 1 ? 'item' : 'items'} in your menu
                   </Text>
                 </View>
-
-                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                  <Pressable
-                    accessibilityLabel="Refresh items"
-                    accessibilityRole="button"
-                    disabled={isLoading}
-                    onPress={() => setRetry(count => count + 1)}
-                    className="flex-row items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-3.5 py-2 shadow-sm"
-                    style={({ pressed }) => ({
-                      backgroundColor: pressed
-                        ? 'rgba(255, 255, 255, 0.28)'
-                        : 'rgba(255, 255, 255, 0.16)',
-                    })}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text className="text-xs font-bold text-white">
-                        Refresh
-                      </Text>
-                    )}
-                  </Pressable>
-                </Animated.View>
               </View>
 
               {/* Stats Chips Row */}
