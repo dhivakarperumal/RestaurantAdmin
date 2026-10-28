@@ -15,10 +15,13 @@ import {
 } from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
+import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
 import ChefHeader from './ChefHeader';
 import ChefAttendanceScreen from './Tabs/ChefAttendanceScreen';
+import ChefEventOrdersScreen from './Tabs/ChefEventOrdersScreen';
 import ChefFoodsScreen, { type ChefFood } from './Tabs/ChefFoodsScreen';
+import ChefMoreScreen from './Tabs/ChefMoreScreen';
 
 type ChefDashboardScreenProps = {
   user: HeaderUser | null;
@@ -33,6 +36,7 @@ const pageTitles: Record<ChefTab, string> = {
   inventory: 'Inventory Requests',
   stock: 'Stock Details',
   attendance: 'Attendance',
+  more: 'More',
 };
 
 function isRecord(value: unknown): value is DataRow {
@@ -126,6 +130,9 @@ function EmptyState({ message }: { message: string }) {
 function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<ChefTab>('dashboard');
+  const [selectedMorePage, setSelectedMorePage] = useState<'event-orders' | null>(
+    null,
+  );
   const [refreshCount, setRefreshCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -193,7 +200,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             setRequests(rowsFrom(requestResponse.data));
             setInventoryProducts(rowsFrom(productResponse.data));
           }
-        } else {
+        } else if (activeTab === 'attendance') {
           const [todayResult, historyResult] = await Promise.allSettled([
             api.get('/attendance/today'),
             api.get('/attendance/my-history?limit=100'),
@@ -333,6 +340,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       setIsAttendanceBusy(false);
     }
   };
+
+  const navigateToChefTab = (tab: ChefTab) => {
+    setActiveTab(tab);
+    setSelectedMorePage(null);
+  };
+
+  const isMoreInnerPage =
+    activeTab === 'more' && selectedMorePage !== null;
 
   const renderDashboard = () => (
     <>
@@ -513,6 +528,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     pageContent = renderInventory();
   } else if (activeTab === 'stock') {
     pageContent = renderStock();
+  } else if (activeTab === 'more' && selectedMorePage === 'event-orders') {
+    pageContent = <ChefEventOrdersScreen />;
+  } else if (activeTab === 'more') {
+    pageContent = (
+      <ChefMoreScreen
+        onOpenEventOrders={() => setSelectedMorePage('event-orders')}
+      />
+    );
   } else {
     pageContent = (
       <ChefAttendanceScreen
@@ -526,12 +549,24 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   }
 
   return (
-    <SafeAreaView edges={['left', 'right']} className="flex-1 bg-[#F9FAFB]">
-      <ChefHeader
-        activeTitle={pageTitles[activeTab]}
-        onLogout={onLogout}
-        user={user}
-      />
+    <SafeAreaView
+      edges={isMoreInnerPage ? ['left', 'right', 'bottom'] : ['left', 'right']}
+      className="flex-1 bg-[#F9FAFB]"
+    >
+      {isMoreInnerPage ? (
+        <MoreInnerHeader
+          title="Event Orders"
+          destination="More"
+          subtitle="Confirmed event catering"
+          onBack={() => setSelectedMorePage(null)}
+        />
+      ) : (
+        <ChefHeader
+          activeTitle={pageTitles[activeTab]}
+          onLogout={onLogout}
+          user={user}
+        />
+      )}
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-4 pb-6"
@@ -544,7 +579,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           />
         }
       >
-        {error && activeTab !== 'foods' ? (
+        {error && activeTab !== 'foods' && activeTab !== 'more' ? (
           <View
             accessibilityRole="alert"
             className="mb-3.5 rounded-xl border border-red-200 bg-red-50 p-3"
@@ -552,14 +587,19 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             <Text className="text-[13px] text-red-600">{error}</Text>
           </View>
         ) : null}
-        {isLoading && activeTab !== 'foods' ? (
+        {isLoading && activeTab !== 'foods' && activeTab !== 'more' ? (
           <View className="items-center py-7">
             <ActivityIndicator color="#116C0B" />
           </View>
         ) : null}
         {pageContent}
       </ScrollView>
-      <ChefBottomNavigation activeTab={activeTab} onTabPress={setActiveTab} />
+      {!isMoreInnerPage ? (
+        <ChefBottomNavigation
+          activeTab={activeTab}
+          onTabPress={navigateToChefTab}
+        />
+      ) : null}
 
       <Modal
         animationType="slide"
