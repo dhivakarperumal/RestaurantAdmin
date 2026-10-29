@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { FlatList, Modal, Pressable, Text, View } from 'react-native';
-import { ChevronDownIcon, CheckIcon } from './PrinterIcons';
+import { FlatList, Pressable, Text, View } from 'react-native';
+import { BaseModal, CheckIcon, ChevronDownIcon } from '../../../../../components/popups';
 
 type PrinterSelectProps<T extends string> = {
   label: string;
@@ -9,53 +9,67 @@ type PrinterSelectProps<T extends string> = {
   onChange: (value: T) => void;
 };
 
-export function PrinterSelect<T extends string>({ label, options, value, onChange }: PrinterSelectProps<T>) {
+export function PrinterSelect<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: PrinterSelectProps<T>) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <View className="mb-4">
         <Text className="mb-1.5 text-[13px] font-semibold text-[#1E293B]">{label}</Text>
         <Pressable
-          className="min-h-[44px] flex-row items-center justify-between rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3.5"
+          className="min-h-[48px] flex-row items-center justify-between rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 active:bg-gray-100"
           onPress={() => setOpen(true)}
           accessibilityRole="button"
           accessibilityLabel={`Select ${label}`}
         >
-          <Text className="text-[14px] text-[#0F172A]">{value}</Text>
-          <ChevronDownIcon />
+          <Text className="text-[14px] font-medium text-[#0F172A]">{value}</Text>
+          <ChevronDownIcon size={18} color="#64748B" />
         </Pressable>
       </View>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable
-          className="flex-1 bg-black/40"
-          onPress={() => setOpen(false)}
-          accessibilityLabel="Close selector"
-        />
-        <View className="rounded-t-3xl bg-white px-5 pb-8 pt-4">
-          <View className="mb-1 h-1 w-10 self-center rounded-full bg-[#E2E8F0]" />
-          <Text className="mb-4 mt-3 text-base font-bold text-[#0F172A]">{label}</Text>
-          <FlatList
-            data={options}
-            keyExtractor={item => item}
-            renderItem={({ item }) => (
+      <BaseModal
+        visible={open}
+        onClose={() => setOpen(false)}
+        title={label}
+        subtitle={`Choose a preferred ${label.toLowerCase()}`}
+        variant="bottom-sheet"
+      >
+        <FlatList
+          data={options}
+          keyExtractor={item => item}
+          renderItem={({ item }) => {
+            const isSelected = item === value;
+            return (
               <Pressable
-                className="flex-row items-center justify-between border-b border-[#F1F5F9] py-3.5"
-                onPress={() => { onChange(item); setOpen(false); }}
+                className={`my-1 flex-row items-center justify-between rounded-2xl px-4 py-3.5 ${
+                  isSelected ? 'bg-[#10B981]/10' : 'bg-transparent active:bg-gray-50'
+                }`}
+                onPress={() => {
+                  onChange(item);
+                  setOpen(false);
+                }}
                 accessibilityRole="button"
+                accessibilityLabel={item}
               >
                 <Text
                   className="text-[15px]"
-                  style={{ color: item === value ? '#10B981' : '#1E293B', fontWeight: item === value ? '700' : '500' }}
+                  style={{
+                    color: isSelected ? '#10B981' : '#1E293B',
+                    fontWeight: isSelected ? '700' : '500',
+                  }}
                 >
                   {item}
                 </Text>
-                {item === value && <CheckIcon />}
+                {isSelected && <CheckIcon size={18} color="#10B981" />}
               </Pressable>
-            )}
-          />
-        </View>
-      </Modal>
+            );
+          }}
+        />
+      </BaseModal>
     </>
   );
 }
