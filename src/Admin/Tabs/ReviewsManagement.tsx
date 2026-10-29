@@ -964,9 +964,7 @@ function ReviewsManagementPage({
                         onPress={() => openReviewDetails(review)}
                         className="h-9 w-9 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white"
                       >
-                        <Text className="text-sm font-bold text-[#475569]">
-                          •••
-                        </Text>
+                        <EyeIcon size={17} color="#475569" />
                       </Pressable>
                       <Pressable
                         accessibilityLabel={`Delete review ${review.review_id}`}
