@@ -338,7 +338,6 @@ function BannerManagementPage({
 
         <View className="flex-row flex-wrap justify-between gap-y-3">
           <BannerStat
-            background="#F0FDF4"
             icon="▣"
             iconBackground="#DCFCE7"
             label="Total banners"
@@ -346,7 +345,6 @@ function BannerManagementPage({
             value={banners.length}
           />
           <BannerStat
-            background="#FFF7ED"
             icon="✳"
             iconBackground="#FFEDD5"
             label="Offer banners"
@@ -354,7 +352,6 @@ function BannerManagementPage({
             value={totalOffers}
           />
           <BannerStat
-            background="#EFF6FF"
             icon="▣"
             iconBackground="#DBEAFE"
             label="Hero banners"
@@ -362,7 +359,6 @@ function BannerManagementPage({
             value={totalHero}
           />
           <BannerStat
-            background="#FAF5FF"
             icon="◉"
             iconBackground="#F3E8FF"
             label="Published"
@@ -1033,14 +1029,12 @@ function BannerFilterDropdown<Value extends string>({
 }
 
 function BannerStat({
-  background,
   icon,
   iconBackground,
   label,
   tint,
   value,
 }: {
-  background: string;
   icon: string;
   iconBackground: string;
   label: string;
@@ -1049,22 +1043,24 @@ function BannerStat({
 }) {
   return (
     <View
-      className="min-h-[60px] w-[48%] flex-row items-center gap-2 rounded-xl border px-2.5"
+      className="relative min-h-[60px] w-[48%] flex-row items-center gap-2 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white px-2.5"
       style={{
-        backgroundColor: background,
-        borderColor: iconBackground,
         elevation: 1,
       }}
     >
       <View
+        className="absolute -bottom-5 -right-4 h-12 w-12 rounded-full bg-[#DCFCE7]"
+        pointerEvents="none"
+      />
+      <View
         className="h-8 w-8 items-center justify-center rounded-lg"
-        style={{ backgroundColor: tint }}
+        style={{ backgroundColor: iconBackground }}
       >
-        <Text className="text-sm font-bold text-white">
+        <Text className="text-sm font-bold" style={{ color: tint }}>
           {icon}
         </Text>
       </View>
-      <View className="min-w-0 flex-1">
+      <View className="z-10 min-w-0 flex-1">
         <Text numberOfLines={1} className="text-[8px] font-bold uppercase tracking-[0.3px] text-[#64748B]">
           {label}
         </Text>
