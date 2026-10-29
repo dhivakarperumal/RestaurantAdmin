@@ -22,6 +22,7 @@ import {
 import colors from '../../theme/colors';
 import {
   AlertCircleIcon,
+  ChevronDownIcon,
   CheckCircle2Icon,
   ConfirmDialog,
   Edit3Icon,
@@ -792,7 +793,13 @@ function Categories({
                 decorColor="#DDD6FE"
               />
             </View>
-            <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+            <View
+              className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
+              style={{
+                zIndex: openFilter ? 10 : 1,
+                elevation: openFilter ? 10 : 0,
+              }}
+            >
               <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
                 <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
                   <SearchIcon color="#9CA3AF" size={17} />
@@ -805,7 +812,13 @@ function Categories({
                     value={search}
                   />
                 </View>
-                <View className="flex-row items-end gap-2">
+                <View
+                  className="flex-row items-end gap-2"
+                  style={{
+                    zIndex: openFilter ? 20 : 1,
+                    elevation: openFilter ? 20 : 0,
+                  }}
+                >
                   <View className="flex-1 flex-row gap-2">
                     <CategoryFilterDropdown<StatusFilter>
                       label="Status"
@@ -989,37 +1002,63 @@ function Categories({
         renderItem={renderCategory}
       />
       {!isLoading && !categoryError && filteredCategories.length > PAGE_SIZE ? (
-        <View className="flex-row items-center justify-center gap-5 border-t border-[#E5E7EB] bg-white px-4 py-3">
+        <View className="flex-row items-center justify-center gap-4 border-t border-[#E5E7EB] bg-white px-4 py-3">
           <Pressable
             accessibilityLabel="Previous category page"
             accessibilityRole="button"
+            accessibilityState={{ disabled: page === 0 }}
             disabled={page === 0}
             onPress={() => setPage(current => Math.max(0, current - 1))}
-            className="rounded-lg border border-[#E5E7EB] px-3 py-2"
+            className={`min-h-11 flex-row items-center gap-1.5 rounded-xl border px-3 py-2 ${
+              page === 0
+                ? 'border-[#E5E7EB] bg-[#F8FAFC]'
+                : 'border-[#CBD5E1] bg-white'
+            }`}
           >
-            <Text className={page === 0 ? 'text-[#9CA3AF]' : 'text-[#116C0B]'}>
+            <View style={{ transform: [{ rotate: '90deg' }] }}>
+              <ChevronDownIcon
+                size={16}
+                color={page === 0 ? '#9CA3AF' : '#116C0B'}
+              />
+            </View>
+            <Text
+              className={`text-xs font-semibold ${
+                page === 0 ? 'text-[#9CA3AF]' : 'text-[#116C0B]'
+              }`}
+            >
               Previous
             </Text>
           </Pressable>
-          <Text className="text-xs text-[#6B7280]">
+          <Text className="text-xs font-semibold text-[#6B7280]">
             Page {page + 1} of {pageCount}
           </Text>
           <Pressable
             accessibilityLabel="Next category page"
             accessibilityRole="button"
+            accessibilityState={{ disabled: page + 1 >= pageCount }}
             disabled={page + 1 >= pageCount}
             onPress={() =>
               setPage(current => Math.min(pageCount - 1, current + 1))
             }
-            className="rounded-lg border border-[#E5E7EB] px-3 py-2"
+            className={`min-h-11 flex-row items-center gap-1.5 rounded-xl border px-3 py-2 ${
+              page + 1 >= pageCount
+                ? 'border-[#E5E7EB] bg-[#F8FAFC]'
+                : 'border-[#CBD5E1] bg-white'
+            }`}
           >
             <Text
-              className={
+              className={`text-xs font-semibold ${
                 page + 1 >= pageCount ? 'text-[#9CA3AF]' : 'text-[#116C0B]'
-              }
+              }`}
             >
               Next
             </Text>
+            <View style={{ transform: [{ rotate: '-90deg' }] }}>
+              <ChevronDownIcon
+                size={16}
+                color={page + 1 >= pageCount ? '#9CA3AF' : '#116C0B'}
+              />
+            </View>
           </Pressable>
         </View>
       ) : null}
@@ -1052,12 +1091,62 @@ function Categories({
             ? 'Update category details and product association'
             : 'Create a new category for your restaurant menu'
         }
-        onSave={() => void saveCategory()}
-        saveLabel={isEditing ? 'Save Changes' : 'Save Category'}
-        cancelLabel="Cancel"
+        cancelLabel=""
         isSaving={isSaving}
-        isSaveDisabled={isSaving || isUploadingImage || !form.categoryId}
         errorMessage={formError}
+        maxHeightPercent={94}
+        footerExtra={
+          <View className="flex-row gap-3">
+            <Pressable
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
+              disabled={isSaving}
+              onPress={resetForm}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3"
+              style={{ opacity: isSaving ? 0.55 : 1 }}
+            >
+              <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={
+                isEditing ? 'Save Changes' : 'Create Category'
+              }
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled:
+                  isSaving ||
+                  isUploadingImage ||
+                  isFormLoading ||
+                  !form.categoryId,
+              }}
+              disabled={
+                isSaving ||
+                isUploadingImage ||
+                isFormLoading ||
+                !form.categoryId
+              }
+              onPress={() => void saveCategory()}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4 py-3"
+              style={{
+                opacity:
+                  isSaving ||
+                  isUploadingImage ||
+                  isFormLoading ||
+                  !form.categoryId
+                    ? 0.55
+                    : 1,
+              }}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text className="text-sm font-bold text-white">
+                  {isEditing ? 'Save Changes' : 'Create Category'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        }
       >
         {isFormLoading ? (
           <View className="items-center gap-3 p-8">
