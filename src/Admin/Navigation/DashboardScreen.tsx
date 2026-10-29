@@ -3978,7 +3978,11 @@ function KitchenRequestsScreen() {
       ].some(value => value.toLowerCase().includes(query));
     });
   }, [requests, search, statusFilter]);
-  const statusCounts = requests.reduce(
+  const statusCounts = requests.reduce<{
+    pending: number;
+    approved: number;
+    rejected: number;
+  }>(
     (counts, request) => {
       const status = kitchenRequestValue(
         request,

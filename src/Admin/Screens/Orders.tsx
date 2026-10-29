@@ -17,7 +17,18 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { getApiErrorMessage } from '../../../api';
 import colors from '../../theme/colors';
 import AssinedOrdertoDelivery from './AssinedOrdertoDelivery';
-import { BaseModal, DetailsModal } from '../../components/popups';
+import {
+  ArrowLeftIcon,
+  BaseModal,
+  CheckCircle2Icon,
+  ConfirmDialog,
+  DetailsModal,
+  FilterIcon as LucideFilterIcon,
+  PhoneIcon as LucidePhoneIcon,
+  PrinterIcon as LucidePrinterIcon,
+  Share2Icon,
+  XIcon,
+} from '../../components/popups';
 
 /* ==========================================================================
    Types & Models
@@ -299,14 +310,16 @@ function getStatusTheme(status: NormalizedStatus) {
   switch (status) {
     case 'Pending':
       return {
-        badgeBg: colors.surfaceSecondary,
-        badgeBorder: colors.borderLight,
-        badgeText: colors.primary,
-        accentColor: colors.primary,
-        dotColor: colors.primaryLight,
+        badgeBg: '#FFFBEB',
+        badgeBorder: '#FDE68A',
+        badgeText: '#B45309',
+        headerBg: '#FEFCE8',
+        accentColor: '#D97706',
+        dotColor: '#F59E0B',
         label: 'Pending',
         nextStatus: 'Preparing' as NormalizedStatus,
         nextActionText: 'Start Preparing',
+        nextActionIcon: '⚡',
       };
     case 'Confirmed':
       return {
@@ -314,23 +327,25 @@ function getStatusTheme(status: NormalizedStatus) {
         badgeBorder: '#BFDBFE',
         badgeText: '#1D4ED8',
         headerBg: '#F0F7FF',
-        accentColor: '#3B82F6',
-        dotColor: '#2563EB',
+        accentColor: '#2563EB',
+        dotColor: '#3B82F6',
         label: 'Confirmed',
         nextStatus: 'Preparing' as NormalizedStatus,
         nextActionText: 'Start Preparing',
+        nextActionIcon: '👨‍🍳',
       };
     case 'Preparing':
       return {
         badgeBg: '#F5F3FF',
         badgeBorder: '#DDD6FE',
         badgeText: '#6D28D9',
-        headerBg: '#F5F3FF',
-        accentColor: '#8B5CF6',
-        dotColor: '#7C3AED',
+        headerBg: '#FAF5FF',
+        accentColor: '#7C3AED',
+        dotColor: '#8B5CF6',
         label: 'Preparing',
         nextStatus: 'Ready' as NormalizedStatus,
         nextActionText: 'Mark as Ready',
+        nextActionIcon: '🔔',
       };
     case 'Ready':
       return {
@@ -338,35 +353,38 @@ function getStatusTheme(status: NormalizedStatus) {
         badgeBorder: '#A7F3D0',
         badgeText: '#047857',
         headerBg: '#F0FDF4',
-        accentColor: '#10B981',
-        dotColor: '#16A34A',
+        accentColor: '#059669',
+        dotColor: '#10B981',
         label: 'Ready to Serve',
         nextStatus: 'Delivered' as NormalizedStatus,
         nextActionText: 'Complete Order',
+        nextActionIcon: '✓',
       };
     case 'Delivered':
       return {
         badgeBg: '#F0FDF4',
         badgeBorder: '#BBF7D0',
         badgeText: '#15803D',
-        headerBg: '#F0FDF4',
+        headerBg: '#F8FAFC',
         accentColor: '#16A34A',
         dotColor: '#22C55E',
         label: 'Delivered',
         nextStatus: null,
         nextActionText: 'Completed',
+        nextActionIcon: '✓',
       };
     case 'Cancelled':
       return {
         badgeBg: '#FEF2F2',
         badgeBorder: '#FECACA',
         badgeText: '#B91C1C',
-        headerBg: '#FEF2F2',
-        accentColor: '#EF4444',
-        dotColor: '#DC2626',
+        headerBg: '#FFF1F2',
+        accentColor: '#DC2626',
+        dotColor: '#EF4444',
         label: 'Cancelled',
         nextStatus: null,
         nextActionText: 'Cancelled',
+        nextActionIcon: '✕',
       };
   }
 }
@@ -442,16 +460,15 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
     return {
       type: 'takeaway',
       label: 'Pickup',
-      icon: '🛍️',
-      bg: colors.surfaceSecondary,
-      border: colors.borderLight,
-      text: colors.primary,
+      bg: '#FEF3C7',
+      border: '#FDE68A',
+      text: '#92400E',
     };
   }
   if (type === 'Kitchen Orders') {
     return {
       type: 'kitchen',
-      label: 'Kitchen',
+      label: 'Kitchen KOT',
       bg: '#F5F3FF',
       border: '#DDD6FE',
       text: '#6D28D9',
@@ -460,7 +477,7 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
   if (type === 'Event Orders') {
     return {
       type: 'event',
-      label: 'Event',
+      label: 'Event Order',
       bg: '#FFF7ED',
       border: '#FED7AA',
       text: '#C2410C',
@@ -483,15 +500,6 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
     text: '#1E40AF',
   };
 }
-
-const STATUS_TABS: ('All' | NormalizedStatus)[] = [
-  'All',
-  'Pending',
-  'Preparing',
-  'Ready',
-  'Delivered',
-  'Cancelled',
-];
 
 /* ==========================================================================
    Crisp SVG Icons & Badges
@@ -569,6 +577,35 @@ function BikeIcon({ color = '#1E40AF', size = 13 }: { color?: string; size?: num
   );
 }
 
+function ChefHatIcon({ color = '#6D28D9', size = 13 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6v-7.13zM6 17h12"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function MapPinIcon({ color = '#64748B', size = 12 }: { color?: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx="12" cy="10" r="3" stroke={color} strokeWidth="2" />
+    </Svg>
+  );
+}
+
 function ClockIcon({ color = '#64748B', size = 12 }: { color?: string; size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -625,20 +662,6 @@ function SearchIcon({ color = '#64748B', size = 18 }: { color?: string; size?: n
   );
 }
 
-function FilterIcon({ color = '#475569', size = 16 }: { color?: string; size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 function RefreshIcon({ color = '#475569', size = 16 }: { color?: string; size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -660,29 +683,15 @@ function RefreshIcon({ color = '#475569', size = 16 }: { color?: string; size?: 
   );
 }
 
-function CheckIcon({ color = '#FFFFFF', size = 14 }: { color?: string; size?: number }) {
+function PlusIcon({ color = '#FFFFFF', size = 18 }: { color?: string; size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M20 6 9 17l-5-5"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     </Svg>
   );
 }
 
-function PlusIcon({ color = '#FFFFFF', size = 24 }: { color?: string; size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth="3" strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-function OrdersBoxIcon({ color = '#64748B', size = 28 }: { color?: string; size?: number }) {
+function OrdersBoxIcon({ color = '#64748B', size = 22 }: { color?: string; size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -712,6 +721,108 @@ function PrinterIcon({ color = '#334155', size = 16 }: { color?: string; size?: 
 }
 
 /* ==========================================================================
+   Admin Summary Stat Card (Matches Tables & Customers 2x2 Grid Pattern)
+   ========================================================================== */
+
+function OrderSummaryStatCard({
+  label,
+  value,
+  tint,
+  iconBackground,
+  decorColor,
+  icon,
+  isActive = false,
+  onPress,
+}: {
+  label: string;
+  value: string | number;
+  tint: string;
+  iconBackground: string;
+  decorColor: string;
+  icon: React.ReactNode;
+  isActive?: boolean;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        width: '48%',
+        minHeight: 88,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        overflow: 'hidden',
+        borderRadius: 20,
+        borderWidth: isActive ? 2 : 1,
+        borderColor: isActive ? tint : '#F1F5F9',
+        backgroundColor: isActive ? `${decorColor}40` : '#FFFFFF',
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 6,
+        elevation: isActive ? 3 : 1.5,
+      }}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          bottom: -28,
+          right: -20,
+          width: 74,
+          height: 74,
+          borderRadius: 37,
+          backgroundColor: decorColor,
+          opacity: 0.55,
+        }}
+      />
+      <View
+        style={{
+          width: 42,
+          height: 42,
+          flexShrink: 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 13,
+          backgroundColor: iconBackground,
+        }}
+      >
+        {icon}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: tint,
+            fontSize: 10,
+            fontWeight: '800',
+            letterSpacing: 0.8,
+            lineHeight: 14,
+            textTransform: 'uppercase',
+          }}
+        >
+          {label}
+        </Text>
+        <Text
+          style={{
+            marginTop: 2,
+            color: tint,
+            fontSize: 22,
+            fontWeight: '800',
+            lineHeight: 28,
+          }}
+        >
+          {value}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/* ==========================================================================
    Main OrdersScreen Component
    ========================================================================== */
 
@@ -733,11 +844,13 @@ export function OrdersScreen({
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('All');
   const [sortOption, setSortOption] = useState<SortOption>('newest');
 
-  // Modals & Expand States
+  // Modals & States
   const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
+  const [orderToCancel, setOrderToCancel] = useState<ApiOrder | null>(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [statusUpdateError, setStatusUpdateError] = useState('');
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
 
@@ -745,19 +858,19 @@ export function OrdersScreen({
     onDeliveryAssignmentVisibilityChange?.(isDeliveryAssignmentOpen);
   }, [isDeliveryAssignmentOpen, onDeliveryAssignmentVisibilityChange]);
 
-  // Live Pulse Animation
+  // Live Pulse Animation for Pending Status
   const pulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.3,
-          duration: 900,
+          toValue: 1.25,
+          duration: 800,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 900,
+          duration: 800,
           useNativeDriver: true,
         }),
       ]),
@@ -772,40 +885,19 @@ export function OrdersScreen({
     try {
       const [ordersResult, eventOrdersResult, kitchenOrdersResult] = await Promise.allSettled([
         api.get('/orders/management', {
-          params: {
-            page: 1,
-            limit: 1000,
-            pageSize: 1000,
-          },
+          params: { page: 1, limit: 1000, pageSize: 1000 },
           signal,
-          headers: {
-            'Cache-Control': 'no-cache, no-store',
-            Pragma: 'no-cache',
-          },
+          headers: { 'Cache-Control': 'no-cache, no-store', Pragma: 'no-cache' },
         }),
         api.get('/event-orders', {
-          params: {
-            page: 1,
-            limit: 1000,
-            pageSize: 1000,
-          },
+          params: { page: 1, limit: 1000, pageSize: 1000 },
           signal,
-          headers: {
-            'Cache-Control': 'no-cache, no-store',
-            Pragma: 'no-cache',
-          },
+          headers: { 'Cache-Control': 'no-cache, no-store', Pragma: 'no-cache' },
         }),
         api.get('/kitchen-orders', {
-          params: {
-            page: 1,
-            limit: 1000,
-            pageSize: 1000,
-          },
+          params: { page: 1, limit: 1000, pageSize: 1000 },
           signal,
-          headers: {
-            'Cache-Control': 'no-cache, no-store',
-            Pragma: 'no-cache',
-          },
+          headers: { 'Cache-Control': 'no-cache, no-store', Pragma: 'no-cache' },
         }),
       ]);
 
@@ -884,6 +976,8 @@ export function OrdersScreen({
       return;
     }
 
+    const orderKey = String(orderId);
+    setUpdatingOrderId(orderKey);
     setIsUpdatingStatus(true);
     setStatusUpdateError('');
     try {
@@ -909,9 +1003,10 @@ export function OrdersScreen({
         }),
       );
       setSelectedOrder(current =>
-        current
+        current &&
+        String(current.order_id || current.id || current.order_number) === String(orderId)
           ? { ...current, order_status: newStatus, status: newStatus }
-          : null,
+          : current,
       );
     } catch (error) {
       setStatusUpdateError(
@@ -919,6 +1014,7 @@ export function OrdersScreen({
       );
     } finally {
       setIsUpdatingStatus(false);
+      setUpdatingOrderId(null);
     }
   };
 
@@ -928,24 +1024,6 @@ export function OrdersScreen({
       [orderKey]: !prev[orderKey],
     }));
   };
-
-  // Status Counts
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      All: orders.length,
-      Pending: 0,
-      Confirmed: 0,
-      Preparing: 0,
-      Ready: 0,
-      Delivered: 0,
-      Cancelled: 0,
-    };
-    orders.forEach(order => {
-      const s = normalizeStatus(order.order_status || order.status);
-      counts[s] = (counts[s] || 0) + 1;
-    });
-    return counts;
-  }, [orders]);
 
   const orderCategoryCounts = useMemo(() => {
     const counts: Record<OrderTypeFilter, number> = {
@@ -1139,7 +1217,7 @@ export function OrdersScreen({
       }),
       '--------------------------------',
       `TOTAL: ${amount}`,
-      ...(order.notes ? ['', `NOTES: ${order.notes}`] : []),
+      ...(order.notes ? ['', `SPECIAL NOTE: ${order.notes}`] : []),
       '================================',
     ];
 
@@ -1150,7 +1228,9 @@ export function OrdersScreen({
     }
   };
 
-  // Render Modern Order Card
+  /* ==========================================================================
+     Render Modern Ticket Card
+     ========================================================================== */
   const renderOrderItem = ({ item }: { item: ApiOrder }) => {
     const rawId = item.order_number || item.order_id || item.id || 'Order';
     const orderKey = String(rawId);
@@ -1166,29 +1246,32 @@ export function OrdersScreen({
     const isExpanded = Boolean(expandedOrders[orderKey]);
     const visibleItems = isExpanded ? items : items.slice(0, 3);
     const hasMoreItems = items.length > 3;
+    const isPending = status === 'Pending';
+    const isUpdatingThis = isUpdatingStatus && updatingOrderId === orderKey;
 
     return (
       <View
-        className="mb-3.5 overflow-hidden rounded-2xl border border-[#CBD5E1] bg-white shadow-sm"
+        className="mb-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white"
         style={{
           shadowColor: '#0F172A',
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 6,
-          elevation: 2,
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 2.5,
         }}
       >
-        {/* TICKET TOP HEADER BAR */}
+        {/* 1. TICKET TOP HEADER BAR */}
         <View
           style={{
             backgroundColor: theme.headerBg,
-            borderColor: theme.badgeBorder,
+            borderBottomWidth: 1,
+            borderBottomColor: '#E2E8F0',
           }}
-          className="border-b px-4 py-2.5 flex-row items-center justify-between"
+          className="px-4 py-2.5 flex-row items-center justify-between"
         >
           {/* Left: Order # Badge + Order Type Badge */}
           <View className="flex-row items-center gap-2">
-            <View className="rounded-md bg-[#0F172A] px-2.5 py-1">
+            <View className="rounded-lg bg-slate-900 px-2.5 py-1 shadow-2xs">
               <Text className="text-xs font-black tracking-wider text-white">
                 {orderDisplayId}
               </Text>
@@ -1199,30 +1282,32 @@ export function OrdersScreen({
                 backgroundColor: typeConfig.bg,
                 borderColor: typeConfig.border,
               }}
-              className="flex-row items-center rounded-md border px-2 py-0.5"
+              className="flex-row items-center rounded-lg border px-2.5 py-1"
             >
               {typeConfig.type === 'dine-in' ? (
                 <TableIcon color={typeConfig.text} size={12} />
               ) : typeConfig.type === 'takeaway' ? (
                 <BagIcon color={typeConfig.text} size={12} />
+              ) : typeConfig.type === 'kitchen' ? (
+                <ChefHatIcon color={typeConfig.text} size={12} />
               ) : (
                 <BikeIcon color={typeConfig.text} size={12} />
               )}
               <Text
                 style={{ color: typeConfig.text }}
-                className="ml-1 text-xs font-black"
+                className="ml-1 text-xs font-bold"
               >
                 {typeConfig.label}
               </Text>
             </View>
           </View>
 
-          {/* Right: Time Ago + Status Pill */}
+          {/* Right: Relative Time + Status Pill */}
           <View className="flex-row items-center gap-2">
             {relativeTime ? (
-              <View className="flex-row items-center">
-                <ClockIcon color="#64748B" size={12} />
-                <Text className="ml-1 text-[11px] font-bold text-[#64748B]">
+              <View className="flex-row items-center rounded-md bg-white/80 border border-slate-200/60 px-2 py-0.5">
+                <ClockIcon color="#64748B" size={11} />
+                <Text className="ml-1 text-[11px] font-semibold text-slate-600">
                   {relativeTime}
                 </Text>
               </View>
@@ -1230,12 +1315,12 @@ export function OrdersScreen({
 
             <View
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: theme.badgeBg,
                 borderColor: theme.badgeBorder,
               }}
               className="flex-row items-center rounded-full border px-2.5 py-1"
             >
-              {status === 'Pending' ? (
+              {isPending ? (
                 <Animated.View
                   style={{
                     backgroundColor: theme.dotColor,
@@ -1259,24 +1344,31 @@ export function OrdersScreen({
           </View>
         </View>
 
-        {/* CUSTOMER & PAYMENT ROW */}
-        <View className="px-4 py-2.5 border-b border-[#F1F5F9] flex-row items-center justify-between bg-white">
+        {/* 2. CUSTOMER & PAYMENT ROW */}
+        <View className="px-4 py-2.5 border-b border-slate-100 flex-row items-center justify-between bg-white">
           <View className="flex-1 flex-row items-center pr-2">
-            <UserIcon color="#475569" size={13} />
-            <Text className="ml-1.5 text-xs font-bold text-[#0F172A]" numberOfLines={1}>
+            <View className="h-6 w-6 items-center justify-center rounded-full bg-slate-100 mr-2">
+              <UserIcon color="#475569" size={12} />
+            </View>
+            <Text
+              className="text-[13px] font-bold text-slate-900"
+              numberOfLines={1}
+            >
               {item.customer_name || 'Walk-in Guest'}
             </Text>
 
             {item.customer_phone || item.customer_mobile || item.phone ? (
               <Pressable
+                accessibilityLabel="Call Customer"
+                accessibilityRole="button"
                 onPress={() => {
                   const p = item.customer_phone || item.customer_mobile || item.phone;
                   if (p) Linking.openURL(`tel:${p}`);
                 }}
-                className="ml-2 flex-row items-center rounded-md bg-[#F0FDF4] border border-[#DCFCE7] px-2 py-0.5"
+                className="ml-2.5 flex-row items-center rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 active:bg-emerald-100"
               >
-                <PhoneIcon color="#116C0B" size={10} />
-                <Text className="ml-1 text-[11px] font-bold text-[#116C0B]">
+                <PhoneIcon color="#059669" size={10} />
+                <Text className="ml-1 text-[11px] font-bold text-emerald-700">
                   Call
                 </Text>
               </Pressable>
@@ -1288,16 +1380,16 @@ export function OrdersScreen({
             className={`rounded-md px-2 py-0.5 border ${
               item.payment_method?.toLowerCase().includes('cash') ||
               item.payment_method?.toLowerCase().includes('cod')
-                ? 'bg-[#FEF3C7] border-[#FDE68A]'
-                : 'bg-[#ECFDF5] border-[#A7F3D0]'
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-emerald-50 border-emerald-200'
             }`}
           >
             <Text
               className={`text-[10px] font-black uppercase tracking-wider ${
                 item.payment_method?.toLowerCase().includes('cash') ||
                 item.payment_method?.toLowerCase().includes('cod')
-                  ? 'text-[#92400E]'
-                  : 'text-[#065F46]'
+                  ? 'text-amber-800'
+                  : 'text-emerald-800'
               }`}
             >
               {item.payment_method || 'PAID'}
@@ -1305,21 +1397,21 @@ export function OrdersScreen({
           </View>
         </View>
 
-        {/* FOOD ITEMS LIST SECTION */}
-        <View className="px-4 py-3 bg-white">
-          {/* Notes Callout if present */}
-          {item.notes ? (
-            <View className="mb-2.5 flex-row items-center rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2">
-              <NoteIcon color="#D97706" size={13} />
-              <Text
-                className="ml-2 flex-1 text-xs font-semibold text-[#92400E]"
-                numberOfLines={2}
-              >
-                Note: {item.notes}
-              </Text>
-            </View>
-          ) : null}
+        {/* Delivery Address Pill (if available) */}
+        {item.delivery_address ? (
+          <View className="px-4 py-1.5 bg-slate-50 border-b border-slate-100 flex-row items-center">
+            <MapPinIcon color="#64748B" size={11} />
+            <Text
+              className="ml-1.5 text-[11px] font-medium text-slate-600 flex-1"
+              numberOfLines={1}
+            >
+              {item.delivery_address}
+            </Text>
+          </View>
+        ) : null}
 
+        {/* 3. FOOD ITEMS SECTION */}
+        <View className="px-4 py-3 bg-white">
           {items.length > 0 ? (
             <View>
               {visibleItems.map((food, idx) => {
@@ -1333,14 +1425,14 @@ export function OrdersScreen({
                   <View
                     key={idx}
                     className={`flex-row items-center justify-between py-2 ${
-                      idx > 0 ? 'border-t border-[#F8FAFC]' : ''
+                      idx > 0 ? 'border-t border-slate-100' : ''
                     }`}
                   >
                     {/* Left: Dietary Icon + Food Name */}
                     <View className="flex-1 flex-row items-center pr-3">
                       <DietaryBadge isNonVeg={isNonVeg} />
                       <Text
-                        className="ml-2.5 flex-1 text-sm font-bold text-[#1E293B]"
+                        className="ml-2.5 flex-1 text-[13.5px] font-semibold text-slate-800"
                         numberOfLines={1}
                       >
                         {name}
@@ -1349,13 +1441,13 @@ export function OrdersScreen({
 
                     {/* Right: Quantity Badge + Price */}
                     <View className="flex-row items-center gap-2.5">
-                      <View className="rounded-md bg-[#F1F5F9] border border-[#E2E8F0] px-2 py-0.5">
-                        <Text className="text-xs font-black text-[#475569]">
+                      <View className="rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5">
+                        <Text className="text-xs font-black text-slate-700">
                           × {qty}
                         </Text>
                       </View>
 
-                      <Text className="text-sm font-black text-[#0F172A] min-w-[65px] text-right">
+                      <Text className="text-sm font-bold text-slate-900 min-w-[65px] text-right">
                         {itemTotal > 0 ? formatCurrency(itemTotal) : '—'}
                       </Text>
                     </View>
@@ -1367,7 +1459,7 @@ export function OrdersScreen({
               {hasMoreItems && (
                 <Pressable
                   onPress={() => toggleExpand(orderKey)}
-                  className="pt-2 flex-row items-center justify-center gap-1"
+                  className="pt-2 flex-row items-center justify-center gap-1 active:opacity-75"
                 >
                   <Text className="text-xs font-bold text-[#116C0B]">
                     {isExpanded
@@ -1378,99 +1470,145 @@ export function OrdersScreen({
               )}
             </View>
           ) : (
-            <Text className="text-xs italic text-[#94A3B8] py-1">
+            <Text className="text-xs italic text-slate-400 py-1">
               No individual item rows available
             </Text>
           )}
 
-          {/* Notes / Special Request Banner */}
+          {/* Notes / Special Request Banner (Single callout) */}
           {item.notes ? (
-            <View className="mt-2.5 rounded-lg bg-green-50 border border-green-200 p-2 flex-row items-start gap-1.5">
-              <Text className="text-xs">📝</Text>
-              <Text className="text-[11px] text-green-900 flex-1 font-medium">
-                "{item.notes}"
+            <View className="mt-2.5 flex-row items-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+              <NoteIcon color="#D97706" size={13} />
+              <Text
+                className="ml-2 flex-1 text-xs font-semibold text-amber-900"
+                numberOfLines={2}
+              >
+                Special Request: {item.notes}
               </Text>
             </View>
           ) : null}
         </View>
 
-        {/* TICKET FOOTER: TOTAL & ACTION BUTTONS */}
-        <View className="border-t border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-3">
-          <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row items-center gap-2">
-              <View
-                className={`rounded-md px-2 py-0.5 border ${
-                  item.payment_method?.toLowerCase().includes('cash') ||
-                  item.payment_method?.toLowerCase().includes('cod')
-                  ? ''
-                    : 'bg-[#DCFCE7] border-[#BBF7D0]'
-                }`}
-                style={
-                  item.payment_method?.toLowerCase().includes('cash') ||
-                  item.payment_method?.toLowerCase().includes('cod')
-                  ? {
-                      backgroundColor: colors.surfaceSecondary,
-                      borderColor: colors.borderLight,
-                    }
-                  : undefined
-                }
-              >
-                <Text
-                  className={`text-[10px] font-extrabold uppercase tracking-wider ${
-                    item.payment_method?.toLowerCase().includes('cash') ||
-                    item.payment_method?.toLowerCase().includes('cod')
-                      ? ''
-                      : 'text-[#166534]'
-                  }`}
-                  style={
-                    item.payment_method?.toLowerCase().includes('cash') ||
-                    item.payment_method?.toLowerCase().includes('cod')
-                      ? { color: colors.primary }
-                      : undefined
-                  }
-                >
-                  {item.payment_method || 'PAID'}
+        {/* 4. ORDER TOTAL CARD (Clear, framed & high-contrast) */}
+        <View className="px-4 py-3 bg-slate-50/70 border-t border-dashed border-slate-300">
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#E2E8F0',
+              borderWidth: 1.2,
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              shadowColor: '#0F172A',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.04,
+              shadowRadius: 3,
+              elevation: 1,
+            }}
+          >
+            {/* Top row of total card: label + items count + date */}
+            <View className="flex-row items-center justify-between pb-2 border-b border-slate-100">
+              <View className="flex-row items-center gap-1.5">
+                <View className="h-5 w-5 items-center justify-center rounded-md bg-emerald-100">
+                  <Text className="text-[10px] font-black text-emerald-800">₹</Text>
+                </View>
+                <Text className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
+                  Order Total
                 </Text>
+                <View className="rounded-full bg-slate-100 px-2 py-0.5">
+                  <Text className="text-[10px] font-bold text-slate-500">
+                    {items.length} {items.length === 1 ? 'item' : 'items'}
+                  </Text>
+                </View>
               </View>
-              <Text className="text-xs text-[#6B7280]">
-                {items.length} {items.length === 1 ? 'item' : 'items'}
+
+              <Text className="text-[11px] font-semibold text-slate-400">
+                {dateFormatted}
               </Text>
             </View>
 
-            <Text className="text-[11px] font-semibold text-[#94A3B8]">
-              {dateFormatted}
-            </Text>
+            {/* Bottom row of total card: Amount to Pay & Payment method */}
+            <View className="flex-row items-center justify-between pt-2">
+              <View>
+                <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Amount to Pay
+                </Text>
+                <Text className="text-2xl font-black text-[#116C0B] tracking-tight">
+                  {formatCurrency(amount)}
+                </Text>
+              </View>
+
+              <View className="items-end">
+                <View
+                  className={`flex-row items-center rounded-lg px-2.5 py-1 border ${
+                    item.payment_method?.toLowerCase().includes('cash') ||
+                    item.payment_method?.toLowerCase().includes('cod')
+                      ? 'bg-amber-50 border-amber-200'
+                      : 'bg-emerald-50 border-emerald-200'
+                  }`}
+                >
+                  <Text
+                    className={`text-[10px] font-black uppercase tracking-wider ${
+                      item.payment_method?.toLowerCase().includes('cash') ||
+                      item.payment_method?.toLowerCase().includes('cod')
+                        ? 'text-amber-800'
+                        : 'text-emerald-800'
+                    }`}
+                  >
+                    {item.payment_method || 'PAID'}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
 
-          {/* Action Buttons Row */}
-          <View className="flex-row items-center gap-2">
-            {/* Quick Status Action Button */}
+          {/* 5. ACTION BUTTONS ROW */}
+          <View className="flex-row items-center gap-2 pt-3">
+            {/* Primary Workflow Status Button */}
             {theme.nextStatus ? (
               <Pressable
                 accessibilityLabel={`Change order status to ${theme.nextStatus}`}
                 accessibilityRole="button"
                 disabled={isUpdatingStatus}
                 onPress={() => handleUpdateStatus(item, theme.nextStatus!)}
-                className="min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl px-2 py-2.5 shadow-sm"
-                style={({ pressed }) => ({
-                  backgroundColor: theme.accentColor,
-                  opacity: pressed || isUpdatingStatus ? 0.85 : 1,
-                })}
+                className="h-10 min-w-0 flex-1 flex-row items-center justify-center rounded-xl px-3 shadow-xs active:opacity-85"
+                style={{ backgroundColor: theme.accentColor }}
               >
-                <Text className="text-center text-xs font-black text-white">
-                  {theme.nextActionText}
-                </Text>
+                {isUpdatingThis ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    {theme.nextActionIcon ? (
+                      <Text className="mr-1.5 text-xs text-white">
+                        {theme.nextActionIcon}
+                      </Text>
+                    ) : null}
+                    <Text className="text-center text-xs font-black text-white">
+                      {theme.nextActionText}
+                    </Text>
+                  </>
+                )}
               </Pressable>
             ) : null}
 
+            {/* Quick Print Receipt Button */}
+            <Pressable
+              accessibilityLabel="Share or Print Receipt"
+              accessibilityRole="button"
+              onPress={() => printOrderReceipt(item)}
+              className="h-10 px-3 items-center justify-center rounded-xl border border-slate-200 bg-white active:bg-slate-100"
+            >
+              <PrinterIcon color="#334155" size={15} />
+            </Pressable>
+
             {/* Quick Cancel for Pending orders */}
-            {status === 'Pending' && (
+            {isPending && (
               <Pressable
                 disabled={isUpdatingStatus}
-                onPress={() => handleUpdateStatus(item, 'Cancelled')}
-                className="h-10 px-3 items-center justify-center rounded-xl bg-[#FEF2F2] border border-[#FECACA] active:bg-[#FEE2E2]"
+                onPress={() => setOrderToCancel(item)}
+                className="h-10 px-3 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 active:bg-rose-100"
               >
-                <Text className="text-xs font-black text-[#DC2626]">Cancel</Text>
+                <Text className="text-xs font-bold text-rose-700">Cancel</Text>
               </Pressable>
             )}
 
@@ -1478,13 +1616,13 @@ export function OrdersScreen({
             <Pressable
               onPress={() => setSelectedOrder(item)}
               className={`${
-                theme.nextStatus ? 'flex-1' : 'w-full'
-              } h-10 flex-row items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-3 active:bg-[#F1F5F9] shadow-xs`}
+                theme.nextStatus ? 'px-3.5' : 'flex-1'
+              } h-10 flex-row items-center justify-center rounded-xl border border-slate-200 bg-white active:bg-slate-100`}
             >
-              <Text className="text-xs font-black text-[#0F172A]">
-                View Receipt
+              <Text className="text-xs font-bold text-slate-800">
+                Details
               </Text>
-              <Text className="ml-1 text-xs font-black text-[#64748B]">›</Text>
+              <Text className="ml-1 text-xs font-bold text-slate-400">›</Text>
             </Pressable>
           </View>
         </View>
@@ -1502,131 +1640,64 @@ export function OrdersScreen({
 
   return (
     <View className="flex-1 bg-[#F8FAFC]">
+    
      
 
-      {/* Interactive Metric Cards Carousel */}
-      <View className="bg-white px-5 py-2.5 border-b border-[#E2E8F0]">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 10, paddingVertical: 2 }}
-        >
-          {/* 1. Pending Action */}
-          <Pressable
+      {/* SUMMARY STAT CARDS (Matches 2x2 Grid from Tables & Customers) */}
+      <View className="bg-white px-5 pt-3.5 pb-2 border-b border-slate-200">
+        <View className="flex-row flex-wrap justify-between gap-y-3">
+          {/* 1. Total Orders Card */}
+          <OrderSummaryStatCard
+            label="Total Orders"
+            value={orders.length}
+            tint="#166534"
+            iconBackground="#DCFCE7"
+            decorColor="#DCFCE7"
+            icon={<OrdersBoxIcon color="#166534" size={20} />}
+            isActive={statusFilter === 'All'}
+            onPress={() => setStatusFilter('All')}
+          />
+
+          {/* 2. Pending Orders Card */}
+          <OrderSummaryStatCard
+            label="Pending"
+            value={metrics.pending}
+            tint="#9A3412"
+            iconBackground="#FED7AA"
+            decorColor="#FED7AA"
+            icon={<ClockIcon color="#9A3412" size={20} />}
+            isActive={statusFilter === 'Pending'}
             onPress={() => setStatusFilter(statusFilter === 'Pending' ? 'All' : 'Pending')}
-            className="flex-row min-w-[125px] items-center gap-3 rounded-2xl border px-3.5 py-2.5"
-            style={{
-              backgroundColor: colors.surfaceSecondary,
-              borderColor: statusFilter === 'Pending' ? colors.primary : colors.borderLight,
-              ...(statusFilter === 'Pending' ? { elevation: 2 } : {}),
-            }}
-          >
-            <View
-              className="h-8 w-8 items-center justify-center rounded-xl"
-              style={{ backgroundColor: colors.borderLight }}
-            >
-              <Text className="text-base">⚡</Text>
-            </View>
-            <View>
-              <Text
-                className="text-[10px] font-extrabold uppercase tracking-wider"
-                style={{ color: colors.primary }}
-              >
-                Pending
-              </Text>
-              <Text className="text-lg font-black" style={{ color: colors.primaryDark }}>
-                {metrics.pending}
-              </Text>
-            </View>
-          </Pressable>
+          />
 
-          {/* 2. Cooking / Preparing */}
-          <Pressable
+          {/* 3. In Kitchen / Ready Card */}
+          <OrderSummaryStatCard
+            label="In Kitchen"
+            value={metrics.preparing + metrics.ready}
+            tint="#1D4ED8"
+            iconBackground="#BFDBFE"
+            decorColor="#BFDBFE"
+            icon={<ChefHatIcon color="#1D4ED8" size={20} />}
+            isActive={statusFilter === 'Preparing' || statusFilter === 'Ready'}
             onPress={() => setStatusFilter(statusFilter === 'Preparing' ? 'All' : 'Preparing')}
-            className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
-              statusFilter === 'Preparing'
-                ? 'bg-[#EDE9FE] border-[#8B5CF6] shadow-xs'
-                : 'bg-[#F5F3FF] border-[#DDD6FE]'
-            }`}
-          >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#DDD6FE]">
-              <Text className="text-sm font-black text-[#6D28D9]">👨‍🍳</Text>
-            </View>
-            <View>
-              <Text className="text-[10px] font-black uppercase tracking-wider text-[#6D28D9]">
-                Preparing
-              </Text>
-              <Text className="text-lg font-black text-[#5B21B6]">
-                {metrics.preparing}
-              </Text>
-            </View>
-          </Pressable>
+          />
 
-          {/* 3. Ready */}
-          <Pressable
-            onPress={() => setStatusFilter(statusFilter === 'Ready' ? 'All' : 'Ready')}
-            className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
-              statusFilter === 'Ready'
-                ? 'bg-[#DCFCE7] border-[#10B981] shadow-xs'
-                : 'bg-[#ECFDF5] border-[#A7F3D0]'
-            }`}
-          >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#A7F3D0]">
-              <Text className="text-sm font-black text-[#065F46]">🔔</Text>
-            </View>
-            <View>
-              <Text className="text-[10px] font-black uppercase tracking-wider text-[#065F46]">
-                Ready
-              </Text>
-              <Text className="text-lg font-black text-[#064E3B]">
-                {metrics.ready}
-              </Text>
-            </View>
-          </Pressable>
+          {/* 4. Total Revenue Card */}
+          <OrderSummaryStatCard
+            label="Total Revenue"
+            value={formatCompactNumber(metrics.revenue)}
+            tint="#6D28D9"
+            iconBackground="#DDD6FE"
+            decorColor="#DDD6FE"
+            icon={<Text style={{ fontSize: 20, fontWeight: '900', color: '#6D28D9' }}>₹</Text>}
+          />
+        </View>
 
-          {/* 4. Delivered */}
-          <Pressable
-            onPress={() => setStatusFilter(statusFilter === 'Delivered' ? 'All' : 'Delivered')}
-            className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
-              statusFilter === 'Delivered'
-                ? 'bg-[#DCFCE7] border-[#16A34A] shadow-xs'
-                : 'bg-[#F0FDF4] border-[#BBF7D0]'
-            }`}
-          >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#BBF7D0]">
-              <Text className="text-sm font-black text-[#15803D]">✓</Text>
-            </View>
-            <View>
-              <Text className="text-[10px] font-black uppercase tracking-wider text-[#15803D]">
-                Delivered
-              </Text>
-              <Text className="text-lg font-black text-[#14532D]">
-                {metrics.delivered}
-              </Text>
-            </View>
-          </Pressable>
-
-          {/* 5. Revenue */}
-          <View className="flex-row items-center gap-3 rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 min-w-[135px]">
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#E2E8F0]">
-              <Text className="text-sm font-black text-[#334155]">₹</Text>
-            </View>
-            <View>
-              <Text className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
-                Revenue
-              </Text>
-              <Text className="text-lg font-black text-[#0F172A]">
-                {formatCompactNumber(metrics.revenue)}
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* Order Category Tabs */}
+        {/* Category Pills (Dine-in, Takeaway, Delivery, etc.) */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingTop: 10, paddingBottom: 2 }}
+          contentContainerStyle={{ gap: 8, paddingTop: 12, paddingBottom: 4 }}
         >
           {(
             [
@@ -1634,6 +1705,7 @@ export function OrdersScreen({
               'Dine-in Orders',
               'Pickup Orders',
               'Home Delivery',
+              'Kitchen Orders',
               'Event Orders',
             ] as OrderTypeFilter[]
           ).map(category => {
@@ -1642,27 +1714,27 @@ export function OrdersScreen({
               <Pressable
                 key={category}
                 onPress={() => setOrderTypeFilter(category)}
-                className={`flex-row items-center rounded-full border px-3.5 py-1.5 shadow-2xs ${
+                className={`flex-row items-center rounded-full border px-3 py-1.5 shadow-2xs ${
                   isActive
                     ? 'border-[#116C0B] bg-[#116C0B]'
-                    : 'border-[#CBD5E1] bg-white'
+                    : 'border-slate-200 bg-white'
                 }`}
               >
                 <Text
                   className={`text-xs font-bold ${
-                    isActive ? 'text-white' : 'text-[#475569]'
+                    isActive ? 'text-white' : 'text-slate-700'
                   }`}
                 >
                   {category}
                 </Text>
                 <View
                   className={`ml-1.5 rounded-full px-1.5 py-0.5 ${
-                    isActive ? 'bg-white/25' : 'bg-[#F1F5F9]'
+                    isActive ? 'bg-white/25' : 'bg-slate-100'
                   }`}
                 >
                   <Text
                     className={`text-[10px] font-black ${
-                      isActive ? 'text-white' : 'text-[#64748B]'
+                      isActive ? 'text-white' : 'text-slate-600'
                     }`}
                   >
                     {orderCategoryCounts[category]}
@@ -1674,123 +1746,81 @@ export function OrdersScreen({
         </ScrollView>
       </View>
 
-      {/* Search Bar & Filter Controls Row */}
-      <View className="bg-white px-5 pt-3 pb-2.5 border-b border-[#E2E8F0]">
+      {/* SEARCH BAR & FILTER ROW */}
+      <View className="bg-white px-5 pt-3 pb-3 border-b border-slate-200">
         <View className="flex-row items-center gap-2">
           {/* Search Input */}
-          <View className="flex-1 flex-row items-center rounded-xl bg-[#F8FAFC] px-3.5 py-2 border border-[#CBD5E1]">
-            <SearchIcon color="#64748B" size={17} />
+          <View className="flex-1 flex-row items-center rounded-xl bg-slate-50 px-3 py-2 border border-slate-200">
+            <SearchIcon color="#64748B" size={16} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search order #, customer, table, food..."
               placeholderTextColor="#94A3B8"
-              className="ml-2.5 flex-1 text-xs text-[#0F172A] p-0 font-medium"
+              className="ml-2 flex-1 text-xs text-slate-900 p-0 font-medium"
             />
             {searchQuery ? (
               <Pressable onPress={() => setSearchQuery('')} className="p-1">
-                <Text className="text-xs font-black text-[#94A3B8]">✕</Text>
+                <Text className="text-xs font-black text-slate-400">✕</Text>
               </Pressable>
             ) : null}
           </View>
 
           {/* Filter Trigger Button */}
           <Pressable
+            accessibilityLabel="Filter Orders"
+            accessibilityRole="button"
             onPress={() => setShowFilterModal(true)}
             className={`flex-row items-center rounded-xl border px-3 py-2 shadow-2xs ${
               activeFiltersCount > 0
-                ? 'border-[#116C0B] bg-[#F0FDF4]'
-                : 'border-[#CBD5E1] bg-white'
+                ? 'border-[#116C0B] bg-emerald-50'
+                : 'border-slate-200 bg-white'
             }`}
           >
-            <FilterIcon
+            <LucideFilterIcon
               color={activeFiltersCount > 0 ? '#116C0B' : '#475569'}
               size={15}
             />
             <Text
               className={`ml-1.5 text-xs font-black ${
-                activeFiltersCount > 0 ? 'text-[#116C0B]' : 'text-[#475569]'
+                activeFiltersCount > 0 ? 'text-[#116C0B]' : 'text-slate-700'
               }`}
             >
               Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
             </Text>
           </Pressable>
         </View>
-
-        {/* Status Horizontal Tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingTop: 10, paddingBottom: 2 }}
-        >
-          {STATUS_TABS.map(tab => {
-            const isActive = statusFilter === tab;
-            const count = statusCounts[tab] || 0;
-            return (
-              <Pressable
-                key={tab}
-                onPress={() => setStatusFilter(tab)}
-                className={`flex-row items-center rounded-full border px-3.5 py-1.5 shadow-2xs ${
-                  isActive
-                    ? 'border-[#116C0B] bg-[#116C0B]'
-                    : 'border-[#CBD5E1] bg-white'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-bold ${
-                    isActive ? 'text-white' : 'text-[#475569]'
-                  }`}
-                >
-                  {tab}
-                </Text>
-                <View
-                  className={`ml-1.5 rounded-full px-1.5 py-0.5 ${
-                    isActive ? 'bg-white/25' : 'bg-[#F1F5F9]'
-                  }`}
-                >
-                  <Text
-                    className={`text-[10px] font-black ${
-                      isActive ? 'text-white' : 'text-[#64748B]'
-                    }`}
-                  >
-                    {count}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
       </View>
 
       {/* Active Filter Reminder Pill */}
       {activeFiltersCount > 0 && (
-        <View className="flex-row items-center justify-between px-5 py-2 bg-[#F0FDF4] border-b border-[#DCFCE7]">
+        <View className="flex-row items-center justify-between px-5 py-2 bg-emerald-50/70 border-b border-emerald-100">
           <View className="flex-row flex-wrap items-center gap-1.5 flex-1">
-            <Text className="text-[11px] font-bold text-[#166534]">Active Filters:</Text>
+            <Text className="text-[11px] font-bold text-emerald-900">Active Filters:</Text>
             {orderTypeFilter !== 'All' && (
-              <View className="rounded-md bg-white border border-[#DCFCE7] px-2 py-0.5">
-                <Text className="text-[10px] font-bold text-[#166534]">
+              <View className="rounded-md bg-white border border-emerald-200 px-2 py-0.5">
+                <Text className="text-[10px] font-bold text-emerald-800">
                   {orderTypeFilter}
                 </Text>
               </View>
             )}
             {timeFilter !== 'All' && (
-              <View className="rounded-md bg-white border border-[#DCFCE7] px-2 py-0.5">
-                <Text className="text-[10px] font-bold text-[#166534]">
+              <View className="rounded-md bg-white border border-emerald-200 px-2 py-0.5">
+                <Text className="text-[10px] font-bold text-emerald-800">
                   {timeFilter}
                 </Text>
               </View>
             )}
             {sortOption !== 'newest' && (
-              <View className="rounded-md bg-white border border-[#DCFCE7] px-2 py-0.5">
-                <Text className="text-[10px] font-bold text-[#166534]">
+              <View className="rounded-md bg-white border border-emerald-200 px-2 py-0.5">
+                <Text className="text-[10px] font-bold text-emerald-800">
                   {sortOption === 'amount_high' ? 'Highest' : 'Oldest'}
                 </Text>
               </View>
             )}
           </View>
           <Pressable onPress={resetAllFilters}>
-            <Text className="text-[11px] font-black text-red-600">Reset All</Text>
+            <Text className="text-[11px] font-black text-rose-600">Reset All</Text>
           </Pressable>
         </View>
       )}
@@ -1804,11 +1834,11 @@ export function OrdersScreen({
         </Text>
       ) : null}
 
-      {/* Main Order List Section */}
+      {/* MAIN ORDER LIST SECTION */}
       {isLoading && !isRefreshing ? (
         <View className="flex-1 items-center justify-center p-8">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text className="mt-3 text-sm font-semibold text-[#64748B]">
+          <Text className="mt-3 text-sm font-semibold text-slate-500">
             Loading real-time orders...
           </Text>
         </View>
@@ -1817,10 +1847,10 @@ export function OrdersScreen({
           <View className="h-16 w-16 items-center justify-center rounded-2xl bg-red-50 border border-red-200">
             <Text className="text-2xl font-black text-red-500">!</Text>
           </View>
-          <Text className="mt-4 text-center text-base font-bold text-[#0F172A]">
+          <Text className="mt-4 text-center text-base font-bold text-slate-900">
             Unable to Load Orders
           </Text>
-          <Text className="mt-1 text-center text-xs text-[#64748B]">
+          <Text className="mt-1 text-center text-xs text-slate-500">
             {errorMessage}
           </Text>
           <Pressable
@@ -1840,7 +1870,7 @@ export function OrdersScreen({
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 14,
-            paddingBottom: insets.bottom + 100,
+            paddingBottom: insets.bottom + 90,
           }}
           refreshControl={
             <RefreshControl
@@ -1851,13 +1881,13 @@ export function OrdersScreen({
           }
           ListEmptyComponent={
             <View className="items-center justify-center py-16">
-              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#F1F5F9] border border-[#CBD5E1]">
+              <View className="h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 border border-slate-200">
                 <OrdersBoxIcon color="#94A3B8" size={30} />
               </View>
-              <Text className="mt-4 text-base font-bold text-[#0F172A]">
-                No Orders in this View
+              <Text className="mt-4 text-base font-bold text-slate-900">
+                No Orders Found
               </Text>
-              <Text className="mt-1 text-center text-xs text-[#64748B] max-w-[260px]">
+              <Text className="mt-1 text-center text-xs text-slate-500 max-w-[260px]">
                 {searchQuery || statusFilter !== 'All' || activeFiltersCount > 0
                   ? 'No orders match your selected filters. Tap below to clear filters.'
                   : 'New orders placed by customers or staff will show up here.'}
@@ -1865,7 +1895,7 @@ export function OrdersScreen({
               {(searchQuery || statusFilter !== 'All' || activeFiltersCount > 0) && (
                 <Pressable
                   onPress={resetAllFilters}
-                  className="mt-4 rounded-xl border border-[#116C0B] bg-[#F0FDF4] px-4 py-2 shadow-xs active:bg-[#DCFCE7]"
+                  className="mt-4 rounded-xl border border-[#116C0B] bg-emerald-50 px-4 py-2 shadow-xs active:bg-emerald-100"
                 >
                   <Text className="text-xs font-bold text-[#116C0B]">
                     Clear All Filters
@@ -1882,19 +1912,19 @@ export function OrdersScreen({
         accessibilityLabel="Assign order to delivery"
         accessibilityRole="button"
         onPress={() => setIsDeliveryAssignmentOpen(true)}
-        className="absolute h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-full border border-white/30 bg-[#0B4D1A] shadow-xl active:bg-[#02480B]"
+        className="absolute h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg active:bg-[#0D5208]"
         style={{
-          bottom: 8,
-          elevation: 12,
+          bottom: insets.bottom + 0,
           right: 20,
+          elevation: 8,
           shadowColor: '#052E10',
-          shadowOffset: { width: 0, height: 5 },
+          shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
-          shadowRadius: 8,
+          shadowRadius: 6,
           zIndex: 20,
         }}
       >
-        <BikeIcon color="#FFFFFF" size={25} />
+        <BikeIcon color="#FFFFFF" size={24} />
       </Pressable>
 
       {/* FILTER DRAWER / MODAL */}
@@ -1908,9 +1938,9 @@ export function OrdersScreen({
           <View className="w-full flex-row gap-3">
             <Pressable
               onPress={resetAllFilters}
-              className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
+              className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-slate-200 bg-white active:bg-slate-100"
             >
-              <Text className="text-sm font-semibold text-[#334155]">Reset</Text>
+              <Text className="text-sm font-semibold text-slate-700">Reset</Text>
             </Pressable>
             <Pressable
               accessibilityLabel="Apply order filters"
@@ -1928,7 +1958,7 @@ export function OrdersScreen({
         <ScrollView className="max-h-[380px]" contentContainerClassName="py-2 gap-4">
           {/* Order Type */}
           <View>
-            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-[#64748B]">
+            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
               Order Type
             </Text>
             <View className="flex-row flex-wrap gap-2">
@@ -1938,6 +1968,7 @@ export function OrdersScreen({
                   'Dine-in Orders',
                   'Pickup Orders',
                   'Home Delivery',
+                  'Kitchen Orders',
                   'Event Orders',
                 ] as OrderTypeFilter[]
               ).map(type => {
@@ -1949,12 +1980,12 @@ export function OrdersScreen({
                     className={`rounded-2xl border px-3.5 py-2.5 ${
                       isSelected
                         ? 'border-[#116C0B] bg-[#116C0B]/10'
-                        : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                        : 'border-slate-200 bg-white active:bg-slate-50'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
+                        isSelected ? 'text-[#116C0B]' : 'text-slate-700'
                       }`}
                     >
                       {type}
@@ -1967,7 +1998,7 @@ export function OrdersScreen({
 
           {/* Time Period */}
           <View>
-            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-[#64748B]">
+            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
               Time Period
             </Text>
             <View className="flex-row flex-wrap gap-2">
@@ -1982,12 +2013,12 @@ export function OrdersScreen({
                     className={`rounded-2xl border px-3.5 py-2.5 ${
                       isSelected
                         ? 'border-[#116C0B] bg-[#116C0B]/10'
-                        : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                        : 'border-slate-200 bg-white active:bg-slate-50'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
+                        isSelected ? 'text-[#116C0B]' : 'text-slate-700'
                       }`}
                     >
                       {time}
@@ -2000,7 +2031,7 @@ export function OrdersScreen({
 
           {/* Sort Order */}
           <View>
-            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-[#64748B]">
+            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
               Sort Orders By
             </Text>
             <View className="flex-row flex-wrap gap-2">
@@ -2018,12 +2049,12 @@ export function OrdersScreen({
                     className={`rounded-2xl border px-3.5 py-2.5 ${
                       isSelected
                         ? 'border-[#116C0B] bg-[#116C0B]/10'
-                        : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                        : 'border-slate-200 bg-white active:bg-slate-50'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
+                        isSelected ? 'text-[#116C0B]' : 'text-slate-700'
                       }`}
                     >
                       {sort.label}
@@ -2035,6 +2066,26 @@ export function OrdersScreen({
           </View>
         </ScrollView>
       </BaseModal>
+
+      {/* CANCEL CONFIRMATION DIALOG */}
+      <ConfirmDialog
+        visible={orderToCancel !== null}
+        onClose={() => setOrderToCancel(null)}
+        onConfirm={async () => {
+          if (orderToCancel) {
+            const target = orderToCancel;
+            setOrderToCancel(null);
+            await handleUpdateStatus(target, 'Cancelled');
+          }
+        }}
+        title="Cancel Order"
+        message={`Are you sure you want to cancel order #${orderToCancel?.order_number || orderToCancel?.order_id || orderToCancel?.id}? This action will mark it as Cancelled.`}
+        confirmLabel="Yes, Cancel"
+        cancelLabel="Keep Order"
+        isDestructive={true}
+        variantType="danger"
+        isLoading={isUpdatingStatus}
+      />
 
       {/* FULL RECEIPT / ORDER DETAILS MODAL */}
       {selectedOrder ? (
@@ -2073,23 +2124,37 @@ export function OrdersScreen({
             };
           })()}
           footer={
-            <Pressable
-              onPress={() => setSelectedOrder(null)}
-              className="min-h-12 w-full items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
-            >
-              <Text className="text-sm font-semibold text-[#334155]">Close Details</Text>
-            </Pressable>
+            <View className="w-full flex-row gap-2.5">
+              <Pressable
+                accessibilityLabel="Share or Print Receipt"
+                accessibilityRole="button"
+                onPress={() => printOrderReceipt(selectedOrder)}
+                className="h-12 flex-1 flex-row items-center justify-center rounded-2xl border border-slate-200 bg-white active:bg-slate-100"
+              >
+                <PrinterIcon color="#0F172A" size={16} />
+                <Text className="ml-2 text-sm font-bold text-slate-800">
+                  Share / Print
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSelectedOrder(null)}
+                className="h-12 flex-1 items-center justify-center rounded-2xl bg-slate-900 active:bg-slate-800"
+              >
+                <Text className="text-sm font-bold text-white">Close</Text>
+              </Pressable>
+            </View>
           }
         >
           <View className="gap-3">
             {/* Guest & Table Info */}
-            <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5">
+            <View className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
               <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                <View className="flex-1 pr-2">
+                  <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Customer Details
                   </Text>
-                  <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
+                  <Text className="text-sm font-bold text-slate-900 mt-0.5">
                     {selectedOrder.customer_name || 'Walk-in Customer'}
                   </Text>
                   {selectedOrder.customer_phone ||
@@ -2117,10 +2182,10 @@ export function OrdersScreen({
                 </View>
 
                 <View className="items-end">
-                  <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                  <Text className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Order Type
                   </Text>
-                  <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
+                  <Text className="text-sm font-bold text-slate-900 mt-0.5">
                     {normalizeOrderType(selectedOrder.order_type)}
                   </Text>
                   {selectedOrder.table_number ? (
@@ -2132,11 +2197,11 @@ export function OrdersScreen({
               </View>
 
               {selectedOrder.delivery_address ? (
-                <View className="mt-2.5 pt-2 border-t border-[#E2E8F0]">
-                  <Text className="text-[10px] font-bold text-[#64748B]">
+                <View className="mt-2.5 pt-2 border-t border-slate-200">
+                  <Text className="text-[10px] font-bold text-slate-500">
                     Delivery Address:
                   </Text>
-                  <Text className="text-xs text-[#334155] mt-0.5">
+                  <Text className="text-xs text-slate-700 mt-0.5">
                     {selectedOrder.delivery_address}
                   </Text>
                 </View>
@@ -2145,8 +2210,8 @@ export function OrdersScreen({
 
             {/* Change Status Stepper Buttons */}
             <View>
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
-                Change Order Status
+              <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Update Order Status
               </Text>
               <ScrollView
                 horizontal
@@ -2176,7 +2241,7 @@ export function OrdersScreen({
                       className={`rounded-2xl border px-3.5 py-2 flex-row items-center gap-1.5 ${
                         isCurrent
                           ? 'border-[#116C0B] bg-[#116C0B]'
-                          : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                          : 'border-slate-200 bg-white active:bg-slate-50'
                       }`}
                     >
                       <View
@@ -2187,7 +2252,7 @@ export function OrdersScreen({
                       />
                       <Text
                         className={`text-xs font-bold ${
-                          isCurrent ? 'text-white' : 'text-[#334155]'
+                          isCurrent ? 'text-white' : 'text-slate-700'
                         }`}
                       >
                         {s}
@@ -2200,12 +2265,12 @@ export function OrdersScreen({
 
             {/* Itemized Bill Table */}
             <View>
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
-                Receipt Items ({selectedOrder.items?.length || 0})
+              <Text className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Order Items ({selectedOrder.items?.length || 0})
               </Text>
 
               {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                <View className="rounded-2xl border border-[#CBD5E1] bg-white overflow-hidden mb-3.5">
+                <View className="rounded-2xl border border-slate-200 bg-white overflow-hidden mb-3.5">
                   {selectedOrder.items.map((food, idx) => {
                     const itemName =
                       food.food_name || food.product_name || food.name || 'Item';
@@ -2219,26 +2284,26 @@ export function OrdersScreen({
                       <View
                         key={idx}
                         className={`flex-row items-center justify-between p-3.5 ${
-                          idx > 0 ? 'border-t border-[#F1F5F9]' : ''
+                          idx > 0 ? 'border-t border-slate-100' : ''
                         }`}
                       >
                         <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                           <DietaryBadge isNonVeg={isNonVeg} />
-                          <View className="h-6 w-6 items-center justify-center rounded-md bg-[#F0FDF4] border border-[#DCFCE7]">
-                            <Text className="text-xs font-black text-[#116C0B]">
+                          <View className="h-6 w-6 items-center justify-center rounded-md bg-emerald-50 border border-emerald-200">
+                            <Text className="text-xs font-black text-emerald-800">
                               {qty}
                             </Text>
                           </View>
                           <View className="flex-1">
-                            <Text className="text-sm font-bold text-[#0F172A]">
+                            <Text className="text-sm font-bold text-slate-900">
                               {itemName}
                             </Text>
-                            <Text className="text-xs text-[#64748B]">
+                            <Text className="text-xs text-slate-500">
                               {qty} × {formatCurrency(unitPrice)}
                             </Text>
                           </View>
                         </View>
-                        <Text className="text-sm font-black text-[#0F172A]">
+                        <Text className="text-sm font-black text-slate-900">
                           {formatCurrency(totalPrice)}
                         </Text>
                       </View>
@@ -2249,11 +2314,11 @@ export function OrdersScreen({
             </View>
 
             {/* Pricing Summary Breakdown */}
-            <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-4 mb-2">
+            <View className="rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-2">
               {selectedOrder.subtotal ? (
                 <View className="flex-row items-center justify-between py-1">
-                  <Text className="text-xs text-[#64748B]">Subtotal</Text>
-                  <Text className="text-xs font-semibold text-[#334155]">
+                  <Text className="text-xs text-slate-500">Subtotal</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
                     {formatCurrency(selectedOrder.subtotal)}
                   </Text>
                 </View>
@@ -2261,8 +2326,8 @@ export function OrdersScreen({
 
               {selectedOrder.tax ? (
                 <View className="flex-row items-center justify-between py-1">
-                  <Text className="text-xs text-[#64748B]">GST / Taxes</Text>
-                  <Text className="text-xs font-semibold text-[#334155]">
+                  <Text className="text-xs text-slate-500">GST / Taxes</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
                     {formatCurrency(selectedOrder.tax)}
                   </Text>
                 </View>
@@ -2270,18 +2335,24 @@ export function OrdersScreen({
 
               {selectedOrder.delivery_fee ? (
                 <View className="flex-row items-center justify-between py-1">
-                  <Text className="text-xs text-[#64748B]">Delivery Fee</Text>
-                  <Text className="text-xs font-semibold text-[#334155]">
+                  <Text className="text-xs text-slate-500">Delivery Fee</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
                     {formatCurrency(selectedOrder.delivery_fee)}
                   </Text>
                 </View>
               ) : null}
 
-              <View className="flex-row items-center justify-between pt-2.5 mt-1 border-t border-[#E2E8F0]">
-                <Text className="text-base font-black text-[#0F172A]">
-                  Grand Total
-                </Text>
-                <Text className="text-xl font-black text-[#116C0B]">
+              {/* Highlighted Grand Total Box */}
+              <View className="flex-row items-center justify-between p-3.5 mt-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                <View>
+                  <Text className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                    Grand Total
+                  </Text>
+                  <Text className="text-xs text-emerald-700 font-semibold mt-0.5">
+                    Final Invoice Amount
+                  </Text>
+                </View>
+                <Text className="text-2xl font-black text-[#116C0B]">
                   {formatCurrency(
                     selectedOrder.total_amount ||
                       selectedOrder.grand_total ||
