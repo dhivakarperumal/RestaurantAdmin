@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { BaseModal } from './BaseModal';
+import { Pressable, Text, View } from 'react-native';
 import { CheckIcon, ChevronDownIcon } from './LucideIcons';
 
 export type FilterOption<Value extends string = string> = {
@@ -24,36 +23,36 @@ export function FilterSelect<Value extends string>({
     options.find(option => option.value === value)?.label ?? value;
 
   return (
-    <>
-      <View className="min-w-0 flex-1">
-        <Pressable
-          accessibilityLabel={`${label}: ${selectedLabel}`}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: isOpen }}
-          onPress={() => setIsOpen(true)}
-          className="min-h-11 flex-row items-center justify-between rounded-xl border border-[#CBD5E1] bg-white px-3"
-        >
-          <Text
-            className="min-w-0 flex-1 text-sm font-medium text-[#1E293B]"
-            numberOfLines={1}
-          >
-            {selectedLabel}
-          </Text>
-          <ChevronDownIcon size={17} color="#64748B" />
-        </Pressable>
-      </View>
-
-      <BaseModal
-        visible={isOpen}
-        onClose={() => setIsOpen(false)}
-        title={`Filter by ${label.toLowerCase()}`}
-        subtitle="Choose an option to update the results."
-        variant="bottom-sheet"
+    <View
+      className="min-w-0 flex-1"
+      style={{ zIndex: isOpen ? 20 : 1, elevation: isOpen ? 20 : 0 }}
+    >
+      <Pressable
+        accessibilityLabel={`${label}: ${selectedLabel}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isOpen }}
+        onPress={() => setIsOpen(open => !open)}
+        className="min-h-11 flex-row items-center justify-between rounded-xl border border-[#CBD5E1] bg-white px-3"
       >
-        <ScrollView
-          className="max-h-[360px]"
-          contentContainerClassName="gap-1 pb-4"
-          keyboardShouldPersistTaps="handled"
+        <Text
+          className="min-w-0 flex-1 text-sm font-medium text-[#1E293B]"
+          numberOfLines={1}
+        >
+          {selectedLabel}
+        </Text>
+        <View
+          style={{
+            transform: [{ rotate: isOpen ? '180deg' : '0deg' }],
+          }}
+        >
+          <ChevronDownIcon size={17} color="#64748B" />
+        </View>
+      </Pressable>
+
+      {isOpen ? (
+        <View
+          className="absolute left-0 right-0 top-[48px] overflow-hidden rounded-xl border border-[#E2E8F0] bg-white shadow-lg"
+          style={{ elevation: 12, zIndex: 20 }}
         >
           {options.map(option => {
             const isSelected = option.value === value;
@@ -67,10 +66,8 @@ export function FilterSelect<Value extends string>({
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`my-0.5 min-h-12 flex-row items-center justify-between rounded-xl px-4 py-3 ${
-                  isSelected
-                    ? 'border border-[#116C0B]/20 bg-[#116C0B]/10'
-                    : 'border border-transparent bg-white'
+                className={`min-h-12 flex-row items-center justify-between border-b border-[#F1F5F9] px-3 ${
+                  isSelected ? 'bg-[#F0FDF4]' : 'bg-white'
                 }`}
               >
                 <Text
@@ -86,8 +83,8 @@ export function FilterSelect<Value extends string>({
               </Pressable>
             );
           })}
-        </ScrollView>
-      </BaseModal>
-    </>
+        </View>
+      ) : null}
+    </View>
   );
 }
