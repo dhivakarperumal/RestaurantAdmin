@@ -619,27 +619,39 @@ function BannerManagementPage({
         onClose={() => setIsFormOpen(false)}
         title={editingBanner ? 'Edit Banner' : 'Add New Banner'}
         subtitle="Create a new banner for your website"
-        cancelLabel="Cancel"
+        cancelLabel=""
         isSaving={isSaving}
         errorMessage={error}
         footerExtra={
-          <Pressable
-            accessibilityLabel={editingBanner ? 'Save Changes' : 'Create Banner'}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: isSaving || uploadingField !== null }}
-            disabled={isSaving || uploadingField !== null}
-            onPress={saveBanner}
-            className="min-h-12 w-full items-center justify-center rounded-xl bg-[#064E3B] px-5 py-3"
-            style={{ opacity: isSaving || uploadingField !== null ? 0.55 : 1 }}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text className="text-sm font-bold text-white">
-                {editingBanner ? 'Save Changes' : 'Create Banner'}
-              </Text>
-            )}
-          </Pressable>
+          <View className="flex-row gap-3">
+            <Pressable
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
+              disabled={isSaving}
+              onPress={() => setIsFormOpen(false)}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3"
+              style={{ opacity: isSaving ? 0.55 : 1 }}
+            >
+              <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={editingBanner ? 'Save Changes' : 'Create Banner'}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSaving || uploadingField !== null }}
+              disabled={isSaving || uploadingField !== null}
+              onPress={saveBanner}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4 py-3"
+              style={{ opacity: isSaving || uploadingField !== null ? 0.55 : 1 }}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text className="text-sm font-bold text-white">
+                  {editingBanner ? 'Save Changes' : 'Create Banner'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
         }
         maxWidth={520}
         maxHeightPercent={94}
