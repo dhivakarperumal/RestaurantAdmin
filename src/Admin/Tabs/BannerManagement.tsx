@@ -491,7 +491,7 @@ function BannerManagementPage({
                   <View className="relative">
                     <BannerImage
                       banner={banner}
-                      className={isWide ? 'h-70 w-full' : 'h-30 w-full'}
+                      className={isWide ? 'h-80 w-full' : 'h-40 w-full'}
                     />
                     <View className="absolute left-3 top-3">
                       <BannerStatusBadge active={banner.active} />
