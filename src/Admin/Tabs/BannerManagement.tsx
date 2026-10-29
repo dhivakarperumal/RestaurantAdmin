@@ -24,6 +24,7 @@ import {
   MonitorIcon,
   Trash2Icon,
 } from '../../components/popups';
+import AdminManagementCard from '../../components/AdminManagementCard';
 import { PlusIcon, ProductIcon, SearchIcon } from '../Navigation/NavigationIcons';
 
 type BannerType = 'hero' | 'offer';
@@ -508,14 +509,9 @@ function BannerManagementPage({
           ) : (
             <View className="flex-row flex-wrap gap-3">
               {filteredBanners.map((banner, index) => (
-                <View
+                <AdminManagementCard
                   key={String(banner.id)}
-                  className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
-                  style={{
-                    width: isWide ? '48%' : '47%',
-                    flexGrow: 0,
-                    flexShrink: 0,
-                  }}
+                  isWide={isWide}
                 >
                   <View className="relative">
                     <BannerImage
@@ -562,7 +558,7 @@ function BannerManagementPage({
                       </View>
                     </View>
                   </View>
-                </View>
+                </AdminManagementCard>
               ))}
             </View>
           )

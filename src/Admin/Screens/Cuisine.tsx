@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import api, { API_BASE_URL } from '../../../api';
 import AdminStatCard from '../../components/AdminStatCard';
+import AdminManagementCard from '../../components/AdminManagementCard';
 import {
   PlusIcon,
   ProductIcon,
@@ -461,14 +462,9 @@ function Cuisine({
               const status = cuisine.status?.trim() || 'Active';
 
               return (
-                <View
+                <AdminManagementCard
                   key={String(cuisine.cuisine_id || `${name}-${index}`)}
-                  className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
-                  style={{
-                    width: isWide ? '48%' : '47%',
-                    flexGrow: 0,
-                    flexShrink: 0,
-                  }}
+                  isWide={isWide}
                 >
                   {imageUrl ? (
                     <Image
@@ -477,25 +473,29 @@ function Cuisine({
                       source={{ uri: imageUrl }}
                       className={
                         isWide
-                          ? 'h-48 w-full bg-[#F3F4F6]'
-                          : 'h-28 w-full bg-[#F3F4F6]'
+                          ? 'h-80 w-full bg-[#F3F4F6]'
+                          : 'h-40 w-full bg-[#F3F4F6]'
                       }
                     />
                   ) : (
                     <View
                       className={
                         isWide
-                          ? 'h-48 w-full items-center justify-center bg-[#F0F7EE]'
-                          : 'h-28 w-full items-center justify-center bg-[#F0F7EE]'
+                          ? 'h-80 w-full items-center justify-center bg-[#F0F7EE]'
+                          : 'h-40 w-full items-center justify-center bg-[#F0F7EE]'
                       }
                     >
                       <ProductIcon color={colors.primary} size={26} />
                     </View>
                   )}
-                  <View className="gap-2 p-3">
+                  <View className="gap-2 p-2.5">
                     <View className="flex-row flex-wrap items-center gap-2">
                       <Text
-                        className="min-w-0 flex-1 text-sm font-bold text-[#012711]"
+                        className={
+                          isWide
+                            ? 'min-w-0 flex-1 text-sm font-bold text-[#012711]'
+                            : 'min-w-0 flex-1 text-[11px] font-bold text-[#012711]'
+                        }
                         numberOfLines={1}
                       >
                         {name}
@@ -513,20 +513,24 @@ function Cuisine({
                       ) : null}
                     </View>
                     {cuisine.cuisine_id ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">
+                      <Text className="mt-1 text-[9px] text-[#6B7280]">
                         {cuisine.cuisine_id}
                       </Text>
                     ) : null}
                     {cuisine.description ? (
                       <Text
-                        className="mt-1 text-xs leading-4 text-[#6B7280]"
+                        className={
+                          isWide
+                            ? 'mt-1 text-xs leading-[17px] text-[#6B7280]'
+                            : 'mt-1 text-[9px] leading-3 text-[#6B7280]'
+                        }
                         numberOfLines={2}
                       >
                         {cuisine.description}
                       </Text>
                     ) : null}
                   </View>
-                  <View className="flex-row justify-between border-t border-[#F1F5F9] pt-2">
+                  <View className="mx-2.5 mb-2.5 flex-row justify-between border-t border-[#F1F5F9] pt-2">
                     <CuisineBadge
                       label={status}
                       active={status.toLowerCase() !== 'inactive'}
@@ -535,7 +539,7 @@ function Cuisine({
                       <CuisineBadge label="Featured" active />
                     ) : null}
                   </View>
-                </View>
+                </AdminManagementCard>
               );
             })}
           </View>

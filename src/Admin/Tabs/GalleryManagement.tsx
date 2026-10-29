@@ -23,6 +23,7 @@ import {
   Trash2Icon,
 } from '../../components/popups';
 import AdminStatCard from '../../components/AdminStatCard';
+import AdminManagementCard from '../../components/AdminManagementCard';
 import { PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
 
 type AlbumStatus = 'Active' | 'Inactive';
@@ -652,38 +653,43 @@ function GalleryManagementPage({
           ) : (
             <View className="flex-row flex-wrap gap-3">
               {filteredAlbums.map((album, index) => (
-                <View
+                <AdminManagementCard
                   key={album.album_id}
-                  className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
-                  style={{
-                    width: isWide ? '48%' : '47%',
-                    flexGrow: 0,
-                    flexShrink: 0,
-                  }}
+                  isWide={isWide}
                 >
                   {album.cover_image ? (
                     <Image
                       accessibilityLabel={`${album.title} cover image`}
                       className={
                         isWide
-                          ? 'h-56 w-full bg-[#F3F4F6]'
-                          : 'h-36 w-full bg-[#F3F4F6]'
+                          ? 'h-80 w-full bg-[#F3F4F6]'
+                          : 'h-40 w-full bg-[#F3F4F6]'
                       }
                       resizeMode="cover"
                       source={{ uri: resolveImageUrl(album.cover_image) }}
                     />
                   ) : (
-                    <View className="h-36 items-center justify-center bg-[#F3F4F6]">
+                    <View
+                      className={
+                        isWide
+                          ? 'h-80 items-center justify-center bg-[#F3F4F6]'
+                          : 'h-40 items-center justify-center bg-[#F3F4F6]'
+                      }
+                    >
                       <Text className="text-sm text-[#6B7280]">
                         No cover image
                       </Text>
                     </View>
                   )}
-                  <View className="gap-2.5 p-3">
+                  <View className="gap-2 p-2.5">
                     <View className="flex-row items-start justify-between gap-3">
                       <View className="flex-1">
                         <Text
-                          className="text-sm font-bold text-[#1f1d1b]"
+                          className={
+                            isWide
+                              ? 'text-sm font-bold text-[#012711]'
+                              : 'text-[11px] font-bold text-[#012711]'
+                          }
                           numberOfLines={1}
                         >
                           {album.title}
@@ -712,15 +718,19 @@ function GalleryManagementPage({
                     </View>
                     <Text
                       numberOfLines={2}
-                      className="text-xs leading-4 text-[#5f5f5f]"
+                      className={
+                        isWide
+                          ? 'text-xs leading-[17px] text-[#6B7280]'
+                          : 'text-[9px] leading-3 text-[#6B7280]'
+                      }
                     >
                       {album.short_description || 'No description available.'}
                     </Text>
-                    <View className="flex-row items-center justify-between border-t border-[#f0ebe6] pt-3">
-                      <Text className="text-xs text-[#6a6a6a]">
+                    <View className="flex-row items-center justify-between border-t border-[#F1F5F9] pt-2">
+                      <Text className="text-[9px] text-[#6B7280]">
                         {album.category || 'Uncategorized'}
                       </Text>
-                      <Text className="text-xs text-[#6a6a6a]">
+                      <Text className="text-[9px] text-[#6B7280]">
                         {album.photo_count || album.photos.length} photos
                       </Text>
                     </View>
@@ -756,7 +766,7 @@ function GalleryManagementPage({
                       Album {index + 1}
                     </Text>
                   </View>
-                </View>
+                </AdminManagementCard>
               ))}
             </View>
           )
