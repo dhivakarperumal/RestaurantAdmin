@@ -697,7 +697,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
             value={search}
           />
 
-          <View className="flex-row items-end gap-3">
+          <View className="flex-row items-center gap-3">
             <FilterSelect
               label="Role"
               value={selectedRole}
@@ -725,7 +725,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                     : status,
               }))}
             />
-            <View className="mb-4 h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+            <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
               {(['grid', 'list'] as const).map(mode => {
                 const selected = viewMode === mode;
                 return (

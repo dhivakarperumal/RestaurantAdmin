@@ -26,9 +26,6 @@ export function FilterSelect<Value extends string>({
   return (
     <>
       <View className="min-w-0 flex-1">
-        <Text className="mb-1.5 text-xs font-semibold text-[#475569]">
-          {label}
-        </Text>
         <Pressable
           accessibilityLabel={`${label}: ${selectedLabel}`}
           accessibilityRole="button"
