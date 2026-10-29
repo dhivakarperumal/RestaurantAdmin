@@ -619,12 +619,28 @@ function BannerManagementPage({
         onClose={() => setIsFormOpen(false)}
         title={editingBanner ? 'Edit Banner' : 'Add New Banner'}
         subtitle="Create a new banner for your website"
-        onSave={saveBanner}
-        saveLabel={editingBanner ? 'Save Changes' : 'Create Banner'}
         cancelLabel="Cancel"
         isSaving={isSaving}
-        isSaveDisabled={isSaving || uploadingField !== null}
         errorMessage={error}
+        footerExtra={
+          <Pressable
+            accessibilityLabel={editingBanner ? 'Save Changes' : 'Create Banner'}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isSaving || uploadingField !== null }}
+            disabled={isSaving || uploadingField !== null}
+            onPress={saveBanner}
+            className="min-h-12 w-full items-center justify-center rounded-xl bg-[#064E3B] px-5 py-3"
+            style={{ opacity: isSaving || uploadingField !== null ? 0.55 : 1 }}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text className="text-sm font-bold text-white">
+                {editingBanner ? 'Save Changes' : 'Create Banner'}
+              </Text>
+            )}
+          </Pressable>
+        }
         maxWidth={520}
         maxHeightPercent={94}
         contentContainerStyle={{ gap: 12, padding: 14 }}
