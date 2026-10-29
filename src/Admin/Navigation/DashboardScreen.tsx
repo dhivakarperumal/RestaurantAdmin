@@ -513,6 +513,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setActiveTab(tab);
     setIsItemsInnerPageOpen(false);
     setIsBillPreviewOpen(false);
+    setIsDeliveryAssignmentOpen(false);
     setSelectedAction(null);
     setSelectedFeature(null);
     setIsSidebarOpen(false);
@@ -522,6 +523,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const navigateToMoreFeature = (feature: string | null) => {
     setActiveTab('more');
     setIsItemsInnerPageOpen(false);
+    setIsDeliveryAssignmentOpen(false);
     setSelectedAction(null);
     setSelectedFeature(feature);
     setIsSidebarOpen(false);
@@ -768,6 +770,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         // 5. Non-home tab → go to home
         if (activeTab !== 'home') {
           setActiveTab('home');
+          setIsDeliveryAssignmentOpen(false);
           setSelectedAction(null);
           setSelectedFeature(null);
           setIsItemsInnerPageOpen(false);
