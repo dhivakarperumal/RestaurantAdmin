@@ -451,7 +451,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
         </View>
 
         <View className="gap-3">
-          <View className="flex-row justify-between">
+          <View className="w-full flex-row justify-between">
             <AdminStatCard
               label="Total"
               value={tables.length}
@@ -467,7 +467,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
               icon={<MenuIcon color="#9A3412" size={22} />}
             />
           </View>
-          <View className="flex-row justify-between">
+          <View className="w-full flex-row justify-between">
             <AdminStatCard
               label="Occupied"
               value={occupiedCount}

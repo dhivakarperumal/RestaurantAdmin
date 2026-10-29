@@ -25,6 +25,7 @@ function AdminStatCard({
       disabled={!onPress}
       style={({ pressed }) => ({
         width: '48%',
+        minWidth: 0,
         flexGrow: 0,
         flexShrink: 0,
         minHeight: 90,
@@ -44,6 +45,7 @@ function AdminStatCard({
     >
       <View
         style={{
+          width: '100%',
           flexDirection: 'row',
           alignItems: 'center',
           gap: 10,
