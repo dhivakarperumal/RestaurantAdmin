@@ -305,9 +305,6 @@ function BannerManagementPage({
                 <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
               </Pressable>
             ) : null}
-            <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-              WEBSITE CONTENT
-            </Text>
             <Text className="mt-1 text-2xl font-bold text-[#012711]">
               Banner Management
             </Text>
@@ -439,9 +436,8 @@ function BannerManagementPage({
                       accessibilityState={{ selected }}
                       key={mode}
                       onPress={() => setViewMode(mode)}
-                      className={`h-9 w-9 items-center justify-center rounded-md ${
-                        selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
-                      }`}
+                      className={`h-9 w-9 items-center justify-center rounded-md ${selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                        }`}
                     >
                       <Text className={`text-base font-bold ${selected ? 'text-white' : 'text-[#64748B]'}`}>
                         {mode === 'grid' ? '▦' : '☷'}
@@ -467,47 +463,46 @@ function BannerManagementPage({
                 style={{ width: isWide ? '100%' : 680 }}
               >
                 <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
-                <Text className="w-12 text-xs font-bold text-[#64748B]">#</Text>
-                <Text className="w-20 text-xs font-bold text-[#64748B]">Image</Text>
-                <Text className="flex-1 text-xs font-bold text-[#64748B]">Title</Text>
-                <Text className="w-24 text-xs font-bold text-[#64748B]">Type</Text>
-                <Text className="w-28 text-xs font-bold text-[#64748B]">Status</Text>
-                <Text className="w-20 text-xs font-bold text-[#64748B]">Actions</Text>
-              </View>
-              {filteredBanners.map((banner, index) => (
-                <View
-                  key={String(banner.id)}
-                  className={`min-h-[58px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2 ${
-                    index % 2 === 0 ? 'bg-white' : 'bg-[#FAFCFA]'
-                  }`}
-                >
-                  <Text className="w-12 text-xs text-[#64748B]">{index + 1}</Text>
-                  <View className="w-20 pr-3">
-                    <BannerImage banner={banner} className="h-9 w-16 rounded-md" />
-                  </View>
-                  <Text className="flex-1 pr-3 text-xs font-semibold text-[#334155]" numberOfLines={1}>
-                    {banner.title || 'Untitled banner'}
-                  </Text>
-                  <View className="w-24">
-                    <BannerTypeBadge type={banner.type} />
-                  </View>
-                  <View className="w-28">
-                    <BannerStatusBadge active={banner.active} />
-                  </View>
-                  <View className="w-20 flex-row gap-2">
-                    <BannerActionButton
-                      label={`Edit banner ${banner.title || index + 1}`}
-                      onPress={() => openEditForm(banner)}
-                      tone="edit"
-                    />
-                    <BannerActionButton
-                      label={`Delete banner ${banner.title || index + 1}`}
-                      onPress={() => deleteBanner(banner)}
-                      tone="delete"
-                    />
-                  </View>
+                  <Text className="w-12 text-xs font-bold text-[#64748B]">#</Text>
+                  <Text className="w-20 text-xs font-bold text-[#64748B]">Image</Text>
+                  <Text className="flex-1 text-xs font-bold text-[#64748B]">Title</Text>
+                  <Text className="w-24 text-xs font-bold text-[#64748B]">Type</Text>
+                  <Text className="w-28 text-xs font-bold text-[#64748B]">Status</Text>
+                  <Text className="w-20 text-xs font-bold text-[#64748B]">Actions</Text>
                 </View>
-              ))}
+                {filteredBanners.map((banner, index) => (
+                  <View
+                    key={String(banner.id)}
+                    className={`min-h-[58px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2 ${index % 2 === 0 ? 'bg-white' : 'bg-[#FAFCFA]'
+                      }`}
+                  >
+                    <Text className="w-12 text-xs text-[#64748B]">{index + 1}</Text>
+                    <View className="w-20 pr-3">
+                      <BannerImage banner={banner} className="h-9 w-16 rounded-md" />
+                    </View>
+                    <Text className="flex-1 pr-3 text-xs font-semibold text-[#334155]" numberOfLines={1}>
+                      {banner.title || 'Untitled banner'}
+                    </Text>
+                    <View className="w-24">
+                      <BannerTypeBadge type={banner.type} />
+                    </View>
+                    <View className="w-28">
+                      <BannerStatusBadge active={banner.active} />
+                    </View>
+                    <View className="w-20 flex-row gap-2">
+                      <BannerActionButton
+                        label={`Edit banner ${banner.title || index + 1}`}
+                        onPress={() => openEditForm(banner)}
+                        tone="edit"
+                      />
+                      <BannerActionButton
+                        label={`Delete banner ${banner.title || index + 1}`}
+                        onPress={() => deleteBanner(banner)}
+                        tone="delete"
+                      />
+                    </View>
+                  </View>
+                ))}
               </View>
             </ScrollView>
           ) : (
@@ -516,7 +511,11 @@ function BannerManagementPage({
                 <View
                   key={String(banner.id)}
                   className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
-                  style={{ flexBasis: isWide ? '47%' : '45%', flexGrow: 1 }}
+                  style={{
+                    width: isWide ? '48%' : '47%',
+                    flexGrow: 0,
+                    flexShrink: 0,
+                  }}
                 >
                   <View className="relative">
                     <BannerImage
@@ -633,23 +632,23 @@ function BannerManagementPage({
         <View className="gap-3">
           <BannerFormSection number="1" title="Basic Information">
             <BannerField
-                label="Title *"
-                value={draft.title}
-                onChangeText={value => updateDraft('title', value)}
-                placeholder="Enter banner title"
+              label="Title *"
+              value={draft.title}
+              onChangeText={value => updateDraft('title', value)}
+              placeholder="Enter banner title"
             />
             <BannerField
-                label="Subtitle"
-                value={draft.subtitle}
-                onChangeText={value => updateDraft('subtitle', value)}
-                placeholder="Enter short subtitle (optional)"
+              label="Subtitle"
+              value={draft.subtitle}
+              onChangeText={value => updateDraft('subtitle', value)}
+              placeholder="Enter short subtitle (optional)"
             />
             <BannerField
-                label="Description"
-                value={draft.description}
-                onChangeText={value => updateDraft('description', value)}
-                placeholder="Enter banner description (optional)"
-                multiline
+              label="Description"
+              value={draft.description}
+              onChangeText={value => updateDraft('description', value)}
+              placeholder="Enter banner description (optional)"
+              multiline
             />
             <BannerField
               label="Link URL"
@@ -752,9 +751,8 @@ function BannerManagementPage({
                 style={{ backgroundColor: draft.active ? colors.primary : '#CBD5E1' }}
               >
                 <View
-                  className={`h-5 w-5 rounded-full bg-white ${
-                    draft.active ? 'self-end' : 'self-start'
-                  }`}
+                  className={`h-5 w-5 rounded-full bg-white ${draft.active ? 'self-end' : 'self-start'
+                    }`}
                 />
               </View>
             </Pressable>
@@ -1019,16 +1017,14 @@ function BannerFilterDropdown<Value extends string>({
               accessibilityState={{ selected: option.value === selected }}
               key={option.value}
               onPress={() => onSelect(option.value)}
-              className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${
-                option.value === selected ? 'bg-[#F0FDF4]' : ''
-              }`}
+              className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${option.value === selected ? 'bg-[#F0FDF4]' : ''
+                }`}
             >
               <Text
-                className={`text-xs ${
-                  option.value === selected
-                    ? 'font-bold text-[#116C0B]'
-                    : 'text-[#334155]'
-                }`}
+                className={`text-xs ${option.value === selected
+                  ? 'font-bold text-[#116C0B]'
+                  : 'text-[#334155]'
+                  }`}
               >
                 {option.label}
               </Text>
@@ -1063,7 +1059,7 @@ function BannerStat({
       style={{
         width: "48%",
         borderRadius: 20,
-        backgroundColor:  "#FFFFFF",
+        backgroundColor: "#FFFFFF",
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
@@ -1071,6 +1067,17 @@ function BannerStat({
         gap: 14,
         overflow: "hidden",
         minHeight: 90,
+
+        // Slight, soft shadow
+        shadowColor: "#0F172A",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
+
+        // Subtle border
+        borderWidth: 1,
+        borderColor: "#F1F5F9",
       }}
     >
       <View
@@ -1154,9 +1161,8 @@ function BannerField({
       <Text className="mb-1 text-[10px] font-bold text-[#334155]">{label}</Text>
       <TextInput
         {...props}
-        className={`rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A] ${
-          props.multiline ? 'min-h-20' : 'min-h-10'
-        }`}
+        className={`rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A] ${props.multiline ? 'min-h-20' : 'min-h-10'
+          }`}
         placeholderTextColor={colors.textSecondary}
       />
     </View>

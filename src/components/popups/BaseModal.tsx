@@ -147,7 +147,7 @@ export function BaseModal({
                   pressed && styles.closeButtonPressed,
                 ]}
               >
-                <XIcon size={18} color="#64748B" />
+                <XIcon size={18} color="#FFFFFF" />
               </Pressable>
             ) : null}
           </View>
@@ -263,23 +263,26 @@ const styles = StyleSheet.create({
   },
   dragPillContainer: {
     alignItems: 'center',
+    backgroundColor: '#064E3B',
     paddingTop: 10,
-    paddingBottom: 6,
+    paddingBottom: 12,
   },
+
   dragPill: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#A7F3D0',
     borderRadius: 3,
     height: 5,
     width: 44,
   },
   header: {
     alignItems: 'center',
-    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#064E3B',
+    borderBottomColor: '#065F46',
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
   headerLeft: {
     alignItems: 'center',
@@ -289,7 +292,7 @@ const styles = StyleSheet.create({
   },
   iconWrapper: {
     alignItems: 'center',
-    backgroundColor: '#F0F7EE',
+    backgroundColor: '#065F46',
     borderRadius: 12,
     height: 40,
     justifyContent: 'center',
@@ -300,13 +303,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: '#012711',
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: -0.2,
   },
   subtitle: {
-    color: '#64748B',
+    color: '#D1FAE5',
     fontSize: 12,
     fontWeight: '500',
     marginTop: 2,
@@ -318,14 +321,14 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20,
     height: 36,
     justifyContent: 'center',
     width: 36,
   },
   closeButtonPressed: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   body: {
     flexShrink: 1,

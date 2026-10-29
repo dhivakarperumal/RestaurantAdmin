@@ -100,7 +100,7 @@ export function FormModal({
       icon={icon}
       maxHeightPercent={maxHeightPercent}
       maxWidth={maxWidth}
-      onClose={isSaving ? () => {} : onClose}
+      onClose={isSaving ? () => { } : onClose}
       scrollable
       subtitle={subtitle}
       title={title}
@@ -181,50 +181,58 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     alignItems: 'center',
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
-    borderWidth: 1.5,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    borderWidth: 1,
     justifyContent: 'center',
     minHeight: 48,
-    minWidth: 100,
-    paddingHorizontal: 18,
+    minWidth: 110,
+    paddingHorizontal: 20,
     paddingVertical: 12,
   },
+
   cancelText: {
-    color: '#475569',
+    color: '#334155',
     fontSize: 14,
     fontWeight: '700',
   },
+
   saveButton: {
     alignItems: 'center',
-    borderRadius: 14,
-    elevation: 2,
+    backgroundColor: '#064E3B',
+    borderRadius: 12,
+    elevation: 3,
     flex: 1,
     justifyContent: 'center',
     minHeight: 48,
-    minWidth: 120,
+    minWidth: 130,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    shadowColor: '#116C0B',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#064E3B',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowRadius: 5,
   },
+
   saveButtonDisabled: {
     opacity: 0.55,
     shadowOpacity: 0,
   },
+
   buttonPressed: {
     opacity: 0.85,
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.98 }],
   },
+
   buttonDisabled: {
     opacity: 0.5,
   },
+
   saveText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });
