@@ -90,23 +90,16 @@ function foodIdValue(food: FoodRow): string | number | undefined {
 }
 
 function foodCartKey(food: FoodRow): string {
+  const id = foodIdValue(food);
+  if (id !== undefined) {
+    return `id:${String(id).trim().toLowerCase()}`;
+  }
+
   const name = textValue(food, ['food_name', 'name', 'product_name'], '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
-  const category = textValue(food, ['category_name', 'category'], '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
-  const portion = textValue(food, ['portion_size', 'portion'], '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
-
-  if (name) {
-    return `name:${name}|category:${category}|portion:${portion}`;
-  }
-  return `id:${String(foodIdValue(food) ?? '')}`;
+  return `name:${name}`;
 }
 
 function priceValue(row: FoodRow): number {

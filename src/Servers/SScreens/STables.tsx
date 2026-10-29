@@ -34,6 +34,24 @@ export type ServerTablesRow = {
 
 type TableStatus = 'available' | 'occupied' | 'reserved';
 
+function billItemKey(item: Record<string, unknown>): string {
+  const id = item.food_id ?? item.foodId ?? item.product_id ?? item.id;
+  if (id !== undefined && id !== null && String(id).trim() !== '') {
+    return `id:${String(id).trim().toLowerCase()}`;
+  }
+  return `name:${String(item.food_name || item.name || item.item_name || '')
+    .trim()
+    .toLowerCase()}`;
+}
+
+function billItemNumber(item: Record<string, unknown>, keys: string[], fallback = 0): number {
+  for (const key of keys) {
+    const value = Number(item[key]);
+    if (Number.isFinite(value)) return value;
+  }
+  return fallback;
+}
+
 const apiStatus: Record<TableStatus, 'Available' | 'Occupied' | 'Reserved'> = {
   available: 'Available',
   occupied: 'Occupied',
@@ -475,7 +493,36 @@ export default function ServerTables({
         ? rounds
         : (billPreview.consolidated_items || billPreview.items || billPreview.order_items);
     if (!Array.isArray(rawItems)) return [];
-    return rawItems as Record<string, unknown>[];
+    const merged = new Map<string, Record<string, unknown>>();
+    for (const rawItem of rawItems) {
+      if (!rawItem || typeof rawItem !== 'object') continue;
+      const item = rawItem as Record<string, unknown>;
+      const key = billItemKey(item);
+      const quantity = billItemNumber(item, ['quantity'], 1);
+      const unitPrice = billItemNumber(item, ['unit_price', 'price'], 0);
+      const existing = merged.get(key);
+
+      if (!existing) {
+        merged.set(key, {
+          ...item,
+          quantity,
+          total_price:
+            billItemNumber(item, ['total_price'], unitPrice * quantity) ||
+            unitPrice * quantity,
+        });
+        continue;
+      }
+
+      const nextQuantity = billItemNumber(existing, ['quantity'], 0) + quantity;
+      const existingUnitPrice = billItemNumber(existing, ['unit_price', 'price'], unitPrice);
+      merged.set(key, {
+        ...existing,
+        quantity: nextQuantity,
+        unit_price: existingUnitPrice,
+        total_price: existingUnitPrice * nextQuantity,
+      });
+    }
+    return Array.from(merged.values());
   }, [billPreview]);
 
   const settleBill = async () => {

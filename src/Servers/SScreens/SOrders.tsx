@@ -350,7 +350,7 @@ export default function ServerOrders({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [scopeFilter, setScopeFilter] = useState<'my' | 'all'>('my');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -387,6 +387,8 @@ export default function ServerOrders({
         'employee_id',
         'assigned_employee_id',
         'waiter_id',
+        'user_id',
+        'created_by_id',
         'created_by',
       ]);
       if (assignedId !== undefined && serverIds.includes(String(assignedId).trim().toLowerCase())) {
@@ -459,8 +461,7 @@ export default function ServerOrders({
   // Orders scoped by "My Station" vs "All Floor Orders"
   const scopedOrders = useMemo(() => {
     if (scopeFilter === 'all') return allOrders;
-    const my = allOrders.filter(belongsToServer);
-    return my.length > 0 ? my : allOrders;
+    return allOrders.filter(belongsToServer);
   }, [allOrders, scopeFilter, belongsToServer]);
 
   // Statistics
