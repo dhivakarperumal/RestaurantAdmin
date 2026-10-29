@@ -37,6 +37,7 @@ export type HeaderUser = {
 type TopHeaderProps = {
   user: HeaderUser | null;
   unreadNotifications: number;
+  isAccountMenuOpen: boolean;
   onToggleSidebar: () => void;
   onOpenNotifications: () => void;
   onToggleAccountMenu: () => void;
@@ -85,6 +86,7 @@ function IconButton({
 function TopHeader({
   user,
   unreadNotifications,
+  isAccountMenuOpen,
   onToggleSidebar,
   onOpenNotifications,
   onToggleAccountMenu,
@@ -206,6 +208,7 @@ function TopHeader({
           <Pressable
             accessibilityLabel={`Open profile menu for ${userName}`}
             accessibilityRole="button"
+            accessibilityState={{ expanded: isAccountMenuOpen }}
             onHoverIn={() => setIsAvatarHovered(true)}
             onHoverOut={() => setIsAvatarHovered(false)}
             onPress={onToggleAccountMenu}
@@ -227,7 +230,6 @@ function TopHeader({
 
       {/* Subtle bottom highlight divider */}
       <View className="h-px w-full bg-white/10" />
-
     </SafeAreaView>
   );
 }

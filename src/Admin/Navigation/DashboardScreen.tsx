@@ -844,6 +844,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         <TopHeader
           user={user}
           unreadNotifications={0}
+          isAccountMenuOpen={isAccountMenuOpen}
           onToggleSidebar={() => {
             setIsNotificationsOpen(false);
             setIsAccountMenuOpen(false);
