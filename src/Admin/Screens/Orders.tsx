@@ -1904,7 +1904,7 @@ export function OrdersScreen({
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
+      </BaseModal>
 
       {/* FULL RECEIPT / ORDER DETAILS MODAL */}
       <DetailsModal
@@ -2188,9 +2188,9 @@ export function OrdersScreen({
                   </View>
                 </View>
               </ScrollView>
-
-          </View>
-        ) : null}
+            </Pressable>
+          )}
+        </Pressable>
       </DetailsModal>
     </View>
   );
