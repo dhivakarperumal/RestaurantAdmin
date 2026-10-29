@@ -1063,7 +1063,7 @@ function BannerStat({
       style={{
         width: "48%",
         borderRadius: 20,
-        backgroundColor: cardBackground,
+        backgroundColor:  "#FFFFFF",
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
@@ -1077,8 +1077,8 @@ function BannerStat({
         pointerEvents="none"
         style={{
           position: "absolute",
-          bottom: -22,
-          right: -16,
+          bottom: -30,
+          right: -24,
           width: 80,
           height: 80,
           borderRadius: 40,
