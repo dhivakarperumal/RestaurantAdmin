@@ -326,6 +326,7 @@ export default function NewOrderFlow({
     Record<string, string[]>
   >({});
   const [customizationError, setCustomizationError] = useState('');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const submissionLock = useRef(false);
@@ -918,7 +919,8 @@ export default function NewOrderFlow({
             accessibilityLabel="Search menu"
             className="min-h-11 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827]"
             onChangeText={setSearch}
-            placeholder="Search foods..."
+            placeholder="Search foods or categories..."
+            placeholderTextColor="#6B7280"
             value={search}
           />
           <View className="rounded-xl bg-[#F0F7EE] px-3 py-2.5">
@@ -1116,25 +1118,129 @@ export default function NewOrderFlow({
               </Text>
             </View>
           </View>
-          <Pressable
-            accessibilityLabel={`Send ${orderLabel} order to kitchen`}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canSubmit }}
-            disabled={!canSubmit}
-            onPress={sendOrder}
-            className={`h-12 flex-row items-center justify-center gap-2 rounded-xl ${
-              canSubmit ? 'bg-[#0B4D1A]' : 'bg-[#9CA3AF]'
-            }`}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : null}
-            <Text className="text-sm font-bold text-white">
-              {isSubmitting ? 'Sending to Kitchen...' : 'Send to Kitchen'}
-            </Text>
-          </Pressable>
+          <View className="flex-row gap-2">
+            <Pressable
+              accessibilityLabel="Preview order bill"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: cart.length === 0 }}
+              disabled={cart.length === 0}
+              onPress={() => setIsPreviewOpen(true)}
+              className={`h-12 flex-1 items-center justify-center rounded-xl border ${
+                cart.length
+                  ? 'border-[#116C0B] bg-white'
+                  : 'border-[#D1D5DB] bg-[#F3F4F6]'
+              }`}
+            >
+              <Text
+                className={`text-sm font-bold ${
+                  cart.length ? 'text-[#116C0B]' : 'text-[#9CA3AF]'
+                }`}
+              >
+                Preview
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`Send ${orderLabel} order to kitchen`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canSubmit }}
+              disabled={!canSubmit}
+              onPress={sendOrder}
+              className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl ${
+                canSubmit ? 'bg-[#0B4D1A]' : 'bg-[#9CA3AF]'
+              }`}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : null}
+              <Text className="text-sm font-bold text-white">
+                {isSubmitting ? 'Sending...' : 'Send to Kitchen'}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
+
+      <BaseModal
+        accessibilityLabel="Order bill preview"
+        visible={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        title="Bill Preview"
+        subtitle={`${orderLabel}${
+          isDineIn ? ` · Table ${text(selectedTable?.table_number)}` : ''
+        }`}
+        variant="bottom-sheet"
+        scrollable
+        footer={
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setIsPreviewOpen(false)}
+            className="min-h-12 items-center justify-center rounded-xl bg-[#116C0B]"
+          >
+            <Text className="text-sm font-bold text-white">Close Preview</Text>
+          </Pressable>
+        }
+      >
+        <View className="gap-3 p-4">
+          {cart.length ? (
+            <View className="gap-2">
+              {cart.map(line => (
+                <View
+                  key={line.key}
+                  className="flex-row items-start justify-between gap-3 border-b border-[#E5E7EB] pb-2"
+                >
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-sm font-semibold text-[#111827]">
+                      {line.food.name}
+                    </Text>
+                    <Text className="mt-1 text-xs text-[#6B7280]">
+                      {line.quantity} × {formatCurrency(getLinePrice(line))}
+                    </Text>
+                  </View>
+                  <Text className="text-sm font-bold text-[#111827]">
+                    {formatCurrency(getLinePrice(line) * line.quantity)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text className="py-4 text-center text-sm text-[#6B7280]">
+              Add food items to preview this bill.
+            </Text>
+          )}
+          <View className="gap-2 rounded-xl bg-[#F9FAFB] p-3">
+            <View className="flex-row justify-between">
+              <Text className="text-xs text-[#6B7280]">Subtotal</Text>
+              <Text className="text-xs font-semibold text-[#111827]">
+                {formatCurrency(subtotal)}
+              </Text>
+            </View>
+            <View className="flex-row justify-between">
+              <Text className="text-xs text-[#6B7280]">Discount</Text>
+              <Text className="text-xs font-semibold text-[#111827]">
+                − {formatCurrency(discount)}
+              </Text>
+            </View>
+            <View className="flex-row justify-between">
+              <Text className="text-xs text-[#6B7280]">CGST (2.5%)</Text>
+              <Text className="text-xs font-semibold text-[#111827]">
+                {formatCurrency(cgst)}
+              </Text>
+            </View>
+            <View className="flex-row justify-between">
+              <Text className="text-xs text-[#6B7280]">SGST (2.5%)</Text>
+              <Text className="text-xs font-semibold text-[#111827]">
+                {formatCurrency(sgst)}
+              </Text>
+            </View>
+            <View className="flex-row justify-between border-t border-[#E5E7EB] pt-2">
+              <Text className="text-sm font-bold text-[#012711]">Total</Text>
+              <Text className="text-sm font-extrabold text-[#012711]">
+                {formatCurrency(total)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </BaseModal>
 
       <BaseModal
         visible={selectedFood !== null}
