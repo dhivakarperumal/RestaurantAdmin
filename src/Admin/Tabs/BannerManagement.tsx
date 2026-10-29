@@ -1049,22 +1049,26 @@ function BannerStat({
 }) {
   return (
     <View
-      className="min-h-[68px] w-[48%] flex-row items-center gap-3 rounded-2xl border px-3"
-      style={{ backgroundColor: background, borderColor: iconBackground }}
+      className="min-h-[60px] w-[48%] flex-row items-center gap-2 rounded-xl border px-2.5"
+      style={{
+        backgroundColor: background,
+        borderColor: iconBackground,
+        elevation: 1,
+      }}
     >
       <View
-        className="h-9 w-9 items-center justify-center rounded-xl"
-        style={{ backgroundColor: iconBackground }}
+        className="h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: tint }}
       >
-        <Text className="text-base font-bold" style={{ color: tint }}>
+        <Text className="text-sm font-bold text-white">
           {icon}
         </Text>
       </View>
-      <View>
-        <Text className="text-[9px] font-bold uppercase text-[#64748B]">
+      <View className="min-w-0 flex-1">
+        <Text numberOfLines={1} className="text-[8px] font-bold uppercase tracking-[0.3px] text-[#64748B]">
           {label}
         </Text>
-        <Text className="text-lg font-extrabold" style={{ color: tint }}>
+        <Text className="text-base font-extrabold leading-5" style={{ color: tint }}>
           {value}
         </Text>
       </View>
