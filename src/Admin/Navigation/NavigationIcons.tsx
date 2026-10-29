@@ -20,11 +20,17 @@ export function OrdersIcon({ color, size = 20 }: NavigationIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M8 4H6a2 2 0 0 0-2 2v14h16V6a2 2 0 0 0-2-2h-2M8 4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2M8 4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2M8 12h8M8 16h8"
+        d="M6 3.5h12a1.5 1.5 0 0 1 1.5 1.5v16l-3-1.8-2.5 1.8-2.5-1.8L9 21l-3-1.8L4.5 20V5A1.5 1.5 0 0 1 6 3.5Z"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+      <Path
+        d="M8 8h8M8 12h8M8 16h5"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </Svg>
   );

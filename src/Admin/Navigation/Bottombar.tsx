@@ -37,19 +37,19 @@ function Bottombar<Key extends string>({
       style={{
         alignItems: 'center',
         backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        borderTopWidth: 1,
-        elevation: 12,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        elevation: 16,
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        minHeight: 62 + insets.bottom,
-        paddingBottom: Math.max(insets.bottom, 6),
-        paddingTop: 4,
-        paddingHorizontal: 4,
-        shadowColor: '#111827',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
+        justifyContent: 'space-between',
+        minHeight: 70 + insets.bottom,
+        paddingBottom: Math.max(insets.bottom, 8),
+        paddingTop: 8,
+        paddingHorizontal: 8,
+        shadowColor: colors.primaryDark,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
       }}
     >
       {tabs.map(tab => {
@@ -66,13 +66,12 @@ function Bottombar<Key extends string>({
             onPress={() => onTabPress(tab.key)}
             style={({ pressed }) => ({
               alignItems: 'center',
-              backgroundColor:
-                pressed && !isAddTab ? colors.surfaceSecondary : 'transparent',
-              borderRadius: 12,
+              backgroundColor: pressed && !isAddTab ? '#F5F8F4' : 'transparent',
+              borderRadius: 16,
               flex: 1,
               gap: isAddTab ? 0 : 4,
               justifyContent: 'center',
-              minHeight: 54,
+              minHeight: 56,
               transform: [{ scale: pressed && isAddTab ? 0.96 : 1 }],
             })}
           >
@@ -83,15 +82,15 @@ function Bottombar<Key extends string>({
                   backgroundColor: colors.primary,
                   borderColor: colors.primaryLight,
                   borderRadius: 23,
-                  borderWidth: 2,
-                  elevation: 5,
+                  borderWidth: 3,
+                  elevation: 6,
                   height: 46,
                   justifyContent: 'center',
                   shadowColor: colors.primaryDark,
                   shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.24,
-                  shadowRadius: 5,
-                  transform: [{ translateY: -8 }],
+                  shadowOpacity: 0.22,
+                  shadowRadius: 6,
+                  transform: [{ translateY: -10 }],
                   width: 46,
                 }}
               >
@@ -100,11 +99,22 @@ function Bottombar<Key extends string>({
                   : tab.icon}
               </View>
             ) : (
-              typeof tab.icon === 'function' ? tab.icon(iconColor) : tab.icon
+              <View
+                style={{
+                  alignItems: 'center',
+                  backgroundColor: isActive ? colors.surfaceSecondary : 'transparent',
+                  borderRadius: 14,
+                  height: 34,
+                  justifyContent: 'center',
+                  width: 48,
+                }}
+              >
+                {typeof tab.icon === 'function' ? tab.icon(iconColor) : tab.icon}
+              </View>
             )}
             <Text
               style={{
-                color: isAddTab || isActive ? colors.primary : colors.textSecondary,
+                color: isAddTab || isActive ? colors.primaryDark : colors.textSecondary,
                 fontSize: 10,
                 fontWeight: isAddTab || isActive ? '700' : '500',
                 textAlign: 'center',
