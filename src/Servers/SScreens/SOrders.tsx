@@ -1059,18 +1059,20 @@ export default function ServerOrders({
                       </Pressable>
                     ) : isServed ? (
                       <Pressable
+                        accessibilityLabel={`View order ${orderIdLabel}`}
                         onPress={() => setSelectedOrder(order)}
                         className="flex-row items-center rounded-xl bg-[#0F172A] px-3.5 py-2 active:bg-[#1E293B] shadow-xs"
                       >
-                        <Text className="text-xs font-black text-white">View Ticket</Text>
+                        <Text className="text-xs font-black text-white">View Order</Text>
                         <Text className="ml-1 text-xs font-black text-[#94A3B8]">›</Text>
                       </Pressable>
                     ) : (
                       <Pressable
+                        accessibilityLabel={`View order ${orderIdLabel}`}
                         onPress={() => setSelectedOrder(order)}
                         className="flex-row items-center rounded-xl border border-[#CBD5E1] bg-white px-3.5 py-2 active:bg-[#F1F5F9] shadow-xs"
                       >
-                        <Text className="text-xs font-black text-[#0F172A]">View Ticket</Text>
+                        <Text className="text-xs font-black text-[#0F172A]">View Order</Text>
                         <Text className="ml-1 text-xs font-black text-[#64748B]">›</Text>
                       </Pressable>
                     )}
