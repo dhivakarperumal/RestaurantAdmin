@@ -348,43 +348,126 @@ function Bills({
   }
 
   return (
-    <ScrollView
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={() => setRetry(current => current + 1)}
-          colors={[colors.primary]}
-          tintColor={colors.primary}
-        />
-      }
-      contentContainerStyle={{
-        alignSelf: 'center',
-        maxWidth: 1100,
-        paddingBottom: 28,
-        paddingHorizontal: 16,
-        paddingTop: 20,
-        width: '100%',
-      }}
-    >
-      <View className="mb-4 flex-row items-center justify-between gap-3">
-        <View className="min-w-0 flex-1">
-          <Text className="text-xl font-bold text-[#012711]">Add food to billing</Text>
-          <Text className="mt-1 text-xs text-[#6B7280]">Select menu items to build a bill.</Text>
-        </View>
-        <Pressable
-          accessibilityLabel={`View billing, ${billingItems.length} ${billingItems.length === 1 ? 'item' : 'items'}`}
-          accessibilityRole="button"
-          onPress={onOpenBilling}
-          className="rounded-xl bg-[#116C0B] px-3 py-2.5"
-        >
-          <Text className="text-xs font-bold text-white">
-            Bill · {billingItems.length} · {formatCurrency(total)}
-          </Text>
-        </Pressable>
+    <View className="flex-1">
+      <View
+        className="mb-4 w-full flex-row items-center justify-between gap-3 self-center px-4 pt-5"
+        style={{ maxWidth: 1100 }}
+      >
+       
+     
       </View>
 
+      <ScrollView
+        className="flex-1"
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => setRetry(current => current + 1)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+        contentContainerStyle={{
+          alignSelf: 'center',
+          maxWidth: 1100,
+          paddingBottom: 12,
+          paddingHorizontal: 16,
+          width: '100%',
+        }}
+      >
+        {isLoading && foods.length === 0 ? (
+          <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
+            <ActivityIndicator color={colors.primary} />
+            <Text className="mt-3 text-sm text-[#6B7280]">Loading food items...</Text>
+          </View>
+        ) : error && foods.length === 0 ? (
+          <View className="items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-8">
+            <Text accessibilityRole="alert" className="text-center text-sm text-[#DC2626]">
+              {error}
+            </Text>
+            <Pressable
+              accessibilityLabel="Retry loading food items"
+              accessibilityRole="button"
+              onPress={() => setRetry(count => count + 1)}
+              className="rounded-xl bg-[#116C0B] px-4 py-2.5"
+            >
+              <Text className="font-semibold text-white">Try again</Text>
+            </Pressable>
+          </View>
+        ) : foods.length === 0 ? (
+          <View className="items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-8">
+            <ProductIcon color={colors.textSecondary} size={28} />
+            <Text className="text-base font-bold text-[#012711]">No food items found</Text>
+            <Text className="text-center text-sm text-[#6B7280]">
+              Add food to your menu to start building a bill.
+            </Text>
+          </View>
+        ) : (
+          <View className="flex-row flex-wrap" style={{ columnGap: gap, rowGap: gap }}>
+            {foods.map(food => (
+              <View
+                key={food.id}
+                className="rounded-xl border border-[#E5E7EB] bg-white p-2 shadow-sm"
+                style={{ width: cardWidth }}
+              >
+                <FoodImage food={food} />
+                <Text numberOfLines={1} className="mt-2 text-sm font-semibold text-[#111827]">
+                  {food.name}
+                </Text>
+                <Text numberOfLines={1} className="mt-0.5 text-xs text-[#6B7280]">
+                  {food.category}
+                </Text>
+                {food.productId ? (
+                  <Text numberOfLines={1} className="mt-0.5 text-[10px] text-[#9CA3AF]">
+                    ID: {food.productId}
+                  </Text>
+                ) : null}
+                {food.cuisineId ? (
+                  <Text numberOfLines={1} className="mt-0.5 text-[10px] text-[#9CA3AF]">
+                    Cuisine ID: {food.cuisineId}
+                  </Text>
+                ) : null}
+                {food.description ? (
+                  <Text numberOfLines={2} className="mt-1 text-[11px] leading-4 text-[#6B7280]">
+                    {food.description}
+                  </Text>
+                ) : null}
+                <View className="mt-2 flex-row items-center justify-between gap-2">
+                  <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold text-[#111827]">
+                    {food.price === null ? 'Price unavailable' : formatCurrency(food.price)}
+                  </Text>
+                  <Pressable
+                    accessibilityLabel={`Add ${food.name} to billing`}
+                    accessibilityRole="button"
+                    onPress={() => onAddFood(food)}
+                    className="h-9 w-9 items-center justify-center rounded-full bg-[#116C0B]"
+                  >
+                    <PlusIcon color="#FFFFFF" size={19} />
+                  </Pressable>
+                </View>
+                {food.variantDetails.length ? (
+                  <Text className="mt-2 text-[10px] leading-4 text-[#6B7280]">
+                    {food.variantDetails.join('  ·  ')}
+                  </Text>
+                ) : null}
+                {(food.stock || food.status) ? (
+                  <Text className="mt-1 text-[10px] text-[#6B7280]">
+                    {[food.stock ? `${food.stock} in stock` : null, food.status]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
       {billingItems.length ? (
-        <View className="mb-4 rounded-xl border border-[#E5E7EB] bg-white p-3.5">
+        <View
+          className="mb-3 mt-2 w-full self-center rounded-xl border border-[#E5E7EB] bg-white p-3.5"
+          style={{ maxWidth: 1100 }}
+        >
           <View className="flex-row items-center justify-between">
             <Text className="text-sm font-bold text-[#012711]">Bill preview</Text>
             <Text className="text-xs font-semibold text-[#6B7280]">
@@ -413,94 +496,7 @@ function Bills({
           </Pressable>
         </View>
       ) : null}
-
-      {isLoading && foods.length === 0 ? (
-        <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
-          <ActivityIndicator color={colors.primary} />
-          <Text className="mt-3 text-sm text-[#6B7280]">Loading food items...</Text>
-        </View>
-      ) : error && foods.length === 0 ? (
-        <View className="items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-8">
-          <Text accessibilityRole="alert" className="text-center text-sm text-[#DC2626]">
-            {error}
-          </Text>
-          <Pressable
-            accessibilityLabel="Retry loading food items"
-            accessibilityRole="button"
-            onPress={() => setRetry(count => count + 1)}
-            className="rounded-xl bg-[#116C0B] px-4 py-2.5"
-          >
-            <Text className="font-semibold text-white">Try again</Text>
-          </Pressable>
-        </View>
-      ) : foods.length === 0 ? (
-        <View className="items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-8">
-          <ProductIcon color={colors.textSecondary} size={28} />
-          <Text className="text-base font-bold text-[#012711]">No food items found</Text>
-          <Text className="text-center text-sm text-[#6B7280]">
-            Add food to your menu to start building a bill.
-          </Text>
-        </View>
-      ) : (
-        <View className="flex-row flex-wrap" style={{ columnGap: gap, rowGap: gap }}>
-          {foods.map(food => (
-            <View
-              key={food.id}
-              className="rounded-xl border border-[#E5E7EB] bg-white p-2 shadow-sm"
-              style={{ width: cardWidth }}
-            >
-              <FoodImage food={food} />
-              <Text numberOfLines={1} className="mt-2 text-sm font-semibold text-[#111827]">
-                {food.name}
-              </Text>
-              <Text numberOfLines={1} className="mt-0.5 text-xs text-[#6B7280]">
-                {food.category}
-              </Text>
-              {food.productId ? (
-                <Text numberOfLines={1} className="mt-0.5 text-[10px] text-[#9CA3AF]">
-                  ID: {food.productId}
-                </Text>
-              ) : null}
-              {food.cuisineId ? (
-                <Text numberOfLines={1} className="mt-0.5 text-[10px] text-[#9CA3AF]">
-                  Cuisine ID: {food.cuisineId}
-                </Text>
-              ) : null}
-              {food.description ? (
-                <Text numberOfLines={2} className="mt-1 text-[11px] leading-4 text-[#6B7280]">
-                  {food.description}
-                </Text>
-              ) : null}
-              <View className="mt-2 flex-row items-center justify-between gap-2">
-                <Text numberOfLines={1} className="min-w-0 flex-1 text-sm font-bold text-[#111827]">
-                  {food.price === null ? 'Price unavailable' : formatCurrency(food.price)}
-                </Text>
-                <Pressable
-                  accessibilityLabel={`Add ${food.name} to billing`}
-                  accessibilityRole="button"
-                  onPress={() => onAddFood(food)}
-                  className="h-9 w-9 items-center justify-center rounded-full bg-[#116C0B]"
-                >
-                  <PlusIcon color="#FFFFFF" size={19} />
-                </Pressable>
-              </View>
-              {food.variantDetails.length ? (
-                <Text className="mt-2 text-[10px] leading-4 text-[#6B7280]">
-                  {food.variantDetails.join('  ·  ')}
-                </Text>
-              ) : null}
-              {(food.stock || food.status) ? (
-                <Text className="mt-1 text-[10px] text-[#6B7280]">
-                  {[food.stock ? `${food.stock} in stock` : null, food.status]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+    </View>
   );
 }
 

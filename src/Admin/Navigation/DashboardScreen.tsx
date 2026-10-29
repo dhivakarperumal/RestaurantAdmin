@@ -814,6 +814,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           ? ['bottom']
           : isBillPreviewOpen
           ? ['bottom']
+          : activeTab === 'add'
+          ? ['bottom']
           : []
       }
       className="flex-1 bg-[#F9FAFB]"
@@ -983,7 +985,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       {!isMoreFeatureOpen &&
       !isDeliveryAssignmentOpen &&
       !isItemsInnerPageOpen &&
-      !isBillPreviewOpen ? (
+      !isBillPreviewOpen &&
+      activeTab !== 'add' ? (
         <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       ) : null}
       {!isWide && activeTab === 'items' && !isItemsInnerPageOpen ? (
