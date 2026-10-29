@@ -627,27 +627,28 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-[#F9FAFB]">
-      <View className="flex-row items-center gap-3 border-b border-[#E5E7EB] bg-white px-4 py-3">
+    <SafeAreaView edges={['top']} className="flex-1 bg-[#052E10]">
+      <View className="flex-row items-center gap-3 border-b border-white/10 bg-[#052E10] px-4 py-3">
         <Pressable
           accessibilityLabel="Back to Orders"
           accessibilityRole="button"
           onPress={onBack}
-          className="h-10 w-10 items-center justify-center rounded-xl bg-[#F3F4F6]"
+          className="h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10"
         >
-          <Text className="text-2xl font-bold text-[#374151]">←</Text>
+          <Text className="text-2xl font-bold text-white">←</Text>
         </Pressable>
         <View className="flex-1">
-          <Text numberOfLines={1} className="text-lg font-bold text-[#012711]">
+          <Text numberOfLines={1} className="text-lg font-bold text-white">
             Assign Delivery Partner
           </Text>
         </View>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-3 px-4 py-5"
-      >
+      <SafeAreaView edges={['bottom']} className="flex-1 bg-[#F9FAFB]">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="gap-3 px-4 py-5"
+        >
         {isLoading ? (
           <View className="items-center py-12">
             <ActivityIndicator color="#116C0B" />
@@ -823,10 +824,18 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
             ) : null}
           </>
         )}
-      </ScrollView>
+        </ScrollView>
 
-      {!isLoading && !(errorMessage && orders.length === 0 && partners.length === 0) ? (
-        <View className="gap-2 border-t border-[#E2E8F0] bg-white px-4 py-4">
+        {!isLoading && !(errorMessage && orders.length === 0 && partners.length === 0) ? (
+          <View className="flex-row gap-2 border-t border-[#E2E8F0] bg-white px-4 py-4">
+          <Pressable
+            accessibilityLabel="Cancel delivery assignment"
+            accessibilityRole="button"
+            onPress={onBack}
+            className="h-12 flex-1 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white"
+          >
+            <Text className="font-semibold text-[#334155]">Cancel</Text>
+          </Pressable>
           <Pressable
             accessibilityLabel="Assign Delivery Partner"
             accessibilityRole="button"
@@ -838,15 +847,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
               isSaving
             }
             onPress={() => handleAssign()}
-            className={`h-12 items-center justify-center rounded-xl ${
-              selectedOrder &&
-              selectedOrder.status &&
-              selectedPartnerId &&
-              partners.some(partner => partner.id === selectedPartnerId) &&
-              !isSaving
-                ? 'bg-[#FF9F70]'
-                : 'bg-[#FDBA9B]'
-            }`}
+            className="h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
           >
             {isSaving ? (
               <ActivityIndicator color="#FFFFFF" />
@@ -854,21 +855,15 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
               <View className="flex-row items-center gap-2">
                 <PlusIcon color="#FFFFFF" size={16} />
                 <Text className="font-bold text-white">
-                  Assign Delivery Partner
+                  Assign Delivery 
                 </Text>
               </View>
             )}
           </Pressable>
-          <Pressable
-            accessibilityLabel="Cancel delivery assignment"
-            accessibilityRole="button"
-            onPress={onBack}
-            className="h-12 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white"
-          >
-            <Text className="font-semibold text-[#334155]">Cancel</Text>
-          </Pressable>
-        </View>
-      ) : null}
+          
+          </View>
+        ) : null}
+      </SafeAreaView>
     </SafeAreaView>
   );
 }
