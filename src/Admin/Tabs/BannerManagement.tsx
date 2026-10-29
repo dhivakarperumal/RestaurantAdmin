@@ -273,6 +273,8 @@ function BannerManagementPage({
   };
 
   const totalOffers = banners.filter(banner => banner.type === 'offer').length;
+  const totalHero = banners.filter(banner => banner.type === 'hero').length;
+  const totalPublished = banners.filter(banner => banner.active).length;
   return (
     <View className="relative flex-1">
       <ScrollView
@@ -334,18 +336,38 @@ function BannerManagementPage({
           </Text>
         ) : null}
 
-        <View className="flex-row gap-3">
+        <View className="flex-row flex-wrap justify-between gap-y-3">
           <BannerStat
+            background="#F0FDF4"
             icon="▣"
+            iconBackground="#DCFCE7"
             label="Total banners"
             tint="#15803D"
             value={banners.length}
           />
           <BannerStat
+            background="#FFF7ED"
             icon="✳"
+            iconBackground="#FFEDD5"
             label="Offer banners"
             tint="#EA580C"
             value={totalOffers}
+          />
+          <BannerStat
+            background="#EFF6FF"
+            icon="▣"
+            iconBackground="#DBEAFE"
+            label="Hero banners"
+            tint="#2563EB"
+            value={totalHero}
+          />
+          <BannerStat
+            background="#FAF5FF"
+            icon="◉"
+            iconBackground="#F3E8FF"
+            label="Published"
+            tint="#9333EA"
+            value={totalPublished}
           />
         </View>
 
@@ -1011,24 +1033,28 @@ function BannerFilterDropdown<Value extends string>({
 }
 
 function BannerStat({
+  background,
   icon,
+  iconBackground,
   label,
   tint,
   value,
 }: {
+  background: string;
   icon: string;
+  iconBackground: string;
   label: string;
   tint: string;
   value: number;
 }) {
   return (
     <View
-      className="min-h-[68px] min-w-[46%] flex-1 flex-row items-center gap-3 rounded-2xl border px-3"
-      style={{ backgroundColor: tint === '#15803D' ? '#F0FDF4' : '#FFF7ED', borderColor: tint === '#15803D' ? '#DCFCE7' : '#FFEDD5' }}
+      className="min-h-[68px] w-[48%] flex-row items-center gap-3 rounded-2xl border px-3"
+      style={{ backgroundColor: background, borderColor: iconBackground }}
     >
       <View
         className="h-9 w-9 items-center justify-center rounded-xl"
-        style={{ backgroundColor: tint === '#15803D' ? '#DCFCE7' : '#FFEDD5' }}
+        style={{ backgroundColor: iconBackground }}
       >
         <Text className="text-base font-bold" style={{ color: tint }}>
           {icon}
