@@ -85,6 +85,7 @@ import {
   FilterSelect,
   FormModal,
   LogOutIcon,
+  UserIcon,
   CheckCircle2Icon,
   ClockIcon,
 } from '../../components/popups';
@@ -303,6 +304,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const nextItemsAddRequestId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isItemsInnerPageOpen, setIsItemsInnerPageOpen] = useState(false);
   const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] =
@@ -536,6 +538,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setSelectedFeature(null);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+    setIsAccountMenuOpen(false);
   };
 
   const navigateToMoreFeature = (feature: string | null) => {
@@ -546,6 +549,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setSelectedFeature(feature);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+    setIsAccountMenuOpen(false);
   };
 
   const navigateFromSidebar = (tab: AppTab) => {
@@ -775,6 +779,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           setIsNotificationsOpen(false);
           return true;
         }
+        if (isAccountMenuOpen) {
+          setIsAccountMenuOpen(false);
+          return true;
+        }
         // 3. Action modal (EntryForm)
         if (selectedAction) {
           setSelectedAction(null);
@@ -808,6 +816,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   }, [
     isSidebarOpen,
     isNotificationsOpen,
+    isAccountMenuOpen,
     selectedAction,
     isMoreFeatureOpen,
     isBillPreviewOpen,
@@ -837,18 +846,19 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           unreadNotifications={0}
           onToggleSidebar={() => {
             setIsNotificationsOpen(false);
+            setIsAccountMenuOpen(false);
             setIsSidebarOpen(open => !open);
           }}
           onOpenNotifications={() => {
             setIsSidebarOpen(false);
+            setIsAccountMenuOpen(false);
             setIsNotificationsOpen(open => !open);
           }}
-          onOpenProfile={() => {
-            setSelectedAction(null);
-            setSelectedFeature('Profile');
-            setActiveTab('more');
+          onToggleAccountMenu={() => {
+            setIsSidebarOpen(false);
+            setIsNotificationsOpen(false);
+            setIsAccountMenuOpen(open => !open);
           }}
-          onLogout={handleLogout}
         />
       ) : null}
       {!isItemsInnerPageOpen && isMoreFeatureOpen ? (
@@ -1056,6 +1066,78 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             <Text className="mt-2 text-[13px] leading-5 text-[#6B7280]">
               You’re all caught up. New notifications will appear here.
             </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {isAccountMenuOpen ? (
+        <View
+          className="absolute bottom-0 left-0 right-0 z-[25]"
+          style={{ top: insets.top + 70 }}
+        >
+          <Pressable
+            accessibilityLabel="Close profile menu"
+            onPress={() => setIsAccountMenuOpen(false)}
+            className="absolute bottom-0 left-0 right-0 top-0 bg-[#11182733]"
+          />
+          <View
+            className={`mt-2 w-[320px] max-w-[92%] self-end rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-xl ${
+              width < 480 ? 'mx-3' : 'mx-6'
+            }`}
+            style={{ elevation: 10 }}
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#ECFDF3]">
+                <Text className="text-base font-extrabold text-[#116C0B]">
+                  {userInitial}
+                </Text>
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text
+                  numberOfLines={1}
+                  className="text-sm font-bold text-[#012711]"
+                >
+                  {userName}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  className="mt-0.5 text-xs text-[#6B7280]"
+                >
+                  {userEmail}
+                </Text>
+              </View>
+            </View>
+            <View className="my-3 h-px bg-[#E5E7EB]" />
+            <Pressable
+              accessibilityLabel="My Profile and Details"
+              accessibilityRole="button"
+              className="min-h-11 flex-row items-center gap-3 rounded-xl px-2 active:bg-[#F0F7EE]"
+              onPress={() => {
+                setIsAccountMenuOpen(false);
+                setSelectedAction(null);
+                setSelectedFeature('Profile');
+                setActiveTab('more');
+              }}
+            >
+              <UserIcon color="#116C0B" size={19} />
+              <Text className="text-sm font-semibold text-[#344054]">
+                My Profile & Details
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Log out"
+              accessibilityRole="button"
+              className="min-h-11 flex-row items-center gap-3 rounded-xl px-2 active:bg-red-50"
+              onPress={() => {
+                setIsAccountMenuOpen(false);
+                setIsLogoutConfirmOpen(true);
+              }}
+            >
+              <LogOutIcon color="#DC2626" size={19} />
+              <Text className="text-sm font-semibold text-[#B91C1C]">
+                Log Out
+              </Text>
+            </Pressable>
           </View>
         </View>
       ) : null}
