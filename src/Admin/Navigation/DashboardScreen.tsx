@@ -100,6 +100,18 @@ type ApiUser = {
   role?: string;
 };
 
+type AdminProfile = {
+  id: number;
+  user_id: string;
+  username: string;
+  email: string;
+  mobile_number: string;
+  role: string;
+  status: string;
+  created_at: string;
+  employee_id: string | null;
+};
+
 type ApiListResponse<T> =
   | T[]
   | {
@@ -262,12 +274,6 @@ const moreFeatures: MoreFeature[] = [
     title: 'Kitchen Requests',
     subtitle: 'Review and manage kitchen inventory requests',
     icon: MenuIcon,
-  },
-
-  {
-    title: 'Reports & Analytics',
-    subtitle: 'Business performance overview',
-    icon: ChartIcon,
   },
 
   {
@@ -895,6 +901,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               selectedFeature={selectedFeature}
               userEmail={userEmail}
               userId={String(user?.user_id ?? user?.id ?? '')}
+              profileUserId={String(user?.user_id ?? '')}
               userInitial={userInitial}
               userName={userName}
               itemsAddRequest={itemsAddRequest}
@@ -955,6 +962,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             selectedFeature={selectedFeature}
             userEmail={userEmail}
             userId={String(user?.user_id ?? user?.id ?? '')}
+            profileUserId={String(user?.user_id ?? '')}
             userInitial={userInitial}
             userName={userName}
             itemsAddRequest={itemsAddRequest}
@@ -1396,6 +1404,7 @@ function MainContent({
   selectedFeature,
   userEmail,
   userId,
+  profileUserId,
   userInitial,
   userName,
   itemsAddRequest,
@@ -1438,6 +1447,7 @@ function MainContent({
   selectedFeature: string | null;
   userEmail: string;
   userId: string;
+  profileUserId: string;
   userInitial: string;
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
@@ -1604,19 +1614,12 @@ function MainContent({
     }
     if (selectedFeature === 'Profile') {
       return (
-        <PageShell title="Profile" subtitle="Your account details">
-          <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
-            <Avatar initial={userInitial} size={56} />
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-[#012711]">
-                {userName}
-              </Text>
-              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
-                {userEmail}
-              </Text>
-            </View>
-          </View>
-        </PageShell>
+        <AdminProfilePage
+          userId={profileUserId}
+          initial={userInitial}
+          fallbackName={userName}
+          fallbackEmail={userEmail}
+        />
       );
     }
     const feature =
@@ -3810,6 +3813,231 @@ function TabButtonLarge({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+function AdminProfilePage({
+  userId,
+  initial,
+  fallbackName,
+  fallbackEmail,
+}: {
+  userId: string;
+  initial: string;
+  fallbackName: string;
+  fallbackEmail: string;
+}) {
+  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+
+    const loadProfile = async () => {
+      if (!userId.trim()) {
+        setError('Your account ID is unavailable. Please sign in again.');
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError('');
+      try {
+        const response = await api.get(
+          `/users/profile/${encodeURIComponent(userId)}`,
+          { signal: controller.signal },
+        );
+        if (!isActive) {
+          return;
+        }
+        setProfile(parseAdminProfile(response.data));
+      } catch (profileError) {
+        if (isActive && !controller.signal.aborted) {
+          setError(getErrorMessage(profileError));
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [userId, refreshKey]);
+
+  const displayName = profile?.username || fallbackName;
+  const displayEmail = profile?.email || fallbackEmail;
+  const createdDate = profile ? formatProfileDate(profile.created_at) : '';
+
+  return (
+    <PageShell
+      title="Your profile"
+      subtitle="Your administrator details and account information."
+    >
+      {isLoading ? (
+        <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
+          <ActivityIndicator color="#116C0B" />
+          <Text className="mt-3 text-sm text-[#667085]">
+            Loading profile details...
+          </Text>
+        </View>
+      ) : error ? (
+        <View
+          accessibilityRole="alert"
+          className="items-center rounded-2xl border border-[#FECACA] bg-white p-6"
+        >
+          <Text className="text-center text-sm text-[#B91C1C]">{error}</Text>
+          <Pressable
+            accessibilityRole="button"
+            className="mt-4 rounded-xl bg-[#064E3B] px-4 py-2.5"
+            onPress={() => setRefreshKey(key => key + 1)}
+          >
+            <Text className="text-sm font-bold text-white">Try again</Text>
+          </Pressable>
+        </View>
+      ) : profile ? (
+        <View className="gap-4">
+          <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-6">
+            <Avatar initial={initial} size={64} />
+            <Text className="mt-3 text-lg font-bold text-[#012711]">
+              {displayName}
+            </Text>
+            <Text className="mt-1 text-sm text-[#667085]">{displayEmail}</Text>
+            <View className="mt-3 rounded-full bg-[#ECFDF3] px-3 py-1">
+              <Text className="text-xs font-bold capitalize text-[#027A48]">
+                {profile.role}
+              </Text>
+            </View>
+            <View className="mt-5 w-full border-t border-[#F2F4F7] pt-4">
+              <ProfileMetadata label="Account status" value={profile.status} />
+              <ProfileMetadata
+                label="Joined"
+                value={createdDate || 'Not available'}
+              />
+              <ProfileMetadata
+                label="Employee ID"
+                value={profile.employee_id || 'Not assigned'}
+              />
+            </View>
+          </View>
+
+          <View className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <Text className="text-[10px] font-bold tracking-[1.2px] text-[#B7791F]">
+              PERSONAL INFORMATION
+            </Text>
+            <Text className="mt-1 text-lg font-bold text-[#012711]">
+              Profile details
+            </Text>
+            <Text className="mt-1 text-sm text-[#667085]">
+              Information associated with your administrator account.
+            </Text>
+            <View className="mt-5 gap-4 border-t border-[#F2F4F7] pt-4">
+              <ProfileDetail label="Full name" value={profile.username} />
+              <ProfileDetail
+                label="Phone number"
+                value={profile.mobile_number}
+              />
+              <ProfileDetail label="Email address" value={profile.email} />
+            </View>
+          </View>
+        </View>
+      ) : null}
+    </PageShell>
+  );
+}
+
+function parseAdminProfile(payload: unknown): AdminProfile {
+  if (typeof payload !== 'object' || payload === null || !('data' in payload)) {
+    throw new Error('The profile response was invalid.');
+  }
+  const envelope = payload as { success?: unknown; data?: unknown };
+  const value = envelope.data;
+  if (
+    envelope.success !== true ||
+    typeof value !== 'object' ||
+    value === null
+  ) {
+    throw new Error('The profile response was invalid.');
+  }
+
+  const record = value as Record<string, unknown>;
+  const profileId = record.id;
+  const userId = record.user_id;
+  const username = record.username;
+  const email = record.email;
+  const mobileNumber = record.mobile_number;
+  const role = record.role;
+  const status = record.status;
+  const createdAt = record.created_at;
+  const employeeId = record.employee_id;
+  if (
+    typeof profileId !== 'number' ||
+    typeof userId !== 'string' ||
+    typeof username !== 'string' ||
+    typeof email !== 'string' ||
+    typeof mobileNumber !== 'string' ||
+    typeof role !== 'string' ||
+    typeof status !== 'string' ||
+    typeof createdAt !== 'string' ||
+    (employeeId !== null && typeof employeeId !== 'string')
+  ) {
+    throw new Error('The profile response was incomplete.');
+  }
+
+  return {
+    id: profileId,
+    user_id: userId,
+    username,
+    email,
+    mobile_number: mobileNumber,
+    role,
+    status,
+    created_at: createdAt,
+    employee_id: employeeId,
+  };
+}
+
+function formatProfileDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+}
+
+function ProfileMetadata({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="mb-3 flex-row justify-between gap-3 last:mb-0">
+      <Text className="text-xs text-[#667085]">{label}</Text>
+      <Text className="flex-1 text-right text-xs font-semibold text-[#344054]">
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function ProfileDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <View>
+      <Text className="mb-1.5 text-xs font-semibold text-[#344054]">
+        {label}
+      </Text>
+      <View className="min-h-11 justify-center rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-3">
+        <Text selectable className="text-sm text-[#344054]">
+          {value || 'Not provided'}
+        </Text>
+      </View>
+    </View>
   );
 }
 
