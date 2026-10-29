@@ -596,17 +596,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
             </Text>
           </View>
           <View className="flex-row gap-2">
-            <Pressable
-              accessibilityLabel="Refresh attendance"
-              accessibilityRole="button"
-              disabled={isLoading}
-              onPress={() => setRefreshKey(current => current + 1)}
-              className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5"
-            >
-              <Text className="text-xs font-semibold text-[#374151]">
-                {isLoading ? 'Loading' : 'Refresh'}
-              </Text>
-            </Pressable>
+           
             <Pressable
               accessibilityLabel="Export attendance CSV"
               accessibilityRole="button"
