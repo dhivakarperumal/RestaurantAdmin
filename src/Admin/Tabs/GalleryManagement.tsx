@@ -1132,6 +1132,7 @@ function GalleryStat({ label, value }: { label: string; value: number }) {
       value={value}
       tint={theme.tint}
       iconBackground={theme.iconBackground}
+      decorColor={theme.iconBackground}
       icon={<ImageIcon size={22} color={theme.tint} strokeWidth={2} />}
     />
   );

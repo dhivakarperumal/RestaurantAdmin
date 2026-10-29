@@ -450,39 +450,39 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
           </View>
         </View>
 
-        <View className="gap-3">
-          <View className="flex-row justify-between">
-            <AdminStatCard
-              label="Total"
-              value={tables.length}
-              tint="#166534"
-              iconBackground="#DCFCE7"
-              icon={<MenuIcon color="#166534" size={22} />}
-            />
-            <AdminStatCard
-              label="Available"
-              value={availableCount}
-              tint="#9A3412"
-              iconBackground="#FED7AA"
-              icon={<MenuIcon color="#9A3412" size={22} />}
-            />
-          </View>
-          <View className="flex-row justify-between">
-            <AdminStatCard
-              label="Occupied"
-              value={occupiedCount}
-              tint="#1D4ED8"
-              iconBackground="#BFDBFE"
-              icon={<MenuIcon color="#1D4ED8" size={22} />}
-            />
-            <AdminStatCard
-              label="Other status"
-              value={otherCount}
-              tint="#6D28D9"
-              iconBackground="#DDD6FE"
-              icon={<MenuIcon color="#6D28D9" size={22} />}
-            />
-          </View>
+        <View className="flex-row flex-wrap justify-between gap-y-3">
+          <AdminStatCard
+            label="Total"
+            value={tables.length}
+            tint="#166534"
+            iconBackground="#DCFCE7"
+            decorColor="#DCFCE7"
+            icon={<MenuIcon color="#166534" size={22} />}
+          />
+          <AdminStatCard
+            label="Available"
+            value={availableCount}
+            tint="#9A3412"
+            iconBackground="#FED7AA"
+            decorColor="#FED7AA"
+            icon={<MenuIcon color="#9A3412" size={22} />}
+          />
+          <AdminStatCard
+            label="Occupied"
+            value={occupiedCount}
+            tint="#1D4ED8"
+            iconBackground="#BFDBFE"
+            decorColor="#BFDBFE"
+            icon={<MenuIcon color="#1D4ED8" size={22} />}
+          />
+          <AdminStatCard
+            label="Other status"
+            value={otherCount}
+            tint="#6D28D9"
+            iconBackground="#DDD6FE"
+            decorColor="#DDD6FE"
+            icon={<MenuIcon color="#6D28D9" size={22} />}
+          />
         </View>
 
         <FormModal

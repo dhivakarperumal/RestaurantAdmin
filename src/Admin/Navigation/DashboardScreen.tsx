@@ -3955,6 +3955,7 @@ function KitchenRequestsScreen() {
           value={requests.length}
           tint="#166534"
           iconBackground="#DCFCE7"
+          decorColor="#DCFCE7"
           icon={<ProductIcon color="#166534" size={22} />}
         />
         <AdminStatCard
@@ -3962,6 +3963,7 @@ function KitchenRequestsScreen() {
           value={statusCounts.pending}
           tint="#9A3412"
           iconBackground="#FED7AA"
+          decorColor="#FED7AA"
           icon={<ClockIcon color="#9A3412" size={22} />}
         />
         <AdminStatCard
@@ -3969,6 +3971,7 @@ function KitchenRequestsScreen() {
           value={statusCounts.approved}
           tint="#1D4ED8"
           iconBackground="#BFDBFE"
+          decorColor="#BFDBFE"
           icon={<CheckCircle2Icon color="#1D4ED8" size={22} />}
         />
         <AdminStatCard
@@ -3976,6 +3979,7 @@ function KitchenRequestsScreen() {
           value={statusCounts.rejected}
           tint="#6D28D9"
           iconBackground="#DDD6FE"
+          decorColor="#DDD6FE"
           icon={<ProductIcon color="#6D28D9" size={22} />}
         />
       </View>

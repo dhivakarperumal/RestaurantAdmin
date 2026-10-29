@@ -203,6 +203,7 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
             value={customerRows.length}
             tint="#166534"
             iconBackground="#DCFCE7"
+            decorColor="#DCFCE7"
             icon={<CustomersIcon color="#166534" size={22} />}
           />
           <AdminStatCard
@@ -210,6 +211,7 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
             value={activeCount}
             tint="#1D4ED8"
             iconBackground="#BFDBFE"
+            decorColor="#BFDBFE"
             icon={<CheckCircle2Icon color="#1D4ED8" size={22} />}
           />
           <AdminStatCard
@@ -217,6 +219,7 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
             value={inactiveCount}
             tint="#9A3412"
             iconBackground="#FED7AA"
+            decorColor="#FED7AA"
             icon={<CustomersIcon color="#9A3412" size={22} />}
           />
           <AdminStatCard
@@ -224,6 +227,7 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
             value={contactCount}
             tint="#6D28D9"
             iconBackground="#DDD6FE"
+            decorColor="#DDD6FE"
             icon={<CustomersIcon color="#6D28D9" size={22} />}
           />
         </View>
