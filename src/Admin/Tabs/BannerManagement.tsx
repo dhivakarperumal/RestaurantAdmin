@@ -18,6 +18,10 @@ import {
   ConfirmDialog,
   Edit3Icon,
   FormModal,
+  GiftIcon,
+  ImageIcon,
+  MegaphoneIcon,
+  MonitorIcon,
   Trash2Icon,
 } from '../../components/popups';
 import { PlusIcon, ProductIcon, SearchIcon } from '../Navigation/NavigationIcons';
@@ -1053,71 +1057,7 @@ function BannerStat({
   decorColor: string;
   iconName: string;
 }) {
-  function StatIcon() {
-    if (iconName === "image") {
-      return (
-        <View
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            backgroundColor: iconBackground,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ fontSize: 26, color: tint }}>{"\uD83D\uDDBC"}</Text>
-        </View>
-      );
-    }
-    if (iconName === "gift") {
-      return (
-        <View
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            backgroundColor: iconBackground,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ fontSize: 26, color: tint }}>{"\uD83C\uDF81"}</Text>
-        </View>
-      );
-    }
-    if (iconName === "monitor") {
-      return (
-        <View
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            backgroundColor: iconBackground,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text style={{ fontSize: 26, color: tint }}>{"\uD83D\uDDA5"}</Text>
-        </View>
-      );
-    }
-    // megaphone
-    return (
-      <View
-        style={{
-          width: 52,
-          height: 52,
-          borderRadius: 14,
-          backgroundColor: iconBackground,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Text style={{ fontSize: 26, color: tint }}>{"\uD83D\uDCE3"}</Text>
-      </View>
-    );
-  }
+  const iconSize = 22;
   return (
     <View
       style={{
@@ -1130,11 +1070,9 @@ function BannerStat({
         paddingVertical: 18,
         gap: 14,
         overflow: "hidden",
-        elevation: 0,
         minHeight: 90,
       }}
     >
-      {/* Decorative circle bottom-right */}
       <View
         pointerEvents="none"
         style={{
@@ -1148,7 +1086,27 @@ function BannerStat({
           opacity: 0.55,
         }}
       />
-      <StatIcon />
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          backgroundColor: iconBackground,
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {iconName === "image" ? (
+          <ImageIcon size={iconSize} color={tint} strokeWidth={2} />
+        ) : iconName === "gift" ? (
+          <GiftIcon size={iconSize} color={tint} strokeWidth={2} />
+        ) : iconName === "monitor" ? (
+          <MonitorIcon size={iconSize} color={tint} strokeWidth={2} />
+        ) : (
+          <MegaphoneIcon size={iconSize} color={tint} strokeWidth={2} />
+        )}
+      </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           numberOfLines={2}

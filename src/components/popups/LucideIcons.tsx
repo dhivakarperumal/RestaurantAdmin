@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import Svg, {
   Circle,
   Line,
@@ -486,6 +486,98 @@ export function ArrowLeftIcon({
     >
       <Line x1="19" x2="5" y1="12" y2="12" />
       <Polyline points="12 19 5 12 12 5" />
+    </Svg>
+  );
+}
+
+export function ImageIcon({
+  size = 24,
+  color = "#166534",
+  strokeWidth = 2,
+}: LucideIconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <Circle cx="8.5" cy="8.5" r="1.5" />
+      <Polyline points="21 15 16 10 5 21" />
+    </Svg>
+  );
+}
+
+export function GiftIcon({
+  size = 24,
+  color = "#9A3412",
+  strokeWidth = 2,
+}: LucideIconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Polyline points="20 12 20 22 4 22 4 12" />
+      <Rect x="2" y="7" width="20" height="5" />
+      <Line x1="12" x2="12" y1="22" y2="7" />
+      <Path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+      <Path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+    </Svg>
+  );
+}
+
+export function MonitorIcon({
+  size = 24,
+  color = "#1D4ED8",
+  strokeWidth = 2,
+}: LucideIconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+      <Line x1="8" x2="16" y1="21" y2="21" />
+      <Line x1="12" x2="12" y1="17" y2="21" />
+    </Svg>
+  );
+}
+
+export function MegaphoneIcon({
+  size = 24,
+  color = "#6D28D9",
+  strokeWidth = 2,
+}: LucideIconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Path d="m3 11 19-9-9 19-2-8-8-2z" />
     </Svg>
   );
 }
