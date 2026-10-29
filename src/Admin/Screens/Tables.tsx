@@ -8,12 +8,14 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
-import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
+import { MenuIcon, PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
 import { FormModal } from '../../components/popups';
+import AdminStatCard from '../../components/AdminStatCard';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
@@ -95,6 +97,9 @@ function unwrapData(payload: unknown): unknown {
 function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
   const [tables, setTables] = useState<ServerTable[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All statuses');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -105,6 +110,8 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
 
   const loadTables = useCallback(async (signal: AbortSignal) => {
     const config = {
@@ -159,17 +166,27 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
 
   const filteredTables = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
-    if (!query) {
-      return tables;
-    }
-    return tables.filter(table =>
-      `${getTableNumber(table)} ${table.status ?? ''} ${
-        table.no_of_seats ?? ''
-      }`
-        .toLocaleLowerCase()
-        .includes(query),
-    );
-  }, [tables, search]);
+    return tables.filter(table => {
+      const status = table.status?.trim() || 'Available';
+      return (
+        (!query ||
+          `${getTableNumber(table)} ${status} ${table.no_of_seats ?? ''}`
+            .toLocaleLowerCase()
+            .includes(query)) &&
+        (statusFilter === 'All statuses' ||
+          status.toLowerCase() === statusFilter.toLowerCase())
+      );
+    });
+  }, [tables, search, statusFilter]);
+
+  const availableCount = tables.filter(
+    table =>
+      (table.status?.trim() || 'Available').toLowerCase() === 'available',
+  ).length;
+  const occupiedCount = tables.filter(
+    table => (table.status?.trim() || 'Available').toLowerCase() === 'occupied',
+  ).length;
+  const otherCount = tables.length - availableCount - occupiedCount;
 
   const chooseImage = async () => {
     setFormError('');
@@ -296,12 +313,67 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
               </Text>
             </Pressable>
           ) : null}
-          <Text className="mt-3 text-2xl font-extrabold text-[#012711]">
-            Tables
-          </Text>
-          <Text className="mt-1 text-sm text-[#6B7280]">
-            {tables.length} {tables.length === 1 ? 'table' : 'tables'}
-          </Text>
+          <View className="mt-3 flex-row items-center justify-between gap-3">
+            <View className="flex-1">
+              <Text className="text-2xl font-extrabold text-[#012711]">
+                Table Management
+              </Text>
+              <Text className="mt-1 text-sm text-[#6B7280]">
+                Manage table capacity, availability, and seating photos.
+              </Text>
+            </View>
+            {isWide ? (
+              <Pressable
+                accessibilityLabel="Add table"
+                accessibilityRole="button"
+                onPress={() => {
+                  setFormError('');
+                  setIsFormOpen(true);
+                }}
+                className="min-h-11 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-4"
+              >
+                <PlusIcon color="#FFFFFF" size={18} />
+                <Text className="ml-1.5 text-sm font-bold text-white">
+                  Add table
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
+        <View className="flex-row flex-wrap justify-between gap-y-3">
+          <AdminStatCard
+            label="Total"
+            value={tables.length}
+            tint="#166534"
+            iconBackground="#DCFCE7"
+            decorColor="#DCFCE7"
+            icon={<MenuIcon color="#166534" size={22} />}
+          />
+          <AdminStatCard
+            label="Available"
+            value={availableCount}
+            tint="#9A3412"
+            iconBackground="#FED7AA"
+            decorColor="#FED7AA"
+            icon={<MenuIcon color="#9A3412" size={22} />}
+          />
+          <AdminStatCard
+            label="Occupied"
+            value={occupiedCount}
+            tint="#1D4ED8"
+            iconBackground="#BFDBFE"
+            decorColor="#BFDBFE"
+            icon={<MenuIcon color="#1D4ED8" size={22} />}
+          />
+          <AdminStatCard
+            label="Other status"
+            value={otherCount}
+            tint="#6D28D9"
+            iconBackground="#DDD6FE"
+            decorColor="#DDD6FE"
+            icon={<MenuIcon color="#6D28D9" size={22} />}
+          />
         </View>
 
         <FormModal
@@ -309,74 +381,226 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
           onClose={() => setIsFormOpen(false)}
           title="Add New Table"
           subtitle="Set table number, capacity, and seating picture"
-          onSave={addTable}
-          saveLabel="Save Table"
-          cancelLabel="Cancel"
+          cancelLabel=""
           isSaving={isSaving}
           isSaveDisabled={isSaving || isUploadingImage}
           errorMessage={formError}
+          maxWidth={520}
+          maxHeightPercent={94}
+          contentContainerStyle={{ gap: 12, padding: 14 }}
+          footerExtra={
+            <View className="flex-row gap-3">
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsFormOpen(false)}
+                disabled={isSaving}
+                className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4"
+              >
+                <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void addTable()}
+                disabled={isSaving || isUploadingImage}
+                className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4"
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text className="text-sm font-bold text-white">
+                    Create table
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          }
         >
           <View className="gap-3">
-            <View>
-              <Text className="mb-1 text-xs font-bold text-[#374151]">Table number *</Text>
-              <TextInput
-                accessibilityLabel="Table number"
-                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-                onChangeText={setTableNumber}
-                placeholder="e.g. T-12 or 5"
-                placeholderTextColor={colors.textSecondary}
-                value={tableNumber}
-              />
-            </View>
-            <View>
-              <Text className="mb-1 text-xs font-bold text-[#374151]">Number of seats *</Text>
-              <TextInput
-                accessibilityLabel="Number of seats"
-                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-                keyboardType="number-pad"
-                onChangeText={setSeatCount}
-                placeholder="e.g. 4"
-                placeholderTextColor={colors.textSecondary}
-                value={seatCount}
-              />
-            </View>
-            <View className="gap-2">
-              <Text className="mb-1 text-xs font-bold text-[#374151]">Table photo (optional)</Text>
-              <Pressable
-                accessibilityLabel="Upload table image"
-                accessibilityRole="button"
-                disabled={isUploadingImage}
-                onPress={chooseImage}
-                className="self-start rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-4 py-3"
-              >
-                <Text className="font-semibold text-[#116C0B]">
-                  {isUploadingImage
-                    ? 'Uploading image...'
-                    : imageUrl
-                    ? 'Change image'
-                    : 'Choose table image'}
+            <View className="gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+              <View className="flex-row items-center gap-2">
+                <View className="h-6 w-6 items-center justify-center rounded-full bg-[#15803D]">
+                  <Text className="text-[11px] font-extrabold text-white">
+                    1
+                  </Text>
+                </View>
+                <Text className="text-sm font-extrabold text-[#0F172A]">
+                  Table information
                 </Text>
-              </Pressable>
-              {imageUrl ? (
-                <Image
-                  accessibilityLabel="Table image preview"
-                  resizeMode="cover"
-                  source={{ uri: resolveImageUrl(imageUrl) }}
-                  className="h-24 w-24 rounded-xl bg-[#F3F4F6]"
+              </View>
+              <View>
+                <Text className="mb-1 text-xs font-bold text-[#374151]">
+                  Table number *
+                </Text>
+                <TextInput
+                  accessibilityLabel="Table number"
+                  className="min-h-10 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A]"
+                  onChangeText={setTableNumber}
+                  placeholder="e.g. T-12 or 5"
+                  placeholderTextColor={colors.textSecondary}
+                  value={tableNumber}
                 />
-              ) : null}
+              </View>
+              <View>
+                <Text className="mb-1 text-xs font-bold text-[#374151]">
+                  Number of seats *
+                </Text>
+                <TextInput
+                  accessibilityLabel="Number of seats"
+                  className="min-h-10 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A]"
+                  keyboardType="number-pad"
+                  onChangeText={setSeatCount}
+                  placeholder="e.g. 4"
+                  placeholderTextColor={colors.textSecondary}
+                  value={seatCount}
+                />
+              </View>
+            </View>
+            <View className="gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+              <View className="flex-row items-center gap-2">
+                <View className="h-6 w-6 items-center justify-center rounded-full bg-[#15803D]">
+                  <Text className="text-[11px] font-extrabold text-white">
+                    2
+                  </Text>
+                </View>
+                <Text className="text-sm font-extrabold text-[#0F172A]">
+                  Table image
+                </Text>
+              </View>
+              <View className="gap-2">
+                <Text className="mb-1 text-xs font-bold text-[#374151]">
+                  Table photo (optional)
+                </Text>
+                <Pressable
+                  accessibilityLabel="Upload table image"
+                  accessibilityRole="button"
+                  disabled={isUploadingImage}
+                  onPress={chooseImage}
+                  className="self-start rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-4 py-3"
+                >
+                  <Text className="font-semibold text-[#116C0B]">
+                    {isUploadingImage
+                      ? 'Uploading image...'
+                      : imageUrl
+                      ? 'Change image'
+                      : 'Choose table image'}
+                  </Text>
+                </Pressable>
+                {imageUrl ? (
+                  <Image
+                    accessibilityLabel="Table image preview"
+                    resizeMode="cover"
+                    source={{ uri: resolveImageUrl(imageUrl) }}
+                    className="h-24 w-24 rounded-xl bg-[#F3F4F6]"
+                  />
+                ) : null}
+              </View>
             </View>
           </View>
         </FormModal>
 
-        <TextInput
-          accessibilityLabel="Search tables"
-          className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-          onChangeText={setSearch}
-          placeholder="Search tables"
-          placeholderTextColor={colors.textSecondary}
-          value={search}
-        />
+        <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+          <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
+            <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
+              <SearchIcon color="#9CA3AF" size={17} />
+              <TextInput
+                accessibilityLabel="Search tables"
+                className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+                onChangeText={setSearch}
+                placeholder="Search table number, capacity, or status..."
+                placeholderTextColor={colors.textSecondary}
+                value={search}
+              />
+            </View>
+            <View className="flex-row items-end gap-2">
+              <View className="relative min-w-[140px] flex-1">
+                <Text className="mb-1 text-[10px] font-bold text-[#475569]">
+                  Status
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: isStatusMenuOpen }}
+                  onPress={() => setIsStatusMenuOpen(value => !value)}
+                  className="min-h-10 flex-row items-center justify-between rounded-lg border border-[#CBD5E1] bg-white px-3"
+                >
+                  <Text className="text-xs text-[#334155]">{statusFilter}</Text>
+                  <Text className="text-xs text-[#64748B]">
+                    {isStatusMenuOpen ? '⌃' : '⌄'}
+                  </Text>
+                </Pressable>
+                {isStatusMenuOpen ? (
+                  <View
+                    className="absolute left-0 right-0 top-[62px] z-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
+                    style={{ elevation: 8 }}
+                  >
+                    {[
+                      'All statuses',
+                      ...Array.from(
+                        new Set(
+                          tables.map(
+                            table => table.status?.trim() || 'Available',
+                          ),
+                        ),
+                      ),
+                    ].map(status => (
+                      <Pressable
+                        key={status}
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          selected: statusFilter === status,
+                        }}
+                        onPress={() => {
+                          setStatusFilter(status);
+                          setIsStatusMenuOpen(false);
+                        }}
+                        className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${
+                          statusFilter === status ? 'bg-[#F0FDF4]' : ''
+                        }`}
+                      >
+                        <Text
+                          className={`text-xs ${
+                            statusFilter === status
+                              ? 'font-bold text-[#116C0B]'
+                              : 'text-[#334155]'
+                          }`}
+                        >
+                          {status}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+              <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+                {(['grid', 'list'] as const).map(mode => {
+                  const selected = viewMode === mode;
+                  return (
+                    <Pressable
+                      key={mode}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={`Show tables as ${mode}`}
+                      onPress={() => setViewMode(mode)}
+                      className={`h-9 w-9 items-center justify-center rounded-md ${
+                        selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                      }`}
+                    >
+                      <Text
+                        className={`text-base font-bold ${
+                          selected ? 'text-white' : 'text-[#64748B]'
+                        }`}
+                      >
+                        {mode === 'grid' ? '▦' : '☷'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+          <Text className="text-xs text-[#64748B]">
+            {filteredTables.length} tables
+          </Text>
+        </View>
 
         {isLoading ? (
           <View className="items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-8">
@@ -412,8 +636,81 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                 : 'Tables returned by the API will appear here.'}
             </Text>
           </View>
+        ) : viewMode === 'list' ? (
+          <ScrollView
+            horizontal={!isWide}
+            showsHorizontalScrollIndicator={!isWide}
+          >
+            <View
+              className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+              style={{ width: isWide ? '100%' : 680 }}
+            >
+              <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
+                <Text className="w-16 text-xs font-bold text-[#64748B]">
+                  Image
+                </Text>
+                <Text className="flex-1 text-xs font-bold text-[#64748B]">
+                  Table
+                </Text>
+                <Text className="w-24 text-xs font-bold text-[#64748B]">
+                  Seats
+                </Text>
+                <Text className="w-32 text-xs font-bold text-[#64748B]">
+                  Status
+                </Text>
+              </View>
+              {filteredTables.map((table, index) => {
+                const status = table.status?.trim() || 'Available';
+                const image = resolveImageUrl(table.image_url);
+                return (
+                  <View
+                    key={String(
+                      table.table_id ??
+                        table.id ??
+                        `${getTableNumber(table)}-${index}`,
+                    )}
+                    className={`min-h-[58px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2 ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-[#FAFCFA]'
+                    }`}
+                  >
+                    <View className="w-16 pr-2">
+                      {image ? (
+                        <Image
+                          accessibilityLabel={`Table ${getTableNumber(
+                            table,
+                          )} image`}
+                          resizeMode="cover"
+                          source={{ uri: image }}
+                          className="h-9 w-12 rounded-md bg-[#F3F4F6]"
+                        />
+                      ) : (
+                        <View className="h-9 w-12 items-center justify-center rounded-md bg-[#F0F7EE]">
+                          <MenuIcon color={colors.primary} size={18} />
+                        </View>
+                      )}
+                    </View>
+                    <Text className="flex-1 text-xs font-semibold text-[#334155]">
+                      Table {getTableNumber(table)}
+                    </Text>
+                    <Text className="w-24 text-xs text-[#334155]">
+                      {table.no_of_seats ?? '—'}
+                    </Text>
+                    <Text
+                      className={`w-32 text-xs font-semibold ${
+                        status.toLowerCase() === 'available'
+                          ? 'text-[#166534]'
+                          : 'text-[#64748B]'
+                      }`}
+                    >
+                      {status}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
         ) : (
-          <View className="gap-3">
+          <View className="flex-row flex-wrap justify-between gap-y-3">
             {filteredTables.map((table, index) => {
               const status = table.status?.trim() || 'Available';
               const image = resolveImageUrl(table.image_url);
@@ -424,7 +721,8 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                       table.id ??
                       `${getTableNumber(table)}-${index}`,
                   )}
-                  className="flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                  className="w-full flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                  style={{ width: isWide ? '48%' : '100%' }}
                 >
                   {image ? (
                     <Image
@@ -463,18 +761,20 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
           </View>
         )}
       </ScrollView>
-      <Pressable
-        accessibilityLabel="Add table"
-        accessibilityRole="button"
-        accessibilityHint="Opens the add new table form"
-        onPress={() => {
-          setFormError('');
-          setIsFormOpen(true);
-        }}
-        className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
-      >
-        <PlusIcon color={colors.surface} size={26} />
-      </Pressable>
+      {!isWide && !isFormOpen ? (
+        <Pressable
+          accessibilityLabel="Add table"
+          accessibilityRole="button"
+          accessibilityHint="Opens the add new table form"
+          onPress={() => {
+            setFormError('');
+            setIsFormOpen(true);
+          }}
+          className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
+        >
+          <PlusIcon color={colors.surface} size={26} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

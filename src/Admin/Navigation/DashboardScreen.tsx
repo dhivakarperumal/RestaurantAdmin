@@ -30,6 +30,7 @@ import {
   ProfileIcon,
   ProductIcon,
   ReceiptIcon,
+  SearchIcon,
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import MoreInnerHeader from './MoreInnerHeader';
@@ -82,7 +83,10 @@ import {
   DetailsModal,
   FormModal,
   LogOutIcon,
+  CheckCircle2Icon,
+  ClockIcon,
 } from '../../components/popups';
+import AdminStatCard from '../../components/AdminStatCard';
 
 type DashboardScreenProps = {
   user: HeaderUser | null;
@@ -264,7 +268,6 @@ const moreFeatures: MoreFeature[] = [
     icon: ChartIcon,
   },
 
-  
   {
     title: 'Staff & Employees',
     subtitle: 'Manage your team',
@@ -286,7 +289,6 @@ const moreFeatures: MoreFeature[] = [
     subtitle: 'View your account details',
     icon: ProfileIcon,
   },
-  
 ];
 
 function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
@@ -300,7 +302,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isItemsInnerPageOpen, setIsItemsInnerPageOpen] = useState(false);
   const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
-  const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
+  const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] =
+    useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(
     null,
   );
@@ -1428,10 +1431,7 @@ function MainContent({
     }
     if (selectedFeature === 'AddCuisine') {
       return (
-        <AddCuisineScreen
-          onBack={onCloseAddCuisine}
-          showBackButton={true}
-        />
+        <AddCuisineScreen onBack={onCloseAddCuisine} showBackButton={true} />
       );
     }
     if (selectedFeature === 'Categories') {
@@ -1451,7 +1451,10 @@ function MainContent({
         />
       );
     }
-    if (selectedFeature === 'Orders' || selectedFeature === 'Orders Management') {
+    if (
+      selectedFeature === 'Orders' ||
+      selectedFeature === 'Orders Management'
+    ) {
       return (
         <OrdersScreen
           onBack={() => onSelectFeature(null)}
@@ -1897,14 +1900,18 @@ function HomePage({
           Store performance
         </Text>
         <Pressable
-          accessibilityLabel={`Date range: ${dashboardPeriods.find(period => period.value === dateFilter)?.label || 'Select'}`}
+          accessibilityLabel={`Date range: ${
+            dashboardPeriods.find(period => period.value === dateFilter)
+              ?.label || 'Select'
+          }`}
           accessibilityRole="button"
           accessibilityState={{ expanded: isDateFilterOpen }}
           onPress={() => setIsDateFilterOpen(true)}
           className="min-w-[142px] flex-row items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5"
         >
           <Text className="text-[12px] font-semibold text-[#012711]">
-            {dashboardPeriods.find(period => period.value === dateFilter)?.label || 'Select range'}
+            {dashboardPeriods.find(period => period.value === dateFilter)
+              ?.label || 'Select range'}
           </Text>
           <Text className="ml-3 text-xs text-[#6B7280]">⌄</Text>
         </Pressable>
@@ -1916,7 +1923,10 @@ function HomePage({
         subtitle="Choose a period to analyze sales, orders, and attendance"
         variant="bottom-sheet"
       >
-        <ScrollView className="max-h-[360px]" contentContainerClassName="gap-1 pb-4">
+        <ScrollView
+          className="max-h-[360px]"
+          contentContainerClassName="gap-1 pb-4"
+        >
           {dashboardPeriods.map(({ value: filter, label }) => {
             const isSelected = dateFilter === filter;
             return (
@@ -2027,7 +2037,9 @@ function HomePage({
         <View style={{ flexDirection: 'row', gap: summaryCardGap }}>
           <StatCard
             label="Today's Revenue"
-            value={isLoading && !hasAnyData ? '-' : formatCurrency(todayRevenue)}
+            value={
+              isLoading && !hasAnyData ? '-' : formatCurrency(todayRevenue)
+            }
             detail="from all channels today"
             badge="TODAY"
             tone="cyan"
@@ -2227,7 +2239,10 @@ function HomePage({
                   Stock is running low
                 </Text>
               </View>
-              <Text className="text-[13px] font-bold" style={{ color: colors.primary }}>
+              <Text
+                className="text-[13px] font-bold"
+                style={{ color: colors.primary }}
+              >
                 {getItemStock(item)} left
               </Text>
             </View>
@@ -2278,7 +2293,9 @@ function computeSalesData(
   const transactions: Transaction[] = [];
 
   orders.forEach(order => {
-    const status = String(order.order_status || '').trim().toLowerCase();
+    const status = String(order.order_status || '')
+      .trim()
+      .toLowerCase();
     if (['cancelled', 'canceled'].includes(status)) {
       return;
     }
@@ -2291,7 +2308,9 @@ function computeSalesData(
   });
 
   bills.forEach(bill => {
-    const status = String(bill.status || '').trim().toLowerCase();
+    const status = String(bill.status || '')
+      .trim()
+      .toLowerCase();
     if (['cancelled', 'canceled'].includes(status)) {
       return;
     }
@@ -2309,15 +2328,38 @@ function computeSalesData(
     const items: SalesBarItem[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
-      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+      const start = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        0,
+        0,
+        0,
+        0,
+      ).getTime();
+      const end = new Date(
+        d.getFullYear(),
+        d.getMonth(),
+        d.getDate(),
+        23,
+        59,
+        59,
+        999,
+      ).getTime();
 
       const shortDay = d.toLocaleDateString('en-IN', { weekday: 'short' });
       const dayNum = String(d.getDate());
       const fullLabel =
         i === 0
-          ? `Today (${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})`
-          : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+          ? `Today (${d.toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+            })})`
+          : d.toLocaleDateString('en-IN', {
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
+            });
 
       let revenue = 0;
       let orderCount = 0;
@@ -2360,20 +2402,40 @@ function computeSalesData(
   if (mode === 'weekly') {
     const items: SalesBarItem[] = [];
     for (let w = 3; w >= 0; w--) {
-      const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (w * 7), 23, 59, 59, 999);
-      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (w * 7 + 6), 0, 0, 0, 0);
+      const weekEnd = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - w * 7,
+        23,
+        59,
+        59,
+        999,
+      );
+      const weekStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - (w * 7 + 6),
+        0,
+        0,
+        0,
+        0,
+      );
 
       const startMs = weekStart.getTime();
       const endMs = weekEnd.getTime();
 
-      const startMonth = weekStart.toLocaleDateString('en-IN', { month: 'short' });
+      const startMonth = weekStart.toLocaleDateString('en-IN', {
+        month: 'short',
+      });
       const endMonth = weekEnd.toLocaleDateString('en-IN', { month: 'short' });
       const sublabel = `${weekStart.getDate()}-${weekEnd.getDate()} ${endMonth}`;
       const label = w === 0 ? 'This Wk' : `Wk ${4 - w}`;
       const fullLabel =
         w === 0
           ? `This Week (${weekStart.getDate()} ${startMonth} - ${weekEnd.getDate()} ${endMonth})`
-          : `Week ${4 - w} (${weekStart.getDate()} ${startMonth} - ${weekEnd.getDate()} ${endMonth})`;
+          : `Week ${
+              4 - w
+            } (${weekStart.getDate()} ${startMonth} - ${weekEnd.getDate()} ${endMonth})`;
 
       let revenue = 0;
       let orderCount = 0;
@@ -2405,13 +2467,34 @@ function computeSalesData(
   const items: SalesBarItem[] = [];
   for (let m = 5; m >= 0; m--) {
     const monthDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
-    const startMs = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1, 0, 0, 0, 0).getTime();
-    const endMs = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+    const startMs = new Date(
+      monthDate.getFullYear(),
+      monthDate.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    ).getTime();
+    const endMs = new Date(
+      monthDate.getFullYear(),
+      monthDate.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    ).getTime();
 
-    const shortMonth = monthDate.toLocaleDateString('en-IN', { month: 'short' });
+    const shortMonth = monthDate.toLocaleDateString('en-IN', {
+      month: 'short',
+    });
     const fullYear = monthDate.getFullYear();
     const sublabel = `'${String(fullYear).slice(-2)}`;
-    const fullLabel = monthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const fullLabel = monthDate.toLocaleDateString('en-IN', {
+      month: 'long',
+      year: 'numeric',
+    });
 
     let revenue = 0;
     let orderCount = 0;
@@ -2471,18 +2554,21 @@ function SalesOverview({
   );
 
   const activeIndex =
-    selectedIndex !== null && selectedIndex >= 0 && selectedIndex < dataset.length
+    selectedIndex !== null &&
+    selectedIndex >= 0 &&
+    selectedIndex < dataset.length
       ? selectedIndex
       : dataset.length - 1;
 
-  const activeItem = dataset[activeIndex] || dataset[0] || {
-    key: 'empty',
-    label: '',
-    sublabel: '',
-    fullLabel: 'No data',
-    revenue: 0,
-    orderCount: 0,
-  };
+  const activeItem = dataset[activeIndex] ||
+    dataset[0] || {
+      key: 'empty',
+      label: '',
+      sublabel: '',
+      fullLabel: 'No data',
+      revenue: 0,
+      orderCount: 0,
+    };
 
   const totalRevenue = useMemo(
     () => dataset.reduce((sum, item) => sum + item.revenue, 0),
@@ -2496,7 +2582,10 @@ function SalesOverview({
 
   const peakItem = useMemo(() => {
     if (dataset.length === 0) return null;
-    return dataset.reduce((max, item) => (item.revenue > max.revenue ? item : max), dataset[0]);
+    return dataset.reduce(
+      (max, item) => (item.revenue > max.revenue ? item : max),
+      dataset[0],
+    );
   }, [dataset]);
 
   const maxRevenue = Math.max(...dataset.map(item => item.revenue), 1);
@@ -2514,7 +2603,9 @@ function SalesOverview({
             <ChartIcon color="#116C0B" size={16} />
           </View>
           <View>
-            <Text className="text-sm font-bold text-[#012711]">Sales Overview</Text>
+            <Text className="text-sm font-bold text-[#012711]">
+              Sales Overview
+            </Text>
             <Text className="text-[10px] text-[#6B7280]">
               {filterMode === 'daily'
                 ? 'Past 7 Days'
@@ -2530,7 +2621,11 @@ function SalesOverview({
           {(['daily', 'weekly', 'monthly'] as const).map(mode => {
             const isActive = filterMode === mode;
             const title =
-              mode === 'daily' ? 'Daily' : mode === 'weekly' ? 'Weekly' : 'Monthly';
+              mode === 'daily'
+                ? 'Daily'
+                : mode === 'weekly'
+                ? 'Weekly'
+                : 'Monthly';
             return (
               <Pressable
                 key={mode}
@@ -2568,10 +2663,13 @@ function SalesOverview({
         <View className="items-end gap-1">
           <View className="rounded-full bg-[#DCFCE7] px-2.5 py-0.5">
             <Text className="text-[10px] font-bold text-[#166534]">
-              {activeItem.orderCount} {activeItem.orderCount === 1 ? 'order' : 'orders'}
+              {activeItem.orderCount}{' '}
+              {activeItem.orderCount === 1 ? 'order' : 'orders'}
             </Text>
           </View>
-          {peakItem && peakItem.revenue > 0 && activeItem.revenue === peakItem.revenue ? (
+          {peakItem &&
+          peakItem.revenue > 0 &&
+          activeItem.revenue === peakItem.revenue ? (
             <Text className="text-[10px] font-semibold text-[#D97706]">
               ★ Peak Period
             </Text>
@@ -2585,7 +2683,10 @@ function SalesOverview({
           const isSelected = index === activeIndex;
           const barHeight =
             item.revenue > 0
-              ? Math.max(12, Math.round((item.revenue / maxRevenue) * chartHeight))
+              ? Math.max(
+                  12,
+                  Math.round((item.revenue / maxRevenue) * chartHeight),
+                )
               : 6;
 
           return (
@@ -2657,7 +2758,9 @@ function SalesOverview({
                 {item.sublabel ? (
                   <Text
                     className={`text-[9px] ${
-                      isSelected ? 'font-medium text-[#116C0B]' : 'text-[#9CA3AF]'
+                      isSelected
+                        ? 'font-medium text-[#116C0B]'
+                        : 'text-[#9CA3AF]'
                     }`}
                   >
                     {item.sublabel}
@@ -2708,7 +2811,10 @@ function SalesOverview({
           <Text className="text-[10px] uppercase tracking-wider font-semibold text-[#6B7280]">
             Peak
           </Text>
-          <Text className="text-xs font-bold text-[#16803D] mt-0.5" numberOfLines={1}>
+          <Text
+            className="text-xs font-bold text-[#16803D] mt-0.5"
+            numberOfLines={1}
+          >
             {peakItem && peakItem.revenue > 0
               ? `${peakItem.label} (${formatCompactCurrency(peakItem.revenue)})`
               : '—'}
@@ -3110,7 +3216,9 @@ function OrdersPage({
               onPress={() => setSelectedOrder(null)}
               className="min-h-12 w-full items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
             >
-              <Text className="text-sm font-semibold text-[#334155]">Close Details</Text>
+              <Text className="text-sm font-semibold text-[#334155]">
+                Close Details
+              </Text>
             </Pressable>
           }
         >
@@ -3129,33 +3237,35 @@ function OrdersPage({
                 Update Order Status
               </Text>
               <View className="flex-row flex-wrap gap-2">
-                {(['Pending', 'Completed', 'Cancelled'] as const).map(status => {
-                  const isSelected = selectedOrder.status === status;
-                  return (
-                    <Pressable
-                      accessibilityLabel={`Set order status to ${status}`}
-                      accessibilityRole="button"
-                      key={status}
-                      onPress={() => {
-                        onUpdateOrderStatus(selectedOrder.id, status);
-                        setSelectedOrder({ ...selectedOrder, status });
-                      }}
-                      className={`rounded-2xl border px-4 py-2.5 ${
-                        isSelected
-                          ? 'border-[#116C0B] bg-[#116C0B]'
-                          : 'border-[#CBD5E1] bg-white active:bg-gray-50'
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs font-bold ${
-                          isSelected ? 'text-white' : 'text-[#475569]'
+                {(['Pending', 'Completed', 'Cancelled'] as const).map(
+                  status => {
+                    const isSelected = selectedOrder.status === status;
+                    return (
+                      <Pressable
+                        accessibilityLabel={`Set order status to ${status}`}
+                        accessibilityRole="button"
+                        key={status}
+                        onPress={() => {
+                          onUpdateOrderStatus(selectedOrder.id, status);
+                          setSelectedOrder({ ...selectedOrder, status });
+                        }}
+                        className={`rounded-2xl border px-4 py-2.5 ${
+                          isSelected
+                            ? 'border-[#116C0B] bg-[#116C0B]'
+                            : 'border-[#CBD5E1] bg-white active:bg-gray-50'
                         }`}
                       >
-                        {status}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                        <Text
+                          className={`text-xs font-bold ${
+                            isSelected ? 'text-white' : 'text-[#475569]'
+                          }`}
+                        >
+                          {status}
+                        </Text>
+                      </Pressable>
+                    );
+                  },
+                )}
               </View>
             </View>
           </View>
@@ -3487,6 +3597,9 @@ function KitchenRequestsScreen() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
 
   const loadRequests = useCallback(async () => {
     setIsLoading(true);
@@ -3508,7 +3621,11 @@ function KitchenRequestsScreen() {
   const filteredRequests = useMemo(() => {
     const query = search.trim().toLowerCase();
     return requests.filter(request => {
-      const status = kitchenRequestValue(request, ['status', 'state'], 'Pending');
+      const status = kitchenRequestValue(
+        request,
+        ['status', 'state'],
+        'Pending',
+      );
       const matchesStatus =
         statusFilter === 'All' ||
         status.trim().toLowerCase() === statusFilter.toLowerCase();
@@ -3519,11 +3636,7 @@ function KitchenRequestsScreen() {
         return true;
       }
       return [
-        kitchenRequestValue(
-          request,
-          ['request_id', 'requestId', 'id'],
-          '',
-        ),
+        kitchenRequestValue(request, ['request_id', 'requestId', 'id'], ''),
         kitchenRequestValue(
           request,
           ['item_name', 'product_name', 'food_name', 'item', 'name'],
@@ -3537,47 +3650,133 @@ function KitchenRequestsScreen() {
       ].some(value => value.toLowerCase().includes(query));
     });
   }, [requests, search, statusFilter]);
+  const statusCounts = requests.reduce(
+    (counts, request) => {
+      const status = kitchenRequestValue(
+        request,
+        ['status', 'state'],
+        'Pending',
+      ).toLowerCase();
+      if (status === 'pending') counts.pending += 1;
+      if (status === 'approved') counts.approved += 1;
+      if (status === 'rejected') counts.rejected += 1;
+      return counts;
+    },
+    { pending: 0, approved: 0, rejected: 0 },
+  );
 
   return (
     <PageShell
       title="Kitchen Requests"
       subtitle="Review and manage kitchen inventory requests"
     >
-      <TextInput
-        accessibilityLabel="Search kitchen requests"
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search item, request ID, or requester"
-        placeholderTextColor="#94A3B8"
-        className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#012711]"
-      />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerClassName="gap-2"
-      >
-        {['All', 'Pending', 'Approved', 'Rejected', 'Completed'].map(status => (
-          <Pressable
-            key={status}
-            accessibilityLabel={`Filter kitchen requests by ${status}`}
-            accessibilityRole="button"
-            onPress={() => setStatusFilter(status)}
-            className={`rounded-full border px-4 py-2 ${
-              statusFilter === status
-                ? 'border-[#116C0B] bg-[#116C0B]'
-                : 'border-[#E5E7EB] bg-white'
-            }`}
-          >
-            <Text
-              className={`text-xs font-bold ${
-                statusFilter === status ? 'text-white' : 'text-[#475569]'
-              }`}
-            >
-              {status}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View className="flex-row flex-wrap justify-between gap-y-3">
+        <AdminStatCard
+          label="Total"
+          value={requests.length}
+          tint="#166534"
+          iconBackground="#DCFCE7"
+          decorColor="#DCFCE7"
+          icon={<ProductIcon color="#166534" size={22} />}
+        />
+        <AdminStatCard
+          label="Pending"
+          value={statusCounts.pending}
+          tint="#9A3412"
+          iconBackground="#FED7AA"
+          decorColor="#FED7AA"
+          icon={<ClockIcon color="#9A3412" size={22} />}
+        />
+        <AdminStatCard
+          label="Approved"
+          value={statusCounts.approved}
+          tint="#1D4ED8"
+          iconBackground="#BFDBFE"
+          decorColor="#BFDBFE"
+          icon={<CheckCircle2Icon color="#1D4ED8" size={22} />}
+        />
+        <AdminStatCard
+          label="Rejected"
+          value={statusCounts.rejected}
+          tint="#6D28D9"
+          iconBackground="#DDD6FE"
+          decorColor="#DDD6FE"
+          icon={<ProductIcon color="#6D28D9" size={22} />}
+        />
+      </View>
+      <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+        <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
+          <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
+            <SearchIcon color="#9CA3AF" size={17} />
+            <TextInput
+              accessibilityLabel="Search kitchen requests"
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search item, request ID, or requester..."
+              placeholderTextColor="#94A3B8"
+              className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+            />
+          </View>
+          <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+            {(['grid', 'list'] as const).map(mode => {
+              const selected = viewMode === mode;
+              return (
+                <Pressable
+                  key={mode}
+                  accessibilityLabel={`Show kitchen requests as ${mode}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => setViewMode(mode)}
+                  className={`h-9 w-9 items-center justify-center rounded-md ${
+                    selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                  }`}
+                >
+                  <Text
+                    className={`text-base font-bold ${
+                      selected ? 'text-white' : 'text-[#64748B]'
+                    }`}
+                  >
+                    {mode === 'grid' ? '▦' : '☷'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="gap-2"
+        >
+          {['All', 'Pending', 'Approved', 'Rejected', 'Completed'].map(
+            status => (
+              <Pressable
+                key={status}
+                accessibilityLabel={`Filter kitchen requests by ${status}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: statusFilter === status }}
+                onPress={() => setStatusFilter(status)}
+                className={`rounded-full border px-4 py-2 ${
+                  statusFilter === status
+                    ? 'border-[#116C0B] bg-[#116C0B]'
+                    : 'border-[#E5E7EB] bg-white'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    statusFilter === status ? 'text-white' : 'text-[#475569]'
+                  }`}
+                >
+                  {status}
+                </Text>
+              </Pressable>
+            ),
+          )}
+        </ScrollView>
+        <Text className="text-xs text-[#64748B]">
+          {filteredRequests.length} requests
+        </Text>
+      </View>
 
       {isLoading ? (
         <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
@@ -3600,77 +3799,168 @@ function KitchenRequestsScreen() {
               : 'No kitchen requests match the selected filters.'}
           </Text>
         </View>
-      ) : (
-        filteredRequests.map((request, index) => {
-          const requestId = kitchenRequestValue(
-            request,
-            ['request_id', 'requestId', 'id'],
-            `Request ${index + 1}`,
-          );
-          const item = kitchenRequestValue(
-            request,
-            ['item_name', 'product_name', 'food_name', 'item', 'name'],
-            'Inventory item',
-          );
-          const quantity = kitchenRequestValue(
-            request,
-            ['quantity', 'requested_quantity', 'qty'],
-            '—',
-          );
-          const status = kitchenRequestValue(request, ['status', 'state'], 'Pending');
-          const requestedBy = kitchenRequestValue(
-            request,
-            ['requested_by', 'requestedBy', 'employee_name', 'user_name'],
-            '',
-          );
-          return (
-            <View
-              key={`${requestId}-${index}`}
-              className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
-            >
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1">
-                  <Text className="text-base font-bold text-[#012711]">
-                    {item}
+      ) : viewMode === 'list' ? (
+        <ScrollView
+          horizontal={!isWide}
+          showsHorizontalScrollIndicator={!isWide}
+        >
+          <View
+            className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+            style={{ width: isWide ? '100%' : 680 }}
+          >
+            <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
+              <Text className="flex-1 text-xs font-bold text-[#64748B]">
+                Item / request
+              </Text>
+              <Text className="w-28 text-xs font-bold text-[#64748B]">
+                Quantity
+              </Text>
+              <Text className="w-36 text-xs font-bold text-[#64748B]">
+                Requested by
+              </Text>
+              <Text className="w-32 text-xs font-bold text-[#64748B]">
+                Status
+              </Text>
+            </View>
+            {filteredRequests.map((request, index) => {
+              const requestId = kitchenRequestValue(
+                request,
+                ['request_id', 'requestId', 'id'],
+                `Request ${index + 1}`,
+              );
+              const item = kitchenRequestValue(
+                request,
+                ['item_name', 'product_name', 'food_name', 'item', 'name'],
+                'Inventory item',
+              );
+              const quantity = kitchenRequestValue(
+                request,
+                ['quantity', 'requested_quantity', 'qty'],
+                '—',
+              );
+              const status = kitchenRequestValue(
+                request,
+                ['status', 'state'],
+                'Pending',
+              );
+              const requestedBy = kitchenRequestValue(
+                request,
+                ['requested_by', 'requestedBy', 'employee_name', 'user_name'],
+                '',
+              );
+              return (
+                <View
+                  key={`${requestId}-${index}`}
+                  className={`min-h-[58px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2 ${
+                    index % 2 === 0 ? 'bg-white' : 'bg-[#FAFCFA]'
+                  }`}
+                >
+                  <View className="flex-1 pr-3">
+                    <Text
+                      numberOfLines={1}
+                      className="text-xs font-semibold text-[#334155]"
+                    >
+                      {item}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="mt-1 text-[10px] text-[#64748B]"
+                    >
+                      {requestId}
+                    </Text>
+                  </View>
+                  <Text className="w-28 text-xs text-[#334155]">
+                    {quantity}
                   </Text>
-                  <Text className="mt-1 text-xs text-[#6B7280]">
-                    {requestId}
+                  <Text
+                    numberOfLines={1}
+                    className="w-36 text-xs text-[#334155]"
+                  >
+                    {requestedBy || '—'}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    className="w-32 text-xs font-semibold capitalize text-[#166534]"
+                  >
+                    {status}
                   </Text>
                 </View>
-                <Text
-                  className="rounded-lg px-2.5 py-1 text-xs font-bold capitalize"
-                  style={{
-                    backgroundColor: colors.surfaceSecondary,
-                    color: colors.primary,
-                  }}
-                >
-                  {status}
+              );
+            })}
+          </View>
+        </ScrollView>
+      ) : (
+        <View className="flex-row flex-wrap justify-between gap-y-3">
+          {filteredRequests.map((request, index) => {
+            const requestId = kitchenRequestValue(
+              request,
+              ['request_id', 'requestId', 'id'],
+              `Request ${index + 1}`,
+            );
+            const item = kitchenRequestValue(
+              request,
+              ['item_name', 'product_name', 'food_name', 'item', 'name'],
+              'Inventory item',
+            );
+            const quantity = kitchenRequestValue(
+              request,
+              ['quantity', 'requested_quantity', 'qty'],
+              '—',
+            );
+            const status = kitchenRequestValue(
+              request,
+              ['status', 'state'],
+              'Pending',
+            );
+            const requestedBy = kitchenRequestValue(
+              request,
+              ['requested_by', 'requestedBy', 'employee_name', 'user_name'],
+              '',
+            );
+            return (
+              <View
+                key={`${requestId}-${index}`}
+                className="w-full rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
+                style={{ width: isWide ? '48%' : '100%' }}
+              >
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="text-base font-bold text-[#012711]">
+                      {item}
+                    </Text>
+                    <Text className="mt-1 text-xs text-[#6B7280]">
+                      {requestId}
+                    </Text>
+                  </View>
+                  <Text
+                    className="rounded-lg px-2.5 py-1 text-xs font-bold capitalize"
+                    style={{
+                      backgroundColor: colors.surfaceSecondary,
+                      color: colors.primary,
+                    }}
+                  >
+                    {status}
+                  </Text>
+                </View>
+                <Text className="mt-3 text-sm text-[#475569]">
+                  Quantity: <Text className="font-bold">{quantity}</Text>
                 </Text>
+                {requestedBy ? (
+                  <Text className="mt-1 text-sm text-[#475569]">
+                    Requested by:{' '}
+                    <Text className="font-bold">{requestedBy}</Text>
+                  </Text>
+                ) : null}
               </View>
-              <Text className="mt-3 text-sm text-[#475569]">
-                Quantity: <Text className="font-bold">{quantity}</Text>
-              </Text>
-              {requestedBy ? (
-                <Text className="mt-1 text-sm text-[#475569]">
-                  Requested by: <Text className="font-bold">{requestedBy}</Text>
-                </Text>
-              ) : null}
-            </View>
-          );
-        })
+            );
+          })}
+        </View>
       )}
     </PageShell>
   );
 }
 
-type StatTone =
-  | 'green'
-  | 'blue'
-  | 'purple'
-  | 'cyan'
-  | 'pink'
-  | 'teal'
-  | 'red';
+type StatTone = 'green' | 'blue' | 'purple' | 'cyan' | 'pink' | 'teal' | 'red';
 
 const statCardGradients: Record<
   StatTone,
@@ -3682,19 +3972,55 @@ const statCardGradients: Record<
     glow2: string;
   }
 > = {
-  green:  {
+  green: {
     bg: colors.primaryDark,
     bgMid: colors.primary,
     bgDark: colors.primaryLight,
     glow1: colors.primaryGlow,
     glow2: colors.primaryGlowSoft,
   },
-  blue:   { bg: '#0B1E4D', bgMid: '#1230A0', bgDark: '#1D4ED8', glow1: 'rgba(96,165,250,0.22)', glow2: 'rgba(59,130,246,0.14)' },
-  purple: { bg: '#2E1065', bgMid: '#5B21B6', bgDark: '#7C3AED', glow1: 'rgba(167,139,250,0.22)', glow2: 'rgba(139,92,246,0.14)' },
-  cyan:   { bg: '#083344', bgMid: '#0E7490', bgDark: '#0891B2', glow1: 'rgba(34,211,238,0.22)',  glow2: 'rgba(6,182,212,0.14)' },
-  pink:   { bg: '#500724', bgMid: '#9D174D', bgDark: '#BE185D', glow1: 'rgba(244,114,182,0.22)', glow2: 'rgba(236,72,153,0.14)' },
-  teal:   { bg: '#042F2E', bgMid: '#0F766E', bgDark: '#0D9488', glow1: 'rgba(45,212,191,0.22)',  glow2: 'rgba(20,184,166,0.14)' },
-  red:    { bg: '#450A0A', bgMid: '#991B1B', bgDark: '#DC2626', glow1: 'rgba(248,113,113,0.22)', glow2: 'rgba(239,68,68,0.14)' },
+  blue: {
+    bg: '#0B1E4D',
+    bgMid: '#1230A0',
+    bgDark: '#1D4ED8',
+    glow1: 'rgba(96,165,250,0.22)',
+    glow2: 'rgba(59,130,246,0.14)',
+  },
+  purple: {
+    bg: '#2E1065',
+    bgMid: '#5B21B6',
+    bgDark: '#7C3AED',
+    glow1: 'rgba(167,139,250,0.22)',
+    glow2: 'rgba(139,92,246,0.14)',
+  },
+  cyan: {
+    bg: '#083344',
+    bgMid: '#0E7490',
+    bgDark: '#0891B2',
+    glow1: 'rgba(34,211,238,0.22)',
+    glow2: 'rgba(6,182,212,0.14)',
+  },
+  pink: {
+    bg: '#500724',
+    bgMid: '#9D174D',
+    bgDark: '#BE185D',
+    glow1: 'rgba(244,114,182,0.22)',
+    glow2: 'rgba(236,72,153,0.14)',
+  },
+  teal: {
+    bg: '#042F2E',
+    bgMid: '#0F766E',
+    bgDark: '#0D9488',
+    glow1: 'rgba(45,212,191,0.22)',
+    glow2: 'rgba(20,184,166,0.14)',
+  },
+  red: {
+    bg: '#450A0A',
+    bgMid: '#991B1B',
+    bgDark: '#DC2626',
+    glow1: 'rgba(248,113,113,0.22)',
+    glow2: 'rgba(239,68,68,0.14)',
+  },
 };
 
 function StatCard({
@@ -3725,7 +4051,7 @@ function StatCard({
         backgroundColor: g.bgMid,
         shadowColor: g.bg,
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.50,
+        shadowOpacity: 0.5,
         shadowRadius: 14,
         elevation: 10,
       }}
@@ -3789,7 +4115,13 @@ function StatCard({
       {/* Card content */}
       <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
         {/* Top row: icon box + badge */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <View
             style={{
               width: 40,

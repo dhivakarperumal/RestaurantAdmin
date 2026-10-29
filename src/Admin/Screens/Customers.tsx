@@ -7,9 +7,12 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import api from '../../../api';
-import { CustomersIcon } from '../Navigation/NavigationIcons';
+import AdminStatCard from '../../components/AdminStatCard';
+import { CheckCircle2Icon } from '../../components/popups';
+import { CustomersIcon, SearchIcon } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 
 type Customer = {
@@ -77,19 +80,23 @@ function getCustomerRole(customer: Customer) {
 
 function getCustomerPhone(customer: Customer) {
   return (
-    customer.phone_number ??
-    customer.mobile_number ??
-    customer.phone ??
-    ''
+    customer.phone_number ?? customer.mobile_number ?? customer.phone ?? ''
   );
 }
 
 function Customers({ onBack, showBackButton = true }: CustomersProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<
+    'All' | 'Active' | 'Inactive'
+  >('All');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -133,14 +140,27 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
   const visibleCustomers = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     return customerRows.filter(customer => {
+      const active = customer.status?.trim().toLowerCase() !== 'inactive';
       return (
-        !query ||
-        `${getCustomerName(customer)} ${customer.email ?? ''} ${getCustomerPhone(customer)}`
-          .toLocaleLowerCase()
-          .includes(query)
+        (statusFilter === 'All' ||
+          (statusFilter === 'Active' ? active : !active)) &&
+        (!query ||
+          `${getCustomerName(customer)} ${
+            customer.email ?? ''
+          } ${getCustomerPhone(customer)}`
+            .toLocaleLowerCase()
+            .includes(query))
       );
     });
-  }, [customerRows, search]);
+  }, [customerRows, search, statusFilter]);
+
+  const activeCount = customerRows.filter(
+    customer => customer.status?.trim().toLowerCase() !== 'inactive',
+  ).length;
+  const inactiveCount = customerRows.length - activeCount;
+  const contactCount = customerRows.filter(customer =>
+    Boolean(customer.email || getCustomerPhone(customer)),
+  ).length;
 
   return (
     <View className="flex-1 bg-[#F8FAF8]">
@@ -170,22 +190,154 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
             </Pressable>
           ) : null}
           <Text className="mt-3 text-2xl font-extrabold text-[#012711]">
-            Customers
+            Customer Management
           </Text>
           <Text className="mt-1 text-sm text-[#6B7280]">
-            {customerRows.length}{' '}
-            {customerRows.length === 1 ? 'customer' : 'customers'}
+            Manage customer profiles and contact details.
           </Text>
         </View>
 
-        <TextInput
-          accessibilityLabel="Search customers"
-          className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-          onChangeText={setSearch}
-          placeholder="Search name, email, or phone"
-          placeholderTextColor={colors.textSecondary}
-          value={search}
-        />
+        <View className="flex-row flex-wrap justify-between gap-y-3">
+          <AdminStatCard
+            label="Total customers"
+            value={customerRows.length}
+            tint="#166534"
+            iconBackground="#DCFCE7"
+            decorColor="#DCFCE7"
+            icon={<CustomersIcon color="#166534" size={22} />}
+          />
+          <AdminStatCard
+            label="Active"
+            value={activeCount}
+            tint="#1D4ED8"
+            iconBackground="#BFDBFE"
+            decorColor="#BFDBFE"
+            icon={<CheckCircle2Icon color="#1D4ED8" size={22} />}
+          />
+          <AdminStatCard
+            label="Inactive"
+            value={inactiveCount}
+            tint="#9A3412"
+            iconBackground="#FED7AA"
+            decorColor="#FED7AA"
+            icon={<CustomersIcon color="#9A3412" size={22} />}
+          />
+          <AdminStatCard
+            label="With contact"
+            value={contactCount}
+            tint="#6D28D9"
+            iconBackground="#DDD6FE"
+            decorColor="#DDD6FE"
+            icon={<CustomersIcon color="#6D28D9" size={22} />}
+          />
+        </View>
+
+        <View
+          className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
+          style={{
+            zIndex: isStatusMenuOpen ? 10 : 1,
+            elevation: isStatusMenuOpen ? 10 : 0,
+          }}
+        >
+          <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
+            <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
+              <SearchIcon color="#9CA3AF" size={17} />
+              <TextInput
+                accessibilityLabel="Search customers"
+                className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+                onChangeText={setSearch}
+                placeholder="Search by name, email, or phone..."
+                placeholderTextColor={colors.textSecondary}
+                value={search}
+              />
+            </View>
+            <View className="flex-row items-end gap-2">
+              <View
+                className="relative min-w-[140px] flex-1"
+                style={{ zIndex: isStatusMenuOpen ? 20 : 1 }}
+              >
+                <Text className="mb-1 text-[10px] font-bold text-[#475569]">
+                  Status
+                </Text>
+                <Pressable
+                  accessibilityLabel={`Status: ${statusFilter}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: isStatusMenuOpen }}
+                  onPress={() => setIsStatusMenuOpen(open => !open)}
+                  className="min-h-10 flex-row items-center justify-between rounded-lg border border-[#CBD5E1] bg-white px-3"
+                >
+                  <Text className="text-xs text-[#334155]">
+                    {statusFilter === 'All' ? 'All statuses' : statusFilter}
+                  </Text>
+                  <Text className="text-xs text-[#64748B]">
+                    {isStatusMenuOpen ? '⌃' : '⌄'}
+                  </Text>
+                </Pressable>
+                {isStatusMenuOpen ? (
+                  <View
+                    className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
+                    style={{ zIndex: 30, elevation: 30 }}
+                  >
+                    {(['All', 'Active', 'Inactive'] as const).map(status => (
+                      <Pressable
+                        key={status}
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          selected: statusFilter === status,
+                        }}
+                        onPress={() => {
+                          setStatusFilter(status);
+                          setIsStatusMenuOpen(false);
+                        }}
+                        className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${
+                          statusFilter === status ? 'bg-[#F0FDF4]' : ''
+                        }`}
+                      >
+                        <Text
+                          className={`text-xs ${
+                            statusFilter === status
+                              ? 'font-bold text-[#116C0B]'
+                              : 'text-[#334155]'
+                          }`}
+                        >
+                          {status === 'All' ? 'All statuses' : status}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+              <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+                {(['grid', 'list'] as const).map(mode => {
+                  const selected = viewMode === mode;
+                  return (
+                    <Pressable
+                      key={mode}
+                      accessibilityLabel={`Show customers as ${mode}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      onPress={() => setViewMode(mode)}
+                      className={`h-9 w-9 items-center justify-center rounded-md ${
+                        selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                      }`}
+                    >
+                      <Text
+                        className={`text-base font-bold ${
+                          selected ? 'text-white' : 'text-[#64748B]'
+                        }`}
+                      >
+                        {mode === 'grid' ? '▦' : '☷'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+          <Text className="text-xs text-[#64748B]">
+            {visibleCustomers.length} customers
+          </Text>
+        </View>
 
         {isLoading ? (
           <View className="items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-8">
@@ -221,11 +373,81 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
                 : 'Customers returned by the API will appear here.'}
             </Text>
           </View>
+        ) : viewMode === 'list' ? (
+          <ScrollView
+            horizontal={!isWide}
+            showsHorizontalScrollIndicator={!isWide}
+          >
+            <View
+              className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+              style={{ width: isWide ? '100%' : 680 }}
+            >
+              <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
+                <Text className="flex-1 text-xs font-bold text-[#64748B]">
+                  Customer
+                </Text>
+                <Text className="w-52 text-xs font-bold text-[#64748B]">
+                  Email
+                </Text>
+                <Text className="w-36 text-xs font-bold text-[#64748B]">
+                  Phone
+                </Text>
+                <Text className="w-24 text-xs font-bold text-[#64748B]">
+                  Status
+                </Text>
+              </View>
+              {visibleCustomers.map((customer, index) => {
+                const phone = getCustomerPhone(customer);
+                const active =
+                  customer.status?.trim().toLowerCase() !== 'inactive';
+                return (
+                  <View
+                    key={String(
+                      customer.user_id ??
+                        customer.id ??
+                        customer.email ??
+                        `${getCustomerName(customer)}-${index}`,
+                    )}
+                    className={`min-h-[58px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2 ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-[#FAFCFA]'
+                    }`}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      className="flex-1 pr-3 text-xs font-semibold text-[#334155]"
+                    >
+                      {getCustomerName(customer)}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="w-52 pr-2 text-xs text-[#64748B]"
+                    >
+                      {customer.email || '—'}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="w-36 pr-2 text-xs text-[#64748B]"
+                    >
+                      {phone || '—'}
+                    </Text>
+                    <Text
+                      className={`w-24 text-xs font-semibold ${
+                        active ? 'text-[#166534]' : 'text-[#64748B]'
+                      }`}
+                    >
+                      {customer.status || (active ? 'Active' : 'Inactive')}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
         ) : (
-          <View className="gap-3">
+          <View className="flex-row flex-wrap justify-between gap-y-3">
             {visibleCustomers.map((customer, index) => {
               const phone = getCustomerPhone(customer);
               const status = customer.status?.trim();
+              const active = status?.toLowerCase() !== 'inactive';
               return (
                 <View
                   key={String(
@@ -234,31 +456,38 @@ function Customers({ onBack, showBackButton = true }: CustomersProps) {
                       customer.email ??
                       `${getCustomerName(customer)}-${index}`,
                   )}
-                  className="flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                  className="w-full gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                  style={{ width: isWide ? '48%' : '100%' }}
                 >
-                  <View className="h-12 w-12 items-center justify-center rounded-full bg-[#F0F7EE]">
-                    <CustomersIcon color={colors.primary} size={22} />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-base font-bold text-[#012711]">
-                      {getCustomerName(customer)}
-                    </Text>
-                    {customer.email ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">
-                        {customer.email}
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#F0F7EE]">
+                      <CustomersIcon color={colors.primary} size={22} />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-base font-bold text-[#012711]">
+                        {getCustomerName(customer)}
                       </Text>
-                    ) : null}
-                    {phone ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">
-                        {phone}
-                      </Text>
-                    ) : null}
-                  </View>
-                  {status ? (
-                    <Text className="rounded-full bg-[#F0F7EE] px-2.5 py-1 text-[10px] font-semibold text-[#116C0B]">
-                      {status}
+                      {customer.email ? (
+                        <Text className="mt-1 text-xs text-[#6B7280]">
+                          {customer.email}
+                        </Text>
+                      ) : null}
+                      {phone ? (
+                        <Text className="mt-1 text-xs text-[#6B7280]">
+                          {phone}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        active
+                          ? 'bg-[#F0FDF4] text-[#15803D]'
+                          : 'bg-[#F3F4F6] text-[#64748B]'
+                      }`}
+                    >
+                      {status || (active ? 'Active' : 'Inactive')}
                     </Text>
-                  ) : null}
+                  </View>
                 </View>
               );
             })}

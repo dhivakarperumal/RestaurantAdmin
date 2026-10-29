@@ -44,7 +44,7 @@ export function FormModal({
   successMessage,
   footerExtra,
   contentContainerStyle,
-  saveButtonColor = '#116C0B',
+  saveButtonColor = '#064E3B',
   ...rest
 }: FormModalProps) {
   const isSubmitDisabled = isSaving || isSaveDisabled;
@@ -53,20 +53,7 @@ export function FormModal({
     <View style={styles.footerContainer}>
       {footerExtra}
 
-      <View className="w-full flex-row items-center justify-between gap-3" style={styles.actionButtons}>
-        {cancelLabel ? (
-          <Pressable
-            accessibilityLabel={cancelLabel}
-            accessibilityRole="button"
-            disabled={isSaving}
-            onPress={onClose}
-            className="flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl border border-slate-300 bg-white active:bg-slate-100"
-            style={styles.cancelButton}
-          >
-            <Text className="text-sm font-bold text-slate-700" style={styles.cancelText}>{cancelLabel}</Text>
-          </Pressable>
-        ) : null}
-
+      <View style={styles.actionButtons}>
         {onSave ? (
           <Pressable
             accessibilityLabel={saveLabel}
@@ -89,6 +76,22 @@ export function FormModal({
             )}
           </Pressable>
         ) : null}
+
+        {cancelLabel ? (
+          <Pressable
+            accessibilityLabel={cancelLabel}
+            accessibilityRole="button"
+            disabled={isSaving}
+            onPress={onClose}
+            style={({ pressed }) => [
+              styles.cancelButton,
+              pressed && styles.buttonPressed,
+              isSaving && styles.buttonDisabled,
+            ]}
+          >
+            <Text style={styles.cancelText}>{cancelLabel}</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -99,7 +102,7 @@ export function FormModal({
       icon={icon}
       maxHeightPercent={maxHeightPercent}
       maxWidth={maxWidth}
-      onClose={isSaving ? () => {} : onClose}
+      onClose={isSaving ? () => { } : onClose}
       scrollable
       subtitle={subtitle}
       title={title}
@@ -174,56 +177,64 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'flex-end',
+    alignSelf: 'stretch',
+    flexDirection: 'column',
+    gap: 8,
+    width: '100%',
   },
   cancelButton: {
     alignItems: 'center',
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
-    borderWidth: 1.5,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    borderWidth: 1,
     justifyContent: 'center',
     minHeight: 48,
-    minWidth: 100,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingVertical: 12,
+    width: '100%',
   },
+
   cancelText: {
-    color: '#475569',
+    color: '#334155',
     fontSize: 14,
     fontWeight: '700',
   },
+
   saveButton: {
     alignItems: 'center',
-    borderRadius: 14,
-    elevation: 2,
-    flex: 1,
+    backgroundColor: '#064E3B',
+    borderRadius: 12,
+    elevation: 3,
     justifyContent: 'center',
     minHeight: 48,
-    minWidth: 120,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    shadowColor: '#116C0B',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#064E3B',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowRadius: 5,
+    width: '100%',
   },
+
   saveButtonDisabled: {
     opacity: 0.55,
     shadowOpacity: 0,
   },
+
   buttonPressed: {
     opacity: 0.85,
-    transform: [{ scale: 0.99 }],
+    transform: [{ scale: 0.98 }],
   },
+
   buttonDisabled: {
     opacity: 0.5,
   },
+
   saveText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });
