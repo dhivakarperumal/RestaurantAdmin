@@ -37,8 +37,10 @@ function Bottombar<Key extends string>({
       style={{
         alignItems: 'center',
         backgroundColor: colors.surface,
+        borderTopColor: colors.borderLight,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
+        borderTopWidth: 3,
         elevation: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',

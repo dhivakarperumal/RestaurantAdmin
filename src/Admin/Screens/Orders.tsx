@@ -1882,19 +1882,19 @@ export function OrdersScreen({
         accessibilityLabel="Assign order to delivery"
         accessibilityRole="button"
         onPress={() => setIsDeliveryAssignmentOpen(true)}
-        className="absolute h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg active:bg-[#0D5208]"
+        className="absolute h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-full border border-white/30 bg-[#0B4D1A] shadow-xl active:bg-[#02480B]"
         style={{
-          bottom: insets.bottom + 10,
-          elevation: 10,
-          right: 16,
-          shadowColor: '#012711',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.22,
+          bottom: 8,
+          elevation: 12,
+          right: 20,
+          shadowColor: '#052E10',
+          shadowOffset: { width: 0, height: 5 },
+          shadowOpacity: 0.3,
           shadowRadius: 8,
           zIndex: 20,
         }}
       >
-        <PlusIcon color="#FFFFFF" size={26} />
+        <BikeIcon color="#FFFFFF" size={25} />
       </Pressable>
 
       {/* FILTER DRAWER / MODAL */}
