@@ -97,7 +97,17 @@ function readArray(payload: unknown, key?: string): Record<string, unknown>[] {
   if (!isRecord(payload)) {
     throw new Error('The orders service returned an invalid response.');
   }
-  const rows = key ? payload[key] : payload.data;
+  const rows = key
+    ? payload[key]
+    : Array.isArray(payload.data)
+    ? payload.data
+    : Array.isArray(payload.orders)
+    ? payload.orders
+    : isRecord(payload.data) && Array.isArray(payload.data.data)
+    ? payload.data.data
+    : isRecord(payload.data) && Array.isArray(payload.data.orders)
+    ? payload.data.orders
+    : undefined;
   if (!Array.isArray(rows)) {
     throw new Error('The orders service returned an invalid order list.');
   }

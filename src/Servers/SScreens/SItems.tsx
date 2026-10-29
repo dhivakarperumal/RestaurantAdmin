@@ -82,6 +82,13 @@ function textValue(row: FoodRow, keys: string[], fallback = ''): string {
   return fallback;
 }
 
+function foodIdValue(food: FoodRow): string | number | undefined {
+  const value = food.food_id ?? food.foodId ?? food.product_id ?? food.id;
+  return value === undefined || value === null || String(value).trim() === ''
+    ? undefined
+    : (value as string | number);
+}
+
 function priceValue(row: FoodRow): number {
   const price = Number(
     textValue(
@@ -575,32 +582,32 @@ export default function ServerItems({
 
   // Cart operations
   const quantityFor = (food: FoodRow) => {
-    const id = food.id ?? food.food_id ?? food.foodId;
+    const id = foodIdValue(food);
     return (
       cart.find(
         item =>
-          String(item.food.id ?? item.food.food_id ?? item.food.foodId) === String(id),
+          String(foodIdValue(item.food)) === String(id),
       )?.quantity ?? 0
     );
   };
 
   const changeQuantity = (food: FoodRow, amount: number) => {
-    const id = String(food.id ?? food.food_id ?? food.foodId);
+    const id = String(foodIdValue(food));
     setCart(current => {
       const existing = current.find(
         item =>
-          String(item.food.id ?? item.food.food_id ?? item.food.foodId) === id,
+          String(foodIdValue(item.food)) === id,
       );
       const nextQuantity = (existing?.quantity ?? 0) + amount;
       if (nextQuantity <= 0) {
         return current.filter(
           item =>
-            String(item.food.id ?? item.food.food_id ?? item.food.foodId) !== id,
+            String(foodIdValue(item.food)) !== id,
         );
       }
       if (existing) {
         return current.map(item =>
-          String(item.food.id ?? item.food.food_id ?? item.food.foodId) === id
+          String(foodIdValue(item.food)) === id
             ? { ...item, quantity: nextQuantity }
             : item,
         );
@@ -697,10 +704,13 @@ export default function ServerItems({
           : billRecord;
 
       const items = cart.map(({ food, quantity }) => ({
-        food_id: food.id ?? food.food_id ?? food.foodId,
+        food_id: foodIdValue(food),
         food_name: textValue(food, ['food_name', 'name', 'product_name'], 'Food'),
         quantity,
-        price: priceValue(food),
+        unit_price: priceValue(food),
+        selected_addons: Array.isArray(food.selected_addons) ? food.selected_addons : [],
+        selected_customizations:
+          isRecord(food.selected_customizations) ? food.selected_customizations : {},
       }));
 
       const postKitchenOrder = async () => {
@@ -1147,7 +1157,7 @@ export default function ServerItems({
           </View>
         ) : visibleFoods.length ? (
           visibleFoods.map((food, index) => {
-            const id = String(food.id ?? food.food_id ?? index);
+            const id = String(foodIdValue(food) ?? index);
             const name = textValue(food, ['food_name', 'name', 'product_name'], 'Food Item');
             const categoryName = textValue(food, ['category_name', 'category'], 'Main Course');
             const subcategoryName = textValue(food, ['subcategory_name', 'subcategory']);
@@ -1520,7 +1530,7 @@ export default function ServerItems({
               showsVerticalScrollIndicator={false}
             >
               {cart.map(({ food, quantity }) => {
-                const id = String(food.id ?? food.food_id);
+                const id = String(foodIdValue(food));
                 const name = textValue(food, ['food_name', 'name', 'product_name'], 'Food');
                 const price = priceValue(food);
                 const foodType = getFoodType(food);
