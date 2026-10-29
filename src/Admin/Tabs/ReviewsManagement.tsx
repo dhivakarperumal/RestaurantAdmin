@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -8,6 +9,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
@@ -16,8 +18,12 @@ import {
   BaseModal,
   ConfirmDialog,
   DetailsModal,
+  Edit3Icon,
   FormModal,
+  ImageIcon,
+  Trash2Icon,
 } from '../../components/popups';
+import { PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
 
 type ReviewStatus = 'Published' | 'Pending';
 type Review = {
@@ -93,7 +99,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function getErrorMessage(error: unknown) {
-  if (isRecord(error) && typeof error.message === 'string' && error.message.trim()) {
+  if (
+    isRecord(error) &&
+    typeof error.message === 'string' &&
+    error.message.trim()
+  ) {
     return error.message;
   }
   return 'Something went wrong. Please try again.';
@@ -124,7 +134,12 @@ function getFoodId(food: CatalogFood) {
 }
 
 function getFoodName(food: CatalogFood) {
-  return food.food_name?.trim() || food.product_name?.trim() || food.name?.trim() || 'Unnamed food';
+  return (
+    food.food_name?.trim() ||
+    food.product_name?.trim() ||
+    food.name?.trim() ||
+    'Unnamed food'
+  );
 }
 
 function getImageUrl(value: unknown): string {
@@ -163,28 +178,41 @@ function resolveAssetUrl(url: string) {
 
 function toReview(value: Record<string, unknown>): Review {
   return {
-    id: typeof value.id === 'number' || typeof value.id === 'string' ? value.id : '',
+    id:
+      typeof value.id === 'number' || typeof value.id === 'string'
+        ? value.id
+        : '',
     uuid: typeof value.uuid === 'string' ? value.uuid : '',
     review_id: typeof value.review_id === 'string' ? value.review_id : '',
     product_id:
-      typeof value.product_id === 'number' || typeof value.product_id === 'string'
+      typeof value.product_id === 'number' ||
+      typeof value.product_id === 'string'
         ? value.product_id
         : null,
-    product_code: typeof value.product_code === 'string' ? value.product_code : '',
-    product_name: typeof value.product_name === 'string' ? value.product_name : '',
-    product_image: typeof value.product_image === 'string' ? value.product_image : '',
-    product_type: typeof value.product_type === 'string' ? value.product_type : 'food',
-    reviewer_name: typeof value.reviewer_name === 'string' ? value.reviewer_name : '',
-    reviewer_email: typeof value.reviewer_email === 'string' ? value.reviewer_email : '',
+    product_code:
+      typeof value.product_code === 'string' ? value.product_code : '',
+    product_name:
+      typeof value.product_name === 'string' ? value.product_name : '',
+    product_image:
+      typeof value.product_image === 'string' ? value.product_image : '',
+    product_type:
+      typeof value.product_type === 'string' ? value.product_type : 'food',
+    reviewer_name:
+      typeof value.reviewer_name === 'string' ? value.reviewer_name : '',
+    reviewer_email:
+      typeof value.reviewer_email === 'string' ? value.reviewer_email : '',
     rating: Math.min(5, Math.max(1, Number(value.rating) || 5)),
     title: typeof value.title === 'string' ? value.title : '',
     comment: typeof value.comment === 'string' ? value.comment : '',
-    review_photo: typeof value.review_photo === 'string' ? value.review_photo : '',
+    review_photo:
+      typeof value.review_photo === 'string' ? value.review_photo : '',
     status: typeof value.status === 'string' ? value.status : 'Published',
     created_by: typeof value.created_by === 'string' ? value.created_by : '',
     updated_by: typeof value.updated_by === 'string' ? value.updated_by : '',
-    created_at: typeof value.created_at === 'string' ? value.created_at : undefined,
-    updated_at: typeof value.updated_at === 'string' ? value.updated_at : undefined,
+    created_at:
+      typeof value.created_at === 'string' ? value.created_at : undefined,
+    updated_at:
+      typeof value.updated_at === 'string' ? value.updated_at : undefined,
   };
 }
 
@@ -213,6 +241,10 @@ function ReviewsManagementPage({
   const [ratingFilter, setRatingFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [foodFilter, setFoodFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [openFilter, setOpenFilter] = useState<
+    'food' | 'rating' | 'status' | null
+  >(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [newReviewId, setNewReviewId] = useState('');
@@ -222,6 +254,8 @@ function ReviewsManagementPage({
   const [draft, setDraft] = useState<ReviewDraft>(emptyDraft);
   const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
 
   const loadReviews = useCallback(async () => {
     setIsLoading(true);
@@ -359,7 +393,9 @@ function ReviewsManagementPage({
         setSelectedFoodId(String(latest.product_id ?? ''));
       }
     } catch (detailError) {
-      setError(`Unable to load review details. ${getErrorMessage(detailError)}`);
+      setError(
+        `Unable to load review details. ${getErrorMessage(detailError)}`,
+      );
     }
   };
 
@@ -372,7 +408,9 @@ function ReviewsManagementPage({
         setViewingReview(toReview(response.data.data));
       }
     } catch (detailError) {
-      setError(`Unable to load review details. ${getErrorMessage(detailError)}`);
+      setError(
+        `Unable to load review details. ${getErrorMessage(detailError)}`,
+      );
     }
   };
 
@@ -388,7 +426,9 @@ function ReviewsManagementPage({
         return;
       }
       if (result.errorCode) {
-        throw new Error(result.errorMessage || 'Unable to select a review photo.');
+        throw new Error(
+          result.errorMessage || 'Unable to select a review photo.',
+        );
       }
       const asset = result.assets?.[0];
       if (!asset?.uri) {
@@ -397,7 +437,10 @@ function ReviewsManagementPage({
       if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
         throw new Error('Review photos must be 5 MB or smaller.');
       }
-      if (asset.type && !['image/jpeg', 'image/png', 'image/webp'].includes(asset.type)) {
+      if (
+        asset.type &&
+        !['image/jpeg', 'image/png', 'image/webp'].includes(asset.type)
+      ) {
         throw new Error('Choose a JPG, PNG, or WEBP review photo.');
       }
 
@@ -439,7 +482,11 @@ function ReviewsManagementPage({
       setError('Review comment is required.');
       return;
     }
-    if (!Number.isInteger(draft.rating) || draft.rating < 1 || draft.rating > 5) {
+    if (
+      !Number.isInteger(draft.rating) ||
+      draft.rating < 1 ||
+      draft.rating > 5
+    ) {
       setError('Rating must be between 1 and 5 stars.');
       return;
     }
@@ -448,7 +495,9 @@ function ReviewsManagementPage({
     setError('');
     const productId = getFoodId(selectedFood);
     const productCode = String(selectedFood.food_id ?? selectedFood.id ?? '');
-    const productImage = getImageUrl(selectedFood.food_images ?? selectedFood.image);
+    const productImage = getImageUrl(
+      selectedFood.food_images ?? selectedFood.image,
+    );
     const reviewId = editingReview?.review_id || newReviewId;
     const now = new Date().toISOString();
     const payload = {
@@ -480,7 +529,9 @@ function ReviewsManagementPage({
       await loadReviews();
       setIsFormOpen(false);
       setNotice(
-        editingReview ? 'Review updated successfully.' : 'Review added successfully.',
+        editingReview
+          ? 'Review updated successfully.'
+          : 'Review added successfully.',
       );
     } catch (saveError) {
       setError(getErrorMessage(saveError));
@@ -533,7 +584,7 @@ function ReviewsManagementPage({
             tintColor={colors.primary}
           />
         }
-        contentContainerClassName="mx-auto w-full max-w-[1100px] gap-5 px-5 pb-8 pt-6"
+        contentContainerClassName="mx-auto w-full max-w-[1100px] gap-5 px-5 pb-24 pt-6"
         keyboardShouldPersistTaps="handled"
       >
         <View className="flex-row items-center justify-between gap-3">
@@ -545,7 +596,9 @@ function ReviewsManagementPage({
                 onPress={onBack}
                 className="mb-3 self-start py-1"
               >
-                <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
+                <Text className="text-sm font-semibold text-[#116C0B]">
+                  ‹ More
+                </Text>
               </Pressable>
             ) : null}
             <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
@@ -558,14 +611,19 @@ function ReviewsManagementPage({
               Manage customer ratings, comments, and review photos.
             </Text>
           </View>
-          <Pressable
-            accessibilityLabel="Add review"
-            accessibilityRole="button"
-            onPress={openCreateForm}
-            className="min-h-11 items-center justify-center rounded-xl bg-[#116C0B] px-3"
-          >
-            <Text className="text-sm font-bold text-white">＋ Add Review</Text>
-          </Pressable>
+          {isWide ? (
+            <Pressable
+              accessibilityLabel="Add review"
+              accessibilityRole="button"
+              onPress={openCreateForm}
+              className="min-h-11 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-4"
+            >
+              <PlusIcon color="#FFFFFF" size={18} />
+              <Text className="ml-1.5 text-sm font-bold text-white">
+                Add review
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {error ? (
@@ -580,7 +638,9 @@ function ReviewsManagementPage({
                 onPress={loadFoods}
                 className="self-start"
               >
-                <Text className="text-sm font-bold text-red-800">Retry loading foods</Text>
+                <Text className="text-sm font-bold text-red-800">
+                  Retry loading foods
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -591,152 +651,300 @@ function ReviewsManagementPage({
           </Text>
         ) : null}
 
-        <View className="flex-row flex-wrap gap-3">
+        <View className="flex-row flex-wrap justify-between gap-y-3">
           <ReviewStat label="Total reviews" value={stats.total_reviews} />
-          <ReviewStat label="Average rating" value={`${stats.avg_rating.toFixed(1)} / 5`} />
+          <ReviewStat
+            label="Average rating"
+            value={`${stats.avg_rating.toFixed(1)} / 5`}
+          />
           <ReviewStat label="Five-star reviews" value={stats.five_star_count} />
           <ReviewStat label="Photo reviews" value={stats.photo_reviews_count} />
           <ReviewStat label="Published" value={stats.published_count} />
         </View>
 
-        <View className="gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-4">
-          <TextInput
-            accessibilityLabel="Search reviews"
-            className="min-h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-sm text-[#012711]"
-            onChangeText={setSearch}
-            placeholder="Search by reviewer, food, review ID, or comment..."
-            placeholderTextColor={colors.textSecondary}
-            value={search}
-          />
-          <View className="gap-3">
-            <ReviewFilter
-              label="Food"
-              options={[
-                { value: 'all', label: 'All foods' },
-                ...foods.map(food => ({
-                  value: String(getFoodId(food)),
-                  label: getFoodName(food),
-                })),
-              ]}
-              selected={foodFilter}
-              onSelect={setFoodFilter}
-            />
-            <ReviewFilter
-              label="Rating"
-              options={[
-                { value: 'all', label: 'All ratings' },
-                ...[5, 4, 3, 2, 1].map(rating => ({
-                  value: String(rating),
-                  label: `${rating} ★`,
-                })),
-              ]}
-              selected={ratingFilter}
-              onSelect={setRatingFilter}
-            />
-            <ReviewFilter
-              label="Status"
-              options={[
-                { value: 'all', label: 'All status' },
-                { value: 'Published', label: 'Published' },
-                { value: 'Pending', label: 'Pending' },
-              ]}
-              selected={statusFilter}
-              onSelect={setStatusFilter}
-            />
+        <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+          <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
+            <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
+              <SearchIcon color="#9CA3AF" size={17} />
+              <TextInput
+                accessibilityLabel="Search reviews"
+                className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+                onChangeText={setSearch}
+                placeholder="Search reviewer, food, ID, or comment..."
+                placeholderTextColor={colors.textSecondary}
+                value={search}
+              />
+            </View>
+            <View className="flex-row items-end gap-2">
+              <View className="flex-1 flex-row gap-2">
+                <ReviewDropdown
+                  label="Food"
+                  selected={foodFilter}
+                  open={openFilter === 'food'}
+                  onOpen={() =>
+                    setOpenFilter(current =>
+                      current === 'food' ? null : 'food',
+                    )
+                  }
+                  onSelect={value => {
+                    setFoodFilter(value);
+                    setOpenFilter(null);
+                  }}
+                  options={[
+                    { value: 'all', label: 'All foods' },
+                    ...foods.map(food => ({
+                      value: String(getFoodId(food)),
+                      label: getFoodName(food),
+                    })),
+                  ]}
+                />
+                <ReviewDropdown
+                  label="Rating"
+                  selected={ratingFilter}
+                  open={openFilter === 'rating'}
+                  onOpen={() =>
+                    setOpenFilter(current =>
+                      current === 'rating' ? null : 'rating',
+                    )
+                  }
+                  onSelect={value => {
+                    setRatingFilter(value);
+                    setOpenFilter(null);
+                  }}
+                  options={[
+                    { value: 'all', label: 'All ratings' },
+                    ...[5, 4, 3, 2, 1].map(rating => ({
+                      value: String(rating),
+                      label: `${rating} ★`,
+                    })),
+                  ]}
+                />
+                <ReviewDropdown
+                  label="Status"
+                  selected={statusFilter}
+                  open={openFilter === 'status'}
+                  onOpen={() =>
+                    setOpenFilter(current =>
+                      current === 'status' ? null : 'status',
+                    )
+                  }
+                  onSelect={value => {
+                    setStatusFilter(value);
+                    setOpenFilter(null);
+                  }}
+                  options={[
+                    { value: 'all', label: 'All statuses' },
+                    { value: 'Published', label: 'Published' },
+                    { value: 'Pending', label: 'Pending' },
+                  ]}
+                />
+              </View>
+              <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+                {(['grid', 'list'] as const).map(mode => (
+                  <Pressable
+                    key={mode}
+                    accessibilityLabel={`Show reviews as ${mode}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: viewMode === mode }}
+                    onPress={() => setViewMode(mode)}
+                    className={`h-9 w-9 items-center justify-center rounded-md ${
+                      viewMode === mode ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                    }`}
+                  >
+                    <Text
+                      className={`text-base font-bold ${
+                        viewMode === mode ? 'text-white' : 'text-[#64748B]'
+                      }`}
+                    >
+                      {mode === 'grid' ? '▦' : '☷'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
           </View>
         </View>
 
         {isLoading ? (
           <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white py-10">
             <ActivityIndicator color={colors.primary} />
-            <Text className="mt-3 text-sm text-[#6B7280]">Loading customer reviews...</Text>
+            <Text className="mt-3 text-sm text-[#6B7280]">
+              Loading customer reviews...
+            </Text>
           </View>
         ) : filteredReviews.length ? (
-          <View className="gap-3">
-            {filteredReviews.map(review => (
+          viewMode === 'list' ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={!isWide}>
               <View
-                key={String(review.id)}
-                className="gap-3 rounded-2xl border border-[#E7E0D8] bg-white p-4"
+                className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+                style={{ width: isWide ? 1000 : 760 }}
               >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="font-mono text-[10px] font-bold text-[#116C0B]">
-                      {review.review_id}
-                    </Text>
-                    <Text className="mt-1 text-base font-bold text-[#012711]">
-                      {review.product_name || 'Food'}
-                    </Text>
-                  </View>
-                  <StatusBadge status={review.status} />
+                <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
+                  <Text className="w-16 text-[10px] font-bold uppercase text-[#64748B]">
+                    Rating
+                  </Text>
+                  <Text className="flex-1 text-[10px] font-bold uppercase text-[#64748B]">
+                    Reviewer / Food
+                  </Text>
+                  <Text className="w-28 text-[10px] font-bold uppercase text-[#64748B]">
+                    Status
+                  </Text>
+                  <Text className="w-32 text-right text-[10px] font-bold uppercase text-[#64748B]">
+                    Actions
+                  </Text>
                 </View>
-                <View className="flex-row items-center gap-3">
-                  <View className="h-10 w-10 items-center justify-center rounded-full bg-[#116C0B]">
-                    <Text className="text-sm font-bold text-white">
-                      {(review.reviewer_name[0] || 'U').toUpperCase()}
-                    </Text>
+                {filteredReviews.map(review => (
+                  <View
+                    key={String(review.id)}
+                    className="min-h-[64px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2"
+                  >
+                    <View className="w-16">
+                      <StarRating rating={review.rating} />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text
+                        className="text-xs font-bold text-[#1E293B]"
+                        numberOfLines={1}
+                      >
+                        {review.reviewer_name} · {review.product_name || 'Food'}
+                      </Text>
+                      <Text
+                        className="mt-1 text-[10px] text-[#64748B]"
+                        numberOfLines={1}
+                      >
+                        {review.review_id}
+                      </Text>
+                    </View>
+                    <View className="w-28">
+                      <StatusBadge status={review.status} />
+                    </View>
+                    <View className="w-32 flex-row justify-end gap-1.5">
+                      <ReviewActionButton
+                        label={`View review ${review.review_id}`}
+                        tone="view"
+                        onPress={() => openReviewDetails(review)}
+                      />
+                      <ReviewActionButton
+                        label={`Edit review ${review.review_id}`}
+                        tone="edit"
+                        onPress={() => openEditForm(review)}
+                      />
+                      <ReviewActionButton
+                        label={`Delete review ${review.review_id}`}
+                        tone="delete"
+                        onPress={() => deleteReview(review)}
+                      />
+                    </View>
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-[#012711]">
-                      {review.reviewer_name}
-                    </Text>
-                    {review.reviewer_email ? (
-                      <Text className="text-xs text-[#6B7280]">{review.reviewer_email}</Text>
-                    ) : null}
-                  </View>
-                  <StarRating rating={review.rating} />
-                </View>
-                {review.title ? (
-                  <Text className="text-sm font-bold text-[#374151]">{review.title}</Text>
-                ) : null}
-                <Text numberOfLines={4} className="text-sm leading-5 text-[#4B5563]">
-                  {review.comment}
-                </Text>
-                {review.review_photo ? (
-                  <Image
-                    accessibilityLabel={`Photo attached to review ${review.review_id}`}
-                    className="h-36 w-full rounded-xl bg-[#F3F4F6]"
-                    resizeMode="cover"
-                    source={{ uri: resolveAssetUrl(review.review_photo) }}
-                  />
-                ) : null}
-                <Text className="text-xs text-[#6B7280]">
-                  {review.created_at
-                    ? new Date(review.created_at).toLocaleDateString()
-                    : 'Date unavailable'}
-                </Text>
-                <View className="flex-row gap-2 border-t border-[#F0EBE6] pt-3">
-                  <Pressable
-                    accessibilityLabel={`Edit review ${review.review_id}`}
-                    accessibilityRole="button"
-                    onPress={() => openEditForm(review)}
-                    className="min-h-10 flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
-                  >
-                    <Text className="text-sm font-semibold text-white">Edit</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityLabel={`View review ${review.review_id}`}
-                    accessibilityRole="button"
-                    onPress={() => openReviewDetails(review)}
-                    className="min-h-10 flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white"
-                  >
-                    <Text className="text-sm font-semibold text-[#374151]">View</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityLabel={`Delete review ${review.review_id}`}
-                    accessibilityRole="button"
-                    onPress={() => deleteReview(review)}
-                    className="min-h-10 flex-1 items-center justify-center rounded-xl border border-red-200 bg-white"
-                  >
-                    <Text className="text-sm font-semibold text-red-700">Delete</Text>
-                  </Pressable>
-                </View>
+                ))}
               </View>
-            ))}
-          </View>
+            </ScrollView>
+          ) : (
+            <View className="flex-row flex-wrap gap-3">
+              {filteredReviews.map(review => (
+                <View
+                  key={String(review.id)}
+                  className="gap-2.5 rounded-2xl border border-[#E5E7EB] bg-white p-3"
+                  style={{
+                    width: isWide ? '48%' : '47%',
+                    flexGrow: 0,
+                    flexShrink: 0,
+                  }}
+                >
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="flex-1">
+                      <Text className="font-mono text-[10px] font-bold text-[#116C0B]">
+                        {review.review_id}
+                      </Text>
+                      <Text
+                        className="mt-1 text-sm font-bold text-[#012711]"
+                        numberOfLines={1}
+                      >
+                        {review.product_name || 'Food'}
+                      </Text>
+                    </View>
+                    <StatusBadge status={review.status} />
+                  </View>
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-10 w-10 items-center justify-center rounded-full bg-[#116C0B]">
+                      <Text className="text-sm font-bold text-white">
+                        {(review.reviewer_name[0] || 'U').toUpperCase()}
+                      </Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-[#012711]">
+                        {review.reviewer_name}
+                      </Text>
+                      {review.reviewer_email ? (
+                        <Text className="text-xs text-[#6B7280]">
+                          {review.reviewer_email}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <StarRating rating={review.rating} />
+                  </View>
+                  {review.title ? (
+                    <Text className="text-sm font-bold text-[#374151]">
+                      {review.title}
+                    </Text>
+                  ) : null}
+                  <Text
+                    numberOfLines={3}
+                    className="text-xs leading-4 text-[#4B5563]"
+                  >
+                    {review.comment}
+                  </Text>
+                  {review.review_photo ? (
+                    <Image
+                      accessibilityLabel={`Photo attached to review ${review.review_id}`}
+                      className="h-28 w-full rounded-xl bg-[#F3F4F6]"
+                      resizeMode="cover"
+                      source={{ uri: resolveAssetUrl(review.review_photo) }}
+                    />
+                  ) : null}
+                  <Text className="text-xs text-[#6B7280]">
+                    {review.created_at
+                      ? new Date(review.created_at).toLocaleDateString()
+                      : 'Date unavailable'}
+                  </Text>
+                  <View className="flex-row justify-end gap-1.5 border-t border-[#F0EBE6] pt-2.5">
+                    <Pressable
+                      accessibilityLabel={`Edit review ${review.review_id}`}
+                      accessibilityRole="button"
+                      onPress={() => openEditForm(review)}
+                      className="h-9 w-9 items-center justify-center rounded-lg border border-[#DCFCE7] bg-[#F0FDF4]"
+                    >
+                      <Edit3Icon size={15} color="#15803D" />
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel={`View review ${review.review_id}`}
+                      accessibilityRole="button"
+                      onPress={() => openReviewDetails(review)}
+                      className="h-9 w-9 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white"
+                    >
+                      <Text className="text-sm font-bold text-[#475569]">
+                        •••
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel={`Delete review ${review.review_id}`}
+                      accessibilityRole="button"
+                      onPress={() => deleteReview(review)}
+                      className="h-9 w-9 items-center justify-center rounded-lg border border-[#FECACA] bg-[#FEF2F2]"
+                    >
+                      <Trash2Icon size={15} color="#DC2626" />
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )
         ) : (
           <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white px-5 py-10">
             <Text className="text-base font-semibold text-[#012711]">
-              {reviews.length ? 'No reviews match these filters' : 'No reviews yet'}
+              {reviews.length
+                ? 'No reviews match these filters'
+                : 'No reviews yet'}
             </Text>
             <Text className="mt-1 text-center text-sm leading-5 text-[#6B7280]">
               {reviews.length
@@ -744,8 +952,13 @@ function ReviewsManagementPage({
                 : 'Add a customer review to start managing ratings and feedback.'}
             </Text>
             {reviews.length ? (
-              <Pressable onPress={clearFilters} className="mt-4 rounded-xl bg-[#116C0B] px-4 py-3">
-                <Text className="text-sm font-bold text-white">Clear filters</Text>
+              <Pressable
+                onPress={clearFilters}
+                className="mt-4 rounded-xl bg-[#116C0B] px-4 py-3"
+              >
+                <Text className="text-sm font-bold text-white">
+                  Clear filters
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -758,153 +971,226 @@ function ReviewsManagementPage({
             onPress={loadReviews}
             className="items-center py-2"
           >
-            <Text className="text-sm font-semibold text-[#116C0B]">Try again</Text>
+            <Text className="text-sm font-semibold text-[#116C0B]">
+              Try again
+            </Text>
           </Pressable>
         ) : null}
       </ScrollView>
 
+      {!isWide && !isFormOpen ? (
+        <Pressable
+          accessibilityLabel="Add review"
+          accessibilityRole="button"
+          onPress={() => void openCreateForm()}
+          className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B]"
+          style={{
+            elevation: 8,
+            shadowColor: '#116C0B',
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+          }}
+        >
+          <PlusIcon color="#FFFFFF" size={26} />
+        </Pressable>
+      ) : null}
+
       <FormModal
         visible={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingReview ? `Edit Review (${editingReview.review_id})` : 'Add Customer Review'}
+        title={
+          editingReview
+            ? `Edit Review (${editingReview.review_id})`
+            : 'Add Customer Review'
+        }
         subtitle="Manage customer rating, feedback text, and verified food item"
-        onSave={saveReview}
-        saveLabel={editingReview ? 'Save Changes' : 'Create Review'}
-        cancelLabel="Cancel"
+        cancelLabel=""
         isSaving={isSaving}
         isSaveDisabled={isSaving || isUploading}
         errorMessage={error}
+        footerExtra={
+          <View className="flex-row gap-3">
+            <Pressable
+              accessibilityLabel="Cancel"
+              accessibilityRole="button"
+              disabled={isSaving}
+              onPress={() => setIsFormOpen(false)}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3"
+            >
+              <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={
+                editingReview ? 'Save Changes' : 'Create Review'
+              }
+              accessibilityRole="button"
+              disabled={isSaving || isUploading}
+              onPress={() => void saveReview()}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4 py-3"
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text className="text-sm font-bold text-white">
+                  {editingReview ? 'Save Changes' : 'Create Review'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        }
       >
         <View className="gap-4">
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-[#012711]">Review ID</Text>
-                <View className="min-h-11 justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4">
-                  <Text className="font-mono text-sm font-bold text-[#374151]">
-                    {editingReview?.review_id || newReviewId || 'Generating...'}
-                  </Text>
-                </View>
-              </View>
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-[#012711]">Food</Text>
-                <Pressable
-                  accessibilityLabel="Select food for review"
-                  accessibilityRole="button"
-                  onPress={() => setIsFoodPickerOpen(true)}
-                  className="min-h-12 flex-row items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-4"
-                >
-                  <Text className="flex-1 text-sm text-[#012711]">
-                    {foods.find(food => String(getFoodId(food)) === selectedFoodId)
-                      ? getFoodName(
-                          foods.find(food => String(getFoodId(food)) === selectedFoodId)!,
-                        )
-                      : 'Select menu food'}
-                  </Text>
-                  <Text className="text-[#6B7280]">⌄</Text>
-                </Pressable>
-              </View>
-              <ReviewField
-                label="Reviewer name"
-                value={draft.reviewer_name}
-                onChangeText={value => updateDraft('reviewer_name', value)}
-                placeholder="Customer name"
-              />
-              <ReviewField
-                label="Reviewer email"
-                value={draft.reviewer_email}
-                onChangeText={value => updateDraft('reviewer_email', value)}
-                placeholder="customer@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <View className="gap-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                <Text className="text-sm font-semibold text-[#012711]">
-                  Rating ({draft.rating} / 5 stars)
+          <ReviewFormSection number="1" title="Customer and Food">
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-[#012711]">
+                Review ID
+              </Text>
+              <View className="min-h-11 justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4">
+                <Text className="font-mono text-sm font-bold text-[#374151]">
+                  {editingReview?.review_id || newReviewId || 'Generating...'}
                 </Text>
-                <View className="flex-row gap-2">
-                  {[1, 2, 3, 4, 5].map(rating => (
-                    <Pressable
-                      key={rating}
-                      accessibilityLabel={`Rate ${rating} star${rating === 1 ? '' : 's'}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: draft.rating === rating }}
-                      onPress={() => updateDraft('rating', rating)}
-                      className="p-1"
-                    >
-                      <Text
-                        className="text-3xl"
-                        style={{
-                          color:
-                            rating <= draft.rating
-                              ? colors.success
-                              : colors.disabled,
-                        }}
-                      >
-                        ★
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-              <ReviewField
-                label="Review title"
-                value={draft.title}
-                onChangeText={value => updateDraft('title', value)}
-                placeholder="Short review title (optional)"
-              />
-              <ReviewField
-                label="Review comment"
-                value={draft.comment}
-                onChangeText={value => updateDraft('comment', value)}
-                placeholder="Write the customer's review..."
-                multiline
-              />
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-[#012711]">Review photo</Text>
-                {draft.review_photo ? (
-                  <View className="gap-2">
-                    <Image
-                      accessibilityLabel="Review photo preview"
-                      className="h-40 w-full rounded-xl bg-[#F3F4F6]"
-                      resizeMode="cover"
-                      source={{ uri: resolveAssetUrl(draft.review_photo) }}
-                    />
-                    <Pressable
-                      accessibilityLabel="Remove review photo"
-                      accessibilityRole="button"
-                      onPress={() => updateDraft('review_photo', '')}
-                      className="self-start py-1"
-                    >
-                      <Text className="text-sm font-semibold text-red-700">Remove photo</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-                <Pressable
-                  accessibilityLabel="Upload review photo"
-                  accessibilityRole="button"
-                  disabled={isUploading}
-                  onPress={uploadReviewPhoto}
-                  className="min-h-11 flex-row items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-4"
-                >
-                  {isUploading ? <ActivityIndicator color={colors.primary} /> : null}
-                  <Text className="text-sm font-semibold text-[#116C0B]">
-                    {isUploading ? 'Uploading photo...' : 'Choose review photo'}
-                  </Text>
-                </Pressable>
-              </View>
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-[#012711]">Review status</Text>
-                <View className="flex-row gap-2">
-                  {(['Published', 'Pending'] as const).map(status => (
-                    <ReviewChoice
-                      key={status}
-                      label={status}
-                      selected={draft.status === status}
-                      onPress={() => updateDraft('status', status)}
-                    />
-                  ))}
-                </View>
               </View>
             </View>
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-[#012711]">Food</Text>
+              <Pressable
+                accessibilityLabel="Select food for review"
+                accessibilityRole="button"
+                onPress={() => setIsFoodPickerOpen(true)}
+                className="min-h-12 flex-row items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-4"
+              >
+                <Text className="flex-1 text-sm text-[#012711]">
+                  {foods.find(
+                    food => String(getFoodId(food)) === selectedFoodId,
+                  )
+                    ? getFoodName(
+                        foods.find(
+                          food => String(getFoodId(food)) === selectedFoodId,
+                        )!,
+                      )
+                    : 'Select menu food'}
+                </Text>
+                <Text className="text-[#6B7280]">⌄</Text>
+              </Pressable>
+            </View>
+            <ReviewField
+              label="Reviewer name"
+              value={draft.reviewer_name}
+              onChangeText={value => updateDraft('reviewer_name', value)}
+              placeholder="Customer name"
+            />
+            <ReviewField
+              label="Reviewer email"
+              value={draft.reviewer_email}
+              onChangeText={value => updateDraft('reviewer_email', value)}
+              placeholder="customer@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <View className="gap-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <Text className="text-sm font-semibold text-[#012711]">
+                Rating ({draft.rating} / 5 stars)
+              </Text>
+              <View className="flex-row gap-2">
+                {[1, 2, 3, 4, 5].map(rating => (
+                  <Pressable
+                    key={rating}
+                    accessibilityLabel={`Rate ${rating} star${
+                      rating === 1 ? '' : 's'
+                    }`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: draft.rating === rating }}
+                    onPress={() => updateDraft('rating', rating)}
+                    className="p-1"
+                  >
+                    <Text
+                      className="text-3xl"
+                      style={{
+                        color:
+                          rating <= draft.rating
+                            ? colors.success
+                            : colors.disabled,
+                      }}
+                    >
+                      ★
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </ReviewFormSection>
+          <ReviewFormSection number="2" title="Review Content">
+            <ReviewField
+              label="Review title"
+              value={draft.title}
+              onChangeText={value => updateDraft('title', value)}
+              placeholder="Short review title (optional)"
+            />
+            <ReviewField
+              label="Review comment"
+              value={draft.comment}
+              onChangeText={value => updateDraft('comment', value)}
+              placeholder="Write the customer's review..."
+              multiline
+            />
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-[#012711]">
+                Review photo
+              </Text>
+              {draft.review_photo ? (
+                <View className="gap-2">
+                  <Image
+                    accessibilityLabel="Review photo preview"
+                    className="h-40 w-full rounded-xl bg-[#F3F4F6]"
+                    resizeMode="cover"
+                    source={{ uri: resolveAssetUrl(draft.review_photo) }}
+                  />
+                  <Pressable
+                    accessibilityLabel="Remove review photo"
+                    accessibilityRole="button"
+                    onPress={() => updateDraft('review_photo', '')}
+                    className="self-start py-1"
+                  >
+                    <Text className="text-sm font-semibold text-red-700">
+                      Remove photo
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              <Pressable
+                accessibilityLabel="Upload review photo"
+                accessibilityRole="button"
+                disabled={isUploading}
+                onPress={uploadReviewPhoto}
+                className="min-h-11 flex-row items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-4"
+              >
+                {isUploading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : null}
+                <Text className="text-sm font-semibold text-[#116C0B]">
+                  {isUploading ? 'Uploading photo...' : 'Choose review photo'}
+                </Text>
+              </Pressable>
+            </View>
+          </ReviewFormSection>
+          <ReviewFormSection number="3" title="Publishing">
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-[#012711]">
+                Review status
+              </Text>
+              <View className="flex-row gap-2">
+                {(['Published', 'Pending'] as const).map(status => (
+                  <ReviewChoice
+                    key={status}
+                    label={status}
+                    selected={draft.status === status}
+                    onPress={() => updateDraft('status', status)}
+                  />
+                ))}
+              </View>
+            </View>
+          </ReviewFormSection>
+        </View>
       </FormModal>
 
       <BaseModal
@@ -915,7 +1201,10 @@ function ReviewsManagementPage({
         variant="bottom-sheet"
         maxHeightPercent={70}
       >
-        <ScrollView className="max-h-[380px]" contentContainerClassName="gap-2 pb-6">
+        <ScrollView
+          className="max-h-[380px]"
+          contentContainerClassName="gap-2 pb-6"
+        >
           {foods.map(food => {
             const foodId = String(getFoodId(food));
             const foodName = getFoodName(food);
@@ -945,10 +1234,14 @@ function ReviewsManagementPage({
                   />
                 ) : (
                   <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#116C0B]/10">
-                    <Text className="font-bold text-[#116C0B]">{foodName[0]}</Text>
+                    <Text className="font-bold text-[#116C0B]">
+                      {foodName[0]}
+                    </Text>
                   </View>
                 )}
-                <Text className="flex-1 text-sm font-semibold text-[#0F172A]">{foodName}</Text>
+                <Text className="flex-1 text-sm font-semibold text-[#0F172A]">
+                  {foodName}
+                </Text>
                 {isSelected ? (
                   <Text className="font-bold text-[#116C0B]">✓</Text>
                 ) : null}
@@ -968,7 +1261,8 @@ function ReviewsManagementPage({
             label: viewingReview.status,
             bg: viewingReview.status === 'Published' ? '#F0FDF4' : '#FEF3C7',
             text: viewingReview.status === 'Published' ? '#15803D' : '#D97706',
-            border: viewingReview.status === 'Published' ? '#DCFCE7' : '#FDE68A',
+            border:
+              viewingReview.status === 'Published' ? '#DCFCE7' : '#FDE68A',
           }}
           footer={
             <View className="w-full flex-row gap-3">
@@ -978,7 +1272,9 @@ function ReviewsManagementPage({
                 onPress={() => setViewingReview(null)}
                 className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
               >
-                <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+                <Text className="text-sm font-semibold text-[#334155]">
+                  Close
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityLabel={`Edit review ${viewingReview.review_id}`}
@@ -990,7 +1286,9 @@ function ReviewsManagementPage({
                 }}
                 className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
               >
-                <Text className="text-sm font-bold text-white">Edit Review</Text>
+                <Text className="text-sm font-bold text-white">
+                  Edit Review
+                </Text>
               </Pressable>
             </View>
           }
@@ -1013,7 +1311,9 @@ function ReviewsManagementPage({
                 {viewingReview.reviewer_name}
               </Text>
               {viewingReview.reviewer_email ? (
-                <Text className="mt-0.5 text-xs text-[#64748B]">{viewingReview.reviewer_email}</Text>
+                <Text className="mt-0.5 text-xs text-[#64748B]">
+                  {viewingReview.reviewer_email}
+                </Text>
               ) : null}
             </View>
 
@@ -1025,9 +1325,13 @@ function ReviewsManagementPage({
                 <StarRating rating={viewingReview.rating} />
               </View>
               {viewingReview.title ? (
-                <Text className="mt-3 text-base font-bold text-[#0F172A]">{viewingReview.title}</Text>
+                <Text className="mt-3 text-base font-bold text-[#0F172A]">
+                  {viewingReview.title}
+                </Text>
               ) : null}
-              <Text className="mt-2 text-sm leading-6 text-[#334155]">{viewingReview.comment}</Text>
+              <Text className="mt-2 text-sm leading-6 text-[#334155]">
+                {viewingReview.comment}
+              </Text>
             </View>
 
             {viewingReview.review_photo ? (
@@ -1041,7 +1345,9 @@ function ReviewsManagementPage({
 
             <Text className="text-center text-xs text-[#94A3B8]">
               {viewingReview.created_at
-                ? `Submitted ${new Date(viewingReview.created_at).toLocaleString()}`
+                ? `Submitted ${new Date(
+                    viewingReview.created_at,
+                  ).toLocaleString()}`
                 : 'Submission date unavailable'}
             </Text>
           </View>
@@ -1053,7 +1359,11 @@ function ReviewsManagementPage({
         onClose={() => setReviewToDelete(null)}
         title="Delete Review"
         message="Are you sure you want to delete this customer review? This action cannot be undone."
-        itemName={reviewToDelete ? `${reviewToDelete.reviewer_name}'s review on ${reviewToDelete.product_name}` : undefined}
+        itemName={
+          reviewToDelete
+            ? `${reviewToDelete.reviewer_name}'s review on ${reviewToDelete.product_name}`
+            : undefined
+        }
         confirmLabel="Delete Review"
         variantType="danger"
         isLoading={isDeleting}
@@ -1063,41 +1373,130 @@ function ReviewsManagementPage({
   );
 }
 
-function ReviewStat({ label, value }: { label: string; value: string | number }) {
+function ReviewStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
-    <View className="min-w-[46%] flex-1 rounded-2xl border border-[#E5E7EB] bg-white p-4">
-      <Text className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-        {label}
-      </Text>
-      <Text className="mt-2 text-xl font-bold text-[#012711]">{value}</Text>
+    <View className="min-h-[90px] w-[48%] flex-row items-center gap-3 overflow-hidden rounded-2xl border border-[#F1F5F9] bg-white px-3 py-4">
+      <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#DCFCE7]">
+        <ImageIcon size={20} color="#166534" />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text
+          numberOfLines={1}
+          className="text-[10px] font-extrabold uppercase tracking-wide text-[#166534]"
+        >
+          {label}
+        </Text>
+        <Text className="mt-1 text-xl font-extrabold text-[#166534]">
+          {value}
+        </Text>
+      </View>
     </View>
   );
 }
 
-function ReviewFilter({
+function ReviewActionButton({
   label,
-  options,
+  onPress,
+  tone,
+}: {
+  label: string;
+  onPress: () => void;
+  tone: 'view' | 'edit' | 'delete';
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      className={`h-9 w-9 items-center justify-center rounded-lg border ${
+        tone === 'edit'
+          ? 'border-[#DCFCE7] bg-[#F0FDF4]'
+          : tone === 'delete'
+          ? 'border-[#FECACA] bg-[#FEF2F2]'
+          : 'border-[#E2E8F0] bg-white'
+      }`}
+    >
+      {tone === 'edit' ? (
+        <Edit3Icon size={15} color="#15803D" />
+      ) : tone === 'delete' ? (
+        <Trash2Icon size={15} color="#DC2626" />
+      ) : (
+        <Text className="text-sm font-bold text-[#475569]">•••</Text>
+      )}
+    </Pressable>
+  );
+}
+
+function ReviewDropdown({
+  label,
   selected,
+  options,
+  open,
+  onOpen,
   onSelect,
 }: {
   label: string;
-  options: { value: string; label: string }[];
   selected: string;
+  options: { value: string; label: string }[];
+  open: boolean;
+  onOpen: () => void;
   onSelect: (value: string) => void;
 }) {
+  const selectedLabel =
+    options.find(option => option.value === selected)?.label ??
+    options[0]?.label;
   return (
-    <View className="gap-2">
-      <Text className="text-xs font-semibold text-[#6B7280]">{label}</Text>
-      <View className="flex-row flex-wrap gap-2">
-        {options.map(option => (
-          <ReviewChoice
-            key={option.value}
-            label={option.label}
-            selected={selected === option.value}
-            onPress={() => onSelect(option.value)}
-          />
-        ))}
-      </View>
+    <View className="min-w-[76px] flex-1" style={{ zIndex: open ? 10 : 1 }}>
+      <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
+      <Pressable
+        accessibilityLabel={`${label}: ${selectedLabel}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={onOpen}
+        className="min-h-10 flex-row items-center justify-between rounded-lg border border-[#CBD5E1] bg-white px-2"
+      >
+        <Text numberOfLines={1} className="flex-1 text-[11px] text-[#334155]">
+          {selectedLabel}
+        </Text>
+        <Text className="ml-1 text-xs text-[#64748B]">{open ? '⌃' : '⌄'}</Text>
+      </Pressable>
+      {open ? (
+        <View
+          className="absolute left-0 right-0 top-[62px] max-h-60 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
+          style={{ elevation: 8 }}
+        >
+          <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+            {options.map(option => (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{ selected: option.value === selected }}
+                onPress={() => onSelect(option.value)}
+                className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${
+                  option.value === selected ? 'bg-[#F0FDF4]' : ''
+                }`}
+              >
+                <Text
+                  numberOfLines={1}
+                  className={`text-xs ${
+                    option.value === selected
+                      ? 'font-bold text-[#116C0B]'
+                      : 'text-[#334155]'
+                  }`}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1121,7 +1520,11 @@ function ReviewChoice({
         selected ? 'border-[#116C0B] bg-[#116C0B]' : 'border-[#E5E7EB] bg-white'
       }`}
     >
-      <Text className={`text-xs font-semibold ${selected ? 'text-white' : 'text-[#4B5563]'}`}>
+      <Text
+        className={`text-xs font-semibold ${
+          selected ? 'text-white' : 'text-[#4B5563]'
+        }`}
+      >
         {label}
       </Text>
     </Pressable>
@@ -1189,6 +1592,30 @@ function ReviewField({
         }`}
         placeholderTextColor={colors.textSecondary}
       />
+    </View>
+  );
+}
+
+function ReviewFormSection({
+  number,
+  title,
+  children,
+}: {
+  number: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <View className="gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+      <View className="flex-row items-center gap-2">
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-[#15803D]">
+          <Text className="text-[11px] font-extrabold text-white">
+            {number}
+          </Text>
+        </View>
+        <Text className="text-sm font-extrabold text-[#0F172A]">{title}</Text>
+      </View>
+      <View className="gap-3">{children}</View>
     </View>
   );
 }

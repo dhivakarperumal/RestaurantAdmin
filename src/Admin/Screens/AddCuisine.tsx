@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -88,10 +89,7 @@ function resolveImageUrl(value: string) {
   return `${apiRoot}/${value.replace(/^\/+/, '')}`;
 }
 
-function AddCuisine({
-  onBack,
-  showBackButton = true,
-}: AddCuisineProps) {
+function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
   const [form, setForm] = useState<CuisineForm>(INITIAL_FORM);
   const [isLoadingId, setIsLoadingId] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -233,9 +231,9 @@ function AddCuisine({
         contentContainerStyle={{
           alignSelf: 'center',
           gap: 16,
-          maxWidth: 720,
-          padding: 18,
-          paddingBottom: 32,
+          maxWidth: 820,
+          padding: 20,
+          paddingBottom: 40,
           width: '100%',
         }}
       >
@@ -252,162 +250,169 @@ function AddCuisine({
               </Text>
             </Pressable>
           ) : null}
-          <Text className="mt-3 text-2xl font-extrabold text-[#012711]">
+          <Text className="mt-2 text-2xl font-extrabold text-[#012711]">
             Add Cuisine
           </Text>
-          <Text className="mt-1 text-sm text-[#6B7280]">
-            Add a cuisine type to your restaurant.
+          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+            Add the details, image, and settings for your cuisine.
           </Text>
         </View>
 
-        <View className="gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5">
-          <View>
-            <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Cuisine ID
-            </Text>
-            {isLoadingId ? (
-              <View className="min-h-11 flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5">
-                <ActivityIndicator color={colors.primary} size="small" />
-                <Text className="text-sm text-[#6B7280]">
-                  Generating cuisine ID...
+        <View className="gap-3">
+          <CuisineFormSection number="1" title="Basic Information">
+            <View>
+              <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                Cuisine ID
+              </Text>
+              {isLoadingId ? (
+                <View className="min-h-11 flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5">
+                  <ActivityIndicator color={colors.primary} size="small" />
+                  <Text className="text-sm text-[#6B7280]">
+                    Generating cuisine ID...
+                  </Text>
+                </View>
+              ) : (
+                <TextInput
+                  accessibilityLabel="Cuisine ID"
+                  editable={false}
+                  className="rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5 py-3 text-sm text-[#6B7280]"
+                  value={form.cuisineId}
+                />
+              )}
+            </View>
+
+            <View>
+              <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                Cuisine name *
+              </Text>
+              <TextInput
+                accessibilityLabel="Cuisine name"
+                autoCapitalize="words"
+                className="rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+                onChangeText={value =>
+                  setForm(current => ({ ...current, cuisineName: value }))
+                }
+                placeholder="Cuisine name"
+                placeholderTextColor={colors.textLight}
+                value={form.cuisineName}
+              />
+            </View>
+
+            <View>
+              <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                Description
+              </Text>
+              <TextInput
+                accessibilityLabel="Cuisine description"
+                className="min-h-[76px] rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+                multiline
+                onChangeText={value =>
+                  setForm(current => ({ ...current, description: value }))
+                }
+                placeholder="Optional description"
+                placeholderTextColor={colors.textLight}
+                textAlignVertical="top"
+                value={form.description}
+              />
+            </View>
+          </CuisineFormSection>
+
+          <CuisineFormSection number="2" title="Cuisine Image">
+            <View>
+              <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                Cuisine image
+              </Text>
+              <View className="flex-row items-center gap-3">
+                {form.image ? (
+                  <Image
+                    accessibilityLabel="Cuisine image preview"
+                    resizeMode="cover"
+                    source={{ uri: resolveImageUrl(form.image) }}
+                    className="h-[66px] w-[66px] rounded-xl bg-[#F3F4F6]"
+                  />
+                ) : (
+                  <View className="h-[66px] w-[66px] items-center justify-center rounded-xl bg-[#F0F7EE]">
+                    <ProductIcon color={colors.primary} size={27} />
+                  </View>
+                )}
+                <Pressable
+                  accessibilityLabel="Choose cuisine image"
+                  accessibilityRole="button"
+                  disabled={isUploadingImage}
+                  onPress={() => void chooseImage()}
+                  className="rounded-xl border border-[#D1D5DB] px-4 py-3"
+                >
+                  {isUploadingImage ? (
+                    <ActivityIndicator color={colors.primary} />
+                  ) : (
+                    <Text className="text-xs font-semibold text-[#116C0B]">
+                      {form.image ? 'Change image' : 'Choose image'}
+                    </Text>
+                  )}
+                </Pressable>
+                <Text className="flex-1 text-[10px] leading-4 text-[#6B7280]">
+                  JPG, PNG, WEBP · max 5 MB
                 </Text>
               </View>
-            ) : (
-              <TextInput
-                accessibilityLabel="Cuisine ID"
-                editable={false}
-                className="rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5 py-3 text-sm text-[#6B7280]"
-                value={form.cuisineId}
-              />
-            )}
-          </View>
-
-          <View>
-            <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Cuisine name *
-            </Text>
-            <TextInput
-              accessibilityLabel="Cuisine name"
-              autoCapitalize="words"
-              className="rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
-              onChangeText={value =>
-                setForm(current => ({ ...current, cuisineName: value }))
-              }
-              placeholder="Cuisine name"
-              placeholderTextColor={colors.textLight}
-              value={form.cuisineName}
-            />
-          </View>
-
-          <View>
-            <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Description
-            </Text>
-            <TextInput
-              accessibilityLabel="Cuisine description"
-              className="min-h-[76px] rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
-              multiline
-              onChangeText={value =>
-                setForm(current => ({ ...current, description: value }))
-              }
-              placeholder="Optional description"
-              placeholderTextColor={colors.textLight}
-              textAlignVertical="top"
-              value={form.description}
-            />
-          </View>
-
-          <View>
-            <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Cuisine image
-            </Text>
-            <View className="flex-row items-center gap-3">
-              {form.image ? (
-                <Image
-                  accessibilityLabel="Cuisine image preview"
-                  resizeMode="cover"
-                  source={{ uri: resolveImageUrl(form.image) }}
-                  className="h-[66px] w-[66px] rounded-xl bg-[#F3F4F6]"
-                />
-              ) : (
-                <View className="h-[66px] w-[66px] items-center justify-center rounded-xl bg-[#F0F7EE]">
-                  <ProductIcon color={colors.primary} size={27} />
-                </View>
-              )}
-              <Pressable
-                accessibilityLabel="Choose cuisine image"
-                accessibilityRole="button"
-                disabled={isUploadingImage}
-                onPress={() => void chooseImage()}
-                className="rounded-xl border border-[#D1D5DB] px-4 py-3"
-              >
-                {isUploadingImage ? (
-                  <ActivityIndicator color={colors.primary} />
-                ) : (
-                  <Text className="text-xs font-semibold text-[#116C0B]">
-                    {form.image ? 'Change image' : 'Choose image'}
-                  </Text>
-                )}
-              </Pressable>
-              <Text className="flex-1 text-[10px] leading-4 text-[#6B7280]">
-                JPG, PNG, WEBP · max 5 MB
-              </Text>
             </View>
-          </View>
+          </CuisineFormSection>
 
-          <View>
-            <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-              Status
-            </Text>
-            <View className="flex-row gap-2">
-              {(['Active', 'Inactive'] as const).map(status => (
-                <Pressable
-                  accessibilityLabel={`Set cuisine ${status.toLowerCase()}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: form.status === status }}
-                  key={status}
-                  onPress={() => setForm(current => ({ ...current, status }))}
-                  className={`rounded-full border px-4 py-2 ${
-                    form.status === status
-                      ? 'border-[#116C0B] bg-[#116C0B]'
-                      : 'border-[#E5E7EB] bg-white'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-semibold ${
+          <CuisineFormSection number="3" title="Cuisine Settings">
+            <View>
+              <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                Status
+              </Text>
+              <View className="flex-row gap-2">
+                {(['Active', 'Inactive'] as const).map(status => (
+                  <Pressable
+                    accessibilityLabel={`Set cuisine ${status.toLowerCase()}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: form.status === status }}
+                    key={status}
+                    onPress={() => setForm(current => ({ ...current, status }))}
+                    className={`rounded-full border px-4 py-2 ${
                       form.status === status
-                        ? 'text-white'
-                        : 'text-[#6B7280]'
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#E5E7EB] bg-white'
                     }`}
                   >
-                    {status}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text
+                      className={`text-xs font-semibold ${
+                        form.status === status ? 'text-white' : 'text-[#6B7280]'
+                      }`}
+                    >
+                      {status}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
-          </View>
 
-          <Pressable
-            accessibilityLabel="Toggle featured cuisine"
-            accessibilityRole="button"
-            accessibilityState={{ selected: form.featured }}
-            onPress={() =>
-              setForm(current => ({ ...current, featured: !current.featured }))
-            }
-            className={`self-start rounded-full border px-4 py-2 ${
-              form.featured
-                ? 'border-[#116C0B] bg-[#F0F7EE]'
-                : 'border-[#E5E7EB] bg-white'
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                form.featured ? 'text-[#116C0B]' : 'text-[#6B7280]'
+            <Pressable
+              accessibilityLabel="Toggle featured cuisine"
+              accessibilityRole="button"
+              accessibilityState={{ selected: form.featured }}
+              onPress={() =>
+                setForm(current => ({
+                  ...current,
+                  featured: !current.featured,
+                }))
+              }
+              className={`self-start rounded-full border px-4 py-2 ${
+                form.featured
+                  ? 'border-[#116C0B] bg-[#F0F7EE]'
+                  : 'border-[#E5E7EB] bg-white'
               }`}
             >
-              {form.featured ? 'Featured cuisine' : 'Mark as featured'}
-            </Text>
-          </Pressable>
+              <Text
+                className={`text-xs font-semibold ${
+                  form.featured ? 'text-[#116C0B]' : 'text-[#6B7280]'
+                }`}
+              >
+                {form.featured ? 'Featured cuisine' : 'Mark as featured'}
+              </Text>
+            </Pressable>
+          </CuisineFormSection>
 
           {formError ? (
             <Text accessibilityRole="alert" className="text-sm text-[#DC2626]">
@@ -415,15 +420,15 @@ function AddCuisine({
             </Text>
           ) : null}
 
-          <View className="mt-1 flex-row justify-end gap-3">
+          <View className="flex-row gap-3">
             <Pressable
               accessibilityLabel="Cancel cuisine"
               accessibilityRole="button"
               disabled={isSaving || isUploadingImage}
               onPress={onBack}
-              className="rounded-xl border border-[#D1D5DB] px-4 py-3"
+              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3"
             >
-              <Text className="font-semibold text-[#374151]">Cancel</Text>
+              <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
             </Pressable>
             <Pressable
               accessibilityLabel="Save cuisine"
@@ -432,12 +437,20 @@ function AddCuisine({
                 isSaving || isUploadingImage || isLoadingId || !form.cuisineId
               }
               onPress={() => void saveCuisine()}
-              className="min-w-[120px] items-center rounded-xl bg-[#116C0B] px-4 py-3"
+              className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4 py-3"
+              style={{
+                opacity:
+                  isSaving || isUploadingImage || isLoadingId || !form.cuisineId
+                    ? 0.55
+                    : 1,
+              }}
             >
               {isSaving ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text className="font-semibold text-white">Save Cuisine</Text>
+                <Text className="text-sm font-bold text-white">
+                  Create Cuisine
+                </Text>
               )}
             </Pressable>
           </View>
@@ -448,3 +461,27 @@ function AddCuisine({
 }
 
 export default AddCuisine;
+
+function CuisineFormSection({
+  number,
+  title,
+  children,
+}: {
+  number: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <View className="gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+      <View className="flex-row items-center gap-2">
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-[#15803D]">
+          <Text className="text-[11px] font-extrabold text-white">
+            {number}
+          </Text>
+        </View>
+        <Text className="text-sm font-extrabold text-[#0F172A]">{title}</Text>
+      </View>
+      <View className="gap-3">{children}</View>
+    </View>
+  );
+}
