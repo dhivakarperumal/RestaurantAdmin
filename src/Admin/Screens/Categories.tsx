@@ -21,8 +21,8 @@ import {
 } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import {
+  ArrowLeftIcon,
   AlertCircleIcon,
-  ChevronDownIcon,
   CheckCircle2Icon,
   ConfirmDialog,
   Edit3Icon,
@@ -726,8 +726,9 @@ function Categories({
           <View
             className="mb-5 gap-5"
             style={{
-              zIndex: openFilter ? 100 : 1,
-              elevation: openFilter ? 100 : 0,
+              position: 'relative',
+              zIndex: openFilter ? 20 : 0,
+              elevation: openFilter ? 20 : 0,
             }}
           >
             <View className="flex-row items-center justify-between gap-3">
@@ -803,8 +804,9 @@ function Categories({
             <View
               className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
               style={{
-                zIndex: openFilter ? 10 : 1,
-                elevation: openFilter ? 10 : 0,
+                position: 'relative',
+                zIndex: openFilter ? 20 : 0,
+                elevation: openFilter ? 20 : 0,
               }}
             >
               <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
@@ -822,8 +824,9 @@ function Categories({
                 <View
                   className="flex-row items-end gap-2"
                   style={{
-                    zIndex: openFilter ? 20 : 1,
-                    elevation: openFilter ? 20 : 0,
+                    position: 'relative',
+                    zIndex: openFilter ? 30 : 0,
+                    elevation: openFilter ? 30 : 0,
                   }}
                 >
                   <View className="flex-1 flex-row gap-2">
@@ -1022,12 +1025,11 @@ function Categories({
                 : 'border-[#CBD5E1] bg-white'
             }`}
           >
-            <View style={{ transform: [{ rotate: '90deg' }] }}>
-              <ChevronDownIcon
-                size={16}
-                color={page === 0 ? '#9CA3AF' : '#116C0B'}
-              />
-            </View>
+            <ArrowLeftIcon
+              size={17}
+              color={page === 0 ? '#64748B' : '#116C0B'}
+              strokeWidth={2.25}
+            />
             <Text
               className={`text-xs font-semibold ${
                 page === 0 ? 'text-[#9CA3AF]' : 'text-[#116C0B]'
@@ -1060,10 +1062,11 @@ function Categories({
             >
               Next
             </Text>
-            <View style={{ transform: [{ rotate: '-90deg' }] }}>
-              <ChevronDownIcon
-                size={16}
-                color={page + 1 >= pageCount ? '#9CA3AF' : '#116C0B'}
+            <View style={{ transform: [{ rotate: '180deg' }] }}>
+              <ArrowLeftIcon
+                size={17}
+                color={page + 1 >= pageCount ? '#64748B' : '#116C0B'}
+                strokeWidth={2.25}
               />
             </View>
           </Pressable>
@@ -1532,8 +1535,9 @@ function CategoryFilterDropdown<Value extends string>({
     <View
       className="min-w-[76px] flex-1"
       style={{
-        zIndex: open ? 120 : 1,
-        elevation: open ? 120 : 0,
+        position: 'relative',
+        zIndex: open ? 40 : 0,
+        elevation: open ? 40 : 0,
       }}
     >
       <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
@@ -1551,11 +1555,10 @@ function CategoryFilterDropdown<Value extends string>({
       </Pressable>
       {open ? (
         <View
-          className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
+          className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white shadow-lg"
           style={{
-            zIndex: 130,
-            elevation: 130,
-            backgroundColor: '#FFFFFF',
+            zIndex: 50,
+            elevation: 50,
           }}
         >
           {options.map(option => (
