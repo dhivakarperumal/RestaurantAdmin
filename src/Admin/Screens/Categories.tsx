@@ -699,6 +699,7 @@ function Categories({
     <View className="flex-1 bg-[#F9FAFB]">
       <FlatList
         key={`${viewMode}-${isWide ? 'wide' : 'narrow'}`}
+        removeClippedSubviews={false}
         numColumns={viewMode === 'cards' ? 2 : 1}
         columnWrapperStyle={viewMode === 'cards' ? { gap: 10 } : undefined}
         data={viewMode === 'cards' ? visibleCategories : []}
@@ -722,7 +723,13 @@ function Categories({
           width: '100%',
         }}
         ListHeaderComponent={
-          <View className="mb-5 gap-5">
+          <View
+            className="mb-5 gap-5"
+            style={{
+              zIndex: openFilter ? 100 : 1,
+              elevation: openFilter ? 100 : 0,
+            }}
+          >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
                 {showBackButton ? (
@@ -1522,7 +1529,13 @@ function CategoryFilterDropdown<Value extends string>({
     options.find(option => option.value === selected)?.label ??
     options[0]?.label;
   return (
-    <View className="min-w-[76px] flex-1" style={{ zIndex: open ? 10 : 1 }}>
+    <View
+      className="min-w-[76px] flex-1"
+      style={{
+        zIndex: open ? 120 : 1,
+        elevation: open ? 120 : 0,
+      }}
+    >
       <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
       <Pressable
         accessibilityLabel={`${label}: ${selectedLabel}`}
@@ -1539,7 +1552,11 @@ function CategoryFilterDropdown<Value extends string>({
       {open ? (
         <View
           className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
-          style={{ elevation: 8 }}
+          style={{
+            zIndex: 130,
+            elevation: 130,
+            backgroundColor: '#FFFFFF',
+          }}
         >
           {options.map(option => (
             <Pressable
