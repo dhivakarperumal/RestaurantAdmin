@@ -89,6 +89,26 @@ function foodIdValue(food: FoodRow): string | number | undefined {
     : (value as string | number);
 }
 
+function foodCartKey(food: FoodRow): string {
+  const name = textValue(food, ['food_name', 'name', 'product_name'], '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+  const category = textValue(food, ['category_name', 'category'], '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+  const portion = textValue(food, ['portion_size', 'portion'], '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+  if (name) {
+    return `name:${name}|category:${category}|portion:${portion}`;
+  }
+  return `id:${String(foodIdValue(food) ?? '')}`;
+}
+
 function priceValue(row: FoodRow): number {
   const price = Number(
     textValue(
@@ -582,32 +602,32 @@ export default function ServerItems({
 
   // Cart operations
   const quantityFor = (food: FoodRow) => {
-    const id = foodIdValue(food);
+    const key = foodCartKey(food);
     return (
       cart.find(
         item =>
-          String(foodIdValue(item.food)) === String(id),
+          foodCartKey(item.food) === key,
       )?.quantity ?? 0
     );
   };
 
   const changeQuantity = (food: FoodRow, amount: number) => {
-    const id = String(foodIdValue(food));
+    const key = foodCartKey(food);
     setCart(current => {
       const existing = current.find(
         item =>
-          String(foodIdValue(item.food)) === id,
+          foodCartKey(item.food) === key,
       );
       const nextQuantity = (existing?.quantity ?? 0) + amount;
       if (nextQuantity <= 0) {
         return current.filter(
           item =>
-            String(foodIdValue(item.food)) !== id,
+            foodCartKey(item.food) !== key,
         );
       }
       if (existing) {
         return current.map(item =>
-          String(foodIdValue(item.food)) === id
+          foodCartKey(item.food) === key
             ? { ...item, quantity: nextQuantity }
             : item,
         );
@@ -1157,7 +1177,7 @@ export default function ServerItems({
           </View>
         ) : visibleFoods.length ? (
           visibleFoods.map((food, index) => {
-            const id = String(foodIdValue(food) ?? index);
+            const id = `${foodCartKey(food)}-${index}`;
             const name = textValue(food, ['food_name', 'name', 'product_name'], 'Food Item');
             const categoryName = textValue(food, ['category_name', 'category'], 'Main Course');
             const subcategoryName = textValue(food, ['subcategory_name', 'subcategory']);
@@ -1530,7 +1550,7 @@ export default function ServerItems({
               showsVerticalScrollIndicator={false}
             >
               {cart.map(({ food, quantity }) => {
-                const id = String(foodIdValue(food));
+                const id = foodCartKey(food);
                 const name = textValue(food, ['food_name', 'name', 'product_name'], 'Food');
                 const price = priceValue(food);
                 const foodType = getFoodType(food);
