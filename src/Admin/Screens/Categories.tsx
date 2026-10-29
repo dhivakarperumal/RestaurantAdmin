@@ -1,20 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   RefreshControl,
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
-import { ProductIcon } from '../Navigation/NavigationIcons';
+import {
+  PlusIcon,
+  ProductIcon,
+  SearchIcon,
+} from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
-import { ConfirmDialog, FormModal } from '../../components/popups';
+import {
+  AlertCircleIcon,
+  CheckCircle2Icon,
+  ConfirmDialog,
+  FormModal,
+  ImageIcon,
+} from '../../components/popups';
 
 type Category = {
   id?: number;
@@ -167,14 +178,22 @@ function getCategoryCount(category: Category, foods: Food[]) {
   }, 0);
 }
 
-function CategoryImage({ name, uri }: { name: string; uri?: string }) {
+function CategoryImage({
+  name,
+  uri,
+  className = 'h-[66px] w-[66px] rounded-xl',
+}: {
+  name: string;
+  uri?: string;
+  className?: string;
+}) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => setFailed(false), [uri]);
 
   if (!uri || failed) {
     return (
-      <View className="h-[66px] w-[66px] items-center justify-center rounded-xl bg-[#F0F7EE]">
+      <View className={`${className} items-center justify-center bg-[#F0F7EE]`}>
         <ProductIcon color={colors.primary} size={27} />
       </View>
     );
@@ -186,7 +205,7 @@ function CategoryImage({ name, uri }: { name: string; uri?: string }) {
       onError={() => setFailed(true)}
       resizeMode="cover"
       source={{ uri }}
-      className="h-[66px] w-[66px] rounded-xl bg-[#F3F4F6]"
+      className={`${className} bg-[#F3F4F6]`}
     />
   );
 }
@@ -206,6 +225,7 @@ function Categories({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [sortMode, setSortMode] = useState<SortMode>('latest');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [openFilter, setOpenFilter] = useState<'status' | 'sort' | null>(null);
   const [page, setPage] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -222,6 +242,8 @@ function Categories({
   const [deleteError, setDeleteError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const requestId = useRef(0);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -547,136 +569,141 @@ function Categories({
     const categoryId = getCategoryId(item);
     const subcategories = getSubcategories(item.sub_categories);
     const productCount = getCategoryCount(item, foods);
+    const isActive = item.status?.toLowerCase() !== 'inactive';
+    const categoryName = item.category_name || 'Unnamed category';
+    const actions = (
+      <View className="flex-row gap-2">
+        <Pressable
+          accessibilityLabel={`Edit ${categoryName}`}
+          accessibilityRole="button"
+          onPress={() => void openEditForm(item)}
+          className="rounded-lg border border-[#DCFCE7] bg-[#F0FDF4] px-3 py-2"
+        >
+          <Text className="text-xs font-bold text-[#15803D]">Edit</Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel={`Delete ${categoryName}`}
+          accessibilityRole="button"
+          onPress={() => {
+            setDeleteError('');
+            setCategoryToDelete(item);
+          }}
+          className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2"
+        >
+          <Text className="text-xs font-bold text-[#DC2626]">Delete</Text>
+        </Pressable>
+      </View>
+    );
 
     if (viewMode === 'table') {
       return (
-        <View className="min-h-[64px] flex-row items-center border-b border-[#E5E7EB] bg-white px-3 py-2">
-          <View className="min-w-0 flex-[2]">
-            <Text
-              className="text-sm font-semibold text-[#012711]"
-              numberOfLines={1}
-            >
-              {item.category_name || 'Unnamed category'}
-            </Text>
-            <Text className="mt-1 text-xs text-[#6B7280]" numberOfLines={1}>
-              {categoryId}
-            </Text>
+        <View className="min-h-[76px] flex-row items-center border-t border-[#E8F1EB] bg-white px-3 py-2">
+          <View className="min-w-0 flex-[2] flex-row items-center gap-3 pr-2">
+            <CategoryImage
+              name={categoryName}
+              uri={resolveImageUrl(item.category_image)}
+              className="h-10 w-10 rounded-lg"
+            />
+            <View className="min-w-0 flex-1">
+              <Text
+                className="text-xs font-bold text-[#1E293B]"
+                numberOfLines={1}
+              >
+                {categoryName}
+              </Text>
+              <Text
+                className="mt-1 text-[10px] text-[#64748B]"
+                numberOfLines={1}
+              >
+                {categoryId}
+              </Text>
+            </View>
           </View>
-          <Text className="flex-1 text-center text-sm text-[#374151]">
+          <Text className="w-[64px] text-center text-xs font-semibold text-[#334155]">
             {productCount}
           </Text>
-          <Text
-            className={`flex-1 text-center text-xs font-semibold ${
-              item.status?.toLowerCase() === 'inactive'
-                ? 'text-[#6B7280]'
-                : 'text-[#116C0B]'
-            }`}
-          >
-            {item.status || 'Active'}
-          </Text>
-          <View className="flex-row gap-2">
-            <Pressable
-              accessibilityLabel={`Edit ${item.category_name}`}
-              accessibilityRole="button"
-              onPress={() => void openEditForm(item)}
-              className="rounded-lg bg-[#F0F7EE] px-2.5 py-2"
-            >
-              <Text className="text-xs font-semibold text-[#116C0B]">Edit</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={`Delete ${item.category_name}`}
-              accessibilityRole="button"
-              onPress={() => {
-                setDeleteError('');
-                setCategoryToDelete(item);
-              }}
-              className="rounded-lg bg-[#FEF2F2] px-2.5 py-2"
-            >
-              <Text className="text-xs font-semibold text-[#DC2626]">
-                Delete
-              </Text>
-            </Pressable>
+          <View className="w-[82px] items-center">
+            <CategoryStatusBadge active={isActive} />
           </View>
+          <View className="w-[112px] items-end">{actions}</View>
         </View>
       );
     }
 
     return (
-      <View className="flex-row gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
-        <CategoryImage
-          name={item.category_name || 'Category'}
-          uri={resolveImageUrl(item.category_image)}
-        />
-        <View className="min-w-0 flex-1">
+      <View
+        className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+        style={{
+          flex: isWide ? 1 : undefined,
+          width: isWide ? '48%' : '100%',
+        }}
+      >
+        <View className="relative">
+          <CategoryImage
+            name={categoryName}
+            uri={resolveImageUrl(item.category_image)}
+            className={isWide ? 'h-40 w-full' : 'h-36 w-full'}
+          />
+          <View className="absolute left-3 top-3">
+            <CategoryStatusBadge active={isActive} />
+          </View>
+        </View>
+        <View className="gap-2.5 p-3.5">
           <View className="flex-row items-start justify-between gap-2">
             <View className="min-w-0 flex-1">
               <Text
-                className="text-base font-bold text-[#012711]"
+                className="text-sm font-bold text-[#012711]"
                 numberOfLines={1}
               >
-                {item.category_name || 'Unnamed category'}
+                {categoryName}
               </Text>
-              <Text className="mt-1 text-xs text-[#6B7280]">{categoryId}</Text>
+              <Text
+                className="mt-1 text-[10px] text-[#64748B]"
+                numberOfLines={1}
+              >
+                {categoryId}
+              </Text>
             </View>
-            <Text
-              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                item.status?.toLowerCase() === 'inactive'
-                  ? 'bg-[#F3F4F6] text-[#6B7280]'
-                  : 'bg-[#F0F7EE] text-[#116C0B]'
-              }`}
-            >
-              {item.status || 'Active'}
+            <Text className="rounded-full bg-[#F0FDF4] px-2 py-1 text-[10px] font-bold text-[#15803D]">
+              {productCount} {productCount === 1 ? 'product' : 'products'}
             </Text>
           </View>
-          <Text className="mt-2 text-xs text-[#6B7280]">
-            {productCount} {productCount === 1 ? 'product' : 'products'}
-          </Text>
           {item.description ? (
             <Text
-              className="mt-1 text-xs leading-4 text-[#6B7280]"
+              className="text-xs leading-[17px] text-[#6B7280]"
               numberOfLines={2}
             >
               {item.description}
             </Text>
           ) : null}
           {subcategories.length ? (
-            <Text className="mt-1 text-xs text-[#6B7280]" numberOfLines={1}>
+            <Text className="text-[10px] text-[#64748B]" numberOfLines={1}>
               {subcategories.join(' · ')}
             </Text>
           ) : null}
-          <View className="mt-3 flex-row gap-2">
-            <Pressable
-              accessibilityLabel={`Edit ${item.category_name}`}
-              accessibilityRole="button"
-              onPress={() => void openEditForm(item)}
-              className="rounded-lg bg-[#F0F7EE] px-3 py-2"
-            >
-              <Text className="text-xs font-semibold text-[#116C0B]">Edit</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel={`Delete ${item.category_name}`}
-              accessibilityRole="button"
-              onPress={() => {
-                setDeleteError('');
-                setCategoryToDelete(item);
-              }}
-              className="rounded-lg bg-[#FEF2F2] px-3 py-2"
-            >
-              <Text className="text-xs font-semibold text-[#DC2626]">
-                Delete
-              </Text>
-            </Pressable>
+          <View className="flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
+            <Text className="text-[10px] text-[#64748B]">Category details</Text>
+            {actions}
           </View>
         </View>
       </View>
     );
   };
 
+  const activeCategoryCount = categories.filter(
+    category => category.status?.toLowerCase() !== 'inactive',
+  ).length;
+  const inactiveCategoryCount = categories.length - activeCategoryCount;
+
   return (
     <View className="flex-1 bg-[#F9FAFB]">
       <FlatList
         data={visibleCategories}
-        key={viewMode}
+        key={`${viewMode}-${isWide ? 'wide' : 'narrow'}`}
+        numColumns={viewMode === 'cards' && isWide ? 2 : 1}
+        columnWrapperStyle={
+          viewMode === 'cards' && isWide ? { gap: 12 } : undefined
+        }
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -691,125 +718,168 @@ function Categories({
         contentContainerStyle={{
           alignSelf: 'center',
           gap: viewMode === 'cards' ? 12 : 0,
-          maxWidth: 1000,
-          padding: 18,
-          paddingBottom: 28,
+          maxWidth: 1100,
+          padding: 20,
+          paddingBottom: 96,
           width: '100%',
         }}
         ListHeaderComponent={
-          <View className="mb-4 gap-4">
-            <View className="flex-row items-center justify-between">
+          <View className="mb-5 gap-5">
+            <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
                 {showBackButton ? (
                   <Pressable
                     accessibilityLabel="Back to More"
                     accessibilityRole="button"
                     onPress={onBack}
-                    className="self-start rounded-lg px-1 py-1"
+                    className="mb-2 self-start py-1"
                   >
-                    <Text className="text-xs font-semibold text-[#116C0B]">
-                      ‹ Back to More
+                    <Text className="text-sm font-semibold text-[#116C0B]">
+                      ‹ More
                     </Text>
                   </Pressable>
                 ) : null}
-                <Text className="mt-2 text-2xl font-extrabold text-[#012711]">
+                <Text className="text-2xl font-extrabold text-[#012711]">
                   Categories
                 </Text>
-                <Text className="mt-1 text-sm text-[#6B7280]">
-                  {categories.length}{' '}
-                  {categories.length === 1 ? 'category' : 'categories'}
+                <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+                  Manage menu categories and the products in each group.
                 </Text>
               </View>
-              <Pressable
-                accessibilityLabel="Add category"
-                accessibilityRole="button"
-                onPress={onAddCategory}
-                className="rounded-xl bg-[#116C0B] px-4 py-3"
-                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-              >
-                <Text className="font-semibold text-white">+ Add Category</Text>
-              </Pressable>
-            </View>
-            <TextInput
-              accessibilityLabel="Search categories"
-              className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-              onChangeText={setSearch}
-              placeholder="Search categories"
-              placeholderTextColor={colors.textSecondary}
-              value={search}
-            />
-            <ScrollView
-              horizontal
-              contentContainerStyle={{ alignItems: 'center', gap: 8 }}
-              showsHorizontalScrollIndicator={false}
-            >
-              {(['All', 'Active', 'Inactive'] as StatusFilter[]).map(status => (
+              {isWide ? (
                 <Pressable
-                  accessibilityLabel={`Filter ${status} categories`}
+                  accessibilityLabel="Add category"
                   accessibilityRole="button"
-                  key={status}
-                  onPress={() => setStatusFilter(status)}
-                  className={`rounded-full border px-3.5 py-2 ${
-                    statusFilter === status
-                      ? 'border-[#116C0B] bg-[#116C0B]'
-                      : 'border-[#E5E7EB] bg-white'
-                  }`}
+                  onPress={onAddCategory}
+                  className="min-h-11 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-4"
+                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
                 >
-                  <Text
-                    className={`text-xs font-semibold ${
-                      statusFilter === status ? 'text-white' : 'text-[#6B7280]'
-                    }`}
-                  >
-                    {status}
+                  <PlusIcon color="#FFFFFF" size={18} />
+                  <Text className="ml-1.5 text-sm font-bold text-white">
+                    Add category
                   </Text>
                 </Pressable>
-              ))}
-              <Pressable
-                accessibilityLabel="Sort categories"
-                accessibilityRole="button"
-                onPress={() =>
-                  setSortMode(mode => {
-                    switch (mode) {
-                      case 'latest':
-                        return 'name';
-                      case 'name':
-                        return 'products-high';
-                      case 'products-high':
-                        return 'products-low';
-                      default:
-                        return 'latest';
-                    }
-                  })
-                }
-                className="rounded-full border border-[#E5E7EB] bg-white px-3.5 py-2"
-              >
-                <Text className="text-xs font-semibold text-[#374151]">
-                  Sort:{' '}
-                  {
-                    {
-                      latest: 'Latest',
-                      name: 'Name A–Z',
-                      'products-high': 'Most products',
-                      'products-low': 'Fewest products',
-                    }[sortMode]
-                  }
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel={`Switch to ${
-                  viewMode === 'cards' ? 'table' : 'card'
-                } view`}
-                accessibilityRole="button"
-                onPress={() =>
-                  setViewMode(mode => (mode === 'cards' ? 'table' : 'cards'))
-                }
-                className="rounded-full border border-[#E5E7EB] bg-white px-3.5 py-2"
-              >
-                <Text className="text-xs font-semibold text-[#374151]">
-                  {viewMode === 'cards' ? 'Table view' : 'Card view'}
-                </Text>
-              </Pressable>
-            </ScrollView>
+              ) : null}
+            </View>
+            <View className="flex-row flex-wrap justify-between gap-y-3">
+              <CategoryStat
+                label="Total categories"
+                value={categories.length}
+                icon="total"
+                tint="#166534"
+                iconBackground="#DCFCE7"
+                decorColor="#DCFCE7"
+              />
+              <CategoryStat
+                label="Active"
+                value={activeCategoryCount}
+                icon="active"
+                tint="#1D4ED8"
+                iconBackground="#DBEAFE"
+                decorColor="#BFDBFE"
+              />
+              <CategoryStat
+                label="Inactive"
+                value={inactiveCategoryCount}
+                icon="inactive"
+                tint="#9A3412"
+                iconBackground="#FED7AA"
+                decorColor="#FED7AA"
+              />
+              <CategoryStat
+                label="Products"
+                value={foods.length}
+                icon="products"
+                tint="#6D28D9"
+                iconBackground="#DDD6FE"
+                decorColor="#DDD6FE"
+              />
+            </View>
+            <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+              <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
+                <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
+                  <SearchIcon color="#9CA3AF" size={17} />
+                  <TextInput
+                    accessibilityLabel="Search categories"
+                    className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+                    onChangeText={setSearch}
+                    placeholder="Search categories by name or ID..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={search}
+                  />
+                </View>
+                <View className="flex-row items-end gap-2">
+                  <View className="flex-1 flex-row gap-2">
+                    <CategoryFilterDropdown<StatusFilter>
+                      label="Status"
+                      onOpen={() =>
+                        setOpenFilter(current =>
+                          current === 'status' ? null : 'status',
+                        )
+                      }
+                      onSelect={value => {
+                        setStatusFilter(value);
+                        setOpenFilter(null);
+                      }}
+                      open={openFilter === 'status'}
+                      options={[
+                        { value: 'All', label: 'All statuses' },
+                        { value: 'Active', label: 'Active' },
+                        { value: 'Inactive', label: 'Inactive' },
+                      ]}
+                      selected={statusFilter}
+                    />
+                    <CategoryFilterDropdown<SortMode>
+                      label="Sort by"
+                      onOpen={() =>
+                        setOpenFilter(current =>
+                          current === 'sort' ? null : 'sort',
+                        )
+                      }
+                      onSelect={value => {
+                        setSortMode(value);
+                        setOpenFilter(null);
+                      }}
+                      open={openFilter === 'sort'}
+                      options={[
+                        { value: 'latest', label: 'Latest' },
+                        { value: 'name', label: 'Name A–Z' },
+                        { value: 'products-high', label: 'Most products' },
+                        { value: 'products-low', label: 'Fewest products' },
+                      ]}
+                      selected={sortMode}
+                    />
+                  </View>
+                  <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+                    {(['cards', 'table'] as const).map(mode => {
+                      const selected = viewMode === mode;
+                      return (
+                        <Pressable
+                          accessibilityLabel={`Show categories as ${
+                            mode === 'cards' ? 'grid' : 'list'
+                          }`}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
+                          key={mode}
+                          onPress={() => setViewMode(mode)}
+                          className={`h-9 w-9 items-center justify-center rounded-md ${
+                            selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                          }`}
+                        >
+                          <Text
+                            className={`text-base font-bold ${
+                              selected ? 'text-white' : 'text-[#64748B]'
+                            }`}
+                          >
+                            {mode === 'cards' ? '▦' : '☷'}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+            </View>
             {foodError ? (
               <Text
                 accessibilityRole="alert"
@@ -846,18 +916,18 @@ function Categories({
               </View>
             ) : null}
             {viewMode === 'table' && filteredCategories.length ? (
-              <View className="flex-row items-center rounded-t-xl bg-[#F0F7EE] px-3 py-3">
-                <Text className="flex-[2] text-xs font-bold text-[#012711]">
-                  CATEGORY
+              <View className="flex-row items-center rounded-t-xl bg-[#EAF5EE] px-3 py-3">
+                <Text className="flex-[2] text-[10px] font-bold uppercase text-[#64748B]">
+                  Category
                 </Text>
-                <Text className="flex-1 text-center text-xs font-bold text-[#012711]">
-                  PRODUCTS
+                <Text className="w-[64px] text-center text-[10px] font-bold uppercase text-[#64748B]">
+                  Products
                 </Text>
-                <Text className="flex-1 text-center text-xs font-bold text-[#012711]">
-                  STATUS
+                <Text className="w-[82px] text-center text-[10px] font-bold uppercase text-[#64748B]">
+                  Status
                 </Text>
-                <Text className="text-xs font-bold text-[#012711]">
-                  ACTIONS
+                <Text className="w-[112px] text-right text-[10px] font-bold uppercase text-[#64748B]">
+                  Actions
                 </Text>
               </View>
             ) : null}
@@ -884,6 +954,18 @@ function Categories({
               <Text className="text-center text-sm text-[#6B7280]">
                 Add a category to organize your products.
               </Text>
+              {isWide && !categories.length ? (
+                <Pressable
+                  accessibilityLabel="Create your first category"
+                  accessibilityRole="button"
+                  onPress={onAddCategory}
+                  className="mt-2 rounded-xl bg-[#116C0B] px-4 py-3"
+                >
+                  <Text className="text-sm font-bold text-white">
+                    Create your first category
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           )
         }
@@ -925,6 +1007,25 @@ function Categories({
         </View>
       ) : null}
 
+      {!isWide && !isFormOpen ? (
+        <Pressable
+          accessibilityLabel="Add category"
+          accessibilityRole="button"
+          onPress={onAddCategory}
+          className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B]"
+          style={{
+            bottom: filteredCategories.length > PAGE_SIZE ? 76 : 20,
+            elevation: 8,
+            shadowColor: '#116C0B',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+          }}
+        >
+          <PlusIcon color="#FFFFFF" size={26} />
+        </Pressable>
+      ) : null}
+
       <FormModal
         visible={isFormOpen}
         onClose={resetForm}
@@ -945,186 +1046,201 @@ function Categories({
           <View className="items-center gap-3 p-8">
             <ActivityIndicator color={colors.primary} />
             <Text className="text-sm text-[#6B7280]">
-              {isEditing
-                ? 'Loading category...'
-                : 'Generating category ID...'}
+              {isEditing ? 'Loading category...' : 'Generating category ID...'}
             </Text>
           </View>
         ) : (
           <View className="gap-3">
-                <View>
-                  <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-                    Category ID
-                  </Text>
+            <CategoryFormSection number="1" title="Basic Information">
+              <View>
+                <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                  Category ID
+                </Text>
+                <TextInput
+                  accessibilityLabel="Category ID"
+                  editable={false}
+                  className="rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5 py-3 text-sm text-[#6B7280]"
+                  value={form.categoryId}
+                />
+              </View>
+              <View>
+                <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                  Category name *
+                </Text>
+                <TextInput
+                  accessibilityLabel="Category name"
+                  autoCapitalize="words"
+                  className="rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+                  onChangeText={value =>
+                    setForm(current => ({ ...current, categoryName: value }))
+                  }
+                  placeholder="Category name"
+                  placeholderTextColor={colors.textLight}
+                  value={form.categoryName}
+                />
+              </View>
+              <View>
+                <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                  Description
+                </Text>
+                <TextInput
+                  accessibilityLabel="Category description"
+                  className="min-h-[76px] rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+                  multiline
+                  onChangeText={value =>
+                    setForm(current => ({ ...current, description: value }))
+                  }
+                  placeholder="Optional description"
+                  placeholderTextColor={colors.textLight}
+                  textAlignVertical="top"
+                  value={form.description}
+                />
+              </View>
+            </CategoryFormSection>
+            <CategoryFormSection number="2" title="Subcategories">
+              <View>
+                <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                  Subcategories
+                </Text>
+                <View className="flex-row gap-2">
                   <TextInput
-                    accessibilityLabel="Category ID"
-                    editable={false}
-                    className="rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5 py-3 text-sm text-[#6B7280]"
-                    value={form.categoryId}
-                  />
-                </View>
-                <View>
-                  <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-                    Category name *
-                  </Text>
-                  <TextInput
-                    accessibilityLabel="Category name"
+                    accessibilityLabel="Subcategory name"
                     autoCapitalize="words"
-                    className="rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
-                    onChangeText={value =>
-                      setForm(current => ({ ...current, categoryName: value }))
-                    }
-                    placeholder="Category name"
+                    className="min-w-0 flex-1 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+                    onChangeText={setSubcategoryInput}
+                    onSubmitEditing={addSubcategory}
+                    placeholder="Add a subcategory"
                     placeholderTextColor={colors.textLight}
-                    value={form.categoryName}
+                    returnKeyType="done"
+                    value={subcategoryInput}
                   />
-                </View>
-                <View>
-                  <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-                    Description
-                  </Text>
-                  <TextInput
-                    accessibilityLabel="Category description"
-                    className="min-h-[76px] rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
-                    multiline
-                    onChangeText={value =>
-                      setForm(current => ({ ...current, description: value }))
-                    }
-                    placeholder="Optional description"
-                    placeholderTextColor={colors.textLight}
-                    textAlignVertical="top"
-                    value={form.description}
-                  />
-                </View>
-                <View>
-                  <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-                    Subcategories
-                  </Text>
-                  <View className="flex-row gap-2">
-                    <TextInput
-                      accessibilityLabel="Subcategory name"
-                      autoCapitalize="words"
-                      className="min-w-0 flex-1 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
-                      onChangeText={setSubcategoryInput}
-                      onSubmitEditing={addSubcategory}
-                      placeholder="Add a subcategory"
-                      placeholderTextColor={colors.textLight}
-                      returnKeyType="done"
-                      value={subcategoryInput}
-                    />
-                    <Pressable
-                      accessibilityLabel="Add subcategory"
-                      accessibilityRole="button"
-                      onPress={addSubcategory}
-                      className="justify-center rounded-xl bg-[#F0F7EE] px-3"
-                    >
-                      <Text className="text-xs font-semibold text-[#116C0B]">
-                        Add
-                      </Text>
-                    </Pressable>
-                  </View>
-                  {form.subcategories.length ? (
-                    <View className="mt-2 flex-row flex-wrap gap-2">
-                      {form.subcategories.map((name, index) => (
-                        <Pressable
-                          accessibilityLabel={`Remove subcategory ${name}`}
-                          accessibilityRole="button"
-                          key={`${name}-${index}`}
-                          onPress={() =>
-                            setForm(current => ({
-                              ...current,
-                              subcategories: current.subcategories.filter(
-                                (_, itemIndex) => itemIndex !== index,
-                              ),
-                            }))
-                          }
-                          className="flex-row items-center gap-1 rounded-full bg-[#F0F7EE] px-3 py-1.5"
-                        >
-                          <Text className="text-xs font-medium text-[#116C0B]">
-                            {name}
-                          </Text>
-                          <Text className="text-xs text-[#116C0B]">×</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  ) : null}
-                </View>
-                <View>
-                  <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-                    Category image
-                  </Text>
-                  <View className="flex-row items-center gap-3">
-                    {form.image ? (
-                      <CategoryImage
-                        name={form.categoryName || 'Category'}
-                        uri={resolveImageUrl(form.image)}
-                      />
-                    ) : null}
-                    <Pressable
-                      accessibilityLabel="Choose category image"
-                      accessibilityRole="button"
-                      disabled={isUploadingImage}
-                      onPress={() => void chooseImage()}
-                      className="rounded-xl border border-[#D1D5DB] px-4 py-3"
-                    >
-                      {isUploadingImage ? (
-                        <ActivityIndicator color={colors.primary} />
-                      ) : (
-                        <Text className="text-xs font-semibold text-[#116C0B]">
-                          {form.image ? 'Change image' : 'Choose image'}
-                        </Text>
-                      )}
-                    </Pressable>
-                    <Text className="flex-1 text-[10px] leading-4 text-[#6B7280]">
-                      JPG, PNG, WEBP · max 5 MB
+                  <Pressable
+                    accessibilityLabel="Add subcategory"
+                    accessibilityRole="button"
+                    onPress={addSubcategory}
+                    className="justify-center rounded-xl bg-[#F0F7EE] px-3"
+                  >
+                    <Text className="text-xs font-semibold text-[#116C0B]">
+                      Add
                     </Text>
-                  </View>
+                  </Pressable>
                 </View>
-                <View>
-                  <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-                    Status
-                  </Text>
-                  <View className="flex-row gap-2">
-                    {(['Active', 'Inactive'] as const).map(status => (
+                {form.subcategories.length ? (
+                  <View className="mt-2 flex-row flex-wrap gap-2">
+                    {form.subcategories.map((name, index) => (
                       <Pressable
-                        accessibilityLabel={`Set category ${status.toLowerCase()}`}
+                        accessibilityLabel={`Remove subcategory ${name}`}
                         accessibilityRole="button"
-                        accessibilityState={{
-                          selected: form.status === status,
-                        }}
-                        key={status}
+                        key={`${name}-${index}`}
                         onPress={() =>
-                          setForm(current => ({ ...current, status }))
+                          setForm(current => ({
+                            ...current,
+                            subcategories: current.subcategories.filter(
+                              (_, itemIndex) => itemIndex !== index,
+                            ),
+                          }))
                         }
-                        className={`rounded-full border px-4 py-2 ${
-                          form.status === status
-                            ? 'border-[#116C0B] bg-[#116C0B]'
-                            : 'border-[#E5E7EB] bg-white'
-                        }`}
+                        className="flex-row items-center gap-1 rounded-full bg-[#F0F7EE] px-3 py-1.5"
                       >
-                        <Text
-                          className={`text-xs font-semibold ${
-                            form.status === status
-                              ? 'text-white'
-                              : 'text-[#6B7280]'
-                          }`}
-                        >
-                          {status}
+                        <Text className="text-xs font-medium text-[#116C0B]">
+                          {name}
                         </Text>
+                        <Text className="text-xs text-[#116C0B]">×</Text>
                       </Pressable>
                     ))}
                   </View>
-                </View>
-                {formError ? (
-                  <Text
-                    accessibilityRole="alert"
-                    className="text-sm text-[#DC2626]"
-                  >
-                    {formError}
-                  </Text>
                 ) : null}
               </View>
-            )}
+            </CategoryFormSection>
+            <CategoryFormSection number="3" title="Category Image">
+              <View>
+                <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
+                  Category image
+                </Text>
+                <View className="flex-row items-center gap-3">
+                  {form.image ? (
+                    <CategoryImage
+                      name={form.categoryName || 'Category'}
+                      uri={resolveImageUrl(form.image)}
+                    />
+                  ) : null}
+                  <Pressable
+                    accessibilityLabel="Choose category image"
+                    accessibilityRole="button"
+                    disabled={isUploadingImage}
+                    onPress={() => void chooseImage()}
+                    className="rounded-xl border border-[#D1D5DB] px-4 py-3"
+                  >
+                    {isUploadingImage ? (
+                      <ActivityIndicator color={colors.primary} />
+                    ) : (
+                      <Text className="text-xs font-semibold text-[#116C0B]">
+                        {form.image ? 'Change image' : 'Choose image'}
+                      </Text>
+                    )}
+                  </Pressable>
+                  <Text className="flex-1 text-[10px] leading-4 text-[#6B7280]">
+                    JPG, PNG, WEBP · max 5 MB
+                  </Text>
+                </View>
+              </View>
+            </CategoryFormSection>
+            <CategoryFormSection number="4" title="Category Settings">
+              <Pressable
+                accessibilityLabel={
+                  form.status === 'Active'
+                    ? 'Set category inactive'
+                    : 'Set category active'
+                }
+                accessibilityRole="switch"
+                accessibilityState={{ checked: form.status === 'Active' }}
+                onPress={() =>
+                  setForm(current => ({
+                    ...current,
+                    status: current.status === 'Active' ? 'Inactive' : 'Active',
+                  }))
+                }
+                className="min-h-[58px] flex-row items-center gap-3 rounded-xl border px-3"
+                style={{
+                  borderColor: form.status === 'Active' ? '#BBF7D0' : '#E2E8F0',
+                  backgroundColor:
+                    form.status === 'Active' ? '#F0FDF4' : '#F8FAFC',
+                }}
+              >
+                <View className="h-9 w-9 items-center justify-center rounded-full bg-white">
+                  <Text className="text-base">
+                    {form.status === 'Active' ? '✓' : '○'}
+                  </Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xs font-bold text-[#1E293B]">
+                    {form.status === 'Active'
+                      ? 'Category is active'
+                      : 'Category is inactive'}
+                  </Text>
+                  <Text className="mt-0.5 text-[10px] text-[#64748B]">
+                    {form.status === 'Active'
+                      ? 'Shown as active in category management'
+                      : 'Shown as inactive in category management'}
+                  </Text>
+                </View>
+                <View
+                  className="h-6 w-11 justify-center rounded-full px-0.5"
+                  style={{
+                    backgroundColor:
+                      form.status === 'Active' ? colors.primary : '#CBD5E1',
+                  }}
+                >
+                  <View
+                    className={`h-5 w-5 rounded-full bg-white ${
+                      form.status === 'Active' ? 'self-end' : 'self-start'
+                    }`}
+                  />
+                </View>
+              </Pressable>
+            </CategoryFormSection>
+          </View>
+        )}
       </FormModal>
 
       <ConfirmDialog
@@ -1148,3 +1264,194 @@ function Categories({
 }
 
 export default Categories;
+
+function CategoryStatusBadge({ active }: { active: boolean }) {
+  return (
+    <View
+      className="rounded-full border px-2 py-1"
+      style={{
+        backgroundColor: active ? '#ECFDF5' : '#F8FAFC',
+        borderColor: active ? '#BBF7D0' : '#E2E8F0',
+      }}
+    >
+      <Text
+        className="text-[9px] font-extrabold uppercase"
+        style={{ color: active ? '#15803D' : '#64748B' }}
+      >
+        {active ? 'Active' : 'Inactive'}
+      </Text>
+    </View>
+  );
+}
+
+function CategoryStat({
+  label,
+  value,
+  icon,
+  tint,
+  iconBackground,
+  decorColor,
+}: {
+  label: string;
+  value: number;
+  icon: 'total' | 'active' | 'inactive' | 'products';
+  tint: string;
+  iconBackground: string;
+  decorColor: string;
+}) {
+  return (
+    <View
+      style={{
+        width: '48%',
+        minHeight: 90,
+        overflow: 'hidden',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 14,
+        paddingVertical: 16,
+        elevation: 2,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+      }}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          bottom: -30,
+          right: -24,
+          width: 80,
+          height: 80,
+          borderRadius: 40,
+          backgroundColor: decorColor,
+          opacity: 0.55,
+        }}
+      />
+      <View
+        className="h-11 w-11 items-center justify-center rounded-[14px]"
+        style={{ backgroundColor: iconBackground }}
+      >
+        {icon === 'total' ? (
+          <ImageIcon size={21} color={tint} strokeWidth={2} />
+        ) : icon === 'active' ? (
+          <CheckCircle2Icon size={21} color={tint} />
+        ) : icon === 'inactive' ? (
+          <AlertCircleIcon size={21} color={tint} />
+        ) : (
+          <ProductIcon color={tint} size={21} />
+        )}
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text
+          numberOfLines={1}
+          className="text-[10px] font-extrabold uppercase"
+          style={{ color: tint, letterSpacing: 0.8 }}
+        >
+          {label}
+        </Text>
+        <Text
+          className="mt-0.5 text-[22px] font-extrabold"
+          style={{ color: tint }}
+        >
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function CategoryFilterDropdown<Value extends string>({
+  label,
+  options,
+  selected,
+  open,
+  onOpen,
+  onSelect,
+}: {
+  label: string;
+  options: { value: Value; label: string }[];
+  selected: Value;
+  open: boolean;
+  onOpen: () => void;
+  onSelect: (value: Value) => void;
+}) {
+  const selectedLabel =
+    options.find(option => option.value === selected)?.label ??
+    options[0]?.label;
+  return (
+    <View className="min-w-[76px] flex-1" style={{ zIndex: open ? 10 : 1 }}>
+      <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
+      <Pressable
+        accessibilityLabel={`${label}: ${selectedLabel}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={onOpen}
+        className="min-h-10 flex-row items-center justify-between rounded-lg border border-[#CBD5E1] bg-white px-2.5"
+      >
+        <Text className="flex-1 text-xs text-[#334155]" numberOfLines={1}>
+          {selectedLabel}
+        </Text>
+        <Text className="ml-1 text-xs text-[#64748B]">{open ? '⌃' : '⌄'}</Text>
+      </Pressable>
+      {open ? (
+        <View
+          className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
+          style={{ elevation: 8 }}
+        >
+          {options.map(option => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: option.value === selected }}
+              key={option.value}
+              onPress={() => onSelect(option.value)}
+              className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${
+                option.value === selected ? 'bg-[#F0FDF4]' : ''
+              }`}
+            >
+              <Text
+                className={`text-xs ${
+                  option.value === selected
+                    ? 'font-bold text-[#116C0B]'
+                    : 'text-[#334155]'
+                }`}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function CategoryFormSection({
+  number,
+  title,
+  children,
+}: {
+  number: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <View className="gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-3.5">
+      <View className="flex-row items-center gap-2">
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-[#15803D]">
+          <Text className="text-[11px] font-extrabold text-white">
+            {number}
+          </Text>
+        </View>
+        <Text className="text-sm font-extrabold text-[#0F172A]">{title}</Text>
+      </View>
+      <View className="gap-3">{children}</View>
+    </View>
+  );
+}
