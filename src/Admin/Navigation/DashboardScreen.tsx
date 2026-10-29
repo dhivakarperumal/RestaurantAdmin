@@ -874,7 +874,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       {!isItemsInnerPageOpen &&
       !isMoreFeatureOpen &&
       !isDeliveryAssignmentOpen &&
-      !isBillPreviewOpen ? (
+      !isBillPreviewOpen &&
+      !(activeTab === 'add' && newOrderType !== null) ? (
         <TopHeader
           user={user}
           unreadNotifications={0}

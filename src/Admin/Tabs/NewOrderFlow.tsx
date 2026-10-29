@@ -861,6 +861,16 @@ export default function NewOrderFlow({
   return (
     <SafeAreaView edges={['bottom']} className="flex-1 bg-[#F9FAFB]">
       <View className="flex-1">
+        <MoreInnerHeader
+          title={orderLabel}
+          destination={isDineIn ? 'Table selection' : 'Dashboard'}
+          subtitle={
+            isDineIn
+              ? `Table ${text(selectedTable?.table_number)}`
+              : 'New order'
+          }
+          onBack={isDineIn ? () => setSelectedTable(null) : onBack}
+        />
         {!isDineIn ? (
           <View className="gap-2 border-b border-[#E5E7EB] bg-white px-4 py-3">
             <Text className="text-xs font-bold text-[#012711]">
