@@ -1755,443 +1755,400 @@ export function OrdersScreen({
       {/* FILTER DRAWER / MODAL */}
       <BaseModal
         visible={showFilterModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
+        onClose={() => setShowFilterModal(false)}
+        title="Filter & Sort Orders"
+        subtitle="Narrow down orders by type, timeframe, or sorting"
+        variant="bottom-sheet"
+        footer={
+          <View className="w-full flex-row gap-3">
+            <Pressable
+              onPress={resetAllFilters}
+              className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
+            >
+              <Text className="text-sm font-semibold text-[#334155]">Reset</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Apply order filters"
+              accessibilityRole="button"
+              onPress={() => setShowFilterModal(false)}
+              className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] px-4 active:bg-[#0D5208]"
+            >
+              <Text className="text-center text-sm font-bold text-white">
+                Apply Filters
+              </Text>
+            </Pressable>
+          </View>
+        }
       >
-        <Pressable
-          onPress={() => setShowFilterModal(false)}
-          className="flex-1 bg-black/50 justify-end"
-        >
-          <Pressable
-            onPress={e => e.stopPropagation()}
-            className="rounded-t-3xl bg-white p-5 max-h-[85%]"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
-          >
-            <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
-            <View className="flex-row items-center justify-between border-b border-[#F3F4F6] pb-3">
-              <Text className="text-lg font-black text-[#012711]">
-                Filter & Sort Orders
-              </Text>
-              <Pressable onPress={() => setShowFilterModal(false)} className="p-1">
-                <Text className="text-base font-bold text-[#6B7280]">✕</Text>
-              </Pressable>
-            </View>
-
-            <ScrollView className="py-3">
-              {/* Order Type */}
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
-                Order Type
-              </Text>
-              <View className="flex-row flex-wrap gap-2 mb-4">
-                {(
-                  [
-                    'All',
-                    'Kitchen Orders',
-                    'Dine-in Orders',
-                    'Pickup Orders',
-                    'Event Orders',
-                  ] as OrderTypeFilter[]
-                ).map(
-                  type => {
-                    const isSelected = orderTypeFilter === type;
-                    return (
-                      <Pressable
-                        key={type}
-                        onPress={() => setOrderTypeFilter(type)}
-                        className={`rounded-xl border px-3.5 py-2 ${
-                          isSelected
-                            ? 'border-[#116C0B] bg-[#F0FDF4]'
-                            : 'border-[#CBD5E1] bg-white'
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-bold ${
-                            isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
-                          }`}
-                        >
-                          {type}
-                        </Text>
-                      </Pressable>
-                    );
-                  },
-                )}
-              </View>
-
-              {/* Time Period */}
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
-                Time Period
-              </Text>
-              <View className="flex-row flex-wrap gap-2 mb-4">
-                {(
-                  ['All', 'Today', 'Yesterday', 'This Week', 'This Month'] as TimeFilter[]
-                ).map(time => {
-                  const isSelected = timeFilter === time;
-                  return (
-                    <Pressable
-                      key={time}
-                      onPress={() => setTimeFilter(time)}
-                      className={`rounded-xl border px-3.5 py-2 ${
-                        isSelected
-                          ? 'border-[#116C0B] bg-[#F0FDF4]'
-                          : 'border-[#CBD5E1] bg-white'
+        <ScrollView className="max-h-[380px]" contentContainerClassName="py-2 gap-4">
+          {/* Order Type */}
+          <View>
+            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-[#64748B]">
+              Order Type
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(
+                [
+                  'All',
+                  'Kitchen Orders',
+                  'Dine-in Orders',
+                  'Pickup Orders',
+                  'Event Orders',
+                ] as OrderTypeFilter[]
+              ).map(type => {
+                const isSelected = orderTypeFilter === type;
+                return (
+                  <Pressable
+                    key={type}
+                    onPress={() => setOrderTypeFilter(type)}
+                    className={`rounded-2xl border px-3.5 py-2.5 ${
+                      isSelected
+                        ? 'border-[#116C0B] bg-[#116C0B]/10'
+                        : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
                       }`}
                     >
-                      <Text
-                        className={`text-xs font-bold ${
-                          isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
-                        }`}
-                      >
-                        {time}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+                      {type}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
 
-              {/* Sort Order */}
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
-                Sort Orders By
-              </Text>
-              <View className="flex-row flex-wrap gap-2 mb-6">
-                {[
-                  { id: 'newest', label: 'Newest First' },
-                  { id: 'oldest', label: 'Oldest First' },
-                  { id: 'amount_high', label: 'Amount: High to Low' },
-                  { id: 'amount_low', label: 'Amount: Low to High' },
-                ].map(sort => {
-                  const isSelected = sortOption === sort.id;
-                  return (
-                    <Pressable
-                      key={sort.id}
-                      onPress={() => setSortOption(sort.id as SortOption)}
-                      className={`rounded-xl border px-3.5 py-2 ${
-                        isSelected
-                          ? 'border-[#116C0B] bg-[#F0FDF4]'
-                          : 'border-[#CBD5E1] bg-white'
+          {/* Time Period */}
+          <View>
+            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-[#64748B]">
+              Time Period
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(
+                ['All', 'Today', 'Yesterday', 'This Week', 'This Month'] as TimeFilter[]
+              ).map(time => {
+                const isSelected = timeFilter === time;
+                return (
+                  <Pressable
+                    key={time}
+                    onPress={() => setTimeFilter(time)}
+                    className={`rounded-2xl border px-3.5 py-2.5 ${
+                      isSelected
+                        ? 'border-[#116C0B] bg-[#116C0B]/10'
+                        : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
                       }`}
                     >
-                      <Text
-                        className={`text-xs font-bold ${
-                          isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
-                        }`}
-                      >
-                        {sort.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </ScrollView>
-
-            <View className="flex-row gap-3 border-t border-[#F3F4F6] pt-3">
-              <Pressable
-                onPress={resetAllFilters}
-                className="flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] py-3 bg-[#F9FAFB]"
-              >
-                <Text className="text-xs font-bold text-[#4B5563]">Reset</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Apply order filters"
-                accessibilityRole="button"
-                onPress={() => setShowFilterModal(false)}
-                className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B] px-4 py-3 shadow-sm"
-              >
-                <Text className="text-center text-xs font-bold text-white">
-                  Apply Filters
-                </Text>
-              </Pressable>
+                      {time}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          </View>
+
+          {/* Sort Order */}
+          <View>
+            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-[#64748B]">
+              Sort Orders By
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {[
+                { id: 'newest', label: 'Newest First' },
+                { id: 'oldest', label: 'Oldest First' },
+                { id: 'amount_high', label: 'Amount: High to Low' },
+                { id: 'amount_low', label: 'Amount: Low to High' },
+              ].map(sort => {
+                const isSelected = sortOption === sort.id;
+                return (
+                  <Pressable
+                    key={sort.id}
+                    onPress={() => setSortOption(sort.id as SortOption)}
+                    className={`rounded-2xl border px-3.5 py-2.5 ${
+                      isSelected
+                        ? 'border-[#116C0B] bg-[#116C0B]/10'
+                        : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        isSelected ? 'text-[#116C0B]' : 'text-[#475569]'
+                      }`}
+                    >
+                      {sort.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+      </BaseModal>
 
       {/* FULL RECEIPT / ORDER DETAILS MODAL */}
-      <DetailsModal
-        visible={selectedOrder !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSelectedOrder(null)}
-      >
-        <Pressable
-          onPress={() => setSelectedOrder(null)}
-          className="flex-1 bg-black/60 justify-end"
-        >
-          {selectedOrder && (
+      {selectedOrder ? (
+        <DetailsModal
+          visible={selectedOrder !== null}
+          onClose={() => setSelectedOrder(null)}
+          title={
+            String(
+              selectedOrder.order_number ||
+                selectedOrder.order_id ||
+                selectedOrder.id ||
+                'Order',
+            ).startsWith('#')
+              ? String(
+                  selectedOrder.order_number ||
+                    selectedOrder.order_id ||
+                    selectedOrder.id,
+                )
+              : `#${
+                  selectedOrder.order_number ||
+                    selectedOrder.order_id ||
+                    selectedOrder.id
+                }`
+          }
+          subtitle={formatOrderDate(parseOrderDate(selectedOrder))}
+          badge={(() => {
+            const s = normalizeStatus(
+              selectedOrder.order_status || selectedOrder.status,
+            );
+            const theme = getStatusTheme(s);
+            return {
+              label: theme.label,
+              bg: theme.badgeBg,
+              text: theme.badgeText,
+              border: theme.badgeBorder,
+            };
+          })()}
+          footer={
             <Pressable
-              onPress={e => e.stopPropagation()}
-              className="rounded-t-3xl bg-white p-5 max-h-[92%]"
-              style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+              onPress={() => setSelectedOrder(null)}
+              className="min-h-12 w-full items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
             >
-              <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
-
-              {/* Order Header in Modal */}
-              <View className="flex-row items-center justify-between pb-3 border-b border-[#F3F4F6]">
-                <View>
-                  <Text className="text-xl font-black text-[#012711]">
-                    {String(
-                      selectedOrder.order_number ||
-                        selectedOrder.order_id ||
-                        selectedOrder.id ||
-                        'Order',
-                    ).startsWith('#')
-                      ? String(
-                          selectedOrder.order_number ||
-                            selectedOrder.order_id ||
-                            selectedOrder.id,
-                        )
-                      : `#${
-                          selectedOrder.order_number ||
-                            selectedOrder.order_id ||
-                            selectedOrder.id
-                        }`}
+              <Text className="text-sm font-semibold text-[#334155]">Close Details</Text>
+            </Pressable>
+          }
+        >
+          <View className="gap-3">
+            {/* Guest & Table Info */}
+            <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                    Customer Details
                   </Text>
-                  <Text className="text-xs text-[#6B7280] mt-0.5">
-                    {formatOrderDate(parseOrderDate(selectedOrder))}
+                  <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
+                    {selectedOrder.customer_name || 'Walk-in Customer'}
                   </Text>
+                  {selectedOrder.customer_phone ||
+                  selectedOrder.customer_mobile ||
+                  selectedOrder.phone ? (
+                    <Pressable
+                      onPress={() => {
+                        const p =
+                          selectedOrder.customer_phone ||
+                          selectedOrder.customer_mobile ||
+                          selectedOrder.phone;
+                        if (p) Linking.openURL(`tel:${p}`);
+                      }}
+                      className="mt-1 flex-row items-center gap-1"
+                    >
+                      <PhoneIcon color="#116C0B" size={12} />
+                      <Text className="text-xs font-bold text-[#116C0B]">
+                        Call:{' '}
+                        {selectedOrder.customer_phone ||
+                          selectedOrder.customer_mobile ||
+                          selectedOrder.phone}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                 </View>
 
-                {/* Status Badge in Modal */}
-                {(() => {
-                  const s = normalizeStatus(
-                    selectedOrder.order_status || selectedOrder.status,
-                  );
-                  const theme = getStatusTheme(s);
-                  return (
-                    <View
-                      className="flex-row items-center rounded-full px-3 py-1"
-                      style={{
-                        backgroundColor: theme.badgeBg,
-                        borderColor: theme.badgeBorder,
-                        borderWidth: 1,
-                      }}
-                    >
-                      <View
-                        className="mr-1.5 h-2 w-2 rounded-full"
-                        style={{ backgroundColor: theme.dotColor }}
-                      />
-                      <Text
-                        className="text-xs font-bold"
-                        style={{ color: theme.badgeText }}
-                      >
-                        {theme.label}
-                      </Text>
-                    </View>
-                  );
-                })()}
+                <View className="items-end">
+                  <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                    Order Type
+                  </Text>
+                  <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
+                    {normalizeOrderType(selectedOrder.order_type)}
+                  </Text>
+                  {selectedOrder.table_number ? (
+                    <Text className="text-xs font-bold text-[#116C0B] mt-0.5">
+                      Table: {selectedOrder.table_number}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
 
-              <ScrollView className="py-3">
-                {/* Guest & Table Info */}
-                <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5 mb-3.5">
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
-                        Customer Details
-                      </Text>
-                      <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
-                        {selectedOrder.customer_name || 'Walk-in Customer'}
-                      </Text>
-                      {selectedOrder.customer_phone ||
-                      selectedOrder.customer_mobile ||
-                      selectedOrder.phone ? (
-                        <Pressable
-                          onPress={() => {
-                            const p =
-                              selectedOrder.customer_phone ||
-                              selectedOrder.customer_mobile ||
-                              selectedOrder.phone;
-                            if (p) Linking.openURL(`tel:${p}`);
-                          }}
-                          className="mt-1 flex-row items-center gap-1"
-                        >
-                          <PhoneIcon color="#116C0B" size={12} />
-                          <Text className="text-xs font-bold text-[#116C0B]">
-                            Call:{' '}
-                            {selectedOrder.customer_phone ||
-                              selectedOrder.customer_mobile ||
-                              selectedOrder.phone}
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                    </View>
-
-                    <View className="items-end">
-                      <Text className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
-                        Order Type
-                      </Text>
-                      <Text className="text-sm font-bold text-[#0F172A] mt-0.5">
-                        {normalizeOrderType(selectedOrder.order_type)}
-                      </Text>
-                      {selectedOrder.table_number ? (
-                        <Text className="text-xs font-bold text-[#116C0B] mt-0.5">
-                          Table: {selectedOrder.table_number}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </View>
-
-                  {selectedOrder.delivery_address ? (
-                    <View className="mt-2.5 pt-2 border-t border-[#E2E8F0]">
-                      <Text className="text-[10px] font-bold text-[#64748B]">
-                        Delivery Address:
-                      </Text>
-                      <Text className="text-xs text-[#334155] mt-0.5">
-                        {selectedOrder.delivery_address}
-                      </Text>
-                    </View>
-                  ) : null}
+              {selectedOrder.delivery_address ? (
+                <View className="mt-2.5 pt-2 border-t border-[#E2E8F0]">
+                  <Text className="text-[10px] font-bold text-[#64748B]">
+                    Delivery Address:
+                  </Text>
+                  <Text className="text-xs text-[#334155] mt-0.5">
+                    {selectedOrder.delivery_address}
+                  </Text>
                 </View>
+              ) : null}
+            </View>
 
-                {/* Change Status Stepper Buttons */}
-                <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
-                  Change Order Status
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 8, marginBottom: 16 }}
-                >
-                  {(
-                    [
-                      'Pending',
-                      'Confirmed',
-                      'Preparing',
-                      'Ready',
-                      'Delivered',
-                      'Cancelled',
-                    ] as NormalizedStatus[]
-                  ).map(s => {
-                    const currentStatus = normalizeStatus(
-                      selectedOrder.order_status || selectedOrder.status,
-                    );
-                    const isCurrent = currentStatus === s;
-                    const theme = getStatusTheme(s);
-                    return (
-                      <Pressable
-                        key={s}
-                        disabled={isUpdatingStatus}
-                        onPress={() => handleUpdateStatus(selectedOrder, s)}
-                        className={`rounded-xl border px-3.5 py-2 flex-row items-center gap-1.5 ${
-                          isCurrent
-                            ? 'border-[#116C0B] bg-[#116C0B]'
-                            : 'border-[#CBD5E1] bg-white'
+            {/* Change Status Stepper Buttons */}
+            <View>
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
+                Change Order Status
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8 }}
+              >
+                {(
+                  [
+                    'Pending',
+                    'Confirmed',
+                    'Preparing',
+                    'Ready',
+                    'Delivered',
+                    'Cancelled',
+                  ] as NormalizedStatus[]
+                ).map(s => {
+                  const currentStatus = normalizeStatus(
+                    selectedOrder.order_status || selectedOrder.status,
+                  );
+                  const isCurrent = currentStatus === s;
+                  const theme = getStatusTheme(s);
+                  return (
+                    <Pressable
+                      key={s}
+                      disabled={isUpdatingStatus}
+                      onPress={() => handleUpdateStatus(selectedOrder, s)}
+                      className={`rounded-2xl border px-3.5 py-2 flex-row items-center gap-1.5 ${
+                        isCurrent
+                          ? 'border-[#116C0B] bg-[#116C0B]'
+                          : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                      }`}
+                    >
+                      <View
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor: isCurrent ? '#FFFFFF' : theme.dotColor,
+                        }}
+                      />
+                      <Text
+                        className={`text-xs font-bold ${
+                          isCurrent ? 'text-white' : 'text-[#334155]'
                         }`}
                       >
-                        <View
-                          className="h-2 w-2 rounded-full"
-                          style={{
-                            backgroundColor: isCurrent ? '#FFFFFF' : theme.dotColor,
-                          }}
-                        />
-                        <Text
-                          className={`text-xs font-bold ${
-                            isCurrent ? 'text-white' : 'text-[#334155]'
-                          }`}
-                        >
-                          {s}
+                        {s}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Itemized Bill Table */}
+            <View>
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
+                Receipt Items ({selectedOrder.items?.length || 0})
+              </Text>
+
+              {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                <View className="rounded-2xl border border-[#CBD5E1] bg-white overflow-hidden mb-3.5">
+                  {selectedOrder.items.map((food, idx) => {
+                    const itemName =
+                      food.food_name || food.product_name || food.name || 'Item';
+                    const qty = Number(food.quantity) || 1;
+                    const unitPrice = Number(food.unit_price || food.price || 0);
+                    const totalPrice =
+                      Number(food.total_price) || unitPrice * qty;
+                    const isNonVeg = checkIsNonVeg(itemName);
+
+                    return (
+                      <View
+                        key={idx}
+                        className={`flex-row items-center justify-between p-3.5 ${
+                          idx > 0 ? 'border-t border-[#F1F5F9]' : ''
+                        }`}
+                      >
+                        <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                          <DietaryBadge isNonVeg={isNonVeg} />
+                          <View className="h-6 w-6 items-center justify-center rounded-md bg-[#F0FDF4] border border-[#DCFCE7]">
+                            <Text className="text-xs font-black text-[#116C0B]">
+                              {qty}
+                            </Text>
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-sm font-bold text-[#0F172A]">
+                              {itemName}
+                            </Text>
+                            <Text className="text-xs text-[#64748B]">
+                              {qty} × {formatCurrency(unitPrice)}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text className="text-sm font-black text-[#0F172A]">
+                          {formatCurrency(totalPrice)}
                         </Text>
-                      </Pressable>
+                      </View>
                     );
                   })}
-                </ScrollView>
-
-                {/* Itemized Bill Table */}
-                <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
-                  Receipt Items ({selectedOrder.items?.length || 0})
-                </Text>
-
-                {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                  <View className="rounded-2xl border border-[#CBD5E1] bg-white overflow-hidden mb-3.5">
-                    {selectedOrder.items.map((food, idx) => {
-                      const itemName =
-                        food.food_name || food.product_name || food.name || 'Item';
-                      const qty = Number(food.quantity) || 1;
-                      const unitPrice = Number(food.unit_price || food.price || 0);
-                      const totalPrice =
-                        Number(food.total_price) || unitPrice * qty;
-                      const isNonVeg = checkIsNonVeg(itemName);
-
-                      return (
-                        <View
-                          key={idx}
-                          className={`flex-row items-center justify-between p-3.5 ${
-                            idx > 0 ? 'border-t border-[#F1F5F9]' : ''
-                          }`}
-                        >
-                          <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                            <DietaryBadge isNonVeg={isNonVeg} />
-                            <View className="h-6 w-6 items-center justify-center rounded-md bg-[#F0FDF4] border border-[#DCFCE7]">
-                              <Text className="text-xs font-black text-[#116C0B]">
-                                {qty}
-                              </Text>
-                            </View>
-                            <View className="flex-1">
-                              <Text className="text-sm font-bold text-[#0F172A]">
-                                {itemName}
-                              </Text>
-                              <Text className="text-xs text-[#64748B]">
-                                {qty} × {formatCurrency(unitPrice)}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text className="text-sm font-black text-[#0F172A]">
-                            {formatCurrency(totalPrice)}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                ) : null}
-
-                {/* Pricing Summary Breakdown */}
-                <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-4 mb-4">
-                  {selectedOrder.subtotal ? (
-                    <View className="flex-row items-center justify-between py-1">
-                      <Text className="text-xs text-[#64748B]">Subtotal</Text>
-                      <Text className="text-xs font-semibold text-[#334155]">
-                        {formatCurrency(selectedOrder.subtotal)}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  {selectedOrder.tax ? (
-                    <View className="flex-row items-center justify-between py-1">
-                      <Text className="text-xs text-[#64748B]">GST / Taxes</Text>
-                      <Text className="text-xs font-semibold text-[#334155]">
-                        {formatCurrency(selectedOrder.tax)}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  {selectedOrder.delivery_fee ? (
-                    <View className="flex-row items-center justify-between py-1">
-                      <Text className="text-xs text-[#64748B]">Delivery Fee</Text>
-                      <Text className="text-xs font-semibold text-[#334155]">
-                        {formatCurrency(selectedOrder.delivery_fee)}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  <View className="flex-row items-center justify-between pt-2.5 mt-1 border-t border-[#E2E8F0]">
-                    <Text className="text-base font-black text-[#0F172A]">
-                      Grand Total
-                    </Text>
-                    <Text className="text-xl font-black text-[#116C0B]">
-                      {formatCurrency(
-                        selectedOrder.total_amount ||
-                          selectedOrder.grand_total ||
-                          selectedOrder.amount ||
-                          0,
-                      )}
-                    </Text>
-                  </View>
                 </View>
-              </ScrollView>
+              ) : null}
+            </View>
 
+            {/* Pricing Summary Breakdown */}
+            <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-4 mb-2">
+              {selectedOrder.subtotal ? (
+                <View className="flex-row items-center justify-between py-1">
+                  <Text className="text-xs text-[#64748B]">Subtotal</Text>
+                  <Text className="text-xs font-semibold text-[#334155]">
+                    {formatCurrency(selectedOrder.subtotal)}
+                  </Text>
+                </View>
+              ) : null}
+
+              {selectedOrder.tax ? (
+                <View className="flex-row items-center justify-between py-1">
+                  <Text className="text-xs text-[#64748B]">GST / Taxes</Text>
+                  <Text className="text-xs font-semibold text-[#334155]">
+                    {formatCurrency(selectedOrder.tax)}
+                  </Text>
+                </View>
+              ) : null}
+
+              {selectedOrder.delivery_fee ? (
+                <View className="flex-row items-center justify-between py-1">
+                  <Text className="text-xs text-[#64748B]">Delivery Fee</Text>
+                  <Text className="text-xs font-semibold text-[#334155]">
+                    {formatCurrency(selectedOrder.delivery_fee)}
+                  </Text>
+                </View>
+              ) : null}
+
+              <View className="flex-row items-center justify-between pt-2.5 mt-1 border-t border-[#E2E8F0]">
+                <Text className="text-base font-black text-[#0F172A]">
+                  Grand Total
+                </Text>
+                <Text className="text-xl font-black text-[#116C0B]">
+                  {formatCurrency(
+                    selectedOrder.total_amount ||
+                      selectedOrder.grand_total ||
+                      selectedOrder.amount ||
+                      0,
+                  )}
+                </Text>
+              </View>
+            </View>
           </View>
-        ) : null}
-      </DetailsModal>
+        </DetailsModal>
+      ) : null}
     </View>
   );
 }
