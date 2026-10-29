@@ -46,8 +46,7 @@ export function ConfirmDialog({
   errorMessage,
   maxWidth = 440,
 }: ConfirmDialogProps) {
-  const type =
-    variantType || (isDestructive ? 'danger' : 'info');
+  const type = variantType || (isDestructive ? 'danger' : 'info');
 
   const getIcon = () => {
     switch (type) {
@@ -102,20 +101,21 @@ export function ConfirmDialog({
       containerStyle={styles.dialogContainer}
     >
       <View style={styles.dialogBody}>
-        {/* Floating Top-Right Close Button */}
         {!isLoading ? (
-          <Pressable
-            accessibilityLabel="Close dialog"
-            accessibilityRole="button"
-            hitSlop={10}
-            onPress={onClose}
-            style={({ pressed }) => [
-              styles.floatingCloseButton,
-              pressed && styles.closeButtonPressed,
-            ]}
-          >
-            <XIcon size={18} color="#64748B" />
-          </Pressable>
+          <View style={styles.closeButtonRow}>
+            <Pressable
+              accessibilityLabel="Close dialog"
+              accessibilityRole="button"
+              hitSlop={10}
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.closeButton,
+                pressed && styles.closeButtonPressed,
+              ]}
+            >
+              <XIcon size={18} color="#64748B" />
+            </Pressable>
+          </View>
         ) : null}
 
         {/* Prominent Circular Icon Badge */}
@@ -144,7 +144,10 @@ export function ConfirmDialog({
         ) : null}
 
         {/* Action Buttons */}
-        <View className="w-full flex-row items-center justify-between gap-3 mt-5" style={styles.buttonRow}>
+        <View
+          className="w-full flex-row items-center justify-between gap-3 mt-5"
+          style={styles.buttonRow}
+        >
           <Pressable
             accessibilityLabel={cancelLabel}
             accessibilityRole="button"
@@ -153,7 +156,12 @@ export function ConfirmDialog({
             className="flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl border border-slate-300 bg-white active:bg-slate-100"
             style={styles.cancelButton}
           >
-            <Text className="text-sm font-bold text-slate-700" style={styles.cancelText}>{cancelLabel}</Text>
+            <Text
+              className="text-sm font-bold text-slate-700"
+              style={styles.cancelText}
+            >
+              {cancelLabel}
+            </Text>
           </Pressable>
 
           <Pressable
@@ -179,7 +187,12 @@ export function ConfirmDialog({
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text className="text-sm font-bold text-white" style={styles.confirmText}>{confirmLabel}</Text>
+              <Text
+                className="text-sm font-bold text-white"
+                style={styles.confirmText}
+              >
+                {confirmLabel}
+              </Text>
             )}
           </Pressable>
         </View>
@@ -198,21 +211,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 22,
     paddingHorizontal: 20,
-    paddingTop: 24,
-    position: 'relative',
+    paddingTop: 12,
     width: '100%',
   },
-  floatingCloseButton: {
+  closeButtonRow: {
+    alignItems: 'flex-end',
+    marginBottom: 8,
+    width: '100%',
+  },
+  closeButton: {
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
     borderRadius: 18,
     height: 36,
     justifyContent: 'center',
-    position: 'absolute',
-    right: 16,
-    top: 16,
     width: 36,
-    zIndex: 10,
   },
   closeButtonPressed: {
     backgroundColor: '#E2E8F0',
