@@ -1631,7 +1631,6 @@ export function OrdersScreen({
           {(
             [
               'All',
-              'Kitchen Orders',
               'Dine-in Orders',
               'Pickup Orders',
               'Home Delivery',
@@ -1936,7 +1935,6 @@ export function OrdersScreen({
               {(
                 [
                   'All',
-                  'Kitchen Orders',
                   'Dine-in Orders',
                   'Pickup Orders',
                   'Home Delivery',

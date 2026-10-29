@@ -54,6 +54,7 @@ function Bottombar<Key extends string>({
     >
       {tabs.map(tab => {
         const isActive = tab.key === activeTab;
+        const isAddTab = tab.key === 'add';
         const iconColor = isActive ? colors.primary : colors.textSecondary;
 
         return (
@@ -65,20 +66,47 @@ function Bottombar<Key extends string>({
             onPress={() => onTabPress(tab.key)}
             style={({ pressed }) => ({
               alignItems: 'center',
-              backgroundColor: pressed ? '#F3F7FF' : 'transparent',
+              backgroundColor:
+                pressed && !isAddTab ? colors.surfaceSecondary : 'transparent',
               borderRadius: 12,
               flex: 1,
               gap: 4,
               justifyContent: 'center',
               minHeight: 54,
+              transform: [{ scale: pressed && isAddTab ? 0.96 : 1 }],
             })}
           >
-            {typeof tab.icon === 'function' ? tab.icon(iconColor) : tab.icon}
+            {isAddTab ? (
+              <View
+                style={{
+                  alignItems: 'center',
+                  backgroundColor: colors.primary,
+                  borderColor: colors.primaryLight,
+                  borderRadius: 23,
+                  borderWidth: 2,
+                  elevation: 5,
+                  height: 46,
+                  justifyContent: 'center',
+                  marginTop: -16,
+                  shadowColor: colors.primaryDark,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.24,
+                  shadowRadius: 5,
+                  width: 46,
+                }}
+              >
+                {typeof tab.icon === 'function'
+                  ? tab.icon(colors.textOnPrimary)
+                  : tab.icon}
+              </View>
+            ) : (
+              typeof tab.icon === 'function' ? tab.icon(iconColor) : tab.icon
+            )}
             <Text
               style={{
-                color: isActive ? colors.primary : colors.textSecondary,
+                color: isAddTab || isActive ? colors.primary : colors.textSecondary,
                 fontSize: 10,
-                fontWeight: isActive ? '700' : '500',
+                fontWeight: isAddTab || isActive ? '700' : '500',
               }}
               numberOfLines={1}
             >
