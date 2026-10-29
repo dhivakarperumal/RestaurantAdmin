@@ -282,11 +282,6 @@ const moreFeatures: MoreFeature[] = [
   },
 
   {
-    title: 'Help & Support',
-    subtitle: 'Get help with your account',
-    icon: ProfileIcon,
-  },
-  {
     title: 'Profile',
     subtitle: 'View your account details',
     icon: ProfileIcon,
