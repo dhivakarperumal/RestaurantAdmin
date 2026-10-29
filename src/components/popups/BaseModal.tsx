@@ -180,7 +180,6 @@ export function BaseModal({
       animationType={isCenter ? 'fade' : 'slide'}
       hardwareAccelerated
       onRequestClose={onClose}
-      statusBarTranslucent
       transparent
       visible={visible}
     >
