@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -338,32 +338,40 @@ function BannerManagementPage({
 
         <View className="flex-row flex-wrap justify-between gap-y-3">
           <BannerStat
-            icon="▣"
+            cardBackground="#F0FDF4"
             iconBackground="#DCFCE7"
-            label="Total banners"
-            tint="#15803D"
+            label="TOTAL BANNERS"
+            tint="#166534"
             value={banners.length}
+            decorColor="#DCFCE7"
+            iconName="image"
           />
           <BannerStat
-            icon="✳"
-            iconBackground="#FFEDD5"
-            label="Offer banners"
-            tint="#EA580C"
+            cardBackground="#FFF7ED"
+            iconBackground="#FED7AA"
+            label="OFFER BANNERS"
+            tint="#9A3412"
             value={totalOffers}
+            decorColor="#FED7AA"
+            iconName="gift"
           />
           <BannerStat
-            icon="▣"
-            iconBackground="#DBEAFE"
-            label="Hero banners"
-            tint="#2563EB"
+            cardBackground="#EFF6FF"
+            iconBackground="#BFDBFE"
+            label="HERO BANNERS"
+            tint="#1D4ED8"
             value={totalHero}
+            decorColor="#BFDBFE"
+            iconName="monitor"
           />
           <BannerStat
-            icon="◉"
-            iconBackground="#F3E8FF"
-            label="Published"
-            tint="#9333EA"
+            cardBackground="#F5F3FF"
+            iconBackground="#DDD6FE"
+            label="PUBLISHED"
+            tint="#6D28D9"
             value={totalPublished}
+            decorColor="#DDD6FE"
+            iconName="megaphone"
           />
         </View>
 
@@ -1029,42 +1037,141 @@ function BannerFilterDropdown<Value extends string>({
 }
 
 function BannerStat({
-  icon,
+  cardBackground,
   iconBackground,
   label,
   tint,
   value,
+  decorColor,
+  iconName,
 }: {
-  icon: string;
+  cardBackground: string;
   iconBackground: string;
   label: string;
   tint: string;
   value: number;
+  decorColor: string;
+  iconName: string;
 }) {
+  function StatIcon() {
+    if (iconName === "image") {
+      return (
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            backgroundColor: iconBackground,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ fontSize: 26, color: tint }}>{"\uD83D\uDDBC"}</Text>
+        </View>
+      );
+    }
+    if (iconName === "gift") {
+      return (
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            backgroundColor: iconBackground,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ fontSize: 26, color: tint }}>{"\uD83C\uDF81"}</Text>
+        </View>
+      );
+    }
+    if (iconName === "monitor") {
+      return (
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            backgroundColor: iconBackground,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ fontSize: 26, color: tint }}>{"\uD83D\uDDA5"}</Text>
+        </View>
+      );
+    }
+    // megaphone
+    return (
+      <View
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 14,
+          backgroundColor: iconBackground,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ fontSize: 26, color: tint }}>{"\uD83D\uDCE3"}</Text>
+      </View>
+    );
+  }
   return (
     <View
-      className="relative min-h-[60px] w-[48%] flex-row items-center gap-2 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white px-2.5"
       style={{
-        elevation: 1,
+        width: "48%",
+        borderRadius: 20,
+        backgroundColor: cardBackground,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 18,
+        gap: 14,
+        overflow: "hidden",
+        elevation: 0,
+        minHeight: 90,
       }}
     >
+      {/* Decorative circle bottom-right */}
       <View
-        className="absolute -bottom-5 -right-4 h-12 w-12 rounded-full bg-[#DCFCE7]"
         pointerEvents="none"
+        style={{
+          position: "absolute",
+          bottom: -22,
+          right: -16,
+          width: 80,
+          height: 80,
+          borderRadius: 40,
+          backgroundColor: decorColor,
+          opacity: 0.55,
+        }}
       />
-      <View
-        className="h-8 w-8 items-center justify-center rounded-lg"
-        style={{ backgroundColor: iconBackground }}
-      >
-        <Text className="text-sm font-bold" style={{ color: tint }}>
-          {icon}
-        </Text>
-      </View>
-      <View className="z-10 min-w-0 flex-1">
-        <Text numberOfLines={1} className="text-[8px] font-bold uppercase tracking-[0.3px] text-[#64748B]">
+      <StatIcon />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={2}
+          style={{
+            fontSize: 10,
+            fontWeight: "800",
+            letterSpacing: 0.8,
+            color: tint,
+            textTransform: "uppercase",
+            lineHeight: 14,
+          }}
+        >
           {label}
         </Text>
-        <Text className="text-base font-extrabold leading-5" style={{ color: tint }}>
+        <Text
+          style={{
+            fontSize: 32,
+            fontWeight: "900",
+            color: tint,
+            lineHeight: 38,
+            marginTop: 2,
+          }}
+        >
           {value}
         </Text>
       </View>
