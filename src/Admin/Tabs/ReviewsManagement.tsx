@@ -19,6 +19,7 @@ import {
   ConfirmDialog,
   DetailsModal,
   Edit3Icon,
+  EyeIcon,
   FormModal,
   ImageIcon,
   Trash2Icon,
@@ -1472,7 +1473,7 @@ function ReviewActionButton({
       ) : tone === 'delete' ? (
         <Trash2Icon size={15} color="#DC2626" />
       ) : (
-        <Text className="text-sm font-bold text-[#475569]">•••</Text>
+        <EyeIcon size={17} color="#475569" />
       )}
     </Pressable>
   );

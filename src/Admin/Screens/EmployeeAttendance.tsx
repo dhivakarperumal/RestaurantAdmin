@@ -572,19 +572,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
       keyboardShouldPersistTaps="handled"
     >
       <View>
-        <Pressable
-          accessibilityLabel="Back to More"
-          accessibilityRole="button"
-          onPress={onBack}
-          className="self-start rounded-lg py-1"
-        >
-          <Text className="text-sm font-semibold text-[#116C0B]">
-            ‹ Back to More
-          </Text>
-        </Pressable>
-        <Text className="mt-3 text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-          TEAM
-        </Text>
+       
         <Text className="mt-1 text-2xl font-bold text-[#012711]">
           Employee attendance
         </Text>
