@@ -21,8 +21,8 @@ import {
 } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import {
+  ArrowLeftIcon,
   AlertCircleIcon,
-  ChevronDownIcon,
   CheckCircle2Icon,
   ConfirmDialog,
   Edit3Icon,
@@ -723,7 +723,14 @@ function Categories({
           width: '100%',
         }}
         ListHeaderComponent={
-          <View className="mb-5 gap-5">
+          <View
+            className="mb-5 gap-5"
+            style={{
+              position: 'relative',
+              zIndex: openFilter ? 20 : 0,
+              elevation: openFilter ? 20 : 0,
+            }}
+          >
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1">
                 {showBackButton ? (
@@ -794,7 +801,14 @@ function Categories({
                 decorColor="#DDD6FE"
               />
             </View>
-            <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+            <View
+              className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
+              style={{
+                position: 'relative',
+                zIndex: openFilter ? 20 : 0,
+                elevation: openFilter ? 20 : 0,
+              }}
+            >
               <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
                 <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
                   <SearchIcon color="#9CA3AF" size={17} />
@@ -807,7 +821,14 @@ function Categories({
                     value={search}
                   />
                 </View>
-                <View className="flex-row items-end gap-2">
+                <View
+                  className="flex-row items-end gap-2"
+                  style={{
+                    position: 'relative',
+                    zIndex: openFilter ? 30 : 0,
+                    elevation: openFilter ? 30 : 0,
+                  }}
+                >
                   <View className="flex-1 flex-row gap-2">
                     <CategoryFilterDropdown<StatusFilter>
                       label="Status"
@@ -1004,12 +1025,11 @@ function Categories({
                 : 'border-[#CBD5E1] bg-white'
             }`}
           >
-            <View style={{ transform: [{ rotate: '90deg' }] }}>
-              <ChevronDownIcon
-                size={16}
-                color={page === 0 ? '#9CA3AF' : '#116C0B'}
-              />
-            </View>
+            <ArrowLeftIcon
+              size={17}
+              color={page === 0 ? '#64748B' : '#116C0B'}
+              strokeWidth={2.25}
+            />
             <Text
               className={`text-xs font-semibold ${
                 page === 0 ? 'text-[#9CA3AF]' : 'text-[#116C0B]'
@@ -1042,10 +1062,11 @@ function Categories({
             >
               Next
             </Text>
-            <View style={{ transform: [{ rotate: '-90deg' }] }}>
-              <ChevronDownIcon
-                size={16}
-                color={page + 1 >= pageCount ? '#9CA3AF' : '#116C0B'}
+            <View style={{ transform: [{ rotate: '180deg' }] }}>
+              <ArrowLeftIcon
+                size={17}
+                color={page + 1 >= pageCount ? '#64748B' : '#116C0B'}
+                strokeWidth={2.25}
               />
             </View>
           </Pressable>
@@ -1511,7 +1532,14 @@ function CategoryFilterDropdown<Value extends string>({
     options.find(option => option.value === selected)?.label ??
     options[0]?.label;
   return (
-    <View className="min-w-[76px] flex-1">
+    <View
+      className="min-w-[76px] flex-1"
+      style={{
+        position: 'relative',
+        zIndex: open ? 40 : 0,
+        elevation: open ? 40 : 0,
+      }}
+    >
       <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
       <Pressable
         accessibilityLabel={`${label}: ${selectedLabel}`}
@@ -1526,7 +1554,13 @@ function CategoryFilterDropdown<Value extends string>({
         <Text className="ml-1 text-xs text-[#64748B]">{open ? '⌃' : '⌄'}</Text>
       </Pressable>
       {open ? (
-        <View className="mt-1 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white">
+        <View
+          className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white shadow-lg"
+          style={{
+            zIndex: 50,
+            elevation: 50,
+          }}
+        >
           {options.map(option => (
             <Pressable
               accessibilityRole="button"
