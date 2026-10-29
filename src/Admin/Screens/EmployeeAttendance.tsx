@@ -1169,7 +1169,11 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
               {historyError}
             </Text>
           ) : historyRecords.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator>
+            <ScrollView
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator
+            >
               <View className="overflow-hidden rounded-2xl border border-[#DDE5E1]">
                 <View className="flex-row border-b border-[#1F4E42] bg-[#E8F3EE]">
                   <HistoryTableHeader label="Date" width={112} />

@@ -154,6 +154,7 @@ export function BaseModal({
       {scrollable ? (
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
           showsVerticalScrollIndicator={false}
           style={[styles.body, bodyStyle]}
           contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
