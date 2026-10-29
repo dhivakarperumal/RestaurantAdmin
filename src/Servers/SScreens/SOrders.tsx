@@ -48,7 +48,12 @@ function formatPrice(val: unknown): string {
 function formatOrderTime(rawTime: unknown): string {
   if (!rawTime) return '';
   try {
-    const d = new Date(String(rawTime));
+    const timestamp = String(rawTime).trim();
+    const normalized = timestamp.replace(
+      /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)/,
+      '$1T$2',
+    );
+    const d = new Date(normalized);
     if (isNaN(d.getTime())) return String(rawTime);
 
     const now = new Date();

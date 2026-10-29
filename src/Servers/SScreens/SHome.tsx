@@ -89,16 +89,34 @@ function value(row: Row, keys: string[], fallback = '—'): string {
 }
 
 function isTodayOrder(order: Row): boolean {
-  const rawDate = order.created_at ?? order.createdAt ?? order.order_date ?? order.order_time;
+  const rawDate =
+    order.created_at ??
+    order.createdAt ??
+    order.order_date ??
+    order.order_time ??
+    order.time;
   if (!rawDate) return false;
-  const date = new Date(String(rawDate));
-  if (Number.isNaN(date.getTime())) return false;
+  const date = parseOrderDate(rawDate);
+  if (!date) return false;
   const today = new Date();
   return (
     date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate()
   );
+}
+
+function parseOrderDate(rawDate: unknown): Date | null {
+  if (typeof rawDate !== 'string' && typeof rawDate !== 'number') return null;
+  const timestamp = String(rawDate).trim();
+  if (!timestamp) return null;
+  const normalized = timestamp.replace(
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)/,
+    '$1T$2',
+  );
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
 }
 
 function orderStatus(order: Row): string {
@@ -191,10 +209,9 @@ function formatPrice(amount: unknown): string {
 }
 
 function formatTime(dateStr: unknown): string {
-  if (!dateStr || typeof dateStr !== 'string') return '';
+  const date = parseOrderDate(dateStr);
+  if (!date) return '';
   try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   } catch {
     return '';
@@ -850,7 +867,11 @@ function OrderCard({
   const customerName = value(order, ['customer_name', 'customerName', 'customer'], 'Guest');
   const orderStatus = value(order, ['status', 'order_status'], 'Pending').toLowerCase();
   const totalAmount = value(order, ['total_amount', 'grand_total', 'amount'], '0');
-  const createdAt = value(order, ['created_at', 'order_date'], '');
+  const createdAt = value(
+    order,
+    ['created_at', 'createdAt', 'order_date', 'order_time', 'time'],
+    '',
+  );
   const time = formatTime(createdAt);
   const items = getOrderItems(order);
 

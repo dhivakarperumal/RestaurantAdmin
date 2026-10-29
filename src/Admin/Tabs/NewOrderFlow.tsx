@@ -1023,101 +1023,10 @@ export default function NewOrderFlow({
             </View>
           )}
 
-          {cart.length ? (
-            <View className="mt-4 rounded-2xl border border-[#E5E7EB] bg-white p-4">
-              <Text className="mb-2 text-sm font-bold text-[#012711]">
-                Order items
-              </Text>
-              {cart.map(line => (
-                <View
-                  key={line.key}
-                  className="flex-row items-center justify-between gap-2 border-b border-[#F3F4F6] py-2"
-                >
-                  <View className="min-w-0 flex-1">
-                    <Text
-                      numberOfLines={1}
-                      className="text-xs font-semibold text-[#111827]"
-                    >
-                      {line.food.name}
-                    </Text>
-                    <Text className="text-[10px] text-[#6B7280]">
-                      {formatCurrency(getLinePrice(line))} each
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    <Pressable
-                      accessibilityLabel={`Decrease ${line.food.name} quantity`}
-                      accessibilityRole="button"
-                      onPress={() => changeQuantity(line.key, -1)}
-                      className="h-8 w-8 items-center justify-center rounded-lg border border-[#DCE8D8]"
-                    >
-                      <Text className="text-base font-bold text-[#116C0B]">
-                        −
-                      </Text>
-                    </Pressable>
-                    <Text className="min-w-4 text-center text-xs font-bold text-[#111827]">
-                      {line.quantity}
-                    </Text>
-                    <Pressable
-                      accessibilityLabel={`Increase ${line.food.name} quantity`}
-                      accessibilityRole="button"
-                      onPress={() => changeQuantity(line.key, 1)}
-                      className="h-8 w-8 items-center justify-center rounded-lg border border-[#DCE8D8]"
-                    >
-                      <PlusIcon color={colors.primary} size={14} />
-                    </Pressable>
-                    <Text className="w-20 text-right text-xs font-bold text-[#111827]">
-                      {formatCurrency(getLinePrice(line) * line.quantity)}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : null}
         </ScrollView>
 
-        <View className="border-t border-[#E5E7EB] bg-white px-4 py-3">
-          <View className="mb-2 gap-1">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xs text-[#6B7280]">Subtotal</Text>
-              <Text className="text-xs font-semibold text-[#111827]">
-                {formatCurrency(subtotal)}
-              </Text>
-            </View>
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xs text-[#6B7280]">Discount</Text>
-              <View className="flex-row items-center gap-1">
-                <Text className="text-xs text-[#6B7280]">₹</Text>
-                <TextInput
-                  accessibilityLabel="Order discount"
-                  className="w-20 rounded-lg border border-[#E5E7EB] px-2 py-1 text-right text-xs text-[#111827]"
-                  keyboardType="decimal-pad"
-                  onChangeText={setDiscountInput}
-                  value={discountInput}
-                />
-              </View>
-            </View>
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xs text-[#6B7280]">CGST (2.5%)</Text>
-              <Text className="text-xs font-semibold text-[#111827]">
-                {formatCurrency(cgst)}
-              </Text>
-            </View>
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xs text-[#6B7280]">SGST (2.5%)</Text>
-              <Text className="text-xs font-semibold text-[#111827]">
-                {formatCurrency(sgst)}
-              </Text>
-            </View>
-            <View className="flex-row items-center justify-between">
-              <Text className="text-sm font-bold text-[#012711]">
-                Grand Total
-              </Text>
-              <Text className="text-sm font-extrabold text-[#012711]">
-                {formatCurrency(total)}
-              </Text>
-            </View>
-          </View>
+        <View className="border-t border-[#E5E7EB] bg-white px-4 py-2">
+
           <View className="flex-row gap-2">
             <Pressable
               accessibilityLabel="Preview order bill"
@@ -1136,7 +1045,7 @@ export default function NewOrderFlow({
                   cart.length ? 'text-[#116C0B]' : 'text-[#9CA3AF]'
                 }`}
               >
-                Preview
+                Preview ({formatCurrency(total)})
               </Text>
             </Pressable>
             <Pressable
@@ -1153,7 +1062,7 @@ export default function NewOrderFlow({
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : null}
               <Text className="text-sm font-bold text-white">
-                {isSubmitting ? 'Sending...' : 'Send to Kitchen'}
+                {isSubmitting ? 'Sending...' : 'KOT'} ({formatCurrency(total)})
               </Text>
             </Pressable>
           </View>
@@ -1214,11 +1123,20 @@ export default function NewOrderFlow({
                 {formatCurrency(subtotal)}
               </Text>
             </View>
-            <View className="flex-row justify-between">
+            <View className="flex-row items-center justify-between">
               <Text className="text-xs text-[#6B7280]">Discount</Text>
-              <Text className="text-xs font-semibold text-[#111827]">
-                − {formatCurrency(discount)}
-              </Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-xs text-[#6B7280]">₹</Text>
+                <TextInput
+                  accessibilityLabel="Order discount"
+                  className="w-20 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1 text-right text-xs text-[#111827]"
+                  keyboardType="decimal-pad"
+                  onChangeText={setDiscountInput}
+                  placeholder="0"
+                  placeholderTextColor="#6B7280"
+                  value={discountInput}
+                />
+              </View>
             </View>
             <View className="flex-row justify-between">
               <Text className="text-xs text-[#6B7280]">CGST (2.5%)</Text>

@@ -53,6 +53,9 @@ export type ApiOrder = {
   order_number?: string | number;
   order_date?: string;
   created_at?: string;
+  createdAt?: string;
+  order_time?: string;
+  time?: string;
   updated_at?: string;
   total_amount?: number | string;
   grand_total?: number | string;
@@ -212,7 +215,13 @@ function normalizeKitchenOrders(payload: unknown): ApiOrder[] {
       created_at:
         kitchenOrder.created_at ||
         kitchenOrder.order_date ||
-        (typeof raw.createdAt === 'string' ? raw.createdAt : undefined),
+        (typeof raw.createdAt === 'string'
+          ? raw.createdAt
+          : typeof raw.order_time === 'string'
+          ? raw.order_time
+          : typeof raw.time === 'string'
+          ? raw.time
+          : undefined),
       total_amount:
         kitchenOrder.total_amount ||
         kitchenOrder.grand_total ||
@@ -223,9 +232,19 @@ function normalizeKitchenOrders(payload: unknown): ApiOrder[] {
 }
 
 function parseOrderDate(order: ApiOrder): Date | null {
-  const raw = order.order_date || order.created_at || order.updated_at;
+  const raw =
+    order.order_date ||
+    order.created_at ||
+    order.updated_at ||
+    order.createdAt ||
+    order.order_time ||
+    order.time;
   if (!raw) return null;
-  const d = new Date(raw);
+  const normalized = raw.replace(
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)/,
+    '$1T$2',
+  );
+  const d = new Date(normalized);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
