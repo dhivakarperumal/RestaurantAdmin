@@ -30,6 +30,7 @@ import {
   ProfileIcon,
   ProductIcon,
   ReceiptIcon,
+  SearchIcon,
 } from './NavigationIcons';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import MoreInnerHeader from './MoreInnerHeader';
@@ -80,7 +81,10 @@ import {
   CheckIcon,
   DetailsModal,
   FormModal,
+  CheckCircle2Icon,
+  ClockIcon,
 } from '../../components/popups';
+import AdminStatCard from '../../components/AdminStatCard';
 
 type DashboardScreenProps = {
   user: HeaderUser | null;
