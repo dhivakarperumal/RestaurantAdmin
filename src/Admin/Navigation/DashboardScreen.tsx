@@ -3921,10 +3921,7 @@ function AdminProfilePage({
                 label="Joined"
                 value={createdDate || 'Not available'}
               />
-              <ProfileMetadata
-                label="Employee ID"
-                value={profile.employee_id || 'Not assigned'}
-              />
+             
             </View>
           </View>
 
