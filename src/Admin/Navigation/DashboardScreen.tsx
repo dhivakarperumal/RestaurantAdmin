@@ -75,6 +75,12 @@ import TablesScreen from '../Screens/Tables';
 import CustomersScreen from '../Screens/Customers';
 import MorePage, { type MoreFeature } from '../Tabs/More';
 import api from '../../../api';
+import {
+  BaseModal,
+  CheckIcon,
+  DetailsModal,
+  FormModal,
+} from '../../components/popups';
 
 type DashboardScreenProps = {
   user: HeaderUser | null;
@@ -1013,18 +1019,11 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       ) : null}
 
       {selectedActionDetails ? (
-        <Modal
-          animationType="slide"
-          onRequestClose={() => setSelectedAction(null)}
-          transparent
-          visible
-        >
-          <EntryForm
-            action={selectedActionDetails}
-            onCancel={() => setSelectedAction(null)}
-            onSave={handleSaveAction}
-          />
-        </Modal>
+        <EntryForm
+          action={selectedActionDetails}
+          onCancel={() => setSelectedAction(null)}
+          onSave={handleSaveAction}
+        />
       ) : null}
     </SafeAreaView>
   );

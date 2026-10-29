@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   StatusBar,
@@ -22,6 +21,12 @@ import {
   BellIcon,
   HamburgerIcon,
 } from './NavigationIcons';
+import {
+  ActionSheet,
+  ConfirmDialog,
+  LogOutIcon,
+  UserIcon,
+} from '../../components/popups';
 
 export type HeaderUser = {
   id?: string | number;
@@ -93,7 +98,10 @@ function TopHeader({
 }: TopHeaderProps) {
   const { width } = useWindowDimensions();
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
+  const [isAccountSheetOpen, setIsAccountSheetOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const userName = getUserName(user);
+  const userEmail = user?.email?.trim() || 'admin@buyfood.com';
   const initial =
     user?.name?.trim().charAt(0).toUpperCase() ||
     user?.username?.trim().charAt(0).toUpperCase() ||
@@ -101,33 +109,8 @@ function TopHeader({
   const badgeCount = Math.max(0, Math.floor(unreadNotifications));
   const compact = width < 480;
 
-  const confirmLogout = () => {
-    Alert.alert(
-      'Log out?',
-      'Are you sure you want to log out of your account?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log out', style: 'destructive', onPress: onLogout },
-      ],
-      { cancelable: true },
-    );
-  };
-
   const openAccountActions = () => {
-    Alert.alert(
-      'Account',
-      `${userName}\n${user?.email?.trim() || 'admin@buyfood.com'}`,
-      [
-        { text: 'Profile', onPress: onOpenProfile },
-        {
-          text: 'Log out',
-          style: 'destructive',
-          onPress: confirmLogout,
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-      { cancelable: true },
-    );
+    setIsAccountSheetOpen(true);
   };
 
   return (
@@ -258,6 +241,50 @@ function TopHeader({
 
       {/* Subtle bottom highlight divider */}
       <View className="h-px w-full bg-white/10" />
+
+      <ActionSheet
+        visible={isAccountSheetOpen}
+        onClose={() => setIsAccountSheetOpen(false)}
+        title={userName}
+        subtitle={userEmail}
+        actions={[
+          {
+            id: 'profile',
+            label: 'My Profile & Details',
+            description: 'View administrative account settings',
+            icon: <UserIcon size={20} color="#0B4D1A" />,
+            onPress: () => {
+              setIsAccountSheetOpen(false);
+              onOpenProfile();
+            },
+          },
+          {
+            id: 'logout',
+            label: 'Log Out',
+            description: 'Sign out of this session safely',
+            icon: <LogOutIcon size={20} color="#DC2626" />,
+            destructive: true,
+            onPress: () => {
+              setIsAccountSheetOpen(false);
+              setIsLogoutConfirmOpen(true);
+            },
+          },
+        ]}
+      />
+
+      <ConfirmDialog
+        visible={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        title="Sign Out"
+        message="Are you sure you want to log out of your administrative account?"
+        itemName={userName}
+        confirmLabel="Log Out"
+        variantType="danger"
+        onConfirm={() => {
+          setIsLogoutConfirmOpen(false);
+          onLogout();
+        }}
+      />
     </SafeAreaView>
   );
 }

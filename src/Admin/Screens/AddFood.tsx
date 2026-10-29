@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   Switch,
@@ -13,6 +12,11 @@ import {
 import { launchImageLibrary, type Asset } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
+import {
+  BaseModal,
+  CheckIcon,
+  ChevronDownIcon,
+} from '../../components/popups';
 
 type FoodOption = {
   value: string;
@@ -250,57 +254,60 @@ function SelectField({
           accessibilityState={{ disabled }}
           disabled={disabled}
           onPress={() => setIsOpen(true)}
-          className={`flex-row items-center justify-between rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 ${
+          className={`min-h-[48px] flex-row items-center justify-between rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 active:bg-gray-100 ${
             disabled ? 'opacity-50' : ''
           }`}
         >
-          <Text className={selected ? 'text-sm text-[#111827]' : 'text-sm text-[#9CA3AF]'}>
+          <Text className={selected ? 'text-sm font-medium text-[#0F172A]' : 'text-sm text-[#94A3B8]'}>
             {selected?.label || placeholder}
           </Text>
-          <Text className="text-xs text-[#6B7280]">▼</Text>
+          <ChevronDownIcon size={18} color="#64748B" />
         </Pressable>
       </View>
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setIsOpen(false)}
-        transparent
+
+      <BaseModal
         visible={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={label}
+        subtitle={`Select a ${label.toLowerCase()} from the options`}
+        variant="bottom-sheet"
       >
-        <Pressable
-          className="flex-1 justify-center bg-black/40 px-5"
-          onPress={() => setIsOpen(false)}
-        >
-          <View className="max-h-[70%] rounded-2xl bg-white p-4">
-            <Text className="mb-3 text-base font-bold text-[#012711]">{label}</Text>
-            <ScrollView>
-              {options.map(option => (
-                <Pressable
-                  accessibilityLabel={`Select ${label} ${option.label}`}
-                  accessibilityRole="button"
-                  key={option.value}
-                  onPress={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
+        <ScrollView className="max-h-[380px]" contentContainerClassName="gap-1 pb-4">
+          {options.map(option => {
+            const isSelected = option.value === value;
+            return (
+              <Pressable
+                accessibilityLabel={`Select ${label} ${option.label}`}
+                accessibilityRole="button"
+                key={option.value}
+                onPress={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`my-0.5 flex-row items-center justify-between rounded-2xl px-4 py-3.5 ${
+                  isSelected
+                    ? 'border border-[#116C0B]/20 bg-[#116C0B]/10'
+                    : 'border border-transparent bg-transparent active:bg-gray-100'
+                }`}
+              >
+                <Text
+                  className="text-sm"
+                  style={{
+                    color: isSelected ? '#116C0B' : '#1E293B',
+                    fontWeight: isSelected ? '700' : '500',
                   }}
-                  className="border-b border-[#F3F4F6] py-3"
                 >
-                  <Text className="text-sm text-[#111827]">{option.label}</Text>
-                </Pressable>
-              ))}
-              {options.length === 0 ? (
-                <Text className="py-3 text-sm text-[#6B7280]">No options available</Text>
-              ) : null}
-            </ScrollView>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setIsOpen(false)}
-              className="mt-3 items-center rounded-xl bg-[#F3F4F6] py-3"
-            >
-              <Text className="font-semibold text-[#374151]">Cancel</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+                  {option.label}
+                </Text>
+                {isSelected && <CheckIcon size={18} color="#116C0B" />}
+              </Pressable>
+            );
+          })}
+          {options.length === 0 ? (
+            <Text className="py-6 text-center text-sm text-[#64748B]">No options available</Text>
+          ) : null}
+        </ScrollView>
+      </BaseModal>
     </>
   );
 }

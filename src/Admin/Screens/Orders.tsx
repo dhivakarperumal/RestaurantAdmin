@@ -57,6 +57,10 @@ export type ApiOrder = {
   customer_mobile?: string;
   phone?: string;
   order_type?: string;
+  kitchen_order_id?: string | number;
+  kot_number?: string | number;
+  event_id?: string | number;
+  event_booking_id?: string | number;
   table_number?: string | number;
   payment_method?: string;
   payment_status?: string;
@@ -73,7 +77,12 @@ export type NormalizedStatus =
   | 'Delivered'
   | 'Cancelled';
 
-export type OrderTypeFilter = 'All' | 'Dine-in' | 'Takeaway' | 'Delivery';
+export type OrderTypeFilter =
+  | 'All'
+  | 'Kitchen Orders'
+  | 'Dine-in Orders'
+  | 'Pickup Orders'
+  | 'Event Orders';
 export type TimeFilter = 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month';
 export type SortOption = 'newest' | 'oldest' | 'amount_high' | 'amount_low';
 
@@ -284,15 +293,42 @@ function getStatusTheme(status: NormalizedStatus) {
 
 function normalizeOrderType(raw?: string): string {
   const t = String(raw || '').trim().toLowerCase();
-  if (t.includes('dine') || t.includes('table')) return 'Dine-in';
-  if (t.includes('take') || t.includes('pick')) return 'Takeaway';
+  if (t.includes('dine') || t.includes('table')) return 'Dine-in Orders';
+  if (t.includes('take') || t.includes('pick')) return 'Pickup Orders';
+  if (t.includes('event') || t.includes('banquet') || t.includes('function')) return 'Event Orders';
+  if (t.includes('kitchen') || t.includes('kot')) return 'Kitchen Orders';
   if (t.includes('deliv') || t.includes('online')) return 'Delivery';
-  return raw ? String(raw) : 'Dine-in';
+  return raw ? String(raw) : 'Dine-in Orders';
+}
+
+function getOrderCategory(order: ApiOrder): OrderTypeFilter {
+  const rawType = String(order.order_type || '').trim().toLowerCase();
+  if (
+    order.event_id !== undefined ||
+    order.event_booking_id !== undefined ||
+    rawType.includes('event') ||
+    rawType.includes('banquet') ||
+    rawType.includes('function')
+  ) {
+    return 'Event Orders';
+  }
+  if (
+    order.kitchen_order_id !== undefined ||
+    order.kot_number !== undefined ||
+    rawType.includes('kitchen') ||
+    rawType.includes('kot')
+  ) {
+    return 'Kitchen Orders';
+  }
+  const normalized = normalizeOrderType(order.order_type);
+  if (normalized === 'Dine-in Orders') return normalized;
+  if (normalized === 'Pickup Orders') return normalized;
+  return 'Dine-in Orders';
 }
 
 function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
   const type = normalizeOrderType(orderType);
-  if (type === 'Dine-in') {
+  if (type === 'Dine-in Orders') {
     return {
       type: 'dine-in',
       label: tableNumber ? `Table ${tableNumber}` : 'Dine-in',
@@ -301,13 +337,31 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
       text: '#065F46',
     };
   }
-  if (type === 'Takeaway') {
+  if (type === 'Pickup Orders') {
     return {
       type: 'takeaway',
-      label: 'Takeaway',
+      label: 'Pickup',
       bg: '#FFFBEB',
       border: '#FDE68A',
       text: '#92400E',
+    };
+  }
+  if (type === 'Kitchen Orders') {
+    return {
+      type: 'kitchen',
+      label: 'Kitchen',
+      bg: '#F5F3FF',
+      border: '#DDD6FE',
+      text: '#6D28D9',
+    };
+  }
+  if (type === 'Event Orders') {
+    return {
+      type: 'event',
+      label: 'Event',
+      bg: '#FFF7ED',
+      border: '#FED7AA',
+      text: '#C2410C',
     };
   }
   return {
@@ -713,6 +767,20 @@ export function OrdersScreen({
     return counts;
   }, [orders]);
 
+  const orderCategoryCounts = useMemo(() => {
+    const counts: Record<OrderTypeFilter, number> = {
+      All: orders.length,
+      'Kitchen Orders': 0,
+      'Dine-in Orders': 0,
+      'Pickup Orders': 0,
+      'Event Orders': 0,
+    };
+    orders.forEach(order => {
+      counts[getOrderCategory(order)] += 1;
+    });
+    return counts;
+  }, [orders]);
+
   // Metric Stats
   const metrics = useMemo(() => {
     let pendingCount = 0;
@@ -752,7 +820,7 @@ export function OrdersScreen({
 
     if (orderTypeFilter !== 'All') {
       result = result.filter(
-        o => normalizeOrderType(o.order_type) === orderTypeFilter,
+        o => getOrderCategory(o) === orderTypeFilter,
       );
     }
 
@@ -1366,6 +1434,57 @@ export function OrdersScreen({
             </View>
           </View>
         </ScrollView>
+
+        {/* Order Category Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingTop: 10, paddingBottom: 2 }}
+        >
+          {(
+            [
+              'All',
+              'Kitchen Orders',
+              'Dine-in Orders',
+              'Pickup Orders',
+              'Event Orders',
+            ] as OrderTypeFilter[]
+          ).map(category => {
+            const isActive = orderTypeFilter === category;
+            return (
+              <Pressable
+                key={category}
+                onPress={() => setOrderTypeFilter(category)}
+                className={`flex-row items-center rounded-full border px-3.5 py-1.5 shadow-2xs ${
+                  isActive
+                    ? 'border-[#116C0B] bg-[#116C0B]'
+                    : 'border-[#CBD5E1] bg-white'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    isActive ? 'text-white' : 'text-[#475569]'
+                  }`}
+                >
+                  {category}
+                </Text>
+                <View
+                  className={`ml-1.5 rounded-full px-1.5 py-0.5 ${
+                    isActive ? 'bg-white/25' : 'bg-[#F1F5F9]'
+                  }`}
+                >
+                  <Text
+                    className={`text-[10px] font-black ${
+                      isActive ? 'text-white' : 'text-[#64748B]'
+                    }`}
+                  >
+                    {orderCategoryCounts[category]}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Search Bar & Filter Controls Row */}
@@ -1606,7 +1725,15 @@ export function OrdersScreen({
                 Order Type
               </Text>
               <View className="flex-row flex-wrap gap-2 mb-4">
-                {(['All', 'Dine-in', 'Takeaway', 'Delivery'] as OrderTypeFilter[]).map(
+                {(
+                  [
+                    'All',
+                    'Kitchen Orders',
+                    'Dine-in Orders',
+                    'Pickup Orders',
+                    'Event Orders',
+                  ] as OrderTypeFilter[]
+                ).map(
                   type => {
                     const isSelected = orderTypeFilter === type;
                     return (
