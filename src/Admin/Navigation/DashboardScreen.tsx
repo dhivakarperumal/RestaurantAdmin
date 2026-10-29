@@ -1885,52 +1885,47 @@ function HomePage({
           <Text className="ml-3 text-xs text-[#6B7280]">⌄</Text>
         </Pressable>
       </View>
-      <Modal
+      <BaseModal
         visible={isDateFilterOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsDateFilterOpen(false)}
+        onClose={() => setIsDateFilterOpen(false)}
+        title="Select Date Range"
+        subtitle="Choose a period to analyze sales, orders, and attendance"
+        variant="bottom-sheet"
       >
-        <Pressable
-          accessibilityLabel="Close date range options"
-          onPress={() => setIsDateFilterOpen(false)}
-          className="flex-1 justify-center bg-black/30 px-8"
-        >
-          <Pressable
-            onPress={event => event.stopPropagation()}
-            className="max-h-[75%] rounded-2xl border border-[#E5E7EB] bg-white p-2"
-          >
-            <Text className="px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B7280]">
-              Select date range
-            </Text>
-            <ScrollView>
-              {dashboardPeriods.map(({ value: filter, label }) => (
-                <Pressable
-                  accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: dateFilter === filter }}
-                  key={filter}
-                  onPress={() => {
-                    onSetDateFilter(filter);
-                    setIsDateFilterOpen(false);
+        <ScrollView className="max-h-[360px]" contentContainerClassName="gap-1 pb-4">
+          {dashboardPeriods.map(({ value: filter, label }) => {
+            const isSelected = dateFilter === filter;
+            return (
+              <Pressable
+                accessibilityLabel={`Show ${label.toLowerCase()} dashboard data`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                key={filter}
+                onPress={() => {
+                  onSetDateFilter(filter);
+                  setIsDateFilterOpen(false);
+                }}
+                className={`my-0.5 flex-row items-center justify-between rounded-2xl px-4 py-3.5 ${
+                  isSelected
+                    ? 'border border-[#116C0B]/20 bg-[#116C0B]/10'
+                    : 'border border-transparent bg-transparent active:bg-gray-100'
+                }`}
+              >
+                <Text
+                  className="text-sm"
+                  style={{
+                    color: isSelected ? '#116C0B' : '#1E293B',
+                    fontWeight: isSelected ? '700' : '500',
                   }}
-                  className={`rounded-xl px-3 py-3 ${
-                    dateFilter === filter ? 'bg-[#E8F5E9]' : 'bg-white'
-                  }`}
                 >
-                  <Text
-                    className={`text-sm font-semibold ${
-                      dateFilter === filter ? 'text-[#116C0B]' : 'text-[#374151]'
-                    }`}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+                  {label}
+                </Text>
+                {isSelected && <CheckIcon size={18} color="#116C0B" />}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </BaseModal>
       {dateFilter === 'custom' ? (
         <View className="mb-3.5 flex-row gap-2">
           <TextInput
@@ -3057,84 +3052,91 @@ function OrdersPage({
           description="Orders you add will show up here."
         />
       )}
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setSelectedOrder(null)}
-        transparent
-        visible={selectedOrder !== null}
-      >
-        {selectedOrder ? (
-          <SafeAreaView
-            edges={['bottom']}
-            className="mt-auto rounded-t-3xl bg-white p-[22px]"
-          >
-            <Text className="text-[#6B7280] text-[10px] font-bold tracking-[1.2px]">
-              ORDER DETAILS
-            </Text>
-            <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
-              {selectedOrder.name}
-            </Text>
-            <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
-              Created at {selectedOrder.createdAt}
-            </Text>
-            <View className="mt-[18px] rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
-              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
-                Order total
-              </Text>
-              <Text className="mt-1 text-2xl font-bold text-[#012711]">
-                {formatCurrency(selectedOrder.amount || 0)}
-              </Text>
-              <View className="mt-3.5 flex-row items-center gap-2">
-                <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
-                  Status
-                </Text>
-                <StatusPill status={selectedOrder.status || 'Pending'} />
-              </View>
-            </View>
-            <Text className="mb-2 mt-[18px] text-[13px] font-semibold text-[#012711]">
-              Update status
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {(['Pending', 'Completed', 'Cancelled'] as const).map(status => (
-                <Pressable
-                  accessibilityLabel={`Set order status to ${status}`}
-                  accessibilityRole="button"
-                  key={status}
-                  onPress={() => {
-                    onUpdateOrderStatus(selectedOrder.id, status);
-                    setSelectedOrder({ ...selectedOrder, status });
-                  }}
-                  className={`rounded-full border px-3.5 py-[9px] ${
-                    selectedOrder.status === status
-                      ? 'border-[#116C0B] bg-[#116C0B]'
-                      : 'border-[#E5E7EB] bg-[#F9FAFB]'
-                  }`}
-                >
-                  <Text
-                    className={`text-[13px] font-semibold ${
-                      selectedOrder.status === status
-                        ? 'text-white'
-                        : 'text-[#6B7280]'
-                    }`}
-                  >
-                    {status}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+      {selectedOrder ? (
+        <DetailsModal
+          visible={selectedOrder !== null}
+          onClose={() => setSelectedOrder(null)}
+          title={selectedOrder.name}
+          subtitle={`Created at ${selectedOrder.createdAt}`}
+          badge={{
+            label: selectedOrder.status || 'Pending',
+            bg:
+              selectedOrder.status === 'Completed'
+                ? '#F0FDF4'
+                : selectedOrder.status === 'Cancelled'
+                ? '#FEF2F2'
+                : '#FEF3C7',
+            text:
+              selectedOrder.status === 'Completed'
+                ? '#15803D'
+                : selectedOrder.status === 'Cancelled'
+                ? '#DC2626'
+                : '#D97706',
+            border:
+              selectedOrder.status === 'Completed'
+                ? '#DCFCE7'
+                : selectedOrder.status === 'Cancelled'
+                ? '#FECACA'
+                : '#FDE68A',
+          }}
+          footer={
             <Pressable
               accessibilityLabel="Close order details"
               accessibilityRole="button"
               onPress={() => setSelectedOrder(null)}
-              className="items-center py-[18px]"
+              className="min-h-12 w-full items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
             >
-              <Text className="font-semibold text-[#116C0B]">
-                Close details
-              </Text>
+              <Text className="text-sm font-semibold text-[#334155]">Close Details</Text>
             </Pressable>
-          </SafeAreaView>
-        ) : null}
-      </Modal>
+          }
+        >
+          <View className="gap-4">
+            <View className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Order Total
+              </Text>
+              <Text className="mt-1 text-2xl font-black text-[#0F172A]">
+                {formatCurrency(selectedOrder.amount || 0)}
+              </Text>
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Update Order Status
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {(['Pending', 'Completed', 'Cancelled'] as const).map(status => {
+                  const isSelected = selectedOrder.status === status;
+                  return (
+                    <Pressable
+                      accessibilityLabel={`Set order status to ${status}`}
+                      accessibilityRole="button"
+                      key={status}
+                      onPress={() => {
+                        onUpdateOrderStatus(selectedOrder.id, status);
+                        setSelectedOrder({ ...selectedOrder, status });
+                      }}
+                      className={`rounded-2xl border px-4 py-2.5 ${
+                        isSelected
+                          ? 'border-[#116C0B] bg-[#116C0B]'
+                          : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-white' : 'text-[#475569]'
+                        }`}
+                      >
+                        {status}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        </DetailsModal>
+      ) : null}
     </ScrollView>
   );
 }
@@ -3161,86 +3163,53 @@ function EntryForm({
         amountValue >= 0));
 
   return (
-    <View className="flex-1 justify-end">
-      <Pressable
-        accessibilityLabel={`Close ${action.label}`}
-        onPress={onCancel}
-        className="absolute bottom-0 left-0 right-0 top-0 bg-[#11182766]"
-      />
-      <SafeAreaView
-        edges={['bottom']}
-        className="rounded-t-3xl bg-white p-[22px]"
-      >
-        <View className="flex-row items-center gap-3">
-          <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-            <Icon color={colors.primary} size={21} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-base font-bold text-[#012711]">
-              {action.label}
-            </Text>
-            <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
-              {action.description}
-            </Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Close form"
-            onPress={onCancel}
-            hitSlop={8}
-          >
-            <Text className="text-2xl text-[#6B7280]">×</Text>
-          </Pressable>
+    <FormModal
+      visible
+      onClose={onCancel}
+      title={action.label}
+      subtitle={action.description}
+      onSave={() => onSave(name, needsAmount ? amountValue : undefined)}
+      saveLabel={`Save ${action.label.toLowerCase()}`}
+      isSaveDisabled={!canSave}
+      icon={<Icon color={colors.primary} size={22} />}
+    >
+      <View className="gap-4">
+        <View className="gap-1.5">
+          <Text className="text-[13px] font-semibold text-[#0F172A]">
+            Name or description
+          </Text>
+          <TextInput
+            autoFocus
+            onChangeText={setName}
+            placeholder={action.placeholder}
+            placeholderTextColor="#94A3B8"
+            className="min-h-12 rounded-2xl border border-[#CBD5E1] bg-white px-4 text-[15px] text-[#0F172A]"
+            value={name}
+          />
         </View>
-        <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">
-          Name or description
-        </Text>
-        <TextInput
-          autoFocus
-          onChangeText={setName}
-          placeholder={action.placeholder}
-          placeholderTextColor={colors.textSecondary}
-          className="min-h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-[14px] text-[15px] text-[#012711]"
-          value={name}
-        />
         {action.amountLabel ? (
-          <>
-            <Text className="mb-2 mt-5 text-[13px] font-semibold text-[#012711]">
+          <View className="gap-1.5">
+            <Text className="text-[13px] font-semibold text-[#0F172A]">
               {action.amountLabel}
             </Text>
             <TextInput
               keyboardType="decimal-pad"
               onChangeText={value => setAmount(value.replace(',', '.'))}
               placeholder={action.amountPlaceholder}
-              placeholderTextColor={colors.textSecondary}
-              className="min-h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-[14px] text-[15px] text-[#012711]"
+              placeholderTextColor="#94A3B8"
+              className="min-h-12 rounded-2xl border border-[#CBD5E1] bg-white px-4 text-[15px] text-[#0F172A]"
               value={amount}
             />
-          </>
+          </View>
         ) : null}
-        <Text className="mt-3 text-[11px] leading-4 text-[#6B7280]">
+        <Text className="text-[12px] leading-5 text-[#64748B]">
           This draft is saved in this session only. Connect your business data
           service to sync it.
         </Text>
-        <Pressable
-          accessibilityLabel={`Save ${action.label}`}
-          accessibilityRole="button"
-          disabled={!canSave}
-          onPress={() => onSave(name, needsAmount ? amountValue : undefined)}
-          className="mt-5 min-h-12 flex-row items-center justify-center gap-2 rounded-xl bg-[#116C0B] px-[15px] py-3"
-          style={({ pressed }) => ({
-            opacity: !canSave ? 0.45 : pressed ? 0.85 : 1,
-          })}
-        >
-          <Text className="text-[13px] font-bold text-white">
-            Save {action.label.toLowerCase()}
-          </Text>
-        </Pressable>
-        <Pressable onPress={onCancel} className="items-center py-3.5">
-          <Text className="text-sm text-[#6B7280]">Cancel</Text>
-        </Pressable>
-      </SafeAreaView>
-    </View>
+      </View>
+    </FormModal>
   );
+}
 }
 
 function Sidebar({
