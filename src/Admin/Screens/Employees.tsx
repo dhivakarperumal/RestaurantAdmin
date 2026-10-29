@@ -73,7 +73,6 @@ type AssignableServer = {
   full_name?: string;
 };
 
-
 function readResponseRows<T>(payload: unknown): T[] {
   if (Array.isArray(payload)) {
     return payload as T[];
@@ -265,7 +264,11 @@ function validateEmployeeForm(
       return `${label} is required.`;
     }
   }
-  if (!/^[6-9]\d{9}$/.test(values.phone_number.replace(/^\+91/, '').replace(/[\s\-()]/g, ''))) {
+  if (
+    !/^[6-9]\d{9}$/.test(
+      values.phone_number.replace(/^\+91/, '').replace(/[\s\-()]/g, ''),
+    )
+  ) {
     return 'Phone number must be a 10-digit Indian mobile number.';
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
@@ -347,7 +350,9 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive' | 'Working' | 'Break' | 'Off shift'>('All');
+  const [statusFilter, setStatusFilter] = useState<
+    'All' | 'Active' | 'Inactive' | 'Working' | 'Break' | 'Off shift'
+  >('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -357,9 +362,8 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
   const [editorDetailsLoaded, setEditorDetailsLoaded] = useState(false);
   const [isSavingEmployee, setIsSavingEmployee] = useState(false);
   const [editorError, setEditorError] = useState('');
-  const [assigningServer, setAssigningServer] = useState<AssignableServer | null>(
-    null,
-  );
+  const [assigningServer, setAssigningServer] =
+    useState<AssignableServer | null>(null);
   const [formValues, setFormValues] = useState<EmployeeFormValues>(() =>
     createEmployeeFormValues(),
   );
@@ -374,7 +378,9 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
       setIsLoading(true);
       setError('');
       try {
-        const response = await api.get('/employees', { signal: controller.signal });
+        const response = await api.get('/employees', {
+          signal: controller.signal,
+        });
         const rows = readEmployeeRows(response.data);
         if (isActive) {
           setEmployees(rows);
@@ -410,8 +416,14 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
 
   const openEditEmployee = async (employee: ApiEmployee) => {
     const employeeId = employee.employee_id;
-    if (employeeId === undefined || employeeId === null || String(employeeId).trim() === '') {
-      setError('This employee cannot be edited because the record has no employee ID.');
+    if (
+      employeeId === undefined ||
+      employeeId === null ||
+      String(employeeId).trim() === ''
+    ) {
+      setError(
+        'This employee cannot be edited because the record has no employee ID.',
+      );
       return;
     }
 
@@ -422,7 +434,9 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
     setEditorDetailsLoaded(false);
     setIsEditorOpen(true);
     try {
-      const response = await api.get(`/employees/${encodeURIComponent(String(employeeId))}`);
+      const response = await api.get(
+        `/employees/${encodeURIComponent(String(employeeId))}`,
+      );
       const detail = readEmployeeObject(response.data);
       if (!detail) {
         throw new Error('The server did not return employee details.');
@@ -438,7 +452,10 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
 
   const saveEmployee = async () => {
     setEditorError('');
-    const validationError = validateEmployeeForm(formValues, Boolean(editorEmployeeId));
+    const validationError = validateEmployeeForm(
+      formValues,
+      Boolean(editorEmployeeId),
+    );
     if (validationError) {
       setEditorError(validationError);
       return;
@@ -454,13 +471,29 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
       }
       if (
         formValues.employee_type !== 'Chef' &&
-        ['special_dishes', 'description_about_chef', 'cuisine_type', 'food_preference', 'experience_years'].includes(field)
+        [
+          'special_dishes',
+          'description_about_chef',
+          'cuisine_type',
+          'food_preference',
+          'experience_years',
+        ].includes(field)
       ) {
         return;
       }
       if (
         formValues.employee_type !== 'Delivery Partner' &&
-        ['vehicle_type', 'vehicle_number', 'vehicle_model', 'driving_license_number', 'driving_license_expiry_date', 'working_days', 'start_time', 'end_time', 'commission_percent'].includes(field)
+        [
+          'vehicle_type',
+          'vehicle_number',
+          'vehicle_model',
+          'driving_license_number',
+          'driving_license_expiry_date',
+          'working_days',
+          'start_time',
+          'end_time',
+          'commission_percent',
+        ].includes(field)
       ) {
         return;
       }
@@ -481,9 +514,13 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
     setIsSavingEmployee(true);
     try {
       if (editorEmployeeId) {
-        await api.put(`/employees/${encodeURIComponent(editorEmployeeId)}`, payload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.put(
+          `/employees/${encodeURIComponent(editorEmployeeId)}`,
+          payload,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          },
+        );
       } else {
         await api.post('/employees', payload, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -515,31 +552,70 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
 
   const personalFields: EmployeeFormFieldDefinition[] = [
     { name: 'full_name', label: 'Full name', required: true },
-    { name: 'phone_number', label: 'Phone number', required: true, keyboardType: 'phone-pad' },
-    { name: 'email', label: 'Email', required: true, keyboardType: 'email-address' },
-    { name: 'date_of_birth', label: 'Date of birth', placeholder: 'YYYY-MM-DD' },
+    {
+      name: 'phone_number',
+      label: 'Phone number',
+      required: true,
+      keyboardType: 'phone-pad',
+    },
+    {
+      name: 'email',
+      label: 'Email',
+      required: true,
+      keyboardType: 'email-address',
+    },
+    {
+      name: 'date_of_birth',
+      label: 'Date of birth',
+      placeholder: 'YYYY-MM-DD',
+    },
     ...(formValues.employee_type === 'Delivery Partner'
-      ? [{ name: 'whatsapp_number', label: 'WhatsApp number', keyboardType: 'phone-pad' as const }]
+      ? [
+          {
+            name: 'whatsapp_number',
+            label: 'WhatsApp number',
+            keyboardType: 'phone-pad' as const,
+          },
+        ]
       : []),
   ];
   const locationFields: EmployeeFormFieldDefinition[] = [
-    { name: 'address', label: 'Street address', required: true, multiline: true },
+    {
+      name: 'address',
+      label: 'Street address',
+      required: true,
+      multiline: true,
+    },
     { name: 'area_locality', label: 'Area / locality', required: true },
     { name: 'city', label: 'City', required: true },
     { name: 'district', label: 'District', required: true },
     { name: 'state', label: 'State', required: true },
-    { name: 'pincode', label: 'Pincode', required: true, keyboardType: 'numeric' },
+    {
+      name: 'pincode',
+      label: 'Pincode',
+      required: true,
+      keyboardType: 'numeric',
+    },
   ];
   const bankFields: EmployeeFormFieldDefinition[] = [
     { name: 'account_holder_name', label: 'Account holder name' },
     { name: 'bank_name', label: 'Bank name' },
-    { name: 'account_number', label: 'Account number', keyboardType: 'numeric' },
+    {
+      name: 'account_number',
+      label: 'Account number',
+      keyboardType: 'numeric',
+    },
     { name: 'ifsc_code', label: 'IFSC code' },
     { name: 'upi_id', label: 'UPI ID' },
     { name: 'pan_number', label: 'PAN number' },
   ];
   const salaryFields: EmployeeFormFieldDefinition[] = [
-    { name: 'basic_salary', label: 'Basic salary', required: true, keyboardType: 'numeric' },
+    {
+      name: 'basic_salary',
+      label: 'Basic salary',
+      required: true,
+      keyboardType: 'numeric',
+    },
     { name: 'allowances', label: 'Allowances', keyboardType: 'numeric' },
     { name: 'deductions', label: 'Deductions', keyboardType: 'numeric' },
     { name: 'net_salary', label: 'Net salary', keyboardType: 'numeric' },
@@ -548,24 +624,54 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
   const roleFields: EmployeeFormFieldDefinition[] =
     formValues.employee_type === 'Chef'
       ? [
-          { name: 'experience_years', label: 'Experience (years)', keyboardType: 'numeric' },
-          { name: 'special_dishes', label: 'Special dishes', placeholder: 'Separate dishes with commas' },
-          { name: 'description_about_chef', label: 'About the chef', multiline: true },
+          {
+            name: 'experience_years',
+            label: 'Experience (years)',
+            keyboardType: 'numeric',
+          },
+          {
+            name: 'special_dishes',
+            label: 'Special dishes',
+            placeholder: 'Separate dishes with commas',
+          },
+          {
+            name: 'description_about_chef',
+            label: 'About the chef',
+            multiline: true,
+          },
         ]
       : formValues.employee_type === 'Delivery Partner'
-        ? [
-            { name: 'vehicle_number', label: 'Vehicle number', required: true },
-            { name: 'vehicle_model', label: 'Vehicle model' },
-            { name: 'driving_license_number', label: 'Driving license number', required: true },
-            { name: 'driving_license_expiry_date', label: 'License expiry date', placeholder: 'YYYY-MM-DD' },
-            { name: 'commission_percent', label: 'Commission %', keyboardType: 'numeric' },
-            { name: 'start_time', label: 'Shift start time', placeholder: 'HH:MM' },
-            { name: 'end_time', label: 'Shift end time', placeholder: 'HH:MM' },
-          ]
-        : [];
+      ? [
+          { name: 'vehicle_number', label: 'Vehicle number', required: true },
+          { name: 'vehicle_model', label: 'Vehicle model' },
+          {
+            name: 'driving_license_number',
+            label: 'Driving license number',
+            required: true,
+          },
+          {
+            name: 'driving_license_expiry_date',
+            label: 'License expiry date',
+            placeholder: 'YYYY-MM-DD',
+          },
+          {
+            name: 'commission_percent',
+            label: 'Commission %',
+            keyboardType: 'numeric',
+          },
+          {
+            name: 'start_time',
+            label: 'Shift start time',
+            placeholder: 'HH:MM',
+          },
+          { name: 'end_time', label: 'Shift end time', placeholder: 'HH:MM' },
+        ]
+      : [];
 
   const normalizeEmployeeStatus = (employee: ApiEmployee) => {
-    const status = String(employee.current_status || employee.status || '').trim();
+    const status = String(
+      employee.current_status || employee.status || '',
+    ).trim();
     if (status && !['Active', 'Inactive'].includes(status)) {
       return status;
     }
@@ -576,14 +682,23 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
     const searchValue = searchTerm.trim().toLowerCase();
     const matchesSearch =
       !searchValue ||
-      String(employee.full_name || '').toLowerCase().includes(searchValue) ||
-      String(employee.employee_type || '').toLowerCase().includes(searchValue) ||
-      String(employee.email || '').toLowerCase().includes(searchValue) ||
-      String(employee.phone_number || '').toLowerCase().includes(searchValue);
+      String(employee.full_name || '')
+        .toLowerCase()
+        .includes(searchValue) ||
+      String(employee.employee_type || '')
+        .toLowerCase()
+        .includes(searchValue) ||
+      String(employee.email || '')
+        .toLowerCase()
+        .includes(searchValue) ||
+      String(employee.phone_number || '')
+        .toLowerCase()
+        .includes(searchValue);
 
     const matchesStatus =
       statusFilter === 'All' ||
-      normalizeEmployeeStatus(employee).toLowerCase() === statusFilter.toLowerCase();
+      normalizeEmployeeStatus(employee).toLowerCase() ===
+        statusFilter.toLowerCase();
 
     return matchesSearch && matchesStatus;
   });
@@ -599,480 +714,737 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
 
   return (
     <View className="relative flex-1">
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] gap-4 px-5 pb-24 pt-6" keyboardShouldPersistTaps="handled">
-      <View className="flex-row items-center justify-between gap-3">
-        <View className="flex-1">
-          <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">TEAM</Text>
-          <Text className="mt-[5px] text-2xl font-bold text-[#012711]">Employee Management</Text>
-          <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">Manage your restaurant staff and daily coverage.</Text>
-        </View>
-        {isWide ? (
-          <Pressable accessibilityLabel="Add new employee" accessibilityRole="button" onPress={openAddEmployee} className="min-h-11 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-4">
-            <PlusIcon color="#FFFFFF" size={18} />
-            <Text className="ml-1.5 text-sm font-bold text-white">Add employee</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      <View className="flex-row flex-wrap justify-between gap-y-3">
-        <AdminStatCard label="Total" value={employees.length} tint="#166534" iconBackground="#DCFCE7" decorColor="#DCFCE7" icon={<UserIcon size={22} color="#166534" />} />
-        <AdminStatCard label="Active" value={activeCount} tint="#9A3412" iconBackground="#FED7AA" decorColor="#FED7AA" icon={<CheckCircle2Icon size={22} color="#9A3412" />} />
-        <AdminStatCard label="Working" value={workingCount} tint="#1D4ED8" iconBackground="#BFDBFE" decorColor="#BFDBFE" icon={<CheckCircle2Icon size={22} color="#1D4ED8" />} />
-        <AdminStatCard label="Inactive" value={inactiveCount} tint="#6D28D9" iconBackground="#DDD6FE" decorColor="#DDD6FE" icon={<UserIcon size={22} color="#6D28D9" />} />
-      </View>
-
-      <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
-        <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
-          <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
-            <SearchIcon color="#9CA3AF" size={17} />
-            <TextInput accessibilityLabel="Search employees" value={searchTerm} onChangeText={setSearchTerm} placeholder="Search by name, role, email, or phone..." placeholderTextColor={colors.textSecondary} className="ml-2 flex-1 py-2 text-sm text-[#012711]" />
+      <ScrollView
+        contentContainerClassName="mx-auto w-full max-w-[1100px] gap-4 px-5 pb-24 pt-6"
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-1">
+            <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
+              TEAM
+            </Text>
+            <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
+              Employee Management
+            </Text>
+            <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+              Manage your restaurant staff and daily coverage.
+            </Text>
           </View>
-          <View className="flex-row items-end gap-2">
-            <View className="relative min-w-[145px] flex-1">
-              <Text className="mb-1 text-[10px] font-bold text-[#475569]">Status</Text>
-              <Pressable accessibilityRole="button" accessibilityState={{ expanded: isStatusMenuOpen }} onPress={() => setIsStatusMenuOpen(value => !value)} className="min-h-10 flex-row items-center justify-between rounded-lg border border-[#CBD5E1] bg-white px-3">
-                <Text className="text-xs text-[#334155]">{statusFilter === 'All' ? 'All statuses' : statusFilter}</Text>
-                <Text className="text-xs text-[#64748B]">{isStatusMenuOpen ? '⌃' : '⌄'}</Text>
-              </Pressable>
-              {isStatusMenuOpen ? (
-                <View className="absolute left-0 right-0 top-[62px] z-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white" style={{ elevation: 8 }}>
-                  {(['All', 'Active', 'Inactive', 'Working', 'Break', 'Off shift'] as const).map(filter => (
-                    <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: statusFilter === filter }} onPress={() => { setStatusFilter(filter); setIsStatusMenuOpen(false); }} className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${statusFilter === filter ? 'bg-[#F0FDF4]' : ''}`}>
-                      <Text className={`text-xs ${statusFilter === filter ? 'font-bold text-[#116C0B]' : 'text-[#334155]'}`}>{filter === 'All' ? 'All statuses' : filter}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </View>
-            <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
-              {(['grid', 'list'] as const).map(mode => {
-                const selected = viewMode === mode;
-                return <Pressable key={mode} accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`Show employees as ${mode}`} onPress={() => setViewMode(mode)} className={`h-9 w-9 items-center justify-center rounded-md ${selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'}`}><Text className={`text-base font-bold ${selected ? 'text-white' : 'text-[#64748B]'}`}>{mode === 'grid' ? '▦' : '☷'}</Text></Pressable>;
-              })}
-            </View>
-          </View>
+          {isWide ? (
+            <Pressable
+              accessibilityLabel="Add new employee"
+              accessibilityRole="button"
+              onPress={openAddEmployee}
+              className="min-h-11 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-4"
+            >
+              <PlusIcon color="#FFFFFF" size={18} />
+              <Text className="ml-1.5 text-sm font-bold text-white">
+                Add employee
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
-        <Text className="text-xs text-[#64748B]">{filteredEmployees.length} employees</Text>
-      </View>
 
-      {error ? (
-        <View className="mt-5 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
-          <Text className="text-[13px] font-medium text-[#991B1B]">{error}</Text>
-        </View>
-      ) : null}
-
-      {isLoading && !employees.length ? (
-        <View className="min-h-[120px] items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-6">
-          <ActivityIndicator color={colors.primary} />
-          <Text className="text-[13px] text-[#6B7280]">Loading employees…</Text>
-        </View>
-      ) : filteredEmployees.length ? (
-        viewMode === 'list' ? (
-        <ScrollView horizontal={!isWide} showsHorizontalScrollIndicator={!isWide}>
-          <View className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white" style={{ width: isWide ? '100%' : 720 }}>
-            <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
-              <Text className="flex-1 text-xs font-bold text-[#64748B]">Employee</Text>
-              <Text className="w-32 text-xs font-bold text-[#64748B]">Contact</Text>
-              <Text className="w-28 text-xs font-bold text-[#64748B]">Status</Text>
-              <Text className="w-44 text-xs font-bold text-[#64748B]">Actions</Text>
-            </View>
-            {filteredEmployees.map((employee, index) => {
-              const status = normalizeEmployeeStatus(employee);
-              const employeeId = employee.employee_id;
-              return (
-                <View key={String(employee.employee_id || employee.full_name || index)} className={`min-h-[58px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2 ${index % 2 === 0 ? 'bg-white' : 'bg-[#FAFCFA]'}`}>
-                  <View className="flex-1 pr-3">
-                    <Text numberOfLines={1} className="text-xs font-semibold text-[#334155]">{employee.full_name || 'Employee'}</Text>
-                    <Text numberOfLines={1} className="mt-1 text-[10px] text-[#64748B]">{employee.employee_type || 'Staff'}</Text>
-                  </View>
-                  <Text numberOfLines={1} className="w-32 pr-2 text-xs text-[#334155]">{employee.phone_number || employee.email || '—'}</Text>
-                  <View className="w-28"><EmployeeStatusBadge status={status} /></View>
-                  <View className="w-44 flex-row gap-2">
-                    <Pressable accessibilityLabel={`Edit employee ${employee.full_name || 'record'}`} accessibilityRole="button" onPress={() => openEditEmployee(employee)} className="rounded-lg border border-[#D1D5DB] bg-white px-3 py-2">
-                      <Text className="text-[10px] font-semibold text-[#116C0B]">Edit</Text>
-                    </Pressable>
-                    {employee.employee_type === 'Server' && employeeId !== undefined && employeeId !== null ? (
-                      <Pressable accessibilityLabel={`Assign tables to ${employee.full_name || 'server'}`} accessibilityRole="button" onPress={() => setAssigningServer({ employee_id: employeeId, full_name: employee.full_name })} className="rounded-lg bg-[#1F3228] px-2.5 py-2">
-                        <Text className="text-[10px] font-semibold text-white">Assign tables</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </ScrollView>
-        ) : (
         <View className="flex-row flex-wrap justify-between gap-y-3">
-          {filteredEmployees.map(employee => {
-            const employeeStatus = normalizeEmployeeStatus(employee);
-            const isOnBreak = employeeStatus.toLowerCase() === 'break';
-            const statusClass =
-              employeeStatus.toLowerCase() === 'working' || employeeStatus.toLowerCase() === 'on duty' || employeeStatus.toLowerCase() === 'available'
-                ? 'bg-[#DCFCE7] text-[#166534]'
-                : isOnBreak
-                  ? ''
-                  : 'bg-[#F3F4F6] text-[#4B5563]';
-            const initials = String(employee.full_name || 'E')
-              .split(' ')
-              .map(part => part[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase();
-            const employeeId = employee.employee_id;
+          <AdminStatCard
+            label="Total"
+            value={employees.length}
+            tint="#166534"
+            iconBackground="#DCFCE7"
+            decorColor="#DCFCE7"
+            icon={<UserIcon size={22} color="#166534" />}
+          />
+          <AdminStatCard
+            label="Active"
+            value={activeCount}
+            tint="#9A3412"
+            iconBackground="#FED7AA"
+            decorColor="#FED7AA"
+            icon={<CheckCircle2Icon size={22} color="#9A3412" />}
+          />
+          <AdminStatCard
+            label="Working"
+            value={workingCount}
+            tint="#1D4ED8"
+            iconBackground="#BFDBFE"
+            decorColor="#BFDBFE"
+            icon={<CheckCircle2Icon size={22} color="#1D4ED8" />}
+          />
+          <AdminStatCard
+            label="Inactive"
+            value={inactiveCount}
+            tint="#6D28D9"
+            iconBackground="#DDD6FE"
+            decorColor="#DDD6FE"
+            icon={<UserIcon size={22} color="#6D28D9" />}
+          />
+        </View>
 
-            return (
-              <View
-                key={String(employee.employee_id || employee.full_name || initials)}
-                className="w-full flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
-                style={{ width: isWide ? '48%' : '100%' }}
-              >
-                <View className="h-12 w-12 items-center justify-center rounded-full bg-[#E0F2FE]">
-                  <Text className="text-sm font-bold text-[#0F172A]">{initials}</Text>
-                </View>
-                )
-                <View className="flex-1">
-                  <Text className="text-sm font-semibold text-[#012711]">{employee.full_name || 'Employee'}</Text>
-                  <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">
-                    {employee.employee_type || 'Staff'} • {employee.current_status || employee.status || 'Active'}
+        <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+          <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
+            <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
+              <SearchIcon color="#9CA3AF" size={17} />
+              <TextInput
+                accessibilityLabel="Search employees"
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Search by name, role, email, or phone..."
+                placeholderTextColor={colors.textSecondary}
+                className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+              />
+            </View>
+            <View className="flex-row items-end gap-2">
+              <View className="relative min-w-[145px] flex-1">
+                <Text className="mb-1 text-[10px] font-bold text-[#475569]">
+                  Status
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: isStatusMenuOpen }}
+                  onPress={() => setIsStatusMenuOpen(value => !value)}
+                  className="min-h-10 flex-row items-center justify-between rounded-lg border border-[#CBD5E1] bg-white px-3"
+                >
+                  <Text className="text-xs text-[#334155]">
+                    {statusFilter === 'All' ? 'All statuses' : statusFilter}
                   </Text>
-                  <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">{employee.email || employee.phone_number || 'No contact added'}</Text>
-                </View>
-                <View className="items-end">
-                  <Text
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}
-                    style={
-                      isOnBreak
-                        ? {
-                            backgroundColor: colors.surfaceSecondary,
-                            color: colors.primary,
-                          }
-                        : undefined
-                    }
+                  <Text className="text-xs text-[#64748B]">
+                    {isStatusMenuOpen ? '⌃' : '⌄'}
+                  </Text>
+                </Pressable>
+                {isStatusMenuOpen ? (
+                  <View
+                    className="absolute left-0 right-0 top-[62px] z-10 overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
+                    style={{ elevation: 8 }}
                   >
-                    {employeeStatus}
-                  </Text>
-                  <Text className="mt-2 text-[10px] font-medium text-[#6B7280]">
-                    {employee.today_shift_state || employee.status || 'Active'}
-                  </Text>
-                  <Pressable
-                    accessibilityLabel={`Edit employee ${employee.full_name || 'record'}`}
-                    accessibilityRole="button"
-                    onPress={() => openEditEmployee(employee)}
-                    className="mt-2 rounded-lg border border-[#D1D5DB] bg-white px-2.5 py-1.5"
-                  >
-                    <Text className="text-[11px] font-semibold text-[#116C0B]">Edit</Text>
-                  </Pressable>
-                  {employee.employee_type === 'Server' &&
-                  employeeId !== undefined &&
-                  employeeId !== null ? (
+                    {(
+                      [
+                        'All',
+                        'Active',
+                        'Inactive',
+                        'Working',
+                        'Break',
+                        'Off shift',
+                      ] as const
+                    ).map(filter => (
+                      <Pressable
+                        key={filter}
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          selected: statusFilter === filter,
+                        }}
+                        onPress={() => {
+                          setStatusFilter(filter);
+                          setIsStatusMenuOpen(false);
+                        }}
+                        className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${
+                          statusFilter === filter ? 'bg-[#F0FDF4]' : ''
+                        }`}
+                      >
+                        <Text
+                          className={`text-xs ${
+                            statusFilter === filter
+                              ? 'font-bold text-[#116C0B]'
+                              : 'text-[#334155]'
+                          }`}
+                        >
+                          {filter === 'All' ? 'All statuses' : filter}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+              <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+                {(['grid', 'list'] as const).map(mode => {
+                  const selected = viewMode === mode;
+                  return (
                     <Pressable
-                      accessibilityLabel={`Assign tables to ${employee.full_name || 'server'}`}
+                      key={mode}
                       accessibilityRole="button"
-                      onPress={() =>
-                        setAssigningServer({
-                          employee_id: employeeId,
-                          full_name: employee.full_name,
-                        })
-                      }
-                      className="mt-2 rounded-lg bg-[#1F3228] px-2.5 py-1.5"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={`Show employees as ${mode}`}
+                      onPress={() => setViewMode(mode)}
+                      className={`h-9 w-9 items-center justify-center rounded-md ${
+                        selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                      }`}
                     >
-                      <Text className="text-[11px] font-semibold text-white">
-                        Assign tables
+                      <Text
+                        className={`text-base font-bold ${
+                          selected ? 'text-white' : 'text-[#64748B]'
+                        }`}
+                      >
+                        {mode === 'grid' ? '▦' : '☷'}
                       </Text>
                     </Pressable>
-                  ) : null}
-                </View>
+                  );
+                })}
               </View>
-            );
-          })}
-        </View>
-      ) : (
-        <View className="mt-1 rounded-2xl border border-[#E5E7EB] bg-white p-6">
-          <Text className="text-[13px] text-[#6B7280]">
-            No employees match your current filter.
+            </View>
+          </View>
+          <Text className="text-xs text-[#64748B]">
+            {filteredEmployees.length} employees
           </Text>
         </View>
-      )}
 
-      <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
-        <Text className="text-base font-bold text-[#012711]">Contact directory</Text>
-        <View className="mt-4 gap-3">
-          {employees.slice(0, 4).map(employee => (
-            <View key={`${employee.employee_id || employee.full_name}-contact`} className="flex-row items-center justify-between border-b border-[#E5E7EB] pb-2.5">
-              <View>
-                <Text className="text-sm font-semibold text-[#012711]">{employee.full_name || 'Employee'}</Text>
-                <Text className="text-[11px] text-[#6B7280]">{employee.employee_type || 'Staff'}</Text>
-              </View>
-              <Text className="text-[11px] text-[#6B7280]">{employee.phone_number || employee.email || '—'}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {onBack ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={onBack}
-          className="mt-5 items-center py-3.5"
-        >
-          <Text className="text-sm font-semibold text-[#116C0B]">Back to More</Text>
-        </Pressable>
-      ) : null}
-      <FormModal
-        visible={isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
-        title={editorEmployeeId ? 'Edit Employee' : 'Add New Employee'}
-        subtitle={
-          editorEmployeeId
-            ? `Update ${formValues.full_name || 'employee'} details`
-            : 'Create a staff profile with login and payroll details'
-        }
-        cancelLabel=""
-        isSaving={isSavingEmployee}
-        isSaveDisabled={
-          isSavingEmployee ||
-          isEditorLoading ||
-          (Boolean(editorEmployeeId) && !editorDetailsLoaded)
-        }
-        errorMessage={editorError}
-        footerExtra={
-          <View className="flex-row gap-3">
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setIsEditorOpen(false)}
-              disabled={isSavingEmployee}
-              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4"
-            >
-              <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void saveEmployee()}
-              disabled={isSavingEmployee || isEditorLoading || (Boolean(editorEmployeeId) && !editorDetailsLoaded)}
-              className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4"
-            >
-              {isSavingEmployee ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text className="text-sm font-bold text-white">{editorEmployeeId ? 'Save Changes' : 'Create Employee'}</Text>}
-            </Pressable>
+        {error ? (
+          <View className="mt-5 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
+            <Text className="text-[13px] font-medium text-[#991B1B]">
+              {error}
+            </Text>
           </View>
-        }
-      >
-        {isEditorLoading ? (
-          <View className="min-h-[220px] items-center justify-center gap-3">
+        ) : null}
+
+        {isLoading && !employees.length ? (
+          <View className="min-h-[120px] items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-white p-6">
             <ActivityIndicator color={colors.primary} />
-            <Text className="text-sm text-[#6B7280]">Loading employee details…</Text>
+            <Text className="text-[13px] text-[#6B7280]">
+              Loading employees…
+            </Text>
           </View>
+        ) : filteredEmployees.length ? (
+          viewMode === 'list' ? (
+            <ScrollView
+              horizontal={!isWide}
+              showsHorizontalScrollIndicator={!isWide}
+            >
+              <View
+                className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+                style={{ width: isWide ? '100%' : 720 }}
+              >
+                <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
+                  <Text className="flex-1 text-xs font-bold text-[#64748B]">
+                    Employee
+                  </Text>
+                  <Text className="w-32 text-xs font-bold text-[#64748B]">
+                    Contact
+                  </Text>
+                  <Text className="w-28 text-xs font-bold text-[#64748B]">
+                    Status
+                  </Text>
+                  <Text className="w-44 text-xs font-bold text-[#64748B]">
+                    Actions
+                  </Text>
+                </View>
+                {filteredEmployees.map((employee, index) => {
+                  const status = normalizeEmployeeStatus(employee);
+                  const employeeId = employee.employee_id;
+                  return (
+                    <View
+                      key={String(
+                        employee.employee_id || employee.full_name || index,
+                      )}
+                      className={`min-h-[58px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2 ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-[#FAFCFA]'
+                      }`}
+                    >
+                      <View className="flex-1 pr-3">
+                        <Text
+                          numberOfLines={1}
+                          className="text-xs font-semibold text-[#334155]"
+                        >
+                          {employee.full_name || 'Employee'}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          className="mt-1 text-[10px] text-[#64748B]"
+                        >
+                          {employee.employee_type || 'Staff'}
+                        </Text>
+                      </View>
+                      <Text
+                        numberOfLines={1}
+                        className="w-32 pr-2 text-xs text-[#334155]"
+                      >
+                        {employee.phone_number || employee.email || '—'}
+                      </Text>
+                      <View className="w-28">
+                        <EmployeeStatusBadge status={status} />
+                      </View>
+                      <View className="w-44 flex-row gap-2">
+                        <Pressable
+                          accessibilityLabel={`Edit employee ${
+                            employee.full_name || 'record'
+                          }`}
+                          accessibilityRole="button"
+                          onPress={() => openEditEmployee(employee)}
+                          className="rounded-lg border border-[#D1D5DB] bg-white px-3 py-2"
+                        >
+                          <Text className="text-[10px] font-semibold text-[#116C0B]">
+                            Edit
+                          </Text>
+                        </Pressable>
+                        {employee.employee_type === 'Server' &&
+                        employeeId !== undefined &&
+                        employeeId !== null ? (
+                          <Pressable
+                            accessibilityLabel={`Assign tables to ${
+                              employee.full_name || 'server'
+                            }`}
+                            accessibilityRole="button"
+                            onPress={() =>
+                              setAssigningServer({
+                                employee_id: employeeId,
+                                full_name: employee.full_name,
+                              })
+                            }
+                            className="rounded-lg bg-[#1F3228] px-2.5 py-2"
+                          >
+                            <Text className="text-[10px] font-semibold text-white">
+                              Assign tables
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          ) : (
+            <View className="flex-row flex-wrap justify-between gap-y-3">
+              {filteredEmployees.map(employee => {
+                const employeeStatus = normalizeEmployeeStatus(employee);
+                const isOnBreak = employeeStatus.toLowerCase() === 'break';
+                const statusClass =
+                  employeeStatus.toLowerCase() === 'working' ||
+                  employeeStatus.toLowerCase() === 'on duty' ||
+                  employeeStatus.toLowerCase() === 'available'
+                    ? 'bg-[#DCFCE7] text-[#166534]'
+                    : isOnBreak
+                    ? ''
+                    : 'bg-[#F3F4F6] text-[#4B5563]';
+                const initials = String(employee.full_name || 'E')
+                  .split(' ')
+                  .map(part => part[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase();
+                const employeeId = employee.employee_id;
+
+                return (
+                  <View
+                    key={String(
+                      employee.employee_id || employee.full_name || initials,
+                    )}
+                    className="w-full flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                    style={{ width: isWide ? '48%' : '100%' }}
+                  >
+                    <View className="h-12 w-12 items-center justify-center rounded-full bg-[#E0F2FE]">
+                      <Text className="text-sm font-bold text-[#0F172A]">
+                        {initials}
+                      </Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-[#012711]">
+                        {employee.full_name || 'Employee'}
+                      </Text>
+                      <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">
+                        {employee.employee_type || 'Staff'} •{' '}
+                        {employee.current_status || employee.status || 'Active'}
+                      </Text>
+                      <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">
+                        {employee.email ||
+                          employee.phone_number ||
+                          'No contact added'}
+                      </Text>
+                    </View>
+                    <View className="items-end">
+                      <Text
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}
+                        style={
+                          isOnBreak
+                            ? {
+                                backgroundColor: colors.surfaceSecondary,
+                                color: colors.primary,
+                              }
+                            : undefined
+                        }
+                      >
+                        {employeeStatus}
+                      </Text>
+                      <Text className="mt-2 text-[10px] font-medium text-[#6B7280]">
+                        {employee.today_shift_state ||
+                          employee.status ||
+                          'Active'}
+                      </Text>
+                      <Pressable
+                        accessibilityLabel={`Edit employee ${
+                          employee.full_name || 'record'
+                        }`}
+                        accessibilityRole="button"
+                        onPress={() => openEditEmployee(employee)}
+                        className="mt-2 rounded-lg border border-[#D1D5DB] bg-white px-2.5 py-1.5"
+                      >
+                        <Text className="text-[11px] font-semibold text-[#116C0B]">
+                          Edit
+                        </Text>
+                      </Pressable>
+                      {employee.employee_type === 'Server' &&
+                      employeeId !== undefined &&
+                      employeeId !== null ? (
+                        <Pressable
+                          accessibilityLabel={`Assign tables to ${
+                            employee.full_name || 'server'
+                          }`}
+                          accessibilityRole="button"
+                          onPress={() =>
+                            setAssigningServer({
+                              employee_id: employeeId,
+                              full_name: employee.full_name,
+                            })
+                          }
+                          className="mt-2 rounded-lg bg-[#1F3228] px-2.5 py-1.5"
+                        >
+                          <Text className="text-[11px] font-semibold text-white">
+                            Assign tables
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )
         ) : (
-          <View className="gap-4">
-                {!editorEmployeeId ? (
-                  <EmployeeFormSection number="1" title="Employee role">
-                    <EmployeeChoiceField
-                      accessibilityLabel="Employee role"
-                      multiple={false}
-                      onChange={value => updateFormValue('employee_type', value)}
-                      options={employeeRoleOptions}
-                      value={formValues.employee_type}
-                    />
-                  </EmployeeFormSection>
-                ) : null}
-
-                <EmployeeFormSection number={editorEmployeeId ? '1' : '2'} title="Personal & access details">
-                  <EmployeeChoiceField
-                    label="Gender"
-                    multiple={false}
-                    onChange={value => updateFormValue('gender', value)}
-                    options={['Female', 'Male', 'Non-binary', 'Prefer not to say']}
-                    value={formValues.gender || ''}
-                  />
-                  {personalFields.map(field => (
-                    <EmployeeFormField
-                      key={field.name}
-                      {...field}
-                      onChangeText={value => updateFormValue(field.name, value)}
-                      value={formValues[field.name] || ''}
-                    />
-                  ))}
-                  <EmployeeChoiceField
-                    accessibilityLabel="Employee status"
-                    label="Status"
-                    multiple={false}
-                    onChange={value => updateFormValue('status', value)}
-                    options={['Active', 'Inactive']}
-                    value={formValues.status}
-                  />
-                  {editorEmployeeId ? (
-                    <Text className="text-xs leading-5 text-[#6B7280]">
-                      Leave both password fields blank to keep the current password.
-                    </Text>
-                  ) : null}
-                  <EmployeeFormField
-                    label={editorEmployeeId ? 'New password (optional)' : 'Password'}
-                    name="password"
-                    onChangeText={value => updateFormValue('password', value)}
-                    required={!editorEmployeeId}
-                    secureTextEntry
-                    value={formValues.password}
-                  />
-                  <EmployeeFormField
-                    label="Confirm password"
-                    name="confirm_password"
-                    onChangeText={value => updateFormValue('confirm_password', value)}
-                    required={!editorEmployeeId}
-                    secureTextEntry
-                    value={formValues.confirm_password}
-                  />
-                </EmployeeFormSection>
-
-                {formValues.employee_type === 'Chef' ? (
-                  <EmployeeFormSection number="3" title="Culinary details">
-                    <EmployeeChoiceField
-                      label="Cuisine type"
-                      multiple={false}
-                      onChange={value => updateFormValue('cuisine_type', value)}
-                      options={['South Indian', 'North Indian', 'Chinese', 'Bakery', 'Italian', 'Continental', 'Other']}
-                      value={formValues.cuisine_type || ''}
-                    />
-                    <EmployeeChoiceField
-                      label="Food preference"
-                      multiple={false}
-                      onChange={value => updateFormValue('food_preference', value)}
-                      options={['Veg', 'Non-Veg', 'Both']}
-                      value={formValues.food_preference || ''}
-                    />
-                    {roleFields.map(field => (
-                      <EmployeeFormField
-                        key={field.name}
-                        {...field}
-                        onChangeText={value => updateFormValue(field.name, value)}
-                        value={formValues[field.name] || ''}
-                      />
-                    ))}
-                  </EmployeeFormSection>
-                ) : null}
-
-                {formValues.employee_type === 'Delivery Partner' ? (
-                  <EmployeeFormSection number="3" title="Vehicle & schedule">
-                    <EmployeeChoiceField
-                      label="Vehicle type"
-                      multiple={false}
-                      onChange={value => updateFormValue('vehicle_type', value)}
-                      options={['Bike', 'Scooter', 'Bicycle', 'Electric Vehicle']}
-                      value={formValues.vehicle_type || ''}
-                    />
-                    {roleFields.map(field => (
-                      <EmployeeFormField
-                        key={field.name}
-                        {...field}
-                        onChangeText={value => updateFormValue(field.name, value)}
-                        value={formValues[field.name] || ''}
-                      />
-                    ))}
-                    <EmployeeChoiceField
-                      label="Working days"
-                      multiple
-                      onChange={value => updateFormValue('working_days', value)}
-                      options={employeeWorkingDays}
-                      value={formValues.working_days || ''}
-                    />
-                    <EmployeeChoiceField
-                      label="Available for delivery"
-                      multiple={false}
-                      onChange={value => updateFormValue('available_for_delivery', value)}
-                      options={['Yes', 'No']}
-                      value={formValues.available_for_delivery}
-                    />
-                    <EmployeeChoiceField
-                      label="Salary structure"
-                      multiple={false}
-                      onChange={value => updateFormValue('salary_type', value)}
-                      options={['Monthly Basis', 'Order Basis']}
-                      value={formValues.salary_type}
-                    />
-                    {formValues.salary_type === 'Order Basis' ? (
-                      <EmployeeFormField
-                        keyboardType="numeric"
-                        label="Commission %"
-                        name="commission_percent"
-                        onChangeText={value => updateFormValue('commission_percent', value)}
-                        value={formValues.commission_percent || ''}
-                      />
-                    ) : null}
-                  </EmployeeFormSection>
-                ) : null}
-
-                <EmployeeFormSection number="4" title="Location & address">
-                  {locationFields.map(field => (
-                    <EmployeeFormField
-                      key={field.name}
-                      {...field}
-                      onChangeText={value => updateFormValue(field.name, value)}
-                      value={formValues[field.name] || ''}
-                    />
-                  ))}
-                  {(formValues.employee_type === 'Chef' ||
-                    formValues.employee_type === 'Delivery Partner') ? (
-                    <>
-                      <EmployeeFormField
-                        label="Latitude"
-                        name="latitude"
-                        onChangeText={value => updateFormValue('latitude', value)}
-                        value={formValues.latitude || ''}
-                      />
-                      <EmployeeFormField
-                        label="Longitude"
-                        name="longitude"
-                        onChangeText={value => updateFormValue('longitude', value)}
-                        value={formValues.longitude || ''}
-                      />
-                    </>
-                  ) : null}
-                </EmployeeFormSection>
-
-                <EmployeeFormSection number="5" title="Bank & payment details">
-                  {bankFields.map(field => (
-                    <EmployeeFormField
-                      key={field.name}
-                      {...field}
-                      onChangeText={value => updateFormValue(field.name, value)}
-                      value={formValues[field.name] || ''}
-                    />
-                  ))}
-                </EmployeeFormSection>
-
-                {formValues.employee_type !== 'Delivery Partner' ||
-                formValues.salary_type === 'Monthly Basis' ? (
-                  <EmployeeFormSection number="6" title="Compensation & payroll">
-                    {salaryFields.map(field => (
-                      <EmployeeFormField
-                        key={field.name}
-                        {...field}
-                        onChangeText={value => updateFormValue(field.name, value)}
-                        value={formValues[field.name] || ''}
-                      />
-                    ))}
-                  </EmployeeFormSection>
-                ) : null}
-
+          <View className="mt-1 rounded-2xl border border-[#E5E7EB] bg-white p-6">
+            <Text className="text-[13px] text-[#6B7280]">
+              No employees match your current filter.
+            </Text>
           </View>
         )}
-      </FormModal>
-      <AssignServerTables
-        server={assigningServer}
-        onClose={() => setAssigningServer(null)}
-        onSaved={() => setAssigningServer(null)}
-      />
-    </ScrollView>
-    {!isWide && !isEditorOpen ? (
-      <Pressable
-        accessibilityLabel="Add new employee"
-        accessibilityRole="button"
-        onPress={openAddEmployee}
-        className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B]"
-        style={{ elevation: 8 }}
-      >
-        <PlusIcon color="#FFFFFF" size={26} />
-      </Pressable>
-    ) : null}
+
+        <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
+          <Text className="text-base font-bold text-[#012711]">
+            Contact directory
+          </Text>
+          <View className="mt-4 gap-3">
+            {employees.slice(0, 4).map(employee => (
+              <View
+                key={`${employee.employee_id || employee.full_name}-contact`}
+                className="flex-row items-center justify-between border-b border-[#E5E7EB] pb-2.5"
+              >
+                <View>
+                  <Text className="text-sm font-semibold text-[#012711]">
+                    {employee.full_name || 'Employee'}
+                  </Text>
+                  <Text className="text-[11px] text-[#6B7280]">
+                    {employee.employee_type || 'Staff'}
+                  </Text>
+                </View>
+                <Text className="text-[11px] text-[#6B7280]">
+                  {employee.phone_number || employee.email || '—'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {onBack ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onBack}
+            className="mt-5 items-center py-3.5"
+          >
+            <Text className="text-sm font-semibold text-[#116C0B]">
+              Back to More
+            </Text>
+          </Pressable>
+        ) : null}
+        <FormModal
+          visible={isEditorOpen}
+          onClose={() => setIsEditorOpen(false)}
+          title={editorEmployeeId ? 'Edit Employee' : 'Add New Employee'}
+          subtitle={
+            editorEmployeeId
+              ? `Update ${formValues.full_name || 'employee'} details`
+              : 'Create a staff profile with login and payroll details'
+          }
+          cancelLabel=""
+          isSaving={isSavingEmployee}
+          isSaveDisabled={
+            isSavingEmployee ||
+            isEditorLoading ||
+            (Boolean(editorEmployeeId) && !editorDetailsLoaded)
+          }
+          errorMessage={editorError}
+          footerExtra={
+            <View className="flex-row gap-3">
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setIsEditorOpen(false)}
+                disabled={isSavingEmployee}
+                className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4"
+              >
+                <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void saveEmployee()}
+                disabled={
+                  isSavingEmployee ||
+                  isEditorLoading ||
+                  (Boolean(editorEmployeeId) && !editorDetailsLoaded)
+                }
+                className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4"
+              >
+                {isSavingEmployee ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text className="text-sm font-bold text-white">
+                    {editorEmployeeId ? 'Save Changes' : 'Create Employee'}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          }
+        >
+          {isEditorLoading ? (
+            <View className="min-h-[220px] items-center justify-center gap-3">
+              <ActivityIndicator color={colors.primary} />
+              <Text className="text-sm text-[#6B7280]">
+                Loading employee details…
+              </Text>
+            </View>
+          ) : (
+            <View className="gap-4">
+              {!editorEmployeeId ? (
+                <EmployeeFormSection number="1" title="Employee role">
+                  <EmployeeChoiceField
+                    accessibilityLabel="Employee role"
+                    multiple={false}
+                    onChange={value => updateFormValue('employee_type', value)}
+                    options={employeeRoleOptions}
+                    value={formValues.employee_type}
+                  />
+                </EmployeeFormSection>
+              ) : null}
+
+              <EmployeeFormSection
+                number={editorEmployeeId ? '1' : '2'}
+                title="Personal & access details"
+              >
+                <EmployeeChoiceField
+                  label="Gender"
+                  multiple={false}
+                  onChange={value => updateFormValue('gender', value)}
+                  options={[
+                    'Female',
+                    'Male',
+                    'Non-binary',
+                    'Prefer not to say',
+                  ]}
+                  value={formValues.gender || ''}
+                />
+                {personalFields.map(field => (
+                  <EmployeeFormField
+                    key={field.name}
+                    {...field}
+                    onChangeText={value => updateFormValue(field.name, value)}
+                    value={formValues[field.name] || ''}
+                  />
+                ))}
+                <EmployeeChoiceField
+                  accessibilityLabel="Employee status"
+                  label="Status"
+                  multiple={false}
+                  onChange={value => updateFormValue('status', value)}
+                  options={['Active', 'Inactive']}
+                  value={formValues.status}
+                />
+                {editorEmployeeId ? (
+                  <Text className="text-xs leading-5 text-[#6B7280]">
+                    Leave both password fields blank to keep the current
+                    password.
+                  </Text>
+                ) : null}
+                <EmployeeFormField
+                  label={
+                    editorEmployeeId ? 'New password (optional)' : 'Password'
+                  }
+                  name="password"
+                  onChangeText={value => updateFormValue('password', value)}
+                  required={!editorEmployeeId}
+                  secureTextEntry
+                  value={formValues.password}
+                />
+                <EmployeeFormField
+                  label="Confirm password"
+                  name="confirm_password"
+                  onChangeText={value =>
+                    updateFormValue('confirm_password', value)
+                  }
+                  required={!editorEmployeeId}
+                  secureTextEntry
+                  value={formValues.confirm_password}
+                />
+              </EmployeeFormSection>
+
+              {formValues.employee_type === 'Chef' ? (
+                <EmployeeFormSection number="3" title="Culinary details">
+                  <EmployeeChoiceField
+                    label="Cuisine type"
+                    multiple={false}
+                    onChange={value => updateFormValue('cuisine_type', value)}
+                    options={[
+                      'South Indian',
+                      'North Indian',
+                      'Chinese',
+                      'Bakery',
+                      'Italian',
+                      'Continental',
+                      'Other',
+                    ]}
+                    value={formValues.cuisine_type || ''}
+                  />
+                  <EmployeeChoiceField
+                    label="Food preference"
+                    multiple={false}
+                    onChange={value =>
+                      updateFormValue('food_preference', value)
+                    }
+                    options={['Veg', 'Non-Veg', 'Both']}
+                    value={formValues.food_preference || ''}
+                  />
+                  {roleFields.map(field => (
+                    <EmployeeFormField
+                      key={field.name}
+                      {...field}
+                      onChangeText={value => updateFormValue(field.name, value)}
+                      value={formValues[field.name] || ''}
+                    />
+                  ))}
+                </EmployeeFormSection>
+              ) : null}
+
+              {formValues.employee_type === 'Delivery Partner' ? (
+                <EmployeeFormSection number="3" title="Vehicle & schedule">
+                  <EmployeeChoiceField
+                    label="Vehicle type"
+                    multiple={false}
+                    onChange={value => updateFormValue('vehicle_type', value)}
+                    options={['Bike', 'Scooter', 'Bicycle', 'Electric Vehicle']}
+                    value={formValues.vehicle_type || ''}
+                  />
+                  {roleFields.map(field => (
+                    <EmployeeFormField
+                      key={field.name}
+                      {...field}
+                      onChangeText={value => updateFormValue(field.name, value)}
+                      value={formValues[field.name] || ''}
+                    />
+                  ))}
+                  <EmployeeChoiceField
+                    label="Working days"
+                    multiple
+                    onChange={value => updateFormValue('working_days', value)}
+                    options={employeeWorkingDays}
+                    value={formValues.working_days || ''}
+                  />
+                  <EmployeeChoiceField
+                    label="Available for delivery"
+                    multiple={false}
+                    onChange={value =>
+                      updateFormValue('available_for_delivery', value)
+                    }
+                    options={['Yes', 'No']}
+                    value={formValues.available_for_delivery}
+                  />
+                  <EmployeeChoiceField
+                    label="Salary structure"
+                    multiple={false}
+                    onChange={value => updateFormValue('salary_type', value)}
+                    options={['Monthly Basis', 'Order Basis']}
+                    value={formValues.salary_type}
+                  />
+                  {formValues.salary_type === 'Order Basis' ? (
+                    <EmployeeFormField
+                      keyboardType="numeric"
+                      label="Commission %"
+                      name="commission_percent"
+                      onChangeText={value =>
+                        updateFormValue('commission_percent', value)
+                      }
+                      value={formValues.commission_percent || ''}
+                    />
+                  ) : null}
+                </EmployeeFormSection>
+              ) : null}
+
+              <EmployeeFormSection number="4" title="Location & address">
+                {locationFields.map(field => (
+                  <EmployeeFormField
+                    key={field.name}
+                    {...field}
+                    onChangeText={value => updateFormValue(field.name, value)}
+                    value={formValues[field.name] || ''}
+                  />
+                ))}
+                {formValues.employee_type === 'Chef' ||
+                formValues.employee_type === 'Delivery Partner' ? (
+                  <>
+                    <EmployeeFormField
+                      label="Latitude"
+                      name="latitude"
+                      onChangeText={value => updateFormValue('latitude', value)}
+                      value={formValues.latitude || ''}
+                    />
+                    <EmployeeFormField
+                      label="Longitude"
+                      name="longitude"
+                      onChangeText={value =>
+                        updateFormValue('longitude', value)
+                      }
+                      value={formValues.longitude || ''}
+                    />
+                  </>
+                ) : null}
+              </EmployeeFormSection>
+
+              <EmployeeFormSection number="5" title="Bank & payment details">
+                {bankFields.map(field => (
+                  <EmployeeFormField
+                    key={field.name}
+                    {...field}
+                    onChangeText={value => updateFormValue(field.name, value)}
+                    value={formValues[field.name] || ''}
+                  />
+                ))}
+              </EmployeeFormSection>
+
+              {formValues.employee_type !== 'Delivery Partner' ||
+              formValues.salary_type === 'Monthly Basis' ? (
+                <EmployeeFormSection number="6" title="Compensation & payroll">
+                  {salaryFields.map(field => (
+                    <EmployeeFormField
+                      key={field.name}
+                      {...field}
+                      onChangeText={value => updateFormValue(field.name, value)}
+                      value={formValues[field.name] || ''}
+                    />
+                  ))}
+                </EmployeeFormSection>
+              ) : null}
+            </View>
+          )}
+        </FormModal>
+        <AssignServerTables
+          server={assigningServer}
+          onClose={() => setAssigningServer(null)}
+          onSaved={() => setAssigningServer(null)}
+        />
+      </ScrollView>
+      {!isWide && !isEditorOpen ? (
+        <Pressable
+          accessibilityLabel="Add new employee"
+          accessibilityRole="button"
+          onPress={openAddEmployee}
+          className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B]"
+          style={{ elevation: 8 }}
+        >
+          <PlusIcon color="#FFFFFF" size={26} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -1091,7 +1463,9 @@ function EmployeeFormSection({
       <View className="flex-row items-center gap-2">
         {number ? (
           <View className="h-6 w-6 items-center justify-center rounded-full bg-[#15803D]">
-            <Text className="text-[11px] font-extrabold text-white">{number}</Text>
+            <Text className="text-[11px] font-extrabold text-white">
+              {number}
+            </Text>
           </View>
         ) : null}
         <Text className="text-sm font-extrabold text-[#0F172A]">{title}</Text>
@@ -1103,14 +1477,24 @@ function EmployeeFormSection({
 
 function EmployeeStatusBadge({ status }: { status: string }) {
   const normalized = status.toLowerCase();
-  const isPositive = ['active', 'working', 'on duty', 'available'].includes(normalized);
+  const isPositive = ['active', 'working', 'on duty', 'available'].includes(
+    normalized,
+  );
   const isBreak = normalized === 'break';
   return (
     <Text
       className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${
-        isPositive ? 'bg-[#DCFCE7] text-[#166534]' : isBreak ? '' : 'bg-[#F3F4F6] text-[#4B5563]'
+        isPositive
+          ? 'bg-[#DCFCE7] text-[#166534]'
+          : isBreak
+          ? ''
+          : 'bg-[#F3F4F6] text-[#4B5563]'
       }`}
-      style={isBreak ? { backgroundColor: colors.surfaceSecondary, color: colors.primary } : undefined}
+      style={
+        isBreak
+          ? { backgroundColor: colors.surfaceSecondary, color: colors.primary }
+          : undefined
+      }
     >
       {status}
     </Text>
@@ -1136,12 +1520,15 @@ function EmployeeFormField({
   return (
     <View className="gap-1.5">
       <Text className="text-xs font-semibold text-[#374151]">
-        {label}{required ? ' *' : ''}
+        {label}
+        {required ? ' *' : ''}
       </Text>
       <View className="flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] pr-2">
         <TextInput
           accessibilityLabel={label}
-          autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
+          autoCapitalize={
+            keyboardType === 'email-address' ? 'none' : 'sentences'
+          }
           keyboardType={keyboardType}
           multiline={multiline}
           onChangeText={onChangeText}
@@ -1157,7 +1544,9 @@ function EmployeeFormField({
         />
         {secureTextEntry ? (
           <Pressable
-            accessibilityLabel={`${isPasswordVisible ? 'Hide' : 'Show'} ${name === 'confirm_password' ? 'confirm password' : 'password'}`}
+            accessibilityLabel={`${isPasswordVisible ? 'Hide' : 'Show'} ${
+              name === 'confirm_password' ? 'confirm password' : 'password'
+            }`}
             accessibilityRole="button"
             accessibilityState={{ selected: isPasswordVisible }}
             onPress={() => setIsPasswordVisible(visible => !visible)}
@@ -1262,7 +1651,5 @@ function EmployeeChoiceField({
     </View>
   );
 }
-
-
 
 export default EmployeesPage;
