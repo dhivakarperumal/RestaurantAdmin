@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,6 +12,11 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
+import {
+  ConfirmDialog,
+  DetailsModal,
+  FormModal,
+} from '../../components/popups';
 
 type ReviewStatus = 'Published' | 'Pending';
 type Review = {
@@ -216,6 +219,8 @@ function ReviewsManagementPage({
   const [selectedFoodId, setSelectedFoodId] = useState('');
   const [isFoodPickerOpen, setIsFoodPickerOpen] = useState(false);
   const [draft, setDraft] = useState<ReviewDraft>(emptyDraft);
+  const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadReviews = useCallback(async () => {
     setIsLoading(true);
@@ -484,31 +489,27 @@ function ReviewsManagementPage({
   };
 
   const deleteReview = (review: Review) => {
-    Alert.alert(
-      'Delete review?',
-      `Review ${review.review_id || review.id} will be permanently deleted.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setError('');
-            setNotice('');
-            try {
-              await api.delete(`/reviews/${review.id}`);
-              setReviews(current =>
-                current.filter(item => String(item.id) !== String(review.id)),
-              );
-              await loadReviews();
-              setNotice('Review deleted successfully.');
-            } catch (deleteError) {
-              setError(getErrorMessage(deleteError));
-            }
-          },
-        },
-      ],
-    );
+    setReviewToDelete(review);
+  };
+
+  const confirmDeleteReview = async () => {
+    if (!reviewToDelete) return;
+    setIsDeleting(true);
+    setError('');
+    setNotice('');
+    try {
+      await api.delete(`/reviews/${reviewToDelete.id}`);
+      setReviews(current =>
+        current.filter(item => String(item.id) !== String(reviewToDelete.id)),
+      );
+      await loadReviews();
+      setNotice('Review deleted successfully.');
+      setReviewToDelete(null);
+    } catch (deleteError) {
+      setError(getErrorMessage(deleteError));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const clearFilters = () => {
@@ -761,35 +762,19 @@ function ReviewsManagementPage({
         ) : null}
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsFormOpen(false)}
-        transparent
+      <FormModal
         visible={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={editingReview ? `Edit Review (${editingReview.review_id})` : 'Add Customer Review'}
+        subtitle="Manage customer rating, feedback text, and verified food item"
+        onSave={saveReview}
+        saveLabel={editingReview ? 'Save Changes' : 'Create Review'}
+        cancelLabel="Cancel"
+        isSaving={isSaving}
+        isSaveDisabled={isSaving || isUploading}
+        errorMessage={error}
       >
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="max-h-[94%] rounded-t-3xl bg-white">
-            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-              <View>
-                <Text className="text-lg font-bold text-[#012711]">
-                  {editingReview ? `Edit Review (${editingReview.review_id})` : 'Add customer review'}
-                </Text>
-                <Text className="mt-1 text-xs text-[#6B7280]">
-                  Review photos are saved to the review uploads folder.
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close review form"
-                accessibilityRole="button"
-                onPress={() => setIsFormOpen(false)}
-              >
-                <Text className="text-2xl text-[#6B7280]">×</Text>
-              </Pressable>
-            </View>
-            <ScrollView
-              contentContainerClassName="gap-4 px-5 pb-8 pt-4"
-              keyboardShouldPersistTaps="handled"
-            >
+        <View className="gap-4">
               <View className="gap-2">
                 <Text className="text-sm font-semibold text-[#012711]">Review ID</Text>
                 <View className="min-h-11 justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4">

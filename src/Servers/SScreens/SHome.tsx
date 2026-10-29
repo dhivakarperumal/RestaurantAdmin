@@ -1357,7 +1357,7 @@ function HomeTabContent({
           Fast access to floor tools and shift workflows
         </Text>
 
-        <View className="mt-3 flex-row flex-wrap justify-between gap-y-3">
+        <View className="mt-4 flex-row flex-wrap justify-between gap-y-4">
           {[
             {
               label: 'Floor Tables',
@@ -1609,24 +1609,26 @@ function HomeTabContent({
             return (
               <Pressable
                 key={`${foodName}-${idx}`}
+                accessibilityLabel={`View ${foodName} in the full menu`}
+                accessibilityRole="button"
                 onPress={() => onSelectTab('foods')}
                 style={({ pressed }) => ({
                   backgroundColor: '#FFFFFF',
-                  borderColor: '#E2E8F0',
-                  borderRadius: 18,
+                  borderColor: pressed ? '#B7DDBB' : '#E2E8F0',
+                  borderRadius: 20,
                   borderWidth: 1,
-                  elevation: 2,
-                  opacity: pressed ? 0.92 : 1,
+                  elevation: 3,
+                  opacity: pressed ? 0.9 : 1,
                   overflow: 'hidden',
                   shadowColor: '#0F172A',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 8,
                   width: '48.5%',
                 })}
               >
                 {/* Image Container with Badges */}
-                <View className="relative h-24 w-full bg-[#F1F5F9]">
+                <View className="relative h-32 w-full bg-[#F1F5F9]">
                   {image ? (
                     <Image
                       source={{ uri: image }}
@@ -1640,13 +1642,13 @@ function HomeTabContent({
                   )}
 
                   {/* Veg / Non-Veg Icon Top Left */}
-                  <View className="absolute left-2 top-2 rounded-md bg-white/95 p-1 shadow-sm">
+                  <View className="absolute left-2.5 top-2.5 rounded-lg bg-white/95 p-1.5 shadow-sm">
                     {type === 'veg' ? <VegDotSvg size={12} /> : <NonVegDotSvg size={12} />}
                   </View>
 
                   {/* Popularity Badge Top Right */}
-                  <View className="absolute right-2 top-2 rounded-full bg-[#012711]/85 px-2 py-0.5">
-                    <Text className="text-[9px] font-black text-[#86EFAC]">
+                  <View className="absolute right-2.5 top-2.5 rounded-full bg-[#062D16]/95 px-2.5 py-1">
+                    <Text className="text-[9px] font-black text-[#D1FAE5]">
                       {orderCount > 0
                         ? `🔥 ${orderCount} Orders`
                         : isTopSeller
@@ -1657,11 +1659,11 @@ function HomeTabContent({
                 </View>
 
                 {/* Card Body */}
-                <View className="p-3">
-                  <View className="self-start rounded-md bg-[#FFF7ED] px-2 py-0.5">
+                <View className="p-3.5">
+                  <View className="self-start rounded-full bg-[#FFF7ED] px-2.5 py-1">
                     <Text
                       numberOfLines={1}
-                      className="text-[9.5px] font-extrabold uppercase tracking-wide text-[#EA580C]"
+                      className="text-[9px] font-extrabold uppercase tracking-wide text-[#C2410C]"
                     >
                       {category}
                     </Text>
@@ -1669,18 +1671,18 @@ function HomeTabContent({
 
                   <Text
                     numberOfLines={1}
-                    className="mt-1.5 text-xs font-black text-[#0F172A]"
+                    className="mt-2 text-sm font-black text-[#0F172A]"
                   >
                     {foodName}
                   </Text>
 
-                  <View className="mt-2 flex-row items-center justify-between">
-                    <Text className="text-sm font-black text-[#116C0B]">
+                  <View className="mt-3 flex-row items-center justify-between">
+                    <Text className="text-base font-black text-[#116C0B]">
                       {formatPrice(price)}
                     </Text>
-                    <View className="rounded-lg bg-[#EBF7ED] px-2 py-0.5">
-                      <Text className="text-[10px] font-extrabold text-[#116C0B]">
-                        View ›
+                    <View className="flex-row items-center rounded-xl bg-[#F0FDF4] px-2.5 py-1.5">
+                      <Text className="text-[10px] font-extrabold text-[#15803D]">
+                        View menu
                       </Text>
                     </View>
                   </View>

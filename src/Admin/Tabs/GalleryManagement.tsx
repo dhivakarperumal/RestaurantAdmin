@@ -587,34 +587,19 @@ function GalleryManagementPage({
         )}
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsFormOpen(false)}
-        transparent
+      <FormModal
         visible={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={editingAlbumId ? 'Edit Gallery Album' : 'Add Gallery Album'}
+        subtitle="Manage album details, cover photo, and photo gallery"
+        onSave={saveAlbum}
+        saveLabel={editingAlbumId ? 'Save Changes' : 'Create Album'}
+        cancelLabel="Cancel"
+        isSaving={isSaving}
+        isSaveDisabled={isSaving || uploading}
+        errorMessage={error}
       >
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="max-h-[94%] rounded-t-3xl bg-white">
-            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-              <View>
-                <Text className="text-lg font-bold text-[#1f1d1b]">
-                  {editingAlbumId ? 'Edit gallery album' : 'Add gallery album'}
-                </Text>
-                <Text className="mt-1 text-xs text-[#6B7280]">Album details and photos</Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close album form"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => setIsFormOpen(false)}
-              >
-                <Text className="text-2xl text-[#6B7280]">×</Text>
-              </Pressable>
-            </View>
-            <ScrollView
-              contentContainerClassName="gap-4 px-5 pb-8 pt-4"
-              keyboardShouldPersistTaps="handled"
-            >
+        <View className="gap-4">
               <AlbumField
                 label="Album title"
                 value={draft.title}
@@ -767,106 +752,97 @@ function GalleryManagementPage({
                   {error}
                 </Text>
               ) : null}
-              <Pressable
-                accessibilityLabel={editingAlbumId ? 'Save album changes' : 'Create album'}
-                accessibilityRole="button"
-                disabled={isSaving || uploading}
-                onPress={saveAlbum}
-                className="min-h-12 flex-row items-center justify-center gap-2 rounded-xl bg-[#162420] px-4 py-3"
-                style={({ pressed }) => ({
-                  opacity: isSaving || uploading ? 0.6 : pressed ? 0.85 : 1,
-                })}
-              >
-                {isSaving ? <ActivityIndicator color="#FFFFFF" /> : null}
-                <Text className="text-sm font-bold text-white">
-                  {isSaving
-                    ? 'Saving...'
-                    : editingAlbumId
-                      ? 'Save changes'
-                      : 'Create album'}
-                </Text>
-              </Pressable>
-            </ScrollView>
-          </View>
         </View>
-      </Modal>
+      </FormModal>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setSelectedAlbum(null)}
-        transparent
+      <DetailsModal
         visible={selectedAlbum !== null}
+        onClose={() => setSelectedAlbum(null)}
+        title={selectedAlbum?.title || 'Album Details'}
+        subtitle={
+          selectedAlbum
+            ? `${selectedAlbum.album_id} · ${selectedAlbum.category || 'Uncategorized'}`
+            : undefined
+        }
+        badge={
+          selectedAlbum
+            ? {
+                label: selectedAlbum.status,
+                bg: selectedAlbum.status === 'Active' ? '#F0FDF4' : '#F3F4F6',
+                text: selectedAlbum.status === 'Active' ? '#15803D' : '#6B7280',
+                border: selectedAlbum.status === 'Active' ? '#DCFCE7' : '#E5E7EB',
+              }
+            : undefined
+        }
+        footer={
+          selectedAlbum ? (
+            <Pressable
+              accessibilityLabel={`Edit gallery album ${selectedAlbum.title}`}
+              accessibilityRole="button"
+              onPress={() => {
+                const album = selectedAlbum;
+                setSelectedAlbum(null);
+                openEditForm(album);
+              }}
+              className="h-12 items-center justify-center rounded-xl bg-[#162420]"
+            >
+              <Text className="text-sm font-bold text-white">Edit album</Text>
+            </Pressable>
+          ) : null
+        }
       >
         {selectedAlbum ? (
-          <View className="flex-1 justify-end bg-black/40">
-            <View className="max-h-[85%] rounded-t-3xl bg-white">
-              <View className="flex-row items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-                <View className="flex-1">
-                  <Text className="text-lg font-bold text-[#1f1d1b]">
-                    {selectedAlbum.title}
-                  </Text>
-                  <Text className="mt-1 text-xs text-[#6B7280]">
-                    {selectedAlbum.album_id} · {selectedAlbum.category || 'Uncategorized'}
-                  </Text>
-                </View>
-                <Pressable
-                  accessibilityLabel="Close album details"
-                  accessibilityRole="button"
-                  onPress={() => setSelectedAlbum(null)}
-                >
-                  <Text className="text-2xl text-[#6B7280]">×</Text>
-                </Pressable>
-              </View>
-              <ScrollView contentContainerClassName="gap-4 px-5 pb-8 pt-4">
-                {selectedAlbum.cover_image ? (
-                  <Image
-                    accessibilityLabel="Album cover"
-                    className="h-48 w-full rounded-xl bg-[#F3F4F6]"
-                    resizeMode="cover"
-                    source={{ uri: resolveImageUrl(selectedAlbum.cover_image) }}
-                  />
-                ) : null}
-                <Text className="text-sm leading-5 text-[#4B5563]">
-                  {selectedAlbum.description ||
-                    selectedAlbum.short_description ||
-                    'No album description.'}
-                </Text>
-                <Text className="text-xs text-[#6B7280]">
-                  {selectedAlbum.status} · {selectedAlbum.photo_count} photos
-                  {selectedAlbum.created_at
-                    ? ` · ${new Date(selectedAlbum.created_at).toLocaleDateString()}`
-                    : ''}
-                </Text>
-                {selectedAlbum.photos.length ? (
-                  <View className="flex-row flex-wrap gap-2">
-                    {selectedAlbum.photos.map((photo, index) => (
-                      <Image
-                        key={`${photo}-${index}`}
-                        accessibilityLabel={`Album photo ${index + 1}`}
-                        className="h-24 w-[31%] rounded-lg bg-[#F3F4F6]"
-                        resizeMode="cover"
-                        source={{ uri: resolveImageUrl(photo) }}
-                      />
-                    ))}
-                  </View>
-                ) : null}
-                <Pressable
-                  accessibilityLabel={`Edit gallery album ${selectedAlbum.title}`}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    const album = selectedAlbum;
-                    setSelectedAlbum(null);
-                    openEditForm(album);
-                  }}
-                  className="min-h-11 items-center justify-center rounded-xl bg-[#162420]"
-                >
-                  <Text className="text-sm font-bold text-white">Edit album</Text>
-                </Pressable>
-              </ScrollView>
+          <View className="gap-4">
+            {selectedAlbum.cover_image ? (
+              <Image
+                accessibilityLabel="Album cover"
+                className="h-48 w-full rounded-2xl bg-[#F3F4F6]"
+                resizeMode="cover"
+                source={{ uri: resolveImageUrl(selectedAlbum.cover_image) }}
+              />
+            ) : null}
+            <Text className="text-sm leading-5 text-[#4B5563]">
+              {selectedAlbum.description ||
+                selectedAlbum.short_description ||
+                'No album description.'}
+            </Text>
+            <View className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+              <Text className="text-xs text-[#6B7280]">
+                {selectedAlbum.photo_count} photos
+                {selectedAlbum.created_at
+                  ? ` · Created on ${new Date(selectedAlbum.created_at).toLocaleDateString()}`
+                  : ''}
+              </Text>
             </View>
+            {selectedAlbum.photos.length ? (
+              <View className="flex-row flex-wrap gap-2">
+                {selectedAlbum.photos.map((photo, index) => (
+                  <Image
+                    key={`${photo}-${index}`}
+                    accessibilityLabel={`Album photo ${index + 1}`}
+                    className="h-24 w-[31%] rounded-xl bg-[#F3F4F6]"
+                    resizeMode="cover"
+                    source={{ uri: resolveImageUrl(photo) }}
+                  />
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
-      </Modal>
+      </DetailsModal>
+
+      <ConfirmDialog
+        visible={albumToDelete !== null}
+        onClose={() => setAlbumToDelete(null)}
+        onConfirm={confirmDeleteAlbum}
+        title="Delete gallery album?"
+        itemName={albumToDelete?.title || albumToDelete?.album_id}
+        message="This album and its associated photo records will be permanently removed."
+        confirmLabel="Delete Album"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        isLoading={isDeleting}
+      />
     </>
   );
 }
