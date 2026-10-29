@@ -462,7 +462,13 @@ function GalleryManagementPage({
           <GalleryStat label="Inactive albums" value={inactiveAlbums} />
         </View>
 
-        <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
+        <View
+          className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
+          style={{
+            zIndex: openFilter ? 10 : 1,
+            elevation: openFilter ? 10 : 0,
+          }}
+        >
           <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
             <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
               <SearchIcon color="#9CA3AF" size={17} />
@@ -475,7 +481,13 @@ function GalleryManagementPage({
                 value={search}
               />
             </View>
-            <View className="flex-row items-end gap-2">
+            <View
+              className="flex-row items-end gap-2"
+              style={{
+                zIndex: openFilter ? 20 : 1,
+                elevation: openFilter ? 20 : 0,
+              }}
+            >
               <View className="flex-1 flex-row gap-2">
                 <ManagementDropdown
                   label="Category"
@@ -1189,7 +1201,13 @@ function ManagementDropdown({
     options.find(option => option.value === selected)?.label ??
     options[0]?.label;
   return (
-    <View className="min-w-[90px] flex-1" style={{ zIndex: open ? 10 : 1 }}>
+    <View
+      className="min-w-[90px] flex-1"
+      style={{
+        zIndex: open ? 30 : 1,
+        elevation: open ? 30 : 0,
+      }}
+    >
       <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
       <Pressable
         accessibilityLabel={`${label}: ${selectedLabel}`}
@@ -1206,7 +1224,7 @@ function ManagementDropdown({
       {open ? (
         <View
           className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white"
-          style={{ elevation: 8 }}
+          style={{ zIndex: 40, elevation: 40 }}
         >
           {options.map(option => (
             <Pressable

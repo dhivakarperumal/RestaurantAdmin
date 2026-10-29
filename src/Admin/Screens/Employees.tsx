@@ -1167,6 +1167,9 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
             (Boolean(editorEmployeeId) && !editorDetailsLoaded)
           }
           errorMessage={editorError}
+          maxWidth={520}
+          maxHeightPercent={94}
+          contentContainerStyle={{ gap: 12, padding: 14 }}
           footerExtra={
             <View className="flex-row gap-3">
               <Pressable
@@ -1280,7 +1283,10 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
               </EmployeeFormSection>
 
               {formValues.employee_type === 'Chef' ? (
-                <EmployeeFormSection number="3" title="Culinary details">
+                <EmployeeFormSection
+                  number={editorEmployeeId ? '2' : '3'}
+                  title="Culinary details"
+                >
                   <EmployeeChoiceField
                     label="Cuisine type"
                     multiple={false}
@@ -1317,7 +1323,10 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
               ) : null}
 
               {formValues.employee_type === 'Delivery Partner' ? (
-                <EmployeeFormSection number="3" title="Vehicle & schedule">
+                <EmployeeFormSection
+                  number={editorEmployeeId ? '2' : '3'}
+                  title="Vehicle & schedule"
+                >
                   <EmployeeChoiceField
                     label="Vehicle type"
                     multiple={false}
@@ -1370,7 +1379,10 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
                 </EmployeeFormSection>
               ) : null}
 
-              <EmployeeFormSection number="4" title="Location & address">
+              <EmployeeFormSection
+                number={editorEmployeeId ? '3' : '4'}
+                title="Location & address"
+              >
                 {locationFields.map(field => (
                   <EmployeeFormField
                     key={field.name}
@@ -1400,7 +1412,10 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
                 ) : null}
               </EmployeeFormSection>
 
-              <EmployeeFormSection number="5" title="Bank & payment details">
+              <EmployeeFormSection
+                number={editorEmployeeId ? '4' : '5'}
+                title="Bank & payment details"
+              >
                 {bankFields.map(field => (
                   <EmployeeFormField
                     key={field.name}
@@ -1413,7 +1428,10 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
 
               {formValues.employee_type !== 'Delivery Partner' ||
               formValues.salary_type === 'Monthly Basis' ? (
-                <EmployeeFormSection number="6" title="Compensation & payroll">
+                <EmployeeFormSection
+                  number={editorEmployeeId ? '5' : '6'}
+                  title="Compensation & payroll"
+                >
                   {salaryFields.map(field => (
                     <EmployeeFormField
                       key={field.name}
@@ -1469,7 +1487,7 @@ function EmployeeFormSection({
         ) : null}
         <Text className="text-sm font-extrabold text-[#0F172A]">{title}</Text>
       </View>
-      {children}
+      <View className="gap-3">{children}</View>
     </View>
   );
 }

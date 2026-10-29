@@ -385,6 +385,9 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
           isSaving={isSaving}
           isSaveDisabled={isSaving || isUploadingImage}
           errorMessage={formError}
+          maxWidth={520}
+          maxHeightPercent={94}
+          contentContainerStyle={{ gap: 12, padding: 14 }}
           footerExtra={
             <View className="flex-row gap-3">
               <Pressable
@@ -430,7 +433,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                 </Text>
                 <TextInput
                   accessibilityLabel="Table number"
-                  className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
+                  className="min-h-10 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A]"
                   onChangeText={setTableNumber}
                   placeholder="e.g. T-12 or 5"
                   placeholderTextColor={colors.textSecondary}
@@ -443,13 +446,25 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                 </Text>
                 <TextInput
                   accessibilityLabel="Number of seats"
-                  className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
+                  className="min-h-10 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A]"
                   keyboardType="number-pad"
                   onChangeText={setSeatCount}
                   placeholder="e.g. 4"
                   placeholderTextColor={colors.textSecondary}
                   value={seatCount}
                 />
+              </View>
+            </View>
+            <View className="gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+              <View className="flex-row items-center gap-2">
+                <View className="h-6 w-6 items-center justify-center rounded-full bg-[#15803D]">
+                  <Text className="text-[11px] font-extrabold text-white">
+                    2
+                  </Text>
+                </View>
+                <Text className="text-sm font-extrabold text-[#0F172A]">
+                  Table image
+                </Text>
               </View>
               <View className="gap-2">
                 <Text className="mb-1 text-xs font-bold text-[#374151]">
