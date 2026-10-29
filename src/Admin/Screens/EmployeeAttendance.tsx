@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   Share,
@@ -18,6 +16,7 @@ import DateTimePicker, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import api from '../../../api';
+import { DetailsModal, FormModal } from '../../components/popups';
 
 type AttendanceRecord = {
   employee_id: string | number;
@@ -769,307 +768,220 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
         </View>
       )}
 
-      <Modal
-        animationType="slide"
-        navigationBarTranslucent
-        onRequestClose={() => {
-          if (!isSaving) setForm(null);
-        }}
-        statusBarTranslucent
-        transparent
+      <FormModal
         visible={form !== null}
+        onClose={() => {
+          if (!isSaving) {
+            setActivePicker(null);
+            setForm(null);
+          }
+        }}
+        title="Edit Attendance"
+        subtitle={`${form?.employee_name || 'Staff'} · ${form?.employee_id || ''}`}
+        onSave={saveRecord}
+        saveLabel="Save Record"
+        cancelLabel="Cancel"
+        isSaving={isSaving}
+        errorMessage={formError}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
-        >
-          <View className="flex-1 justify-end bg-black/50">
-            <SafeAreaView
-              edges={['bottom']}
-              className="max-h-[90%] w-full rounded-t-3xl bg-white"
-            >
-              <ScrollView
-                contentContainerClassName="p-5"
-                keyboardShouldPersistTaps="handled"
-              >
-                <Text className="text-lg font-bold text-[#012711]">
-                  Edit attendance
-                </Text>
-                <Text className="mt-1 text-xs text-[#6B7280]">
-                  {form?.employee_name} · {form?.employee_id}
-                </Text>
-                <PickerButton
-                  accessibilityLabel="Select attendance date"
-                  label="Attendance date"
-                  value={displayDate(form?.date || '')}
-                  onPress={() => setActivePicker({ field: 'date', mode: 'date' })}
-                />
-                <Text className="mt-4 text-xs font-semibold text-[#374151]">Status</Text>
-                <View className="mt-2 flex-row flex-wrap gap-2">
-                  {recordStatuses.map(status => (
-                    <FilterChip
-                      key={status}
-                      label={status}
-                      accessibilityLabel={`Set attendance status ${status}`}
-                      selected={form?.status === status}
-                      onPress={() =>
-                        setForm(current =>
-                          current ? { ...current, status } : current,
-                        )
-                      }
-                    />
-                  ))}
-                </View>
-                {(['check_in', 'check_out'] as const).map(field => {
-                  const label = field === 'check_in' ? 'Clock-in' : 'Clock-out';
-                  const value = form?.[field] || '';
-                  return (
-                    <View key={field} className="mt-4">
-                      <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
-                        {label}
-                      </Text>
-                      <View className="flex-row gap-2">
-                        <PickerButton
-                          accessibilityLabel={`Select ${label.toLowerCase()} date`}
-                          label="Date"
-                          value={displayDate(value)}
-                          onPress={() =>
-                            setActivePicker({ field, mode: 'date' })
-                          }
-                        />
-                        <PickerButton
-                          accessibilityLabel={`Select ${label.toLowerCase()} time`}
-                          label="Time"
-                          value={displayTime(value)}
-                          onPress={() =>
-                            setActivePicker({ field, mode: 'time' })
-                          }
-                        />
-                      </View>
-                    </View>
-                  );
-                })}
-                {activePicker && form ? (
-                  <View className="mt-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3">
-                    <Text className="mb-2 text-xs font-semibold text-[#374151]">
-                      Select {activePicker.mode === 'date' ? 'date' : 'time'}
-                    </Text>
-                    <DateTimePicker
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      mode={activePicker.mode}
-                      onChange={handlePickerChange}
-                      value={
-                        activePicker.field === 'date'
-                          ? parseLocalDateTime(form.date) || new Date()
-                          : parseLocalDateTime(form[activePicker.field]) ||
-                            parseLocalDateTime(form.date) ||
-                            new Date()
-                      }
-                    />
-                    {Platform.OS === 'ios' ? (
-                      <Pressable
-                        accessibilityLabel="Done selecting date or time"
-                        accessibilityRole="button"
-                        onPress={() => setActivePicker(null)}
-                        className="mt-2 self-end rounded-lg bg-[#1F4E42] px-4 py-2"
-                      >
-                        <Text className="text-xs font-bold text-white">Done</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ) : null}
-                <Text className="mt-4 text-xs font-semibold text-[#374151]">Notes / remarks</Text>
-                <TextInput
-                  accessibilityLabel="Attendance notes"
-                  className="mt-2 min-h-20 rounded-xl border border-[#D1D5DB] px-3 py-2.5 text-sm text-[#111827]"
-                  multiline
-                  onChangeText={value =>
-                    setForm(current =>
-                      current ? { ...current, notes: value } : current,
-                    )
-                  }
-                  placeholder="Optional notes"
-                  textAlignVertical="top"
-                  value={form?.notes || ''}
-                />
-                {formError ? (
-                  <Text accessibilityRole="alert" className="mt-3 text-sm text-[#B91C1C]">
-                    {formError}
-                  </Text>
-                ) : null}
-                <View className="mt-5 flex-row justify-end gap-2">
-                  <SmallAction
-                    label="Cancel"
-                    onPress={() => {
-                      setActivePicker(null);
-                      setForm(null);
-                    }}
-                  />
-                  <Pressable
-                    accessibilityLabel="Save attendance record"
-                    accessibilityRole="button"
-                    disabled={isSaving}
-                    onPress={saveRecord}
-                    className="min-w-[120px] flex-row items-center justify-center gap-2 rounded-xl bg-[#1F4E42] px-4 py-2.5"
-                  >
-                    {isSaving ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
-                    <Text className="text-xs font-bold text-white">
-                      {isSaving ? 'Saving...' : 'Save record'}
-                    </Text>
-                  </Pressable>
-                </View>
-              </ScrollView>
-            </SafeAreaView>
+        <View className="gap-3">
+          <PickerButton
+            accessibilityLabel="Select attendance date"
+            label="Attendance date"
+            value={displayDate(form?.date || '')}
+            onPress={() => setActivePicker({ field: 'date', mode: 'date' })}
+          />
+          <Text className="mt-2 text-xs font-semibold text-[#374151]">Status</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {recordStatuses.map(status => (
+              <FilterChip
+                key={status}
+                label={status}
+                accessibilityLabel={`Set attendance status ${status}`}
+                selected={form?.status === status}
+                onPress={() =>
+                  setForm(current =>
+                    current ? { ...current, status } : current,
+                  )
+                }
+              />
+            ))}
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal
-        animationType="slide"
-        navigationBarTranslucent
-        onRequestClose={() => setHistoryEmployee(null)}
-        statusBarTranslucent
-        transparent
-        visible={historyEmployee !== null}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <SafeAreaView
-            edges={['bottom']}
-            className="max-h-[88%] w-full rounded-t-3xl bg-white"
-          >
-            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4">
-              <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-[#E8F3EE]">
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M8 3v3m8-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 9 2 2 4-4"
-                    stroke="#1F4E42"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.8}
-                  />
-                </Svg>
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-bold text-[#172033]">Attendance History</Text>
-                <Text className="mt-1 text-xs text-[#667085]">
-                  {historyEmployee?.full_name} · {historyEmployee?.employee_id}
+          {(['check_in', 'check_out'] as const).map(field => {
+            const label = field === 'check_in' ? 'Clock-in' : 'Clock-out';
+            const value = form?.[field] || '';
+            return (
+              <View key={field} className="mt-2">
+                <Text className="mb-1 text-xs font-semibold text-[#374151]">
+                  {label}
                 </Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close attendance history"
-                accessibilityRole="button"
-                onPress={() => setHistoryEmployee(null)}
-                className="h-10 w-10 items-center justify-center rounded-full"
-              >
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="m18 6-12 12M6 6l12 12"
-                    stroke="#667085"
-                    strokeLinecap="round"
-                    strokeWidth={2}
+                <View className="flex-row gap-2">
+                  <PickerButton
+                    accessibilityLabel={`Select ${label.toLowerCase()} date`}
+                    label="Date"
+                    value={displayDate(value)}
+                    onPress={() =>
+                      setActivePicker({ field, mode: 'date' })
+                    }
                   />
-                </Svg>
-              </Pressable>
-            </View>
-            {isLoadingHistory ? (
-              <View className="items-center justify-center p-10">
-                <ActivityIndicator color="#116C0B" />
-                <Text className="mt-3 text-xs text-[#667085]">Loading attendance history...</Text>
+                  <PickerButton
+                    accessibilityLabel={`Select ${label.toLowerCase()} time`}
+                    label="Time"
+                    value={displayTime(value)}
+                    onPress={() =>
+                      setActivePicker({ field, mode: 'time' })
+                    }
+                  />
+                </View>
               </View>
-            ) : historyError ? (
-              <Text accessibilityRole="alert" className="p-5 text-center text-sm text-[#B91C1C]">
-                {historyError}
+            );
+          })}
+          {activePicker && form ? (
+            <View className="mt-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+              <Text className="mb-2 text-xs font-semibold text-[#374151]">
+                Select {activePicker.mode === 'date' ? 'date' : 'time'}
               </Text>
-            ) : historyRecords.length ? (
-              <ScrollView
-                contentContainerClassName="px-4 pb-5 pt-4"
-                showsVerticalScrollIndicator={false}
-              >
-                <ScrollView horizontal showsHorizontalScrollIndicator>
-                  <View className="overflow-hidden rounded-2xl border border-[#DDE5E1]">
-                    <View className="flex-row border-b border-[#1F4E42] bg-[#E8F3EE]">
-                      <HistoryTableHeader label="Date" width={112} />
-                      <HistoryTableHeader label="Clock in" width={108} />
-                      <HistoryTableHeader label="Clock out" width={108} />
-                      <HistoryTableHeader label="Duration" width={104} />
-                      <HistoryTableHeader label="Status" width={102} />
-                      <HistoryTableHeader label="Notes" width={136} />
-                      <View className="w-12" />
-                    </View>
-                    {historyRecords.map((record, index) => {
-                      const status = record.attendance_status || 'Present';
-                      const statusClass =
-                        status === 'Absent' || status === 'On Leave'
-                          ? 'bg-[#FEE2E2] text-[#B91C1C]'
-                          : status === 'Late'
-                            ? 'bg-[#FEF3C7] text-[#92400E]'
-                            : 'bg-[#D1FAE5] text-[#047857]';
-
-                      return (
-                        <View
-                          key={`${record.attendance_record_id ?? record.attendance_id ?? index}`}
-                          className={`min-h-[54px] flex-row items-center border-b border-[#EEF1F4] ${
-                            index % 2 === 0 ? 'bg-white' : 'bg-[#FCFDFC]'
-                          }`}
-                        >
-                          <Text className="w-[112px] px-3 text-xs font-bold text-[#172033]">
-                            {formatAttendanceDate(record.attendance_date)}
-                          </Text>
-                          <Text className="w-[108px] px-3 text-xs text-[#475467]">
-                            {record.check_in ? formatTime(record.check_in) : '—'}
-                          </Text>
-                          <Text className="w-[108px] px-3 text-xs text-[#475467]">
-                            {record.check_out
-                              ? formatTime(record.check_out)
-                              : record.check_in
-                                ? 'Working'
-                                : '—'}
-                          </Text>
-                          <Text className="w-[104px] px-3 font-mono text-xs text-[#344054]">
-                            {formatHistoryDuration(record)}
-                          </Text>
-                          <View className="w-[102px] px-3">
-                            <Text
-                              className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}
-                            >
-                              {status}
-                            </Text>
-                          </View>
-                          <Text
-                            numberOfLines={2}
-                            className="w-[136px] px-3 text-xs text-[#667085]"
-                          >
-                            {record.notes || '—'}
-                          </Text>
-                          <View className="w-12 items-center">
-                            <AttendanceIconAction
-                              accessibilityLabel={`Edit attendance for ${historyEmployee?.full_name || historyEmployee?.employee_id} on ${formatAttendanceDate(record.attendance_date)}`}
-                              icon="edit"
-                              onPress={() => {
-                                setHistoryEmployee(null);
-                                openRecordForm(record);
-                              }}
-                            />
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-              </ScrollView>
-            ) : (
-              <View className="items-center px-6 py-10">
-                <Text className="text-sm font-semibold text-[#344054]">
-                  No attendance history yet
-                </Text>
-                <Text className="mt-1 text-center text-xs text-[#667085]">
-                  Attendance records for this employee will appear here.
-                </Text>
-              </View>
-            )}
-          </SafeAreaView>
+              <DateTimePicker
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                mode={activePicker.mode}
+                onChange={handlePickerChange}
+                value={
+                  activePicker.field === 'date'
+                    ? parseLocalDateTime(form.date) || new Date()
+                    : parseLocalDateTime(form[activePicker.field]) ||
+                      parseLocalDateTime(form.date) ||
+                      new Date()
+                }
+              />
+              {Platform.OS === 'ios' ? (
+                <Pressable
+                  accessibilityLabel="Done selecting date or time"
+                  accessibilityRole="button"
+                  onPress={() => setActivePicker(null)}
+                  className="mt-2 self-end rounded-lg bg-[#116C0B] px-4 py-2"
+                >
+                  <Text className="text-xs font-bold text-white">Done</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+          <Text className="mt-2 text-xs font-semibold text-[#374151]">Notes / remarks</Text>
+          <TextInput
+            accessibilityLabel="Attendance notes"
+            className="min-h-[80px] rounded-xl border border-[#D1D5DB] px-3 py-2.5 text-sm text-[#111827]"
+            multiline
+            numberOfLines={3}
+            onChangeText={value =>
+              setForm(current =>
+                current ? { ...current, notes: value } : current,
+              )
+            }
+            placeholder="Optional notes"
+            textAlignVertical="top"
+            value={form?.notes || ''}
+          />
         </View>
-      </Modal>
+      </FormModal>
+
+      <DetailsModal
+        visible={historyEmployee !== null}
+        onClose={() => setHistoryEmployee(null)}
+        title="Attendance History"
+        subtitle={`${historyEmployee?.full_name || 'Staff'} · ${historyEmployee?.employee_id || ''}`}
+        maxWidth={720}
+      >
+        {isLoadingHistory ? (
+          <View className="items-center justify-center p-10">
+            <ActivityIndicator color="#116C0B" />
+            <Text className="mt-3 text-xs text-[#667085]">Loading attendance history...</Text>
+          </View>
+        ) : historyError ? (
+          <Text accessibilityRole="alert" className="p-5 text-center text-sm text-[#B91C1C]">
+            {historyError}
+          </Text>
+        ) : historyRecords.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator>
+            <View className="overflow-hidden rounded-2xl border border-[#DDE5E1]">
+              <View className="flex-row border-b border-[#1F4E42] bg-[#E8F3EE]">
+                <HistoryTableHeader label="Date" width={112} />
+                <HistoryTableHeader label="Clock in" width={108} />
+                <HistoryTableHeader label="Clock out" width={108} />
+                <HistoryTableHeader label="Duration" width={104} />
+                <HistoryTableHeader label="Status" width={102} />
+                <HistoryTableHeader label="Notes" width={136} />
+                <View className="w-12" />
+              </View>
+              {historyRecords.map((record, index) => {
+                const status = record.attendance_status || 'Present';
+                const statusClass =
+                  status === 'Absent' || status === 'On Leave'
+                    ? 'bg-[#FEE2E2] text-[#B91C1C]'
+                    : status === 'Late'
+                      ? 'bg-[#FEF3C7] text-[#92400E]'
+                      : 'bg-[#D1FAE5] text-[#047857]';
+
+                return (
+                  <View
+                    key={`${record.attendance_record_id ?? record.attendance_id ?? index}`}
+                    className={`min-h-[54px] flex-row items-center border-b border-[#EEF1F4] ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-[#FCFDFC]'
+                    }`}
+                  >
+                    <Text className="w-[112px] px-3 text-xs font-bold text-[#172033]">
+                      {formatAttendanceDate(record.attendance_date)}
+                    </Text>
+                    <Text className="w-[108px] px-3 text-xs text-[#475467]">
+                      {record.check_in ? formatTime(record.check_in) : '—'}
+                    </Text>
+                    <Text className="w-[108px] px-3 text-xs text-[#475467]">
+                      {record.check_out
+                        ? formatTime(record.check_out)
+                        : record.check_in
+                          ? 'Working'
+                          : '—'}
+                    </Text>
+                    <Text className="w-[104px] px-3 font-mono text-xs text-[#344054]">
+                      {formatHistoryDuration(record)}
+                    </Text>
+                    <View className="w-[102px] px-3">
+                      <Text
+                        className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}
+                      >
+                        {status}
+                      </Text>
+                    </View>
+                    <Text
+                      numberOfLines={2}
+                      className="w-[136px] px-3 text-xs text-[#667085]"
+                    >
+                      {record.notes || '—'}
+                    </Text>
+                    <View className="w-12 items-center">
+                      <AttendanceIconAction
+                        accessibilityLabel={`Edit attendance for ${historyEmployee?.full_name || historyEmployee?.employee_id} on ${formatAttendanceDate(record.attendance_date)}`}
+                        icon="edit"
+                        onPress={() => {
+                          setHistoryEmployee(null);
+                          openRecordForm(record);
+                        }}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        ) : (
+          <View className="items-center px-6 py-10">
+            <Text className="text-sm font-semibold text-[#344054]">
+              No attendance history yet
+            </Text>
+            <Text className="mt-1 text-center text-xs text-[#667085]">
+              Attendance records for this employee will appear here.
+            </Text>
+          </View>
+        )}
+      </DetailsModal>
       </View>
     </ScrollView>
   );

@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
-  Modal,
   Pressable,
-  Platform,
   RefreshControl,
   ScrollView,
   Text,
@@ -16,6 +13,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
+import { FormModal } from '../../components/popups';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
@@ -306,112 +304,70 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
           </Text>
         </View>
 
-        <Modal
-          animationType="slide"
-          onRequestClose={() => setIsFormOpen(false)}
-          transparent
+        <FormModal
           visible={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          title="Add New Table"
+          subtitle="Set table number, capacity, and seating picture"
+          onSave={addTable}
+          saveLabel="Save Table"
+          cancelLabel="Cancel"
+          isSaving={isSaving}
+          isSaveDisabled={isSaving || isUploadingImage}
+          errorMessage={formError}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1 justify-end"
-          >
-            <Pressable
-              accessibilityLabel="Close add table sheet"
-              accessibilityRole="button"
-              onPress={() => setIsFormOpen(false)}
-              className="absolute inset-0"
-            />
-            <View className="max-h-[90%] rounded-t-3xl bg-white">
-              <ScrollView
-                keyboardDismissMode="on-drag"
-                keyboardShouldPersistTaps="handled"
-                contentContainerClassName="gap-3 px-5 pb-8 pt-5"
-              >
-                <View className="mb-1 flex-row items-center justify-between">
-                  <Text className="text-base font-bold text-[#012711]">
-                    Add new table
-                  </Text>
-                  <Pressable
-                    accessibilityLabel="Close add table sheet"
-                    accessibilityRole="button"
-                    onPress={() => setIsFormOpen(false)}
-                    className="rounded-lg px-3 py-2"
-                  >
-                    <Text className="font-semibold text-[#6B7280]">Close</Text>
-                  </Pressable>
-                </View>
-                <TextInput
-                  accessibilityLabel="Table number"
-                  className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-                  onChangeText={setTableNumber}
-                  placeholder="Table number"
-                  placeholderTextColor={colors.textSecondary}
-                  value={tableNumber}
-                />
-                <TextInput
-                  accessibilityLabel="Number of seats"
-                  className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
-                  keyboardType="number-pad"
-                  onChangeText={setSeatCount}
-                  placeholder="Number of seats"
-                  placeholderTextColor={colors.textSecondary}
-                  value={seatCount}
-                />
-                <View className="gap-2">
-                  <Pressable
-                    accessibilityLabel="Upload table image"
-                    accessibilityRole="button"
-                    disabled={isUploadingImage}
-                    onPress={chooseImage}
-                    className="self-start rounded-xl border border-[#D1D5DB] px-4 py-3"
-                  >
-                    <Text className="font-semibold text-[#116C0B]">
-                      {isUploadingImage
-                        ? 'Uploading image...'
-                        : imageUrl
-                        ? 'Change image'
-                        : 'Upload image'}
-                    </Text>
-                  </Pressable>
-                  {imageUrl ? (
-                    <Image
-                      accessibilityLabel="Table image preview"
-                      resizeMode="cover"
-                      source={{ uri: resolveImageUrl(imageUrl) }}
-                      className="h-24 w-24 rounded-xl bg-[#F3F4F6]"
-                    />
-                  ) : null}
-                </View>
-                {formError ? (
-                  <Text
-                    accessibilityRole="alert"
-                    className="text-sm text-[#DC2626]"
-                  >
-                    {formError}
-                  </Text>
-                ) : null}
-                <Pressable
-                  accessibilityLabel="Save table"
-                  accessibilityRole="button"
-                  disabled={isSaving || isUploadingImage}
-                  onPress={addTable}
-                  className={`items-center rounded-xl bg-[#116C0B] px-4 py-3 ${
-                    isSaving ? 'opacity-[0.65]' : 'opacity-100'
-                  }`}
-                >
-                  <Text className="font-semibold text-white">
-                    {isSaving
-                      ? 'Saving...'
-                      : isUploadingImage
-                      ? 'Uploading image...'
-                      : 'Save Table'}
-                  </Text>
-                </Pressable>
-              </ScrollView>
+          <View className="gap-3">
+            <View>
+              <Text className="mb-1 text-xs font-bold text-[#374151]">Table number *</Text>
+              <TextInput
+                accessibilityLabel="Table number"
+                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
+                onChangeText={setTableNumber}
+                placeholder="e.g. T-12 or 5"
+                placeholderTextColor={colors.textSecondary}
+                value={tableNumber}
+              />
             </View>
-          </KeyboardAvoidingView>
-        </Modal>
+            <View>
+              <Text className="mb-1 text-xs font-bold text-[#374151]">Number of seats *</Text>
+              <TextInput
+                accessibilityLabel="Number of seats"
+                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-base text-[#012711]"
+                keyboardType="number-pad"
+                onChangeText={setSeatCount}
+                placeholder="e.g. 4"
+                placeholderTextColor={colors.textSecondary}
+                value={seatCount}
+              />
+            </View>
+            <View className="gap-2">
+              <Text className="mb-1 text-xs font-bold text-[#374151]">Table photo (optional)</Text>
+              <Pressable
+                accessibilityLabel="Upload table image"
+                accessibilityRole="button"
+                disabled={isUploadingImage}
+                onPress={chooseImage}
+                className="self-start rounded-xl border border-[#D1D5DB] bg-[#F9FAFB] px-4 py-3"
+              >
+                <Text className="font-semibold text-[#116C0B]">
+                  {isUploadingImage
+                    ? 'Uploading image...'
+                    : imageUrl
+                    ? 'Change image'
+                    : 'Choose table image'}
+                </Text>
+              </Pressable>
+              {imageUrl ? (
+                <Image
+                  accessibilityLabel="Table image preview"
+                  resizeMode="cover"
+                  source={{ uri: resolveImageUrl(imageUrl) }}
+                  className="h-24 w-24 rounded-xl bg-[#F3F4F6]"
+                />
+              ) : null}
+            </View>
+          </View>
+        </FormModal>
 
         <TextInput
           accessibilityLabel="Search tables"

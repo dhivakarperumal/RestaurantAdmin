@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,6 +12,11 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
+import {
+  ConfirmDialog,
+  DetailsModal,
+  FormModal,
+} from '../../components/popups';
 
 type AlbumStatus = 'Active' | 'Inactive';
 type Album = {
@@ -116,6 +119,8 @@ function GalleryManagementPage({
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [draft, setDraft] = useState<AlbumDraft>(emptyDraft);
+  const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadAlbums = useCallback(async () => {
     setIsLoading(true);
@@ -320,30 +325,26 @@ function GalleryManagementPage({
   };
 
   const deleteAlbum = (album: Album) => {
-    Alert.alert(
-      'Delete album?',
-      `“${album.title || album.album_id}” will be permanently deleted.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setError('');
-            setNotice('');
-            try {
-              await api.delete(`/gallery/${album.album_id}`);
-              setAlbums(current =>
-                current.filter(item => item.album_id !== album.album_id),
-              );
-              setNotice('Gallery album deleted.');
-            } catch (deleteError) {
-              setError(getErrorMessage(deleteError));
-            }
-          },
-        },
-      ],
-    );
+    setAlbumToDelete(album);
+  };
+
+  const confirmDeleteAlbum = async () => {
+    if (!albumToDelete) return;
+    setIsDeleting(true);
+    setError('');
+    setNotice('');
+    try {
+      await api.delete(`/gallery/${albumToDelete.album_id}`);
+      setAlbums(current =>
+        current.filter(item => item.album_id !== albumToDelete.album_id),
+      );
+      setNotice('Gallery album deleted.');
+      setAlbumToDelete(null);
+    } catch (deleteError) {
+      setError(getErrorMessage(deleteError));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const removePhoto = (photoToRemove: string) => {

@@ -91,15 +91,19 @@ function foodIdValue(food: FoodRow): string | number | undefined {
 
 function foodCartKey(food: FoodRow): string {
   const id = foodIdValue(food);
+  const variant = JSON.stringify({
+    addons: food.selected_addons ?? [],
+    customizations: food.selected_customizations ?? {},
+  });
   if (id !== undefined) {
-    return `id:${String(id).trim().toLowerCase()}`;
+    return `id:${String(id).trim().toLowerCase()}|variant:${variant}`;
   }
 
   const name = textValue(food, ['food_name', 'name', 'product_name'], '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
-  return `name:${name}`;
+  return `name:${name}|variant:${variant}`;
 }
 
 function priceValue(row: FoodRow): number {

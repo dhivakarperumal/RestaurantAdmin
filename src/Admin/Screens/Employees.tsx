@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -13,6 +12,7 @@ import Svg, { Path } from 'react-native-svg';
 import colors from '../../theme/colors';
 import api from '../../../api';
 import AssignServerTables from './AssignServerTables';
+import { FormModal } from '../../components/popups';
 
 type ApiEmployee = {
   employee_id?: string | number;
@@ -760,45 +760,33 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
           <Text className="text-sm font-semibold text-[#116C0B]">Back to More</Text>
         </Pressable>
       ) : null}
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsEditorOpen(false)}
-        transparent
+      <FormModal
         visible={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        title={editorEmployeeId ? 'Edit Employee' : 'Add New Employee'}
+        subtitle={
+          editorEmployeeId
+            ? `Update ${formValues.full_name || 'employee'} details`
+            : 'Create a staff profile with login and payroll details'
+        }
+        onSave={saveEmployee}
+        saveLabel={editorEmployeeId ? 'Save Changes' : 'Create Employee'}
+        cancelLabel="Cancel"
+        isSaving={isSavingEmployee}
+        isSaveDisabled={
+          isSavingEmployee ||
+          isEditorLoading ||
+          (Boolean(editorEmployeeId) && !editorDetailsLoaded)
+        }
+        errorMessage={editorError}
       >
-        <View className="flex-1 justify-end bg-[#11182799]">
-          <SafeAreaView edges={['bottom']} className="max-h-[94%] rounded-t-3xl bg-[#F9FAFB]">
-            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] bg-white px-5 py-4">
-              <View className="flex-1 pr-3">
-                <Text className="text-lg font-bold text-[#012711]">
-                  {editorEmployeeId ? 'Edit employee' : 'Add new employee'}
-                </Text>
-                <Text className="mt-1 text-xs text-[#6B7280]">
-                  {editorEmployeeId
-                    ? `Update ${formValues.full_name || 'employee'} details`
-                    : 'Create a staff profile with login and payroll details'}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close employee form"
-                accessibilityRole="button"
-                disabled={isSavingEmployee}
-                onPress={() => setIsEditorOpen(false)}
-                className="h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6]"
-              >
-                <Text className="text-2xl leading-7 text-[#6B7280]">×</Text>
-              </Pressable>
-            </View>
-            {isEditorLoading ? (
-              <View className="min-h-[220px] items-center justify-center gap-3">
-                <ActivityIndicator color={colors.primary} />
-                <Text className="text-sm text-[#6B7280]">Loading employee details…</Text>
-              </View>
-            ) : (
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                contentContainerClassName="gap-4 px-4 py-4"
-              >
+        {isEditorLoading ? (
+          <View className="min-h-[220px] items-center justify-center gap-3">
+            <ActivityIndicator color={colors.primary} />
+            <Text className="text-sm text-[#6B7280]">Loading employee details…</Text>
+          </View>
+        ) : (
+          <View className="gap-4">
                 {!editorEmployeeId ? (
                   <View className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
                     <Text className="mb-3 text-sm font-bold text-[#012711]">Select employee role</Text>
@@ -989,48 +977,9 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
                   </EmployeeFormSection>
                 ) : null}
 
-                {editorError ? (
-                  <View className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3">
-                    <Text accessibilityRole="alert" className="text-sm leading-5 text-[#991B1B]">
-                      {editorError}
-                    </Text>
-                  </View>
-                ) : null}
-                <Pressable
-                  accessibilityLabel={editorEmployeeId ? 'Save employee changes' : 'Create employee'}
-                  accessibilityRole="button"
-                  disabled={
-                    isSavingEmployee ||
-                    isEditorLoading ||
-                    (Boolean(editorEmployeeId) && !editorDetailsLoaded)
-                  }
-                  onPress={saveEmployee}
-                  className="min-h-12 flex-row items-center justify-center gap-2 rounded-xl bg-[#116C0B] px-4 py-3"
-                  style={({ pressed }) => ({
-                    opacity: isSavingEmployee ? 0.6 : pressed ? 0.85 : 1,
-                  })}
-                >
-                  {isSavingEmployee ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
-                  <Text className="text-sm font-bold text-white">
-                    {isSavingEmployee
-                      ? 'Saving…'
-                      : editorEmployeeId
-                        ? 'Save changes'
-                        : 'Create employee'}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  disabled={isSavingEmployee}
-                  onPress={() => setIsEditorOpen(false)}
-                  className="items-center py-2"
-                >
-                  <Text className="text-sm font-semibold text-[#6B7280]">Cancel</Text>
-                </Pressable>
-              </ScrollView>
-            )}
-          </SafeAreaView>
-        </View>
-      </Modal>
+          </View>
+        )}
+      </FormModal>
       <AssignServerTables
         server={assigningServer}
         onClose={() => setAssigningServer(null)}

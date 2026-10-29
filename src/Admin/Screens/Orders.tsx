@@ -4,7 +4,6 @@ import {
   Animated,
   FlatList,
   Linking,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -18,6 +17,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { getApiErrorMessage } from '../../../api';
 import colors from '../../theme/colors';
 import AssinedOrdertoDelivery from './AssinedOrdertoDelivery';
+import { BaseModal, DetailsModal } from '../../components/popups';
 
 /* ==========================================================================
    Types & Models
@@ -1577,35 +1577,30 @@ export function OrdersScreen({
       </Pressable>
 
       {/* FILTER DRAWER / MODAL */}
-      <Modal
+      <BaseModal
         visible={showFilterModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
+        onClose={() => setShowFilterModal(false)}
+        title="Filter & Sort Orders"
+        subtitle="Filter by order type, payment status, and timeline"
+        scrollable
+        footer={
+          <View className="flex-row gap-3">
+            <Pressable
+              onPress={resetAllFilters}
+              className="flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] py-3 bg-[#F8FAFC]"
+            >
+              <Text className="text-xs font-bold text-[#475569]">Reset</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowFilterModal(false)}
+              className="flex-1 items-center justify-center rounded-xl bg-[#116C0B] py-3 px-6 shadow-sm active:bg-[#0D5208]"
+            >
+              <Text className="text-xs font-bold text-white">Apply Filters</Text>
+            </Pressable>
+          </View>
+        }
       >
-        <Pressable
-          onPress={() => setShowFilterModal(false)}
-          className="flex-1 bg-black/50 justify-end"
-        >
-          <Pressable
-            onPress={e => e.stopPropagation()}
-            className="rounded-t-3xl bg-white p-5 max-h-[85%] shadow-xl"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
-          >
-            <View className="self-center w-12 h-1.5 rounded-full bg-[#CBD5E1] mb-3" />
-            <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3">
-              <Text className="text-lg font-black text-[#0F172A]">
-                Filter & Sort Orders
-              </Text>
-              <Pressable
-                onPress={() => setShowFilterModal(false)}
-                className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]"
-              >
-                <Text className="text-base font-bold text-[#64748B]">✕</Text>
-              </Pressable>
-            </View>
-
-            <ScrollView className="py-3">
+        <View className="gap-3">
               {/* Order Type */}
               <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
                 Order Type
@@ -1701,101 +1696,83 @@ export function OrdersScreen({
                   );
                 })}
               </View>
-            </ScrollView>
-
-            <View className="flex-row gap-3 pt-3 border-t border-[#F1F5F9]">
-              <Pressable
-                onPress={resetAllFilters}
-                className="flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] py-3 bg-[#F8FAFC]"
-              >
-                <Text className="text-xs font-bold text-[#475569]">Reset</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setShowFilterModal(false)}
-                className="flex-2 items-center justify-center rounded-xl bg-[#116C0B] py-3 px-6 shadow-sm active:bg-[#0D5208]"
-              >
-                <Text className="text-xs font-bold text-white">Apply Filters</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        </View>
+      </BaseModal>
 
       {/* FULL RECEIPT / ORDER DETAILS MODAL */}
-      <Modal
+      <DetailsModal
         visible={selectedOrder !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSelectedOrder(null)}
+        onClose={() => setSelectedOrder(null)}
+        title={
+          selectedOrder
+            ? String(
+                selectedOrder.order_number ||
+                  selectedOrder.order_id ||
+                  selectedOrder.id ||
+                  'Order',
+              ).startsWith('#')
+              ? String(
+                  selectedOrder.order_number ||
+                    selectedOrder.order_id ||
+                    selectedOrder.id,
+                )
+              : `#${
+                  selectedOrder.order_number ||
+                    selectedOrder.order_id ||
+                    selectedOrder.id
+                }`
+            : 'Order Details'
+        }
+        subtitle={
+          selectedOrder
+            ? formatOrderDate(parseOrderDate(selectedOrder))
+            : undefined
+        }
+        badge={
+          selectedOrder
+            ? (() => {
+                const s = normalizeStatus(
+                  selectedOrder.order_status || selectedOrder.status,
+                );
+                const theme = getStatusTheme(s);
+                return {
+                  label: theme.label,
+                  bg: theme.badgeBg,
+                  text: theme.badgeText,
+                  border: theme.badgeBorder,
+                };
+              })()
+            : undefined
+        }
+        footer={
+          selectedOrder ? (
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={() => void printOrderReceipt(selectedOrder)}
+                className="flex-row items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 shadow-xs active:bg-[#F1F5F9]"
+              >
+                <PrinterIcon color="#334155" size={16} />
+                <Text className="ml-1.5 text-xs font-black text-[#334155]">
+                  Share
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSelectedOrder(null)}
+                className="flex-1 items-center justify-center rounded-xl bg-[#116C0B] py-3.5 shadow-sm active:bg-[#0D5208]"
+              >
+                <Text className="text-sm font-black text-white">Close Receipt</Text>
+              </Pressable>
+            </View>
+          ) : null
+        }
       >
-        <Pressable
-          onPress={() => setSelectedOrder(null)}
-          className="flex-1 bg-black/50 justify-end"
-        >
-          {selectedOrder && (
-            <Pressable
-              onPress={e => e.stopPropagation()}
-              className="rounded-t-3xl bg-white p-5 max-h-[92%] shadow-2xl"
-              style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
+        {selectedOrder ? (
+          <View>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 8 }}
             >
-              <View className="self-center w-12 h-1.5 rounded-full bg-[#CBD5E1] mb-3" />
-
-              {/* Order Header in Modal */}
-              <View className="flex-row items-center justify-between pb-3 border-b border-[#F1F5F9]">
-                <View>
-                  <Text className="text-xl font-black text-[#0F172A]">
-                    {String(
-                      selectedOrder.order_number ||
-                        selectedOrder.order_id ||
-                        selectedOrder.id ||
-                        'Order',
-                    ).startsWith('#')
-                      ? String(
-                          selectedOrder.order_number ||
-                            selectedOrder.order_id ||
-                            selectedOrder.id,
-                        )
-                      : `#${
-                          selectedOrder.order_number ||
-                            selectedOrder.order_id ||
-                            selectedOrder.id
-                        }`}
-                  </Text>
-                  <Text className="text-xs font-semibold text-[#64748B] mt-0.5">
-                    {formatOrderDate(parseOrderDate(selectedOrder))}
-                  </Text>
-                </View>
-
-                {/* Status Badge in Modal */}
-                {(() => {
-                  const s = normalizeStatus(
-                    selectedOrder.order_status || selectedOrder.status,
-                  );
-                  const theme = getStatusTheme(s);
-                  return (
-                    <View
-                      className="flex-row items-center rounded-full px-3 py-1 border"
-                      style={{
-                        backgroundColor: theme.badgeBg,
-                        borderColor: theme.badgeBorder,
-                      }}
-                    >
-                      <View
-                        className="mr-1.5 h-2 w-2 rounded-full"
-                        style={{ backgroundColor: theme.dotColor }}
-                      />
-                      <Text
-                        className="text-xs font-black"
-                        style={{ color: theme.badgeText }}
-                      >
-                        {theme.label}
-                      </Text>
-                    </View>
-                  );
-                })()}
-              </View>
-
-              <ScrollView className="py-3" showsVerticalScrollIndicator={false}>
                 {/* Guest & Table Info */}
                 <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5 mb-3.5">
                   <View className="flex-row items-center justify-between">
@@ -2003,29 +1980,9 @@ export function OrdersScreen({
                 </View>
               </ScrollView>
 
-              {/* Modal Action Buttons: Share & Close */}
-              <View className="flex-row gap-3">
-                <Pressable
-                  onPress={() => void printOrderReceipt(selectedOrder)}
-                  className="flex-row items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 shadow-xs active:bg-[#F1F5F9]"
-                >
-                  <PrinterIcon color="#334155" size={16} />
-                  <Text className="ml-1.5 text-xs font-black text-[#334155]">
-                    Share
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => setSelectedOrder(null)}
-                  className="flex-1 items-center justify-center rounded-xl bg-[#116C0B] py-3.5 shadow-sm active:bg-[#0D5208]"
-                >
-                  <Text className="text-sm font-black text-white">Close Receipt</Text>
-                </Pressable>
-              </View>
-            </Pressable>
-          )}
-        </Pressable>
-      </Modal>
+          </View>
+        ) : null}
+      </DetailsModal>
     </View>
   );
 }

@@ -4,7 +4,6 @@ import {
   Animated,
   FlatList,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -25,6 +24,7 @@ import { PlusIcon, ProductIcon } from '../Navigation/NavigationIcons';
 import AddFood from '../Screens/AddFood';
 import FoodDetails from '../Screens/fooddetails';
 import colors from '../../theme/colors';
+import { ActionSheet, FormModal } from '../../components/popups';
 
 type ItemsProps = {
   actor?: string;
@@ -848,120 +848,79 @@ function Items({
         </Animated.View>
       ) : null}
 
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setIsAddMenuOpen(false)}
-        transparent
+      <ActionSheet
         visible={isAddMenuOpen}
-      >
-        <Pressable
-          accessibilityLabel="Close add menu"
-          className="flex-1 justify-end bg-black/30"
-          onPress={() => setIsAddMenuOpen(false)}
-        >
-          <View className="gap-3 rounded-t-3xl bg-white px-5 pb-8 pt-5">
-            <Text className="mb-1 text-lg font-bold text-[#012711]">
-              Add to menu
-            </Text>
-            <Pressable
-              accessibilityLabel="Add Food"
-              accessibilityRole="button"
-              onPress={() => {
-                setIsAddMenuOpen(false);
-                onInnerPageVisibilityChange?.(true);
-                setIsAddFoodOpen(true);
-              }}
-              className="rounded-xl bg-[#F0F7EE] px-4 py-3.5"
-            >
-              <Text className="font-semibold text-[#116C0B]">Add Food</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="Add Category"
-              accessibilityRole="button"
-              onPress={() => openEntityForm('category')}
-              className="rounded-xl bg-[#F9FAFB] px-4 py-3.5"
-            >
-              <Text className="font-semibold text-[#012711]">Add Category</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="Add Cuisine"
-              accessibilityRole="button"
-              onPress={() => {
-                setIsAddMenuOpen(false);
-                onAddCuisine?.();
-              }}
-              className="rounded-xl bg-[#F9FAFB] px-4 py-3.5"
-            >
-              <Text className="font-semibold text-[#012711]">Add Cuisine</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+        onClose={() => setIsAddMenuOpen(false)}
+        title="Add to menu"
+        subtitle="Select the type of item you want to create"
+        actions={[
+          {
+            label: 'Add Food',
+            description: 'Create a new dish with pricing and dietary tags',
+            icon: <ProductIcon color="#116C0B" size={20} />,
+            onPress: () => {
+              setIsAddMenuOpen(false);
+              onInnerPageVisibilityChange?.(true);
+              setIsAddFoodOpen(true);
+            },
+          },
+          {
+            label: 'Add Category',
+            description: 'Organize dishes under a menu section',
+            icon: <ProductIcon color="#FF7800" size={20} />,
+            onPress: () => openEntityForm('category'),
+          },
+          {
+            label: 'Add Cuisine',
+            description: 'Add a culinary style or heritage tag',
+            icon: <ProductIcon color="#2563EB" size={20} />,
+            onPress: () => {
+              setIsAddMenuOpen(false);
+              onAddCuisine?.();
+            },
+          },
+        ]}
+      />
 
-      <Modal
-        animationType="fade"
-        onRequestClose={closeEntityForm}
-        transparent
+      <FormModal
         visible={addEntityType !== null}
+        onClose={closeEntityForm}
+        title="Add Category"
+        subtitle="Create a new category for grouping your dishes"
+        onSave={saveEntity}
+        saveLabel="Save Category"
+        cancelLabel="Cancel"
+        isSaving={isSavingEntity}
+        errorMessage={entityError}
+        maxWidth={480}
       >
-        <View className="flex-1 items-center justify-center bg-black/40 px-5">
-          <View className="w-full max-w-md rounded-2xl bg-white p-5">
-            <Text className="text-lg font-bold text-[#012711]">
-              Add Category
-            </Text>
+        <View className="gap-3">
+          <View>
+            <Text className="mb-1 text-xs font-bold text-[#374151]">Category name *</Text>
             <TextInput
               accessibilityLabel="Category name"
               autoCapitalize="words"
-              className="mt-4 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+              className="rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
               onChangeText={setEntityName}
-              placeholder="Category name"
+              placeholder="e.g. Starters, Main Course, Drinks"
               placeholderTextColor="#9CA3AF"
               value={entityName}
             />
+          </View>
+          <View>
+            <Text className="mb-1 text-xs font-bold text-[#374151]">Subcategories (optional)</Text>
             <TextInput
               accessibilityLabel="Subcategories"
               autoCapitalize="words"
-              className="mt-3 rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
+              className="rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-3 text-sm text-[#111827]"
               onChangeText={setSubcategoryNames}
-              placeholder="Subcategories (comma-separated, optional)"
+              placeholder="e.g. Soups, Salads, Bread (comma-separated)"
               placeholderTextColor="#9CA3AF"
               value={subcategoryNames}
             />
-            {entityError ? (
-              <Text
-                accessibilityRole="alert"
-                className="mt-3 text-sm text-red-700"
-              >
-                {entityError}
-              </Text>
-            ) : null}
-            <View className="mt-5 flex-row justify-end gap-3">
-              <Pressable
-                accessibilityLabel="Cancel add"
-                accessibilityRole="button"
-                disabled={isSavingEntity}
-                onPress={closeEntityForm}
-                className="rounded-xl border border-[#D1D5DB] px-4 py-2.5"
-              >
-                <Text className="font-semibold text-[#374151]">Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Save Category"
-                accessibilityRole="button"
-                disabled={isSavingEntity}
-                onPress={saveEntity}
-                className="min-w-20 items-center rounded-xl bg-[#116C0B] px-4 py-2.5"
-              >
-                {isSavingEntity ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="font-semibold text-white">Save</Text>
-                )}
-              </Pressable>
-            </View>
           </View>
         </View>
-      </Modal>
+      </FormModal>
     </View>
   );
 }

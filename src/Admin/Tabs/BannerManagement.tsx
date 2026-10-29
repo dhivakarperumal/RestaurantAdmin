@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,6 +12,7 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
+import { ConfirmDialog, FormModal } from '../../components/popups';
 
 type BannerType = 'hero' | 'offer';
 type BannerFilter = 'all' | BannerType;
@@ -87,6 +86,8 @@ function BannerManagementPage({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [draft, setDraft] = useState<BannerDraft>(emptyDraft);
+  const [bannerToDelete, setBannerToDelete] = useState<Banner | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadBanners = useCallback(async () => {
     setIsLoading(true);
@@ -233,30 +234,26 @@ function BannerManagementPage({
   };
 
   const deleteBanner = (banner: Banner) => {
-    Alert.alert(
-      'Delete banner?',
-      `“${banner.title || 'Untitled banner'}” will be permanently deleted.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setError('');
-            setNotice('');
-            try {
-              await api.delete(`/banners/${banner.id}`);
-              setBanners(current =>
-                current.filter(item => String(item.id) !== String(banner.id)),
-              );
-              setNotice('Banner deleted successfully.');
-            } catch (deleteError) {
-              setError(getErrorMessage(deleteError));
-            }
-          },
-        },
-      ],
-    );
+    setBannerToDelete(banner);
+  };
+
+  const confirmDeleteBanner = async () => {
+    if (!bannerToDelete) return;
+    setIsDeleting(true);
+    setError('');
+    setNotice('');
+    try {
+      await api.delete(`/banners/${bannerToDelete.id}`);
+      setBanners(current =>
+        current.filter(item => String(item.id) !== String(bannerToDelete.id)),
+      );
+      setNotice('Banner deleted successfully.');
+      setBannerToDelete(null);
+    } catch (deleteError) {
+      setError(getErrorMessage(deleteError));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const totalOffers = banners.filter(banner => banner.type === 'offer').length;
@@ -467,34 +464,19 @@ function BannerManagementPage({
         ) : null}
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsFormOpen(false)}
-        transparent
+      <FormModal
         visible={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title={editingBanner ? 'Edit Banner' : 'New Banner'}
+        subtitle="Configure banner display, promotional links, and visual assets"
+        onSave={saveBanner}
+        saveLabel={editingBanner ? 'Save Changes' : 'Create Banner'}
+        cancelLabel="Cancel"
+        isSaving={isSaving}
+        isSaveDisabled={isSaving || uploadingField !== null}
+        errorMessage={error}
       >
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="max-h-[92%] rounded-t-3xl bg-white">
-            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-              <View>
-                <Text className="text-lg font-bold text-[#012711]">
-                  {editingBanner ? 'Edit banner' : 'New banner'}
-                </Text>
-                <Text className="mt-1 text-xs text-[#6B7280]">Banner studio</Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close banner form"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => setIsFormOpen(false)}
-              >
-                <Text className="text-2xl text-[#6B7280]">×</Text>
-              </Pressable>
-            </View>
-            <ScrollView
-              contentContainerClassName="gap-4 px-5 pb-8 pt-4"
-              keyboardShouldPersistTaps="handled"
-            >
+        <View className="gap-4">
               <BannerField
                 label="Title"
                 value={draft.title}
@@ -601,28 +583,21 @@ function BannerManagementPage({
                   {draft.active ? 'Published on website' : 'Saved as draft'}
                 </Text>
               </Pressable>
-              {error ? (
-                <Text accessibilityRole="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </Text>
-              ) : null}
-              <Pressable
-                accessibilityLabel={editingBanner ? 'Save banner changes' : 'Create banner'}
-                accessibilityRole="button"
-                disabled={isSaving}
-                onPress={saveBanner}
-                className="min-h-12 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-4 py-3"
-                style={({ pressed }) => ({ opacity: isSaving ? 0.6 : pressed ? 0.85 : 1 })}
-              >
-                {isSaving ? <ActivityIndicator color="#FFFFFF" /> : null}
-                <Text className="text-sm font-bold text-white">
-                  {isSaving ? 'Saving...' : editingBanner ? 'Save changes' : 'Create banner'}
-                </Text>
-              </Pressable>
-            </ScrollView>
-          </View>
         </View>
-      </Modal>
+      </FormModal>
+
+      <ConfirmDialog
+        visible={bannerToDelete !== null}
+        onClose={() => setBannerToDelete(null)}
+        onConfirm={confirmDeleteBanner}
+        title="Delete banner?"
+        itemName={bannerToDelete?.title || 'Untitled banner'}
+        message="This banner will be permanently removed from your website promotions."
+        confirmLabel="Delete Banner"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        isLoading={isDeleting}
+      />
     </>
   );
 }

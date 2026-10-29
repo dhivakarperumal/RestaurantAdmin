@@ -87,6 +87,99 @@ function value(row: Row, keys: string[], fallback = '—'): string {
   return fallback;
 }
 
+function isTodayOrder(order: Row): boolean {
+  const rawDate = order.created_at ?? order.createdAt ?? order.order_date ?? order.order_time;
+  if (!rawDate) return false;
+  const date = new Date(String(rawDate));
+  if (Number.isNaN(date.getTime())) return false;
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
+}
+
+function orderStatus(order: Row): string {
+  return value(order, ['status', 'order_status'], '').trim().toLowerCase().replace(/[-\s]+/g, '_');
+}
+
+function isReadyOrder(order: Row): boolean {
+  const status = orderStatus(order);
+  return status.includes('ready') || status === 'prepared' || status === 'cooked';
+}
+
+function isActiveOrder(order: Row): boolean {
+  const status = orderStatus(order);
+  return (
+    status === 'pending' ||
+    status === 'confirmed' ||
+    status.includes('prepar') ||
+    status.includes('cook') ||
+    isReadyOrder(order)
+  );
+}
+
+function orderBelongsToUser(order: Row, user: HeaderUser): boolean {
+  const identityValues = [
+    user.employee_id,
+    user.employeeId,
+    user.id,
+    user.user_id,
+    (user as Record<string, unknown>).uuid,
+    (user as Record<string, unknown>).emp_id,
+  ]
+    .filter(id => id !== undefined && id !== null && String(id).trim() !== '')
+    .map(id => String(id).trim().toLowerCase());
+
+  const orderIdentityValues = [
+    order.server_id,
+    order.assigned_server_id,
+    order.employee_id,
+    order.assigned_employee_id,
+    order.waiter_id,
+    order.user_id,
+    order.created_by_id,
+    order.created_by,
+  ]
+    .filter(id => id !== undefined && id !== null && String(id).trim() !== '')
+    .map(id => String(id).trim().toLowerCase());
+
+  if (identityValues.some(id => orderIdentityValues.includes(id))) return true;
+
+  const userNames = [user.name, user.username, (user as Record<string, unknown>).full_name]
+    .filter(name => typeof name === 'string' && name.trim() !== '')
+    .map(name => String(name).trim().toLowerCase());
+  const orderNames = [
+    order.server_name,
+    order.assigned_server_name,
+    order.waiter_name,
+    order.created_by_name,
+  ]
+    .filter(name => typeof name === 'string' && name.trim() !== '')
+    .map(name => String(name).trim().toLowerCase());
+
+  if (userNames.some(name => orderNames.includes(name))) return true;
+
+  for (const key of ['server', 'assigned_server', 'waiter']) {
+    const assigned = order[key];
+    if (!assigned || typeof assigned !== 'object') continue;
+    const record = assigned as Row;
+    const nestedId = record.id ?? record.employee_id ?? record.user_id;
+    const nestedName = record.name ?? record.full_name ?? record.username;
+    if (
+      (nestedId !== undefined &&
+        identityValues.includes(String(nestedId).trim().toLowerCase())) ||
+      (nestedName !== undefined &&
+        userNames.includes(String(nestedName).trim().toLowerCase()))
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function formatPrice(amount: unknown): string {
   const num = Number(amount || 0);
   if (isNaN(num)) return '₹0.00';
@@ -943,6 +1036,10 @@ function HomeTabContent({
   const name = user.name?.trim() || user.username?.trim() || 'Server';
   const [orderFilter, setOrderFilter] = useState<'all' | 'ready' | 'cooking' | 'pending'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const myOrders = useMemo(
+    () => orders.filter(order => orderBelongsToUser(order, user)),
+    [orders, user],
+  );
 
   // Current time greeting
   const hour = new Date().getHours();
@@ -955,44 +1052,31 @@ function HomeTabContent({
 
   // Filtered orders
   const activeOrders = useMemo(() => {
-    return orders.filter(order =>
-      ['pending', 'preparing', 'cooking', 'ready', 'confirmed'].includes(
-        value(order, ['status', 'order_status'], '').toLowerCase(),
-      ),
-    );
-  }, [orders]);
+    return myOrders.filter(isActiveOrder);
+  }, [myOrders]);
 
   const readyOrders = useMemo(() => {
-    return activeOrders.filter(order =>
-      ['ready', 'prepared', 'cooked'].includes(
-        value(order, ['status', 'order_status'], '').toLowerCase(),
-      ),
-    );
+    return activeOrders.filter(isReadyOrder);
   }, [activeOrders]);
 
   const cookingOrders = useMemo(() => {
-    return activeOrders.filter(order =>
-      ['preparing', 'cooking'].includes(
-        value(order, ['status', 'order_status'], '').toLowerCase(),
-      ),
-    );
+    return activeOrders.filter(order => {
+      const status = orderStatus(order);
+      return status.includes('prepar') || status.includes('cook');
+    });
   }, [activeOrders]);
 
   const pendingOrders = useMemo(() => {
-    return activeOrders.filter(order =>
-      ['pending', 'confirmed'].includes(
-        value(order, ['status', 'order_status'], '').toLowerCase(),
-      ),
-    );
+    return activeOrders.filter(order => ['pending', 'confirmed'].includes(orderStatus(order)));
   }, [activeOrders]);
 
   const servedTodayCount = useMemo(() => {
-    return orders.filter(order =>
-      ['delivered', 'served', 'completed', 'paid'].includes(
-        value(order, ['status', 'order_status'], '').toLowerCase(),
+    return myOrders.filter(order =>
+      ['delivered', 'served', 'completed', 'paid'].some(status =>
+        orderStatus(order).includes(status),
       ),
     ).length;
-  }, [orders]);
+  }, [myOrders]);
 
   // Active table numbers with orders
   const occupiedTableNumbers = useMemo(() => {
@@ -1019,7 +1103,7 @@ function HomeTabContent({
   // Popular Menu Dishes: ranked by real orders frequency and popularity flags
   const popularDishes = useMemo(() => {
     const orderCountByName = new Map<string, number>();
-    orders.forEach(order => {
+    myOrders.forEach(order => {
       const items = getOrderItems(order);
       items.forEach(item => {
         const cleanName = String(item.name || '').toLowerCase().trim();
@@ -1102,7 +1186,7 @@ function HomeTabContent({
       _orderCount: 0,
       _isTopSeller: false,
     }));
-  }, [foods, orders]);
+  }, [foods, myOrders]);
 
   // Filtered orders list to render
   const displayedOrders = useMemo(() => {
@@ -2452,7 +2536,7 @@ export default function ServerHome({
     }
 
     const [orderResult, foodResult, tableResult, empResult] = await Promise.allSettled([
-      api.get('/orders/management'),
+      api.get('/kitchen-orders'),
       api.get('/foods'),
       api.get('/server-tables'),
       api.get('/employees'),
@@ -2477,9 +2561,9 @@ export default function ServerHome({
       setServerEmployeeId(activeEmpId);
     }
 
-    setOrders(
-      orderResult.status === 'fulfilled' ? rows(orderResult.value.data) : [],
-    );
+    const loadedOrders =
+      orderResult.status === 'fulfilled' ? rows(orderResult.value.data) : [];
+    setOrders(loadedOrders.filter(isTodayOrder));
     setFoods(
       foodResult.status === 'fulfilled' ? rows(foodResult.value.data) : [],
     );

@@ -36,12 +36,16 @@ type TableStatus = 'available' | 'occupied' | 'reserved';
 
 function billItemKey(item: Record<string, unknown>): string {
   const id = item.food_id ?? item.foodId ?? item.product_id ?? item.id;
+  const variant = JSON.stringify({
+    addons: item.selected_addons ?? [],
+    customizations: item.selected_customizations ?? {},
+  });
   if (id !== undefined && id !== null && String(id).trim() !== '') {
-    return `id:${String(id).trim().toLowerCase()}`;
+    return `id:${String(id).trim().toLowerCase()}|variant:${variant}`;
   }
   return `name:${String(item.food_name || item.name || item.item_name || '')
     .trim()
-    .toLowerCase()}`;
+    .toLowerCase()}|variant:${variant}`;
 }
 
 function billItemNumber(item: Record<string, unknown>, keys: string[], fallback = 0): number {
@@ -50,6 +54,19 @@ function billItemNumber(item: Record<string, unknown>, keys: string[], fallback 
     if (Number.isFinite(value)) return value;
   }
   return fallback;
+}
+
+function formatBillAmount(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '—';
+  const amount = typeof value === 'number'
+    ? value
+    : Number(String(value).replace(/[^0-9.-]+/g, ''));
+  return Number.isFinite(amount)
+    ? `₹${amount.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    : '—';
 }
 
 const apiStatus: Record<TableStatus, 'Available' | 'Occupied' | 'Reserved'> = {
@@ -979,7 +996,7 @@ export default function ServerTables({
                       </Text>
                     </View>
                     <Text className="text-sm font-extrabold text-[#116C0B]">
-                      {String(item.total_price ?? item.price ?? item.unit_price ?? '—')}
+                      {formatBillAmount(item.total_price ?? item.price ?? item.unit_price)}
                     </Text>
                   </View>
                 ))
@@ -993,13 +1010,17 @@ export default function ServerTables({
                 <View className="flex-row justify-between">
                   <Text className="text-sm text-[#64748B]">Subtotal</Text>
                   <Text className="text-sm font-bold text-[#0F172A]">
-                    {String(billPreview?.subtotal ?? billPreview?.total_amount ?? '—')}
+                    {formatBillAmount(billPreview?.subtotal ?? billPreview?.total_amount)}
                   </Text>
                 </View>
                 <View className="mt-2 flex-row justify-between">
                   <Text className="text-base font-extrabold text-[#0F172A]">Grand Total</Text>
                   <Text className="text-lg font-black text-[#116C0B]">
-                    {String(billPreview?.grand_total ?? billPreview?.total ?? billPreview?.total_amount ?? '—')}
+                    {formatBillAmount(
+                      billPreview?.grand_total ??
+                        billPreview?.total ??
+                        billPreview?.total_amount,
+                    )}
                   </Text>
                 </View>
               </View>

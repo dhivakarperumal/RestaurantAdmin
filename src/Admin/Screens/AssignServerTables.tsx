@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -10,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../../api';
+import { FormModal } from '../../components/popups';
 
 type ServerEmployee = {
   employee_id: string | number;
@@ -294,40 +294,42 @@ function AssignServerTables({
   );
 
   return (
-    <Modal
-      animationType="slide"
-      navigationBarTranslucent
-      onRequestClose={onClose}
-      statusBarTranslucent
-      transparent
+    <FormModal
       visible={server !== null}
-    >
-      <View className="flex-1 justify-end bg-black/50">
-        <SafeAreaView
-          edges={['top', 'bottom']}
-          className="max-h-[94%] flex-1 rounded-t-3xl bg-[#F9FAFB]"
-        >
-          <View className="flex-row items-center justify-between rounded-t-3xl bg-[#1F3228] px-5 py-4">
-            <View className="flex-1 pr-3">
-              <Text className="text-lg font-bold text-white">Assign Tables</Text>
-              <Text className="mt-1 text-xs text-[#D1D5DB]">
-                Server: {server?.full_name || 'Employee'} ({server?.employee_id})
-              </Text>
-            </View>
+      onClose={onClose}
+      title="Assign Tables"
+      subtitle={`Server: ${server?.full_name || 'Employee'} (${server?.employee_id})`}
+      onSave={() => saveAssignments()}
+      saveLabel="Save Assignments"
+      cancelLabel="Cancel"
+      isSaving={isSaving}
+      isSaveDisabled={isLoading || Boolean(loadError) || isSaving}
+      saveButtonColor="#1F3228"
+      maxWidth={600}
+      footerExtra={
+        <View className="flex-row items-center justify-between pb-2">
+          <Text className="text-xs font-semibold text-[#6B7280]">
+            Selected: <Text className="font-bold text-[#1F3228]">{selectedIds.length} tables</Text>
+          </Text>
+          {selectedIds.length > 0 ? (
             <Pressable
-              accessibilityLabel="Close table assignment"
               accessibilityRole="button"
               disabled={isSaving}
-              onPress={onClose}
-              className="h-10 w-10 items-center justify-center rounded-full bg-white/15"
+              onPress={() => {
+                setSelectedIds([]);
+                setSaveError('');
+              }}
+              className="px-2 py-1"
             >
-              <Text className="text-xl font-bold text-white">×</Text>
+              <Text className="text-xs font-semibold text-[#DC2626]">
+                Clear all ({selectedIds.length})
+              </Text>
             </Pressable>
-          </View>
-
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerClassName="gap-4 p-4 pb-8"
+          ) : null}
+        </View>
+      }
+    >
+      <View className="gap-4">
           >
             <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4">
               <View className="flex-row gap-2">
@@ -500,49 +502,8 @@ function AssignServerTables({
                 {saveError}
               </Text>
             ) : null}
-          </ScrollView>
-
-          <View className="flex-row items-center justify-between gap-3 border-t border-[#E5E7EB] bg-white px-4 py-3">
-            <Pressable
-              accessibilityLabel="Clear table assignments"
-              accessibilityRole="button"
-              disabled={selectedIds.length === 0 || isSaving}
-              onPress={() => {
-                setSelectedIds([]);
-                setSaveError('');
-              }}
-              className="px-1 py-2"
-            >
-              <Text className="text-xs font-semibold text-[#4B5563]">
-                Clear all ({selectedIds.length})
-              </Text>
-            </Pressable>
-            <View className="flex-row gap-2">
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSaving}
-                onPress={onClose}
-                className="rounded-xl border border-[#D1D5DB] px-4 py-2.5"
-              >
-                <Text className="text-xs font-semibold text-[#374151]">Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Save table assignments"
-                accessibilityRole="button"
-                disabled={isLoading || Boolean(loadError) || isSaving}
-                onPress={() => saveAssignments()}
-                className="min-w-[110px] flex-row items-center justify-center gap-2 rounded-xl bg-[#1F3228] px-4 py-2.5"
-              >
-                {isSaving ? <ActivityIndicator color="#FFFFFF" size="small" /> : null}
-                <Text className="text-xs font-semibold text-white">
-                  {isSaving ? 'Saving...' : 'Save assignments'}
-                </Text>
-              </Pressable>
-            </View>
           </View>
-        </SafeAreaView>
-      </View>
-    </Modal>
+    </FormModal>
   );
 }
 

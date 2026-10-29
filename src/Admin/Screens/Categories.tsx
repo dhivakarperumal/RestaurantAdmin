@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   RefreshControl,
@@ -15,6 +14,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import { ProductIcon } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
+import { ConfirmDialog, FormModal } from '../../components/popups';
 
 type Category = {
   id?: number;
@@ -924,33 +924,33 @@ function Categories({
         </View>
       ) : null}
 
-      <Modal
-        animationType="fade"
-        onRequestClose={resetForm}
-        transparent
+      <FormModal
         visible={isFormOpen}
+        onClose={resetForm}
+        title={isEditing ? 'Edit Category' : 'Add Category'}
+        subtitle={
+          isEditing
+            ? 'Update category details and product association'
+            : 'Create a new category for your restaurant menu'
+        }
+        onSave={() => void saveCategory()}
+        saveLabel={isEditing ? 'Save Changes' : 'Save Category'}
+        cancelLabel="Cancel"
+        isSaving={isSaving}
+        isSaveDisabled={isSaving || isUploadingImage || !form.categoryId}
+        errorMessage={formError}
       >
-        <View className="flex-1 items-center justify-center bg-black/40 px-4 py-6">
-          <View className="max-h-full w-full max-w-lg overflow-hidden rounded-2xl bg-white">
-            <View className="border-b border-[#E5E7EB] px-5 py-4">
-              <Text className="text-lg font-bold text-[#012711]">
-                {isEditing ? 'Edit Category' : 'Add Category'}
-              </Text>
-            </View>
-            {isFormLoading ? (
-              <View className="items-center gap-3 p-8">
-                <ActivityIndicator color={colors.primary} />
-                <Text className="text-sm text-[#6B7280]">
-                  {isEditing
-                    ? 'Loading category...'
-                    : 'Generating category ID...'}
-                </Text>
-              </View>
-            ) : (
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ gap: 12, padding: 20 }}
-              >
+        {isFormLoading ? (
+          <View className="items-center gap-3 p-8">
+            <ActivityIndicator color={colors.primary} />
+            <Text className="text-sm text-[#6B7280]">
+              {isEditing
+                ? 'Loading category...'
+                : 'Generating category ID...'}
+            </Text>
+          </View>
+        ) : (
+          <View className="gap-3">
                 <View>
                   <Text className="mb-1.5 text-xs font-semibold text-[#374151]">
                     Category ID
@@ -1122,94 +1122,26 @@ function Categories({
                     {formError}
                   </Text>
                 ) : null}
-                <View className="mt-1 flex-row justify-end gap-3">
-                  <Pressable
-                    accessibilityLabel="Cancel category"
-                    accessibilityRole="button"
-                    disabled={isSaving || isUploadingImage}
-                    onPress={resetForm}
-                    className="rounded-xl border border-[#D1D5DB] px-4 py-3"
-                  >
-                    <Text className="font-semibold text-[#374151]">Cancel</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityLabel={
-                      isEditing ? 'Save category changes' : 'Save category'
-                    }
-                    accessibilityRole="button"
-                    disabled={isSaving || isUploadingImage || !form.categoryId}
-                    onPress={() => void saveCategory()}
-                    className="min-w-[100px] items-center rounded-xl bg-[#116C0B] px-4 py-3"
-                  >
-                    {isSaving ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <Text className="font-semibold text-white">Save</Text>
-                    )}
-                  </Pressable>
-                </View>
-              </ScrollView>
+              </View>
             )}
-          </View>
-        </View>
-      </Modal>
+      </FormModal>
 
-      <Modal
-        animationType="fade"
-        onRequestClose={() => {
+      <ConfirmDialog
+        visible={categoryToDelete !== null}
+        onClose={() => {
           setCategoryToDelete(null);
           setDeleteError('');
         }}
-        transparent
-        visible={categoryToDelete !== null}
-      >
-        <View className="flex-1 items-center justify-center bg-black/40 px-5">
-          <View className="w-full max-w-md rounded-2xl bg-white p-5">
-            <Text className="text-lg font-bold text-[#012711]">
-              Delete category?
-            </Text>
-            <Text className="mt-2 text-sm leading-5 text-[#6B7280]">
-              Delete “{categoryToDelete?.category_name}”? Categories linked to
-              products may be protected by the server.
-            </Text>
-            {deleteError ? (
-              <Text
-                accessibilityRole="alert"
-                className="mt-3 text-sm text-[#DC2626]"
-              >
-                {deleteError}
-              </Text>
-            ) : null}
-            <View className="mt-5 flex-row justify-end gap-3">
-              <Pressable
-                accessibilityLabel="Cancel category deletion"
-                accessibilityRole="button"
-                disabled={isDeleting}
-                onPress={() => {
-                  setCategoryToDelete(null);
-                  setDeleteError('');
-                }}
-                className="rounded-xl border border-[#D1D5DB] px-4 py-2.5"
-              >
-                <Text className="font-semibold text-[#374151]">Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Confirm category deletion"
-                accessibilityRole="button"
-                disabled={isDeleting}
-                onPress={() => void deleteCategory()}
-                className="min-w-[90px] items-center rounded-xl bg-[#DC2626] px-4 py-2.5"
-              >
-                {isDeleting ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="font-semibold text-white">Delete</Text>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onConfirm={() => void deleteCategory()}
+        title="Delete category?"
+        itemName={categoryToDelete?.category_name}
+        message="Categories linked to products may be protected by the server."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        isLoading={isDeleting}
+        errorMessage={deleteError}
+      />
     </View>
   );
 }
