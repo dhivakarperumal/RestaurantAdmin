@@ -11,11 +11,15 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
-import { ConfirmDialog, FormModal } from '../../components/popups';
+import {
+  ConfirmDialog,
+  Edit3Icon,
+  FormModal,
+  Trash2Icon,
+} from '../../components/popups';
 import { PlusIcon, ProductIcon, SearchIcon } from '../Navigation/NavigationIcons';
 
 type BannerType = 'hero' | 'offer';
@@ -346,7 +350,7 @@ function BannerManagementPage({
         </View>
 
         <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
-          <View className={isWide ? 'flex-row items-center gap-3' : 'gap-3'}>
+          <View className={isWide ? 'flex-row items-end gap-3' : 'gap-3'}>
             <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
               <SearchIcon color="#9CA3AF" size={17} />
               <TextInput
@@ -358,63 +362,65 @@ function BannerManagementPage({
                 value={searchTerm}
               />
             </View>
-            <View className="flex-row gap-2">
-              <BannerFilterDropdown<BannerFilter>
-                label="Type"
-                onOpen={() =>
-                  setOpenFilter(current => current === 'type' ? null : 'type')
-                }
-                onSelect={value => {
-                  setTypeFilter(value);
-                  setOpenFilter(null);
-                }}
-                open={openFilter === 'type'}
-                options={[
-                  { value: 'all', label: 'All types' },
-                  { value: 'hero', label: 'Hero' },
-                  { value: 'offer', label: 'Offer' },
-                ]}
-                selected={typeFilter}
-              />
-              <BannerFilterDropdown<StatusFilter>
-                label="Status"
-                onOpen={() =>
-                  setOpenFilter(current => current === 'status' ? null : 'status')
-                }
-                onSelect={value => {
-                  setStatusFilter(value);
-                  setOpenFilter(null);
-                }}
-                open={openFilter === 'status'}
-                options={[
-                  { value: 'all', label: 'All' },
-                  { value: 'active', label: 'Published' },
-                  { value: 'draft', label: 'Draft' },
-                ]}
-                selected={statusFilter}
-              />
+            <View className="flex-row items-end gap-2">
+              <View className="flex-1 flex-row gap-2">
+                <BannerFilterDropdown<BannerFilter>
+                  label="Type"
+                  onOpen={() =>
+                    setOpenFilter(current => current === 'type' ? null : 'type')
+                  }
+                  onSelect={value => {
+                    setTypeFilter(value);
+                    setOpenFilter(null);
+                  }}
+                  open={openFilter === 'type'}
+                  options={[
+                    { value: 'all', label: 'All types' },
+                    { value: 'hero', label: 'Hero' },
+                    { value: 'offer', label: 'Offer' },
+                  ]}
+                  selected={typeFilter}
+                />
+                <BannerFilterDropdown<StatusFilter>
+                  label="Status"
+                  onOpen={() =>
+                    setOpenFilter(current => current === 'status' ? null : 'status')
+                  }
+                  onSelect={value => {
+                    setStatusFilter(value);
+                    setOpenFilter(null);
+                  }}
+                  open={openFilter === 'status'}
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'active', label: 'Published' },
+                    { value: 'draft', label: 'Draft' },
+                  ]}
+                  selected={statusFilter}
+                />
+              </View>
+              <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+                {(['grid', 'list'] as const).map(mode => {
+                  const selected = viewMode === mode;
+                  return (
+                    <Pressable
+                      accessibilityLabel={`Show banners as ${mode}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      key={mode}
+                      onPress={() => setViewMode(mode)}
+                      className={`h-9 w-9 items-center justify-center rounded-md ${
+                        selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
+                      }`}
+                    >
+                      <Text className={`text-base font-bold ${selected ? 'text-white' : 'text-[#64748B]'}`}>
+                        {mode === 'grid' ? '▦' : '☷'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
-          <View className="flex-row justify-end gap-1">
-              {(['grid', 'list'] as const).map(mode => {
-                const selected = viewMode === mode;
-                return (
-                  <Pressable
-                    accessibilityLabel={`Show banners as ${mode}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    key={mode}
-                    onPress={() => setViewMode(mode)}
-                    className={`h-9 w-9 items-center justify-center rounded-lg ${
-                      selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
-                    }`}
-                  >
-                    <Text className={`text-base font-bold ${selected ? 'text-white' : 'text-[#64748B]'}`}>
-                      {mode === 'grid' ? '▦' : '☷'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
           </View>
         </View>
 
@@ -485,7 +491,7 @@ function BannerManagementPage({
                   <View className="relative">
                     <BannerImage
                       banner={banner}
-                      className={isWide ? 'h-40 w-full' : 'h-20 w-full'}
+                      className={isWide ? 'h-70 w-full' : 'h-30 w-full'}
                     />
                     <View className="absolute left-3 top-3">
                       <BannerStatusBadge active={banner.active} />
@@ -931,25 +937,11 @@ function BannerActionButton({
         borderColor: isEdit ? '#DCFCE7' : '#FECACA',
       }}
     >
-      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-        {isEdit ? (
-          <Path
-            d="m14 5 5 5M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20ZM13 20h7"
-            stroke={isEdit ? '#15803D' : '#DC2626'}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        ) : (
-          <Path
-            d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"
-            stroke="#DC2626"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-      </Svg>
+      {isEdit ? (
+        <Edit3Icon size={16} color="#15803D" />
+      ) : (
+        <Trash2Icon size={16} color="#DC2626" />
+      )}
     </Pressable>
   );
 }
@@ -972,7 +964,7 @@ function BannerFilterDropdown<Value extends string>({
   const selectedLabel =
     options.find(option => option.value === selected)?.label ?? options[0]?.label;
   return (
-    <View className="min-w-[112px] flex-1" style={{ zIndex: open ? 10 : 1 }}>
+    <View className="min-w-[76px] flex-1" style={{ zIndex: open ? 10 : 1 }}>
       <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
       <Pressable
         accessibilityLabel={`${label}: ${selectedLabel}`}
