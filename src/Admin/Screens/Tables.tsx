@@ -14,7 +14,12 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
-import { FormModal } from '../../components/popups';
+import {
+  ConfirmDialog,
+  Edit3Icon,
+  FormModal,
+  Trash2Icon,
+} from '../../components/popups';
 import AdminStatCard from '../../components/AdminStatCard';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -71,6 +76,10 @@ function getTableNumber(table: ServerTable) {
   return String(table.table_number ?? 'Unnamed table');
 }
 
+function getTableId(table: ServerTable) {
+  return table.table_id ?? table.id ?? table.table_number;
+}
+
 function resolveImageUrl(value?: string | null) {
   const image = value?.trim();
   if (!image) {
@@ -104,12 +113,16 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
   const [errorMessage, setErrorMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTable, setEditingTable] = useState<ServerTable | null>(null);
   const [tableNumber, setTableNumber] = useState('');
   const [seatCount, setSeatCount] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [tableToDelete, setTableToDelete] = useState<ServerTable | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
@@ -252,7 +265,32 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
     }
   };
 
-  const addTable = async () => {
+  const openCreateForm = () => {
+    setEditingTable(null);
+    setTableNumber('');
+    setSeatCount('');
+    setImageUrl('');
+    setFormError('');
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingTable(null);
+  };
+
+  const openEditForm = (table: ServerTable) => {
+    setEditingTable(table);
+    setTableNumber(
+      table.table_number == null ? '' : String(table.table_number),
+    );
+    setSeatCount(table.no_of_seats == null ? '' : String(table.no_of_seats));
+    setImageUrl(table.image_url ?? '');
+    setFormError('');
+    setIsFormOpen(true);
+  };
+
+  const saveTable = async () => {
     const normalizedNumber = tableNumber.trim();
     const seats = Number(seatCount);
     if (!normalizedNumber) {
@@ -267,24 +305,98 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
     setIsSaving(true);
     setFormError('');
     try {
-      await api.post('/server-tables', {
+      const payload = {
         table_number: normalizedNumber,
         no_of_seats: seats,
         image_url: imageUrl || null,
-        status: 'Available',
         ...(userId ? { user_id: userId } : {}),
-      });
-      setTableNumber('');
-      setSeatCount('');
-      setImageUrl('');
+      };
+      if (editingTable) {
+        const tableId = getTableId(editingTable);
+        if (
+          tableId === undefined ||
+          tableId === null ||
+          String(tableId).trim() === ''
+        ) {
+          throw new Error(
+            'This table does not have a valid ID and cannot be edited.',
+          );
+        }
+        await api
+          .put(`/server-tables/${encodeURIComponent(String(tableId))}`, payload)
+          .catch(() =>
+            api.patch(
+              `/server-tables/${encodeURIComponent(String(tableId))}`,
+              payload,
+            ),
+          );
+      } else {
+        await api.post('/server-tables', {
+          ...payload,
+          status: 'Available',
+        });
+      }
       setIsFormOpen(false);
+      setEditingTable(null);
       setRefreshKey(current => current + 1);
     } catch (error) {
-      setFormError(getErrorMessage(error, 'Unable to add table.'));
+      setFormError(
+        getErrorMessage(
+          error,
+          editingTable ? 'Unable to update table.' : 'Unable to add table.',
+        ),
+      );
     } finally {
       setIsSaving(false);
     }
   };
+
+  const confirmDeleteTable = async () => {
+    if (!tableToDelete) return;
+    const tableId = getTableId(tableToDelete);
+    if (
+      tableId === undefined ||
+      tableId === null ||
+      String(tableId).trim() === ''
+    ) {
+      setDeleteError(
+        'This table does not have a valid ID and cannot be deleted.',
+      );
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete(`/server-tables/${encodeURIComponent(String(tableId))}`);
+      setTables(current =>
+        current.filter(table => String(getTableId(table)) !== String(tableId)),
+      );
+      setTableToDelete(null);
+    } catch (error) {
+      setDeleteError(getErrorMessage(error, 'Unable to delete table.'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const renderTableActions = (table: ServerTable) => (
+    <View className="flex-row gap-2">
+      <TableActionButton
+        label={`Edit table ${getTableNumber(table)}`}
+        tone="edit"
+        onPress={() => openEditForm(table)}
+      />
+      <TableActionButton
+        label={`Delete table ${getTableNumber(table)}`}
+        tone="delete"
+        onPress={() => {
+          setDeleteError('');
+          setTableToDelete(table);
+        }}
+      />
+    </View>
+  );
 
   return (
     <View className="flex-1 bg-[#F8FAF8]">
@@ -326,10 +438,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
               <Pressable
                 accessibilityLabel="Add table"
                 accessibilityRole="button"
-                onPress={() => {
-                  setFormError('');
-                  setIsFormOpen(true);
-                }}
+                onPress={openCreateForm}
                 className="min-h-11 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-4"
               >
                 <PlusIcon color="#FFFFFF" size={18} />
@@ -378,9 +487,13 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
 
         <FormModal
           visible={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
-          title="Add New Table"
-          subtitle="Set table number, capacity, and seating picture"
+          onClose={closeForm}
+          title={editingTable ? 'Edit Table' : 'Add New Table'}
+          subtitle={
+            editingTable
+              ? 'Update table number, capacity, and seating picture'
+              : 'Set table number, capacity, and seating picture'
+          }
           cancelLabel=""
           isSaving={isSaving}
           isSaveDisabled={isSaving || isUploadingImage}
@@ -392,7 +505,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
             <View className="flex-row gap-3">
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setIsFormOpen(false)}
+                onPress={closeForm}
                 disabled={isSaving}
                 className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4"
               >
@@ -400,7 +513,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => void addTable()}
+                onPress={() => void saveTable()}
                 disabled={isSaving || isUploadingImage}
                 className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#064E3B] px-4"
               >
@@ -408,7 +521,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text className="text-sm font-bold text-white">
-                    Create table
+                    {editingTable ? 'Save changes' : 'Create table'}
                   </Text>
                 )}
               </Pressable>
@@ -658,6 +771,9 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                 <Text className="w-32 text-xs font-bold text-[#64748B]">
                   Status
                 </Text>
+                <Text className="w-24 text-xs font-bold text-[#64748B]">
+                  Actions
+                </Text>
               </View>
               {filteredTables.map((table, index) => {
                 const status = table.status?.trim() || 'Available';
@@ -704,6 +820,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                     >
                       {status}
                     </Text>
+                    <View className="w-24">{renderTableActions(table)}</View>
                   </View>
                 );
               })}
@@ -755,6 +872,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                   >
                     {status}
                   </Text>
+                  {renderTableActions(table)}
                 </View>
               );
             })}
@@ -767,16 +885,63 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
           accessibilityRole="button"
           accessibilityHint="Opens the add new table form"
           onPress={() => {
-            setFormError('');
-            setIsFormOpen(true);
+            openCreateForm();
           }}
           className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg"
         >
           <PlusIcon color={colors.surface} size={26} />
         </Pressable>
       ) : null}
+      <ConfirmDialog
+        visible={tableToDelete !== null}
+        onClose={() => {
+          setTableToDelete(null);
+          setDeleteError('');
+        }}
+        onConfirm={() => void confirmDeleteTable()}
+        title="Delete table?"
+        itemName={
+          tableToDelete ? `Table ${getTableNumber(tableToDelete)}` : undefined
+        }
+        message="This table will be permanently removed."
+        confirmLabel="Delete table"
+        cancelLabel="Cancel"
+        isDestructive
+        isLoading={isDeleting}
+        errorMessage={deleteError}
+      />
     </View>
   );
 }
 
 export default Tables;
+
+function TableActionButton({
+  label,
+  onPress,
+  tone,
+}: {
+  label: string;
+  onPress: () => void;
+  tone: 'edit' | 'delete';
+}) {
+  const isEdit = tone === 'edit';
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      className="h-8 w-8 items-center justify-center rounded-lg border"
+      style={{
+        backgroundColor: isEdit ? '#F0FDF4' : '#FEF2F2',
+        borderColor: isEdit ? '#DCFCE7' : '#FECACA',
+      }}
+    >
+      {isEdit ? (
+        <Edit3Icon size={15} color="#15803D" />
+      ) : (
+        <Trash2Icon size={15} color="#DC2626" />
+      )}
+    </Pressable>
+  );
+}
