@@ -571,6 +571,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const openAddCuisinePage = (returnFeature: string | null) => {
     cuisineReturnFeature.current = returnFeature;
+    setActiveTab('more');
     setSelectedAction(null);
     setSelectedFeature('AddCuisine');
     setIsSidebarOpen(false);
