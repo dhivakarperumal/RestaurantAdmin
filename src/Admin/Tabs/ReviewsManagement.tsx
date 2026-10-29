@@ -1398,7 +1398,6 @@ function ReviewStat({
       value={value}
       tint={theme.tint}
       iconBackground={theme.iconBackground}
-      decorColor={theme.iconBackground}
       icon={<ImageIcon size={22} color={theme.tint} strokeWidth={2} />}
     />
   );

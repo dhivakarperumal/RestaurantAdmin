@@ -750,7 +750,6 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
             value={employees.length}
             tint="#166534"
             iconBackground="#DCFCE7"
-            decorColor="#DCFCE7"
             icon={<UserIcon size={22} color="#166534" />}
           />
           <AdminStatCard
@@ -758,7 +757,6 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
             value={activeCount}
             tint="#9A3412"
             iconBackground="#FED7AA"
-            decorColor="#FED7AA"
             icon={<CheckCircle2Icon size={22} color="#9A3412" />}
           />
           <AdminStatCard
@@ -766,7 +764,6 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
             value={workingCount}
             tint="#1D4ED8"
             iconBackground="#BFDBFE"
-            decorColor="#BFDBFE"
             icon={<CheckCircle2Icon size={22} color="#1D4ED8" />}
           />
           <AdminStatCard
@@ -774,7 +771,6 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
             value={inactiveCount}
             tint="#6D28D9"
             iconBackground="#DDD6FE"
-            decorColor="#DDD6FE"
             icon={<UserIcon size={22} color="#6D28D9" />}
           />
         </View>

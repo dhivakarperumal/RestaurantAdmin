@@ -14,6 +14,7 @@ import {
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
+import AdminStatCard from '../../components/AdminStatCard';
 import {
   ConfirmDialog,
   Edit3Icon,
@@ -339,41 +340,33 @@ function BannerManagementPage({
         ) : null}
 
         <View className="flex-row flex-wrap justify-between gap-y-3">
-          <BannerStat
-            cardBackground="#F0FDF4"
+          <AdminStatCard
             iconBackground="#DCFCE7"
             label="TOTAL"
             tint="#166534"
             value={banners.length}
-            decorColor="#DCFCE7"
-            iconName="image"
+            icon={<ImageIcon size={22} color="#166534" strokeWidth={2} />}
           />
-          <BannerStat
-            cardBackground="#FFF7ED"
+          <AdminStatCard
             iconBackground="#FED7AA"
             label="OFFER"
             tint="#9A3412"
             value={totalOffers}
-            decorColor="#FED7AA"
-            iconName="gift"
+            icon={<GiftIcon size={22} color="#9A3412" strokeWidth={2} />}
           />
-          <BannerStat
-            cardBackground="#EFF6FF"
+          <AdminStatCard
             iconBackground="#BFDBFE"
             label="HERO"
             tint="#1D4ED8"
             value={totalHero}
-            decorColor="#BFDBFE"
-            iconName="monitor"
+            icon={<MonitorIcon size={22} color="#1D4ED8" strokeWidth={2} />}
           />
-          <BannerStat
-            cardBackground="#F5F3FF"
+          <AdminStatCard
             iconBackground="#DDD6FE"
             label="PUBLISHED"
             tint="#6D28D9"
             value={totalPublished}
-            decorColor="#DDD6FE"
-            iconName="megaphone"
+            icon={<MegaphoneIcon size={22} color="#6D28D9" strokeWidth={2} />}
           />
         </View>
 
@@ -1056,114 +1049,6 @@ function BannerFilterDropdown<Value extends string>({
           ))}
         </View>
       ) : null}
-    </View>
-  );
-}
-
-function BannerStat({
-  cardBackground,
-  iconBackground,
-  label,
-  tint,
-  value,
-  decorColor,
-  iconName,
-}: {
-  cardBackground: string;
-  iconBackground: string;
-  label: string;
-  tint: string;
-  value: number;
-  decorColor: string;
-  iconName: string;
-}) {
-  const iconSize = 22;
-  return (
-    <View
-      style={{
-        width: "48%",
-        borderRadius: 20,
-        backgroundColor: "#FFFFFF",
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 18,
-        gap: 14,
-        overflow: "hidden",
-        minHeight: 90,
-
-        // Slight, soft shadow
-        shadowColor: "#0F172A",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-        elevation: 2,
-
-        // Subtle border
-        borderWidth: 1,
-        borderColor: "#F1F5F9",
-      }}
-    >
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          bottom: -30,
-          right: -24,
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: decorColor,
-          opacity: 0.55,
-        }}
-      />
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          backgroundColor: iconBackground,
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        {iconName === "image" ? (
-          <ImageIcon size={iconSize} color={tint} strokeWidth={2} />
-        ) : iconName === "gift" ? (
-          <GiftIcon size={iconSize} color={tint} strokeWidth={2} />
-        ) : iconName === "monitor" ? (
-          <MonitorIcon size={iconSize} color={tint} strokeWidth={2} />
-        ) : (
-          <MegaphoneIcon size={iconSize} color={tint} strokeWidth={2} />
-        )}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{
-            fontSize: 10,
-            fontWeight: "800",
-            letterSpacing: 0.8,
-            color: tint,
-            textTransform: "uppercase",
-            lineHeight: 14,
-          }}
-        >
-          {label}
-        </Text>
-        <Text
-          style={{
-            fontSize: 22,
-            fontWeight: "800",
-            color: tint,
-            lineHeight: 38,
-            marginTop: 2,
-          }}
-        >
-          {value}
-        </Text>
-      </View>
     </View>
   );
 }

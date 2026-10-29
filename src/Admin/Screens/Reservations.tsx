@@ -212,7 +212,6 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
           value={reservations.length}
           tint="#166534"
           iconBackground="#DCFCE7"
-          decorColor="#DCFCE7"
           icon={<CalendarIcon size={22} color="#166534" />}
         />
         <AdminStatCard
@@ -220,7 +219,6 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
           value={pendingCount}
           tint="#9A3412"
           iconBackground="#FED7AA"
-          decorColor="#FED7AA"
           icon={<ClockIcon size={22} color="#9A3412" />}
         />
         <AdminStatCard
@@ -228,7 +226,6 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
           value={confirmedCount}
           tint="#1D4ED8"
           iconBackground="#BFDBFE"
-          decorColor="#BFDBFE"
           icon={<CheckCircle2Icon size={22} color="#1D4ED8" />}
         />
         <AdminStatCard
@@ -236,7 +233,6 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
           value={todayCount}
           tint="#6D28D9"
           iconBackground="#DDD6FE"
-          decorColor="#DDD6FE"
           icon={<UserIcon size={22} color="#6D28D9" />}
         />
       </View>

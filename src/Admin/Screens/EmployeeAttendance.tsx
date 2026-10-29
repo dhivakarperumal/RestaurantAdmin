@@ -1337,7 +1337,6 @@ function SummaryCard({
       value={value ?? '—'}
       tint={tint}
       iconBackground={iconBackground}
-      decorColor={iconBackground}
       icon={icon}
     />
   );

@@ -394,7 +394,6 @@ function Overview({ summary }: { summary: InventorySummary | null }) {
           value={card.value}
           tint={card.tint}
           iconBackground={card.bg}
-          decorColor={card.bg}
           icon={<ProductIcon color={card.tint} size={22} />}
         />
       ))}
