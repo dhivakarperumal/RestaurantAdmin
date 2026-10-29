@@ -612,79 +612,62 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         />
       ) : null}
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsRequestModalOpen(false)}
-        transparent
+      <FormModal
         visible={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        title="New Inventory Request"
+        subtitle="Request kitchen ingredients and stock supplies"
+        onSave={submitInventoryRequest}
+        saveLabel="Send Request"
+        cancelLabel="Cancel"
+        isSaving={isSavingRequest}
+        errorMessage={requestError}
       >
-        <View
-          className="flex-1 justify-end bg-black/45"
-        >
-          <View
-            className="rounded-t-[22px] bg-white px-5 pb-[30px] pt-5"
-            style={{ paddingBottom: 24 + insets.bottom }}
-          >
-            <Text className="mb-4 text-[19px] font-extrabold text-[#012711]">
-              New inventory request
+        <View className="gap-3">
+          <View className="gap-1.5">
+            <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+              Product Name *
             </Text>
             <TextInput
               accessibilityLabel="Product name"
-              className="mb-2.5 min-h-12 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
+              className="min-h-12 rounded-2xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A]"
               onChangeText={setRequestProduct}
-              placeholder="Product name"
+              placeholder="e.g. Basmati Rice, Butter, Tomatoes"
+              placeholderTextColor="#94A3B8"
               value={requestProduct}
             />
-            <View className="flex-row gap-2.5">
+          </View>
+          <View className="flex-row gap-3">
+            <View className="flex-1 gap-1.5">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Quantity *
+              </Text>
               <TextInput
                 accessibilityLabel="Quantity"
-                className="mb-2.5 min-h-12 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
+                className="min-h-12 rounded-2xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A]"
                 keyboardType="decimal-pad"
                 onChangeText={setRequestQuantity}
-                placeholder="Quantity"
+                placeholder="e.g. 10"
+                placeholderTextColor="#94A3B8"
                 value={requestQuantity}
               />
+            </View>
+            <View className="flex-1 gap-1.5">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Unit *
+              </Text>
               <TextInput
                 accessibilityLabel="Unit"
-                className="mb-2.5 min-h-12 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
+                className="min-h-12 rounded-2xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A]"
                 onChangeText={setRequestUnit}
-                placeholder="Unit"
+                placeholder="kg / litres / pkts"
+                placeholderTextColor="#94A3B8"
                 value={requestUnit}
               />
             </View>
-            {requestError ? (
-              <Text
-                accessibilityRole="alert"
-                className="mb-2.5 text-[13px] text-red-600"
-              >
-                {requestError}
-              </Text>
-            ) : null}
-            <View className="mt-1.5 flex-row gap-2.5">
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSavingRequest}
-                onPress={() => setIsRequestModalOpen(false)}
-                className="min-h-[46px] flex-1 items-center justify-center rounded-xl bg-[#F0F7EE]"
-              >
-                <Text className="font-bold text-[#012711]">Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSavingRequest}
-                onPress={submitInventoryRequest}
-                className="min-h-[46px] flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
-              >
-                {isSavingRequest ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="font-bold text-white">Send request</Text>
-                )}
-              </Pressable>
-            </View>
           </View>
         </View>
-      </Modal>
+      </FormModal>
     </SafeAreaView>
   );
 }
