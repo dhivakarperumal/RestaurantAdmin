@@ -2437,7 +2437,8 @@ function HomePage({
                         .slice(0, index)
                         .reduce((total, entry) => total + entry.revenue, 0);
                       const offset =
-                        (previousRevenue / categorySpendTotal) * circumference;
+                        (previousRevenue / categorySpendTotal) *
+                        circumference;
                       return (
                         <Circle
                           key={category.id}
@@ -2451,10 +2452,7 @@ function HomePage({
                             ]
                           }
                           strokeWidth={28}
-                          strokeDasharray={`${Math.max(
-                            0,
-                            segmentLength,
-                          )} ${circumference}`}
+                          strokeDasharray={`${Math.max(0, segmentLength)} ${circumference}`}
                           strokeDashoffset={-offset}
                           rotation={-90}
                           origin="105, 105"
@@ -2497,9 +2495,7 @@ function HomePage({
                       </Text>
                     </View>
                     <Text className="text-sm font-bold text-[#1E293B]">
-                      {`₹${Math.round(category.revenue).toLocaleString(
-                        'en-IN',
-                      )}`}
+                      {`₹${Math.round(category.revenue).toLocaleString('en-IN')}`}
                     </Text>
                   </View>
                 ))}
