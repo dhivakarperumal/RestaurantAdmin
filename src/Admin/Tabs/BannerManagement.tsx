@@ -344,7 +344,7 @@ function BannerManagementPage({
           <BannerStat
             cardBackground="#F0FDF4"
             iconBackground="#DCFCE7"
-            label="TOTAL BANNERS"
+            label="TOTAL"
             tint="#166534"
             value={banners.length}
             decorColor="#DCFCE7"
@@ -353,7 +353,7 @@ function BannerManagementPage({
           <BannerStat
             cardBackground="#FFF7ED"
             iconBackground="#FED7AA"
-            label="OFFER BANNERS"
+            label="OFFER"
             tint="#9A3412"
             value={totalOffers}
             decorColor="#FED7AA"
@@ -362,7 +362,7 @@ function BannerManagementPage({
           <BannerStat
             cardBackground="#EFF6FF"
             iconBackground="#BFDBFE"
-            label="HERO BANNERS"
+            label="HERO"
             tint="#1D4ED8"
             value={totalHero}
             decorColor="#BFDBFE"
@@ -1109,7 +1109,7 @@ function BannerStat({
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
-          numberOfLines={2}
+          numberOfLines={1}
           style={{
             fontSize: 10,
             fontWeight: "800",
@@ -1123,8 +1123,8 @@ function BannerStat({
         </Text>
         <Text
           style={{
-            fontSize: 32,
-            fontWeight: "900",
+            fontSize: 22,
+            fontWeight: "800",
             color: tint,
             lineHeight: 38,
             marginTop: 2,
