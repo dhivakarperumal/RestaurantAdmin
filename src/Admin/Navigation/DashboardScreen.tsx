@@ -2437,8 +2437,7 @@ function HomePage({
                         .slice(0, index)
                         .reduce((total, entry) => total + entry.revenue, 0);
                       const offset =
-                        (previousRevenue / categorySpendTotal) *
-                        circumference;
+                        (previousRevenue / categorySpendTotal) * circumference;
                       return (
                         <Circle
                           key={category.id}
@@ -2452,7 +2451,10 @@ function HomePage({
                             ]
                           }
                           strokeWidth={28}
-                          strokeDasharray={`${Math.max(0, segmentLength)} ${circumference}`}
+                          strokeDasharray={`${Math.max(
+                            0,
+                            segmentLength,
+                          )} ${circumference}`}
                           strokeDashoffset={-offset}
                           rotation={-90}
                           origin="105, 105"
@@ -2495,7 +2497,9 @@ function HomePage({
                       </Text>
                     </View>
                     <Text className="text-sm font-bold text-[#1E293B]">
-                      {`₹${Math.round(category.revenue).toLocaleString('en-IN')}`}
+                      {`₹${Math.round(category.revenue).toLocaleString(
+                        'en-IN',
+                      )}`}
                     </Text>
                   </View>
                 ))}
@@ -4017,7 +4021,21 @@ function KitchenRequestsScreen() {
               className="ml-2 flex-1 py-2 text-sm text-[#012711]"
             />
           </View>
-          <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+        </View>
+        <View className="flex-row items-end gap-3">
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'All', label: 'All statuses' },
+              { value: 'Pending', label: 'Pending' },
+              { value: 'Approved', label: 'Approved' },
+              { value: 'Rejected', label: 'Rejected' },
+              { value: 'Completed', label: 'Completed' },
+            ]}
+          />
+          <View className="mb-4 h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
             {(['grid', 'list'] as const).map(mode => {
               const selected = viewMode === mode;
               return (
@@ -4042,20 +4060,6 @@ function KitchenRequestsScreen() {
               );
             })}
           </View>
-        </View>
-        <View className="flex-row items-end gap-3">
-          <FilterSelect
-            label="Status"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={[
-              { value: 'All', label: 'All statuses' },
-              { value: 'Pending', label: 'Pending' },
-              { value: 'Approved', label: 'Approved' },
-              { value: 'Rejected', label: 'Rejected' },
-              { value: 'Completed', label: 'Completed' },
-            ]}
-          />
         </View>
         <Text className="text-xs text-[#64748B]">
           {filteredRequests.length} requests
