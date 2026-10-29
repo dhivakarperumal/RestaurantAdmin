@@ -6,6 +6,7 @@ import {
   Image,
   Pressable,
   RefreshControl,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -23,8 +24,10 @@ import {
   AlertCircleIcon,
   CheckCircle2Icon,
   ConfirmDialog,
+  Edit3Icon,
   FormModal,
   ImageIcon,
+  Trash2Icon,
 } from '../../components/popups';
 
 type Category = {
@@ -572,33 +575,27 @@ function Categories({
     const isActive = item.status?.toLowerCase() !== 'inactive';
     const categoryName = item.category_name || 'Unnamed category';
     const actions = (
-      <View className="flex-row gap-2">
-        <Pressable
-          accessibilityLabel={`Edit ${categoryName}`}
-          accessibilityRole="button"
+      <View className="flex-row gap-1.5">
+        <CategoryActionButton
+          label={`Edit ${categoryName}`}
+          tone="edit"
           onPress={() => void openEditForm(item)}
-          className="rounded-lg border border-[#DCFCE7] bg-[#F0FDF4] px-3 py-2"
-        >
-          <Text className="text-xs font-bold text-[#15803D]">Edit</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel={`Delete ${categoryName}`}
-          accessibilityRole="button"
+        />
+        <CategoryActionButton
+          label={`Delete ${categoryName}`}
+          tone="delete"
           onPress={() => {
             setDeleteError('');
             setCategoryToDelete(item);
           }}
-          className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2"
-        >
-          <Text className="text-xs font-bold text-[#DC2626]">Delete</Text>
-        </Pressable>
+        />
       </View>
     );
 
     if (viewMode === 'table') {
       return (
         <View className="min-h-[76px] flex-row items-center border-t border-[#E8F1EB] bg-white px-3 py-2">
-          <View className="min-w-0 flex-[2] flex-row items-center gap-3 pr-2">
+          <View className="w-[220px] flex-row items-center gap-3 pr-2">
             <CategoryImage
               name={categoryName}
               uri={resolveImageUrl(item.category_image)}
@@ -634,21 +631,21 @@ function Categories({
       <View
         className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
         style={{
-          flex: isWide ? 1 : undefined,
-          width: isWide ? '48%' : '100%',
+          flex: 1,
+          width: '48%',
         }}
       >
         <View className="relative">
           <CategoryImage
             name={categoryName}
             uri={resolveImageUrl(item.category_image)}
-            className={isWide ? 'h-40 w-full' : 'h-36 w-full'}
+            className={isWide ? 'h-40 w-full' : 'h-28 w-full'}
           />
           <View className="absolute left-3 top-3">
             <CategoryStatusBadge active={isActive} />
           </View>
         </View>
-        <View className="gap-2.5 p-3.5">
+        <View className={isWide ? 'gap-2.5 p-3.5' : 'gap-2 p-2.5'}>
           <View className="flex-row items-start justify-between gap-2">
             <View className="min-w-0 flex-1">
               <Text
@@ -664,8 +661,8 @@ function Categories({
                 {categoryId}
               </Text>
             </View>
-            <Text className="rounded-full bg-[#F0FDF4] px-2 py-1 text-[10px] font-bold text-[#15803D]">
-              {productCount} {productCount === 1 ? 'product' : 'products'}
+            <Text className="rounded-full bg-[#F0FDF4] px-1.5 py-1 text-[9px] font-bold text-[#15803D]">
+              {productCount} {productCount === 1 ? 'item' : 'items'}
             </Text>
           </View>
           {item.description ? (
@@ -682,7 +679,9 @@ function Categories({
             </Text>
           ) : null}
           <View className="flex-row items-center justify-between border-t border-[#F1F5F9] pt-2.5">
-            <Text className="text-[10px] text-[#64748B]">Category details</Text>
+            <Text className="min-w-0 flex-1 text-[9px] text-[#64748B]">
+              Category
+            </Text>
             {actions}
           </View>
         </View>
@@ -698,12 +697,10 @@ function Categories({
   return (
     <View className="flex-1 bg-[#F9FAFB]">
       <FlatList
-        data={visibleCategories}
         key={`${viewMode}-${isWide ? 'wide' : 'narrow'}`}
-        numColumns={viewMode === 'cards' && isWide ? 2 : 1}
-        columnWrapperStyle={
-          viewMode === 'cards' && isWide ? { gap: 12 } : undefined
-        }
+        numColumns={viewMode === 'cards' ? 2 : 1}
+        columnWrapperStyle={viewMode === 'cards' ? { gap: 10 } : undefined}
+        data={viewMode === 'cards' ? visibleCategories : []}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -916,25 +913,45 @@ function Categories({
               </View>
             ) : null}
             {viewMode === 'table' && filteredCategories.length ? (
-              <View className="flex-row items-center rounded-t-xl bg-[#EAF5EE] px-3 py-3">
-                <Text className="flex-[2] text-[10px] font-bold uppercase text-[#64748B]">
-                  Category
-                </Text>
-                <Text className="w-[64px] text-center text-[10px] font-bold uppercase text-[#64748B]">
-                  Products
-                </Text>
-                <Text className="w-[82px] text-center text-[10px] font-bold uppercase text-[#64748B]">
-                  Status
-                </Text>
-                <Text className="w-[112px] text-right text-[10px] font-bold uppercase text-[#64748B]">
-                  Actions
-                </Text>
-              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator
+                className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+              >
+                <View style={{ width: isWide ? '100%' : 620, minWidth: 620 }}>
+                  <View className="flex-row items-center bg-[#EAF5EE] px-3 py-3">
+                    <Text className="w-[220px] text-[10px] font-bold uppercase text-[#64748B]">
+                      Category
+                    </Text>
+                    <Text className="w-[64px] text-center text-[10px] font-bold uppercase text-[#64748B]">
+                      Products
+                    </Text>
+                    <Text className="w-[82px] text-center text-[10px] font-bold uppercase text-[#64748B]">
+                      Status
+                    </Text>
+                    <Text className="w-[112px] text-right text-[10px] font-bold uppercase text-[#64748B]">
+                      Actions
+                    </Text>
+                  </View>
+                  {visibleCategories.map((category, index) => (
+                    <View
+                      key={
+                        getCategoryId(category) ||
+                        `${category.category_name || 'category'}-${index}`
+                      }
+                    >
+                      {renderCategory({ item: category })}
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
             ) : null}
           </View>
         }
         ListEmptyComponent={
-          categoryError ? (
+          viewMode === 'table' && filteredCategories.length ? (
+            <View />
+          ) : categoryError ? (
             <View />
           ) : isLoading ? (
             <View className="items-center gap-3 py-12">
@@ -1264,6 +1281,36 @@ function Categories({
 }
 
 export default Categories;
+
+function CategoryActionButton({
+  label,
+  onPress,
+  tone,
+}: {
+  label: string;
+  onPress: () => void;
+  tone: 'edit' | 'delete';
+}) {
+  const isEdit = tone === 'edit';
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      className="h-8 w-8 items-center justify-center rounded-lg border"
+      style={{
+        backgroundColor: isEdit ? '#F0FDF4' : '#FEF2F2',
+        borderColor: isEdit ? '#DCFCE7' : '#FECACA',
+      }}
+    >
+      {isEdit ? (
+        <Edit3Icon size={15} color="#15803D" />
+      ) : (
+        <Trash2Icon size={15} color="#DC2626" />
+      )}
+    </Pressable>
+  );
+}
 
 function CategoryStatusBadge({ active }: { active: boolean }) {
   return (
