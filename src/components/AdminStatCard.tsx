@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 type AdminStatCardProps = {
   label: string;
@@ -8,7 +8,6 @@ type AdminStatCardProps = {
   iconBackground: string;
   decorColor?: string;
   icon: ReactNode;
-  onPress?: () => void;
 };
 
 function AdminStatCard({
@@ -18,35 +17,28 @@ function AdminStatCard({
   iconBackground,
   decorColor = iconBackground,
   icon,
-  onPress,
 }: AdminStatCardProps) {
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      style={({ pressed }) => ({
+    <View
+      style={{
         width: '48%',
-        flexBasis: '48%',
-        flexGrow: 0,
-        flexShrink: 0,
         minHeight: 90,
-        overflow: 'hidden',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 14,
+        overflow: 'hidden',
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: '#F1F5F9',
-        borderRadius: 20,
         backgroundColor: '#FFFFFF',
-        paddingHorizontal: 14,
-        paddingVertical: 16,
-        opacity: pressed ? 0.92 : 1,
-        elevation: 2,
+        paddingHorizontal: 16,
+        paddingVertical: 18,
         shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
         shadowRadius: 6,
-      })}
+        elevation: 2,
+      }}
     >
       <View
         pointerEvents="none"
@@ -74,7 +66,7 @@ function AdminStatCard({
       >
         {icon}
       </View>
-      <View style={{ minWidth: 0, flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           numberOfLines={1}
           style={{
@@ -82,29 +74,25 @@ function AdminStatCard({
             fontSize: 10,
             fontWeight: '800',
             letterSpacing: 0.8,
+            lineHeight: 14,
             textTransform: 'uppercase',
           }}
         >
           {label}
         </Text>
         <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.65}
           style={{
-            marginTop: 4,
+            marginTop: 2,
             color: tint,
-            fontSize: 23,
+            fontSize: 22,
             fontWeight: '800',
-            lineHeight: 28,
-            letterSpacing: -0.5,
-            fontVariant: ['tabular-nums'],
+            lineHeight: 38,
           }}
         >
           {value}
         </Text>
       </View>
-    </Pressable>
+    </View>
   );
 }
 

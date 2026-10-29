@@ -90,6 +90,8 @@ export function BaseModal({
     }
   }, [visible, onClose, backdropAnim]);
 
+  if (!visible) return null;
+
   const content = (
     <View
       accessibilityLabel={accessibilityLabel || title}
