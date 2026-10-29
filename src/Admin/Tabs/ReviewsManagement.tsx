@@ -13,6 +13,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
 import {
+  BaseModal,
   ConfirmDialog,
   DetailsModal,
   FormModal,
@@ -895,159 +896,161 @@ function ReviewsManagementPage({
                   ))}
                 </View>
               </View>
-              {error ? (
-                <Text accessibilityRole="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </Text>
-              ) : null}
-              <Pressable
-                accessibilityLabel={editingReview ? 'Save review changes' : 'Create review'}
-                accessibilityRole="button"
-                disabled={isSaving || isUploading}
-                onPress={saveReview}
-                className="min-h-12 flex-row items-center justify-center gap-2 rounded-xl bg-[#116C0B] px-4 py-3"
-                style={({ pressed }) => ({
-                  opacity: isSaving || isUploading ? 0.6 : pressed ? 0.85 : 1,
-                })}
-              >
-                {isSaving ? <ActivityIndicator color="#FFFFFF" /> : null}
-                <Text className="text-sm font-bold text-white">
-                  {isSaving ? 'Saving...' : editingReview ? 'Save changes' : 'Create review'}
-                </Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+            </View>
+      </FormModal>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setIsFoodPickerOpen(false)}
-        transparent
+      <BaseModal
         visible={isFoodPickerOpen}
+        onClose={() => setIsFoodPickerOpen(false)}
+        title="Select Menu Item"
+        subtitle="Choose the food item this review is associated with"
+        variant="bottom-sheet"
+        maxHeightPercent={70}
       >
-        <View className="flex-1 justify-end bg-black/40">
-          <View className="max-h-[70%] rounded-t-3xl bg-white">
-            <View className="flex-row items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-              <Text className="text-lg font-bold text-[#012711]">Select menu food</Text>
+        <ScrollView className="max-h-[380px]" contentContainerClassName="gap-2 pb-6">
+          {foods.map(food => {
+            const foodId = String(getFoodId(food));
+            const foodName = getFoodName(food);
+            const foodImage = getImageUrl(food.food_images ?? food.image);
+            const isSelected = foodId === selectedFoodId;
+            return (
               <Pressable
-                accessibilityLabel="Close food selection"
+                accessibilityLabel={`Select food ${foodName}`}
                 accessibilityRole="button"
-                onPress={() => setIsFoodPickerOpen(false)}
+                key={foodId}
+                onPress={() => {
+                  setSelectedFoodId(foodId);
+                  setIsFoodPickerOpen(false);
+                }}
+                className={`min-h-14 flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 ${
+                  isSelected
+                    ? 'border-[#116C0B] bg-[#116C0B]/5'
+                    : 'border-[#E2E8F0] bg-white active:bg-gray-50'
+                }`}
               >
-                <Text className="text-2xl text-[#6B7280]">×</Text>
+                {foodImage ? (
+                  <Image
+                    accessibilityLabel={`${foodName} image`}
+                    className="h-10 w-10 rounded-xl bg-[#F1F5F9]"
+                    resizeMode="cover"
+                    source={{ uri: resolveAssetUrl(foodImage) }}
+                  />
+                ) : (
+                  <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#116C0B]/10">
+                    <Text className="font-bold text-[#116C0B]">{foodName[0]}</Text>
+                  </View>
+                )}
+                <Text className="flex-1 text-sm font-semibold text-[#0F172A]">{foodName}</Text>
+                {isSelected ? (
+                  <Text className="font-bold text-[#116C0B]">✓</Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </BaseModal>
+
+      {viewingReview ? (
+        <DetailsModal
+          visible={viewingReview !== null}
+          onClose={() => setViewingReview(null)}
+          title="Review Details"
+          subtitle={viewingReview.review_id}
+          badge={{
+            label: viewingReview.status,
+            bg: viewingReview.status === 'Published' ? '#F0FDF4' : '#FEF3C7',
+            text: viewingReview.status === 'Published' ? '#15803D' : '#D97706',
+            border: viewingReview.status === 'Published' ? '#DCFCE7' : '#FDE68A',
+          }}
+          footer={
+            <View className="w-full flex-row gap-3">
+              <Pressable
+                accessibilityLabel="Close review details"
+                accessibilityRole="button"
+                onPress={() => setViewingReview(null)}
+                className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
+              >
+                <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel={`Edit review ${viewingReview.review_id}`}
+                accessibilityRole="button"
+                onPress={() => {
+                  const review = viewingReview;
+                  setViewingReview(null);
+                  openEditForm(review);
+                }}
+                className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+              >
+                <Text className="text-sm font-bold text-white">Edit Review</Text>
               </Pressable>
             </View>
-            <ScrollView contentContainerClassName="gap-2 px-5 py-4">
-              {foods.map(food => {
-                const foodId = String(getFoodId(food));
-                const foodName = getFoodName(food);
-                const foodImage = getImageUrl(food.food_images ?? food.image);
-                return (
-                  <Pressable
-                    accessibilityLabel={`Select food ${foodName}`}
-                    accessibilityRole="button"
-                    key={foodId}
-                    onPress={() => {
-                      setSelectedFoodId(foodId);
-                      setIsFoodPickerOpen(false);
-                    }}
-                    className={`min-h-14 flex-row items-center gap-3 rounded-xl border px-3 py-2 ${
-                      foodId === selectedFoodId
-                        ? 'border-[#116C0B] bg-green-50'
-                        : 'border-[#E5E7EB] bg-white'
-                    }`}
-                  >
-                    {foodImage ? (
-                      <Image
-                        accessibilityLabel={`${foodName} image`}
-                        className="h-10 w-10 rounded-lg bg-[#F3F4F6]"
-                        resizeMode="cover"
-                        source={{ uri: resolveAssetUrl(foodImage) }}
-                      />
-                    ) : (
-                      <View className="h-10 w-10 items-center justify-center rounded-lg bg-[#F0F7EE]">
-                        <Text className="font-bold text-[#116C0B]">{foodName[0]}</Text>
-                      </View>
-                    )}
-                    <Text className="flex-1 text-sm font-semibold text-[#012711]">{foodName}</Text>
-                    {foodId === selectedFoodId ? (
-                      <Text className="font-bold text-[#116C0B]">✓</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setViewingReview(null)}
-        transparent
-        visible={viewingReview !== null}
-      >
-        {viewingReview ? (
-          <View className="flex-1 justify-end bg-black/40">
-            <View className="max-h-[85%] rounded-t-3xl bg-white">
-              <View className="flex-row items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
-                <View>
-                  <Text className="text-lg font-bold text-[#012711]">Review details</Text>
-                  <Text className="mt-1 text-xs text-[#6B7280]">{viewingReview.review_id}</Text>
-                </View>
-                <Pressable
-                  accessibilityLabel="Close review details"
-                  accessibilityRole="button"
-                  onPress={() => setViewingReview(null)}
-                >
-                  <Text className="text-2xl text-[#6B7280]">×</Text>
-                </Pressable>
-              </View>
-              <ScrollView contentContainerClassName="gap-4 px-5 pb-8 pt-4">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-base font-bold text-[#012711]">{viewingReview.product_name}</Text>
-                  <StatusBadge status={viewingReview.status} />
-                </View>
-                <Text className="text-sm font-semibold text-[#374151]">
-                  {viewingReview.reviewer_name}
-                  {viewingReview.reviewer_email ? ` · ${viewingReview.reviewer_email}` : ''}
-                </Text>
-                <StarRating rating={viewingReview.rating} />
-                {viewingReview.title ? (
-                  <Text className="text-base font-bold text-[#012711]">{viewingReview.title}</Text>
-                ) : null}
-                <Text className="text-sm leading-6 text-[#4B5563]">{viewingReview.comment}</Text>
-                {viewingReview.review_photo ? (
-                  <Image
-                    accessibilityLabel="Review photo"
-                    className="h-48 w-full rounded-xl bg-[#F3F4F6]"
-                    resizeMode="cover"
-                    source={{ uri: resolveAssetUrl(viewingReview.review_photo) }}
-                  />
-                ) : null}
-                <Text className="text-xs text-[#6B7280]">
-                  {viewingReview.created_at
-                    ? `Submitted ${new Date(viewingReview.created_at).toLocaleString()}`
-                    : 'Submission date unavailable'}
-                </Text>
-                <Pressable
-                  accessibilityLabel={`Edit review ${viewingReview.review_id}`}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    const review = viewingReview;
-                    setViewingReview(null);
-                    openEditForm(review);
-                  }}
-                  className="min-h-11 items-center justify-center rounded-xl bg-[#116C0B]"
-                >
-                  <Text className="text-sm font-bold text-white">Edit review</Text>
-                </Pressable>
-              </ScrollView>
+          }
+        >
+          <View className="gap-4">
+            <View className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Product
+              </Text>
+              <Text className="mt-1 text-base font-bold text-[#0F172A]">
+                {viewingReview.product_name}
+              </Text>
             </View>
+
+            <View className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Reviewer
+              </Text>
+              <Text className="mt-1 text-sm font-bold text-[#0F172A]">
+                {viewingReview.reviewer_name}
+              </Text>
+              {viewingReview.reviewer_email ? (
+                <Text className="mt-0.5 text-xs text-[#64748B]">{viewingReview.reviewer_email}</Text>
+              ) : null}
+            </View>
+
+            <View className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Rating & Feedback
+              </Text>
+              <View className="mt-2">
+                <StarRating rating={viewingReview.rating} />
+              </View>
+              {viewingReview.title ? (
+                <Text className="mt-3 text-base font-bold text-[#0F172A]">{viewingReview.title}</Text>
+              ) : null}
+              <Text className="mt-2 text-sm leading-6 text-[#334155]">{viewingReview.comment}</Text>
+            </View>
+
+            {viewingReview.review_photo ? (
+              <Image
+                accessibilityLabel="Review photo"
+                className="h-48 w-full rounded-2xl bg-[#F1F5F9]"
+                resizeMode="cover"
+                source={{ uri: resolveAssetUrl(viewingReview.review_photo) }}
+              />
+            ) : null}
+
+            <Text className="text-center text-xs text-[#94A3B8]">
+              {viewingReview.created_at
+                ? `Submitted ${new Date(viewingReview.created_at).toLocaleString()}`
+                : 'Submission date unavailable'}
+            </Text>
           </View>
-        ) : null}
-      </Modal>
+        </DetailsModal>
+      ) : null}
+
+      <ConfirmDialog
+        visible={reviewToDelete !== null}
+        onClose={() => setReviewToDelete(null)}
+        title="Delete Review"
+        message="Are you sure you want to delete this customer review? This action cannot be undone."
+        itemName={reviewToDelete ? `${reviewToDelete.reviewer_name}'s review on ${reviewToDelete.product_name}` : undefined}
+        confirmLabel="Delete Review"
+        variantType="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteReview}
+      />
     </>
   );
 }
