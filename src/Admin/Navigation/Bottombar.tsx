@@ -70,7 +70,7 @@ function Bottombar<Key extends string>({
                 pressed && !isAddTab ? colors.surfaceSecondary : 'transparent',
               borderRadius: 12,
               flex: 1,
-              gap: 4,
+              gap: isAddTab ? 0 : 4,
               justifyContent: 'center',
               minHeight: 54,
               transform: [{ scale: pressed && isAddTab ? 0.96 : 1 }],
@@ -87,11 +87,11 @@ function Bottombar<Key extends string>({
                   elevation: 5,
                   height: 46,
                   justifyContent: 'center',
-                  marginTop: -16,
                   shadowColor: colors.primaryDark,
                   shadowOffset: { width: 0, height: 3 },
                   shadowOpacity: 0.24,
                   shadowRadius: 5,
+                  transform: [{ translateY: -8 }],
                   width: 46,
                 }}
               >
@@ -107,6 +107,8 @@ function Bottombar<Key extends string>({
                 color: isAddTab || isActive ? colors.primary : colors.textSecondary,
                 fontSize: 10,
                 fontWeight: isAddTab || isActive ? '700' : '500',
+                textAlign: 'center',
+                width: '100%',
               }}
               numberOfLines={1}
             >

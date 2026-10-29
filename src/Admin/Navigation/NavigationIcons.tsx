@@ -150,9 +150,19 @@ export function PlusIcon({ color, size = 24 }: NavigationIconProps) {
 export function MoreIcon({ color, size = 20 }: NavigationIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="5" cy="12" r="1.5" fill={color} />
-      <Circle cx="12" cy="12" r="1.5" fill={color} />
-      <Circle cx="19" cy="12" r="1.5" fill={color} />
+      <Rect x="2.5" y="2.5" width="8" height="8" rx="1.5" stroke={color} strokeWidth="2" />
+      <Rect x="13.5" y="2.5" width="8" height="8" rx="1.5" stroke={color} strokeWidth="2" />
+      <Rect x="2.5" y="13.5" width="8" height="8" rx="1.5" stroke={color} strokeWidth="2" />
+      <Rect
+        x="14"
+        y="14"
+        width="7"
+        height="7"
+        rx="1"
+        transform="rotate(45 17.5 17.5)"
+        stroke={color}
+        strokeWidth="2"
+      />
     </Svg>
   );
 }
