@@ -63,7 +63,7 @@ import Items from '../Tabs/Items';
 import InventoryScreen from '../Tabs/Inventory';
 import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
-import CuisineScreen from '../Screens/Cuisine';
+import CuisineScreen, { type CuisineRecord } from '../Screens/Cuisine';
 import AddCuisineScreen from '../Screens/AddCuisine';
 import EmployeeAttendance from '../Screens/EmployeeAttendance';
 import EmployeesPage from '../Screens/Employees';
@@ -310,6 +310,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   );
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const cuisineReturnFeature = useRef<string | null>(null);
+  const [cuisineToEdit, setCuisineToEdit] = useState<CuisineRecord | null>(
+    null,
+  );
   const [billingItems, setBillingItems] = useState<BillingLineItem[]>([]);
   const [records, setRecords] = useState<LocalRecord[]>([]);
   const [logoutError, setLogoutError] = useState('');
@@ -584,8 +587,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsNotificationsOpen(false);
   };
 
-  const openAddCuisinePage = (returnFeature: string | null) => {
+  const openAddCuisinePage = (
+    returnFeature: string | null,
+    cuisine?: CuisineRecord,
+  ) => {
     cuisineReturnFeature.current = returnFeature;
+    setCuisineToEdit(cuisine || null);
     setActiveTab('more');
     setSelectedAction(null);
     setSelectedFeature('AddCuisine');
@@ -596,6 +603,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const closeAddCuisinePage = () => {
     const returnFeature = cuisineReturnFeature.current;
     cuisineReturnFeature.current = null;
+    setCuisineToEdit(null);
     setSelectedFeature(returnFeature);
   };
 
@@ -897,6 +905,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onItemsAddRequestHandled={handleItemsAddRequestHandled}
               onOpenAddCuisine={openAddCuisinePage}
               onCloseAddCuisine={closeAddCuisinePage}
+              cuisineToEdit={cuisineToEdit}
               onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
@@ -956,6 +965,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onItemsAddRequestHandled={handleItemsAddRequestHandled}
             onOpenAddCuisine={openAddCuisinePage}
             onCloseAddCuisine={closeAddCuisinePage}
+            cuisineToEdit={cuisineToEdit}
             onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
@@ -1396,6 +1406,7 @@ function MainContent({
   onItemsAddRequestHandled,
   onOpenAddCuisine,
   onCloseAddCuisine,
+  cuisineToEdit,
   onInnerPageVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
@@ -1435,8 +1446,12 @@ function MainContent({
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
   onItemsAddRequestHandled: (id: number) => void;
-  onOpenAddCuisine: (returnFeature: string | null) => void;
+  onOpenAddCuisine: (
+    returnFeature: string | null,
+    cuisine?: CuisineRecord,
+  ) => void;
   onCloseAddCuisine: () => void;
+  cuisineToEdit: CuisineRecord | null;
   onInnerPageVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
@@ -1499,6 +1514,7 @@ function MainContent({
       return (
         <CuisineScreen
           onAddCuisine={() => onOpenAddCuisine('Cuisines')}
+          onEditCuisine={cuisine => onOpenAddCuisine('Cuisines', cuisine)}
           onBack={() => onSelectFeature(null)}
           showBackButton={false}
         />
@@ -1506,7 +1522,11 @@ function MainContent({
     }
     if (selectedFeature === 'AddCuisine') {
       return (
-        <AddCuisineScreen onBack={onCloseAddCuisine} showBackButton={true} />
+        <AddCuisineScreen
+          cuisineToEdit={cuisineToEdit}
+          onBack={onCloseAddCuisine}
+          showBackButton={true}
+        />
       );
     }
     if (selectedFeature === 'Categories') {

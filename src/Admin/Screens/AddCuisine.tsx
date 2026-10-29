@@ -13,6 +13,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
 import { ProductIcon } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
+import type { CuisineRecord } from './Cuisine';
 
 type CuisineForm = {
   cuisineId: string;
@@ -25,6 +26,7 @@ type CuisineForm = {
 
 type AddCuisineProps = {
   onBack: () => void;
+  cuisineToEdit?: CuisineRecord | null;
   showBackButton?: boolean;
 };
 
@@ -89,32 +91,90 @@ function resolveImageUrl(value: string) {
   return `${apiRoot}/${value.replace(/^\/+/, '')}`;
 }
 
-function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
+function AddCuisine({
+  onBack,
+  cuisineToEdit = null,
+  showBackButton = true,
+}: AddCuisineProps) {
   const [form, setForm] = useState<CuisineForm>(INITIAL_FORM);
   const [isLoadingId, setIsLoadingId] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const isEditing = cuisineToEdit !== null;
 
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
 
-    api
-      .get('/cuisines/next-id', { signal: controller.signal })
-      .then(response => {
+    const loadForm = async () => {
+      if (!cuisineToEdit) {
+        const response = await api.get('/cuisines/next-id', {
+          signal: controller.signal,
+        });
         const cuisineId = getNextCuisineId(response.data);
         if (!cuisineId) {
           throw new Error('The server did not return a cuisine ID.');
         }
         if (active) {
-          setForm(current => ({ ...current, cuisineId }));
+          setForm({ ...INITIAL_FORM, cuisineId });
         }
-      })
+        return;
+      }
+
+      const cuisineId = String(
+        cuisineToEdit.cuisine_id ?? cuisineToEdit.id ?? '',
+      ).trim();
+      if (!cuisineId) {
+        throw new Error(
+          'This cuisine does not have an ID and cannot be edited.',
+        );
+      }
+
+      const response = await api.get(
+        `/cuisines/${encodeURIComponent(cuisineId)}`,
+        { signal: controller.signal },
+      );
+      const data = unwrapData(response.data);
+      if (!isRecord(data)) {
+        throw new Error('The server returned invalid cuisine details.');
+      }
+      if (active) {
+        setForm({
+          cuisineId: String(data.cuisine_id ?? data.cuisineId ?? cuisineId),
+          cuisineName:
+            typeof data.cuisine_name === 'string'
+              ? data.cuisine_name
+              : typeof data.name === 'string'
+              ? data.name
+              : '',
+          description:
+            typeof data.description === 'string' ? data.description : '',
+          image: typeof data.image === 'string' ? data.image : '',
+          status:
+            typeof data.status === 'string' &&
+            data.status.toLowerCase() === 'inactive'
+              ? 'Inactive'
+              : 'Active',
+          featured:
+            data.featured === true ||
+            data.featured === 1 ||
+            data.featured === '1' ||
+            data.featured === 'true',
+        });
+      }
+    };
+
+    loadForm()
       .catch(error => {
         if (active && !controller.signal.aborted) {
           setFormError(
-            getErrorMessage(error, 'Unable to generate a cuisine ID.'),
+            getErrorMessage(
+              error,
+              cuisineToEdit
+                ? 'Unable to load this cuisine.'
+                : 'Unable to generate a cuisine ID.',
+            ),
           );
         }
       })
@@ -128,7 +188,7 @@ function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [cuisineToEdit]);
 
   const chooseImage = async () => {
     setFormError('');
@@ -208,17 +268,30 @@ function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
     setIsSaving(true);
     setFormError('');
     try {
-      await api.post('/cuisines', {
+      const payload = {
         cuisine_id: form.cuisineId,
         cuisine_name: cuisineName,
         description: form.description.trim(),
         image: form.image,
         status: form.status,
         featured: form.featured,
-      });
+      };
+      if (isEditing) {
+        await api.put(
+          `/cuisines/${encodeURIComponent(form.cuisineId)}`,
+          payload,
+        );
+      } else {
+        await api.post('/cuisines', payload);
+      }
       onBack();
     } catch (error) {
-      setFormError(getErrorMessage(error, 'Unable to add cuisine.'));
+      setFormError(
+        getErrorMessage(
+          error,
+          `Unable to ${isEditing ? 'update' : 'add'} cuisine.`,
+        ),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -251,10 +324,12 @@ function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
             </Pressable>
           ) : null}
           <Text className="mt-2 text-2xl font-extrabold text-[#012711]">
-            Add Cuisine
+            {isEditing ? 'Edit Cuisine' : 'Add Cuisine'}
           </Text>
           <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
-            Add the details, image, and settings for your cuisine.
+            {isEditing
+              ? 'Update the details, image, and settings for this cuisine.'
+              : 'Add the details, image, and settings for your cuisine.'}
           </Text>
         </View>
 
@@ -268,7 +343,9 @@ function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
                 <View className="min-h-11 flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-[#F3F4F6] px-3.5">
                   <ActivityIndicator color={colors.primary} size="small" />
                   <Text className="text-sm text-[#6B7280]">
-                    Generating cuisine ID...
+                    {isEditing
+                      ? 'Loading cuisine...'
+                      : 'Generating cuisine ID...'}
                   </Text>
                 </View>
               ) : (
@@ -431,7 +508,9 @@ function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
               <Text className="text-sm font-bold text-[#334155]">Cancel</Text>
             </Pressable>
             <Pressable
-              accessibilityLabel="Save cuisine"
+              accessibilityLabel={
+                isEditing ? 'Save cuisine changes' : 'Save cuisine'
+              }
               accessibilityRole="button"
               disabled={
                 isSaving || isUploadingImage || isLoadingId || !form.cuisineId
@@ -449,7 +528,7 @@ function AddCuisine({ onBack, showBackButton = true }: AddCuisineProps) {
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text className="text-sm font-bold text-white">
-                  Create Cuisine
+                  {isEditing ? 'Save Changes' : 'Create Cuisine'}
                 </Text>
               )}
             </Pressable>

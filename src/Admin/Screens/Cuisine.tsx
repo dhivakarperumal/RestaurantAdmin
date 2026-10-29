@@ -19,9 +19,16 @@ import {
   SearchIcon,
 } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
-import { CheckCircle2Icon, ImageIcon } from '../../components/popups';
+import {
+  CheckCircle2Icon,
+  ConfirmDialog,
+  Edit3Icon,
+  ImageIcon,
+  Trash2Icon,
+} from '../../components/popups';
 
-type CuisineRecord = {
+export type CuisineRecord = {
+  id?: string | number;
   cuisine_id?: string | number;
   cuisine_name?: string;
   name?: string;
@@ -33,6 +40,7 @@ type CuisineRecord = {
 
 type CuisineProps = {
   onAddCuisine: () => void;
+  onEditCuisine: (cuisine: CuisineRecord) => void;
   onBack: () => void;
   showBackButton?: boolean;
 };
@@ -64,17 +72,24 @@ function readCuisines(payload: unknown): CuisineRecord[] {
   return [];
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(
+  error: unknown,
+  fallback = 'Unable to load cuisines. Please try again.',
+) {
   if (isRecord(error) && typeof error.message === 'string') {
     return error.message;
   }
-  return 'Unable to load cuisines. Please try again.';
+  return fallback;
 }
 
 function getCuisineName(cuisine: CuisineRecord) {
   return (
     cuisine.cuisine_name?.trim() || cuisine.name?.trim() || 'Unnamed cuisine'
   );
+}
+
+function getCuisineId(cuisine: CuisineRecord) {
+  return String(cuisine.cuisine_id ?? cuisine.id ?? '').trim();
 }
 
 function getImageUrl(image?: string | null) {
@@ -95,6 +110,7 @@ function isFeatured(value: CuisineRecord['featured']) {
 
 function Cuisine({
   onAddCuisine,
+  onEditCuisine,
   onBack,
   showBackButton = true,
 }: CuisineProps) {
@@ -105,7 +121,12 @@ function Cuisine({
   const [openFilter, setOpenFilter] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [cuisineToDelete, setCuisineToDelete] =
+    useState<CuisineRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
@@ -176,6 +197,33 @@ function Cuisine({
     );
   }, [cuisines, search, statusFilter]);
 
+  const deleteCuisine = async () => {
+    if (!cuisineToDelete) {
+      return;
+    }
+
+    const cuisineId = getCuisineId(cuisineToDelete);
+    if (!cuisineId) {
+      setDeleteError('This cuisine does not have an ID and cannot be deleted.');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete(`/cuisines/${encodeURIComponent(cuisineId)}`);
+      setCuisineToDelete(null);
+      setSuccessMessage('Cuisine deleted successfully.');
+      setRefreshKey(current => current + 1);
+    } catch (error) {
+      setDeleteError(
+        getErrorMessage(error, 'Unable to delete this cuisine.'),
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-[#F8FAF8]">
       <ScrollView
@@ -230,6 +278,15 @@ function Cuisine({
             </Pressable>
           ) : null}
         </View>
+
+        {successMessage ? (
+          <Text
+            accessibilityRole="alert"
+            className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D]"
+          >
+            {successMessage}
+          </Text>
+        ) : null}
 
         <View className="flex-row flex-wrap justify-between gap-y-3">
           <CuisineStat label="Total cuisines" value={cuisines.length} />
@@ -403,14 +460,18 @@ function Cuisine({
                 <Text className="w-24 text-[10px] font-bold uppercase text-[#64748B]">
                   Status
                 </Text>
+                <Text className="w-20 text-[10px] font-bold uppercase text-[#64748B]">
+                  Actions
+                </Text>
               </View>
               {filteredCuisines.map((cuisine, index) => {
                 const name = getCuisineName(cuisine);
                 const imageUrl = getImageUrl(cuisine.image);
                 const status = cuisine.status?.trim() || 'Active';
+                const cuisineId = getCuisineId(cuisine);
                 return (
                   <View
-                    key={String(cuisine.cuisine_id || `${name}-${index}`)}
+                    key={cuisineId || `${name}-${index}`}
                     className="min-h-[64px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2"
                   >
                     {imageUrl ? (
@@ -433,7 +494,7 @@ function Cuisine({
                         {name}
                       </Text>
                       <Text className="mt-1 text-[10px] text-[#64748B]">
-                        {cuisine.cuisine_id}
+                        {cuisineId}
                       </Text>
                     </View>
                     <View className="w-28">
@@ -449,6 +510,29 @@ function Cuisine({
                         active={status.toLowerCase() !== 'inactive'}
                       />
                     </View>
+                    <View className="w-20 flex-row gap-1">
+                      {cuisineId ? (
+                        <>
+                          <CuisineActionButton
+                            label={`Edit ${name}`}
+                            tone="edit"
+                            onPress={() => onEditCuisine(cuisine)}
+                          />
+                          <CuisineActionButton
+                            label={`Delete ${name}`}
+                            tone="delete"
+                            onPress={() => {
+                              setDeleteError('');
+                              setCuisineToDelete(cuisine);
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <Text className="text-[10px] text-[#64748B]">
+                          No ID
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 );
               })}
@@ -460,10 +544,11 @@ function Cuisine({
               const name = getCuisineName(cuisine);
               const imageUrl = getImageUrl(cuisine.image);
               const status = cuisine.status?.trim() || 'Active';
+              const cuisineId = getCuisineId(cuisine);
 
               return (
                 <AdminManagementCard
-                  key={String(cuisine.cuisine_id || `${name}-${index}`)}
+                  key={cuisineId || `${name}-${index}`}
                   isWide={isWide}
                 >
                   {imageUrl ? (
@@ -512,9 +597,9 @@ function Cuisine({
                         </Text>
                       ) : null}
                     </View>
-                    {cuisine.cuisine_id ? (
+                    {cuisineId ? (
                       <Text className="mt-1 text-[9px] text-[#6B7280]">
-                        {cuisine.cuisine_id}
+                        {cuisineId}
                       </Text>
                     ) : null}
                     {cuisine.description ? (
@@ -539,6 +624,23 @@ function Cuisine({
                       <CuisineBadge label="Featured" active />
                     ) : null}
                   </View>
+                  {cuisineId ? (
+                    <View className="mx-2.5 mb-2.5 flex-row justify-end gap-2">
+                      <CuisineActionButton
+                        label={`Edit ${name}`}
+                        tone="edit"
+                        onPress={() => onEditCuisine(cuisine)}
+                      />
+                      <CuisineActionButton
+                        label={`Delete ${name}`}
+                        tone="delete"
+                        onPress={() => {
+                          setDeleteError('');
+                          setCuisineToDelete(cuisine);
+                        }}
+                      />
+                    </View>
+                  ) : null}
                 </AdminManagementCard>
               );
             })}
@@ -561,6 +663,22 @@ function Cuisine({
           <PlusIcon color="#FFFFFF" size={26} />
         </Pressable>
       ) : null}
+      <ConfirmDialog
+        visible={cuisineToDelete !== null}
+        onClose={() => {
+          setCuisineToDelete(null);
+          setDeleteError('');
+        }}
+        onConfirm={() => void deleteCuisine()}
+        title="Delete cuisine?"
+        itemName={getCuisineName(cuisineToDelete || {})}
+        message="This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        isLoading={isDeleting}
+        errorMessage={deleteError}
+      />
     </View>
   );
 }
@@ -612,5 +730,35 @@ function CuisineBadge({ label, active }: { label: string; active: boolean }) {
         {label}
       </Text>
     </View>
+  );
+}
+
+function CuisineActionButton({
+  label,
+  onPress,
+  tone,
+}: {
+  label: string;
+  onPress: () => void;
+  tone: 'edit' | 'delete';
+}) {
+  const isEdit = tone === 'edit';
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      className="h-8 w-8 items-center justify-center rounded-lg border"
+      style={{
+        backgroundColor: isEdit ? '#F0FDF4' : '#FEF2F2',
+        borderColor: isEdit ? '#DCFCE7' : '#FECACA',
+      }}
+    >
+      {isEdit ? (
+        <Edit3Icon size={15} color="#15803D" />
+      ) : (
+        <Trash2Icon size={15} color="#DC2626" />
+      )}
+    </Pressable>
   );
 }
