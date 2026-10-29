@@ -44,7 +44,7 @@ export function FormModal({
   successMessage,
   footerExtra,
   contentContainerStyle,
-  saveButtonColor = '#116C0B',
+  saveButtonColor = '#064E3B',
   ...rest
 }: FormModalProps) {
   const isSubmitDisabled = isSaving || isSaveDisabled;
