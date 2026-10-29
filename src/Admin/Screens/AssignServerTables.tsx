@@ -331,8 +331,7 @@ function AssignServerTables({
       }
     >
       <View className="gap-4">
-          >
-            <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4">
+        <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4">
               <View className="flex-row gap-2">
                 <CapacityCard label="2-seat" count={capacity.count2Seats} limit={3} />
                 <CapacityCard label="3-4 seat" count={capacity.count4Seats} limit={2} />

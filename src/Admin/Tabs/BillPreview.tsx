@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Alert,
   Image,
-  Modal,
   Pressable,
   Share,
   ScrollView,
@@ -14,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlusIcon } from '../Navigation/NavigationIcons';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 import colors from '../../theme/colors';
+import { DetailsModal, PrinterIcon } from '../../components/popups';
 
 export type BillPreviewItem = {
   id: string;
@@ -339,32 +339,49 @@ function BillPreview({
           </Pressable>
         </View>
       </View>
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setIsReceiptPreviewOpen(false)}
-        transparent
+      <DetailsModal
         visible={isReceiptPreviewOpen}
-      >
-        <View className="flex-1 items-center justify-center bg-black/50 px-5">
-          <View className="max-h-[80%] w-full max-w-md rounded-2xl bg-white p-5">
-            <Text className="text-center text-lg font-extrabold text-[#012711]">
-              Bill Preview
-            </Text>
-            <ScrollView className="mt-4">
-              <Text className="text-sm leading-6 text-[#374151]">{receiptText}</Text>
-            </ScrollView>
+        onClose={() => setIsReceiptPreviewOpen(false)}
+        title="Bill Preview"
+        subtitle={`Invoice #${billNumber}`}
+        icon={<PrinterIcon size={22} color="#116C0B" />}
+        badge={{
+          label: orderType,
+          bg: '#F0FDF4',
+          text: '#116C0B',
+          border: '#DCFCE7',
+        }}
+        maxWidth={500}
+        footer={
+          <View className="w-full flex-row gap-3">
             <Pressable
               accessibilityLabel="Close bill preview"
               accessibilityRole="button"
               onPress={() => setIsReceiptPreviewOpen(false)}
-              className="mt-4 items-center rounded-xl py-3"
+              className="mt-4 items-center rounded-xl py-3 justify-center min-h-12 flex-1"
               style={{ backgroundColor: colors.primary }}
             >
-              <Text className="text-sm font-bold text-white">Close Preview</Text>
+              <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Print or Share Bill"
+              accessibilityRole="button"
+              onPress={() => {
+                setIsReceiptPreviewOpen(false);
+                printBill();
+              }}
+              className="min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#FF5A00] active:bg-[#EA580C]"
+            >
+              <PrinterIcon size={18} color="#FFFFFF" />
+              <Text className="text-sm font-bold text-white">Print / Share</Text>
             </Pressable>
           </View>
+        }
+      >
+        <View className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <Text className="font-mono text-xs leading-5 text-[#334155]">{receiptText}</Text>
         </View>
-      </Modal>
+      </DetailsModal>
     </SafeAreaView>
   );
 }
