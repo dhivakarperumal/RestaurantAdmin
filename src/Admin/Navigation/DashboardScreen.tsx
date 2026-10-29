@@ -82,6 +82,7 @@ import {
   CheckIcon,
   ConfirmDialog,
   DetailsModal,
+  FilterSelect,
   FormModal,
   LogOutIcon,
   CheckCircle2Icon,
@@ -4042,36 +4043,20 @@ function KitchenRequestsScreen() {
             })}
           </View>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-2"
-        >
-          {['All', 'Pending', 'Approved', 'Rejected', 'Completed'].map(
-            status => (
-              <Pressable
-                key={status}
-                accessibilityLabel={`Filter kitchen requests by ${status}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: statusFilter === status }}
-                onPress={() => setStatusFilter(status)}
-                className={`rounded-full border px-4 py-2 ${
-                  statusFilter === status
-                    ? 'border-[#116C0B] bg-[#116C0B]'
-                    : 'border-[#E5E7EB] bg-white'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-bold ${
-                    statusFilter === status ? 'text-white' : 'text-[#475569]'
-                  }`}
-                >
-                  {status}
-                </Text>
-              </Pressable>
-            ),
-          )}
-        </ScrollView>
+        <View className="flex-row items-end gap-3">
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'All', label: 'All statuses' },
+              { value: 'Pending', label: 'Pending' },
+              { value: 'Approved', label: 'Approved' },
+              { value: 'Rejected', label: 'Rejected' },
+              { value: 'Completed', label: 'Completed' },
+            ]}
+          />
+        </View>
         <Text className="text-xs text-[#64748B]">
           {filteredRequests.length} requests
         </Text>

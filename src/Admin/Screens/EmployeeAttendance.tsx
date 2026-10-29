@@ -22,6 +22,7 @@ import {
   CheckCircle2Icon,
   ClockIcon,
   DetailsModal,
+  FilterSelect,
   FormModal,
   UserIcon,
 } from '../../components/popups';
@@ -572,7 +573,6 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
       keyboardShouldPersistTaps="handled"
     >
       <View>
-       
         <Text className="mt-1 text-2xl font-bold text-[#012711]">
           Employee attendance
         </Text>
@@ -697,18 +697,35 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
             value={search}
           />
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              {employeeRoles.map(role => (
-                <FilterChip
-                  key={role}
-                  label={role === 'All' ? 'All roles' : role}
-                  selected={selectedRole === role}
-                  onPress={() => setSelectedRole(role)}
-                />
-              ))}
-            </View>
-          </ScrollView>
+          <View className="flex-row items-end gap-3">
+            <FilterSelect
+              label="Role"
+              value={selectedRole}
+              onChange={setSelectedRole}
+              options={employeeRoles.map(role => ({
+                value: role,
+                label: role === 'All' ? 'All roles' : role,
+              }))}
+            />
+            <FilterSelect
+              label="Status"
+              value={selectedStatus}
+              onChange={setSelectedStatus}
+              options={attendanceStatuses.map(status => ({
+                value: status,
+                label:
+                  status === 'All'
+                    ? 'All statuses'
+                    : status === 'Working'
+                    ? 'Working now'
+                    : status === 'Completed'
+                    ? 'Completed shift'
+                    : status === 'Late'
+                    ? 'Late arrival'
+                    : status,
+              }))}
+            />
+          </View>
 
           <View className="flex-row justify-end">
             <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
@@ -737,29 +754,6 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
               })}
             </View>
           </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              {attendanceStatuses.map(status => (
-                <FilterChip
-                  key={status}
-                  label={
-                    status === 'All'
-                      ? 'All statuses'
-                      : status === 'Working'
-                      ? 'Working now'
-                      : status === 'Completed'
-                      ? 'Completed shift'
-                      : status === 'Late'
-                      ? 'Late arrival'
-                      : status
-                  }
-                  selected={selectedStatus === status}
-                  onPress={() => setSelectedStatus(status)}
-                />
-              ))}
-            </View>
-          </ScrollView>
         </View>
 
         {error ? (
