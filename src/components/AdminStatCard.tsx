@@ -152,7 +152,11 @@ function AdminStatCard({
             borderRadius: 30,
           }}
         >
-          <TrendingUp size={14} color={tint} strokeWidth={2.8} />
+          <TrendingUp
+            size={14}
+            color={tint}
+            strokeWidth={2.8}
+          />
 
           <Text
             numberOfLines={1}
@@ -178,7 +182,11 @@ function AdminStatCard({
             justifyContent: 'center',
           }}
         >
-          <ChevronRight size={17} color={tint} strokeWidth={2.5} />
+          <ChevronRight
+            size={17}
+            color={tint}
+            strokeWidth={2.5}
+          />
         </View>
       </View>
     </Pressable>
