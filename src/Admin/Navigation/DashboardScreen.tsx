@@ -2008,7 +2008,53 @@ function HomePage({
         getRecordTimestamp(b.order_date || b.created_at) -
         getRecordTimestamp(a.order_date || a.created_at),
     )
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(order => {
+      const firstItem = order.items?.[0];
+      const food = apiData.foods.find(
+        catalogItem => {
+          if (
+            firstItem?.food_id !== undefined &&
+            String(catalogItem.food_id) === String(firstItem.food_id)
+          ) {
+            return true;
+          }
+          const itemName = String(
+            firstItem?.food_name || firstItem?.product_name || '',
+          )
+            .trim()
+            .toLowerCase();
+          return (
+            !!itemName &&
+            String(
+              catalogItem.product_name ||
+                catalogItem.productName ||
+                catalogItem.name ||
+                catalogItem.food_name ||
+                '',
+            )
+              .trim()
+              .toLowerCase() === itemName
+          );
+        },
+      );
+      return {
+        order,
+        firstItemImage:
+          resolveFoodImage(
+            firstItem?.food_images ??
+              firstItem?.food_image ??
+              firstItem?.image_url ??
+              firstItem?.image,
+          ) ||
+          resolveFoodImage(
+            food?.food_images ??
+              food?.food_image ??
+              food?.image_url ??
+              food?.image,
+          ),
+      };
+    });
   const hasAnyData =
     apiData.orders.length > 0 ||
     apiData.users.length > 0 ||
@@ -2275,10 +2321,11 @@ function HomePage({
         </View>
       ) : recentApiOrders.length || localOrders.length ? (
         <>
-          {recentApiOrders.map((order, index) => (
+          {recentApiOrders.map(({ order, firstItemImage }, index) => (
             <ApiOrderRow
               key={order.order_id || order.id || `recent-${index}`}
               order={order}
+              firstItemImage={firstItemImage}
             />
           ))}
           {localOrders
@@ -3049,15 +3096,23 @@ function SalesOverview({
   );
 }
 
-function ApiOrderRow({ order }: { order: ApiOrder }) {
+function ApiOrderRow({
+  order,
+  firstItemImage,
+}: {
+  order: ApiOrder;
+  firstItemImage?: string;
+}) {
   const status = order.order_status?.trim() || 'Pending';
   const orderName = String(order.order_id || order.id || 'Order');
   const date = getOrderDate(order);
+  const firstItem = order.items?.[0];
   return (
     <View className="mb-2 flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5">
-      <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-        <OrdersIcon color={colors.primary} size={18} />
-      </View>
+      <TopSellingItemImage
+        name={firstItem?.food_name || firstItem?.product_name || orderName}
+        uri={firstItemImage}
+      />
       <View className="flex-1">
         <Text className="text-sm font-semibold text-[#012711]">
           {orderName}

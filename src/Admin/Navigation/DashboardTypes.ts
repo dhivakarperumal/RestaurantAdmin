@@ -52,6 +52,10 @@ export type ApiOrderItem = {
   food_id?: string | number;
   food_name?: string;
   product_name?: string;
+  food_images?: unknown;
+  food_image?: unknown;
+  image_url?: unknown;
+  image?: unknown;
   quantity?: number | string;
   total_price?: number | string;
   unit_price?: number | string;
