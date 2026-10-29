@@ -183,7 +183,7 @@ function getStatusTheme(status: NormalizedStatus) {
         badgeBg: colors.surfaceSecondary,
         badgeBorder: colors.borderLight,
         badgeText: colors.primary,
-        accentColor: colors.primaryLight,
+        accentColor: colors.primary,
         dotColor: colors.primaryLight,
         label: 'Pending',
         nextStatus: 'Preparing' as NormalizedStatus,
@@ -316,6 +316,7 @@ export function OrdersScreen({
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusUpdateError, setStatusUpdateError] = useState('');
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
 
   useEffect(() => {
@@ -382,50 +383,50 @@ export function OrdersScreen({
     fetchOrders();
   }, [fetchOrders]);
 
-  // Update order status with API & Optimistic UI
+  // Update order status through the order-management API.
   const handleUpdateStatus = async (
     order: ApiOrder,
     newStatus: NormalizedStatus,
   ) => {
     const orderId = order.order_id || order.id || order.order_number;
-    if (!orderId) return;
-
-    setIsUpdatingStatus(true);
-
-    setOrders(current =>
-      current.map(o => {
-        const id = o.order_id || o.id || o.order_number;
-        if (String(id) === String(orderId)) {
-          return {
-            ...o,
-            order_status: newStatus,
-            status: newStatus,
-          };
-        }
-        return o;
-      }),
-    );
-
-    if (selectedOrder) {
-      setSelectedOrder(prev =>
-        prev ? { ...prev, order_status: newStatus, status: newStatus } : null,
-      );
+    if (!orderId) {
+      setStatusUpdateError('This order is missing its order number.');
+      return;
     }
 
+    setIsUpdatingStatus(true);
+    setStatusUpdateError('');
     try {
-      await api
-        .put(`/orders/management/${orderId}`, { status: newStatus })
-        .catch(async () => {
-          return await api
-            .patch(`/orders/${orderId}/status`, { status: newStatus })
-            .catch(async () => {
-              return await api.put(`/orders/${orderId}`, {
-                order_status: newStatus,
-              });
-            });
-        });
-    } catch {
-      // Retain optimistic update
+      const response = await api.patch(
+        `/orders/management/${encodeURIComponent(String(orderId))}/status`,
+        { status: newStatus.toLowerCase() },
+      );
+      if (!isRecord(response.data) || response.data.success !== true) {
+        throw new Error(
+          isRecord(response.data) && typeof response.data.message === 'string'
+            ? response.data.message
+            : 'The order status could not be updated.',
+        );
+      }
+
+      setOrders(current =>
+        current.map(currentOrder => {
+          const id =
+            currentOrder.order_id || currentOrder.id || currentOrder.order_number;
+          return String(id) === String(orderId)
+            ? { ...currentOrder, order_status: newStatus, status: newStatus }
+            : currentOrder;
+        }),
+      );
+      setSelectedOrder(current =>
+        current
+          ? { ...current, order_status: newStatus, status: newStatus }
+          : null,
+      );
+    } catch (error) {
+      setStatusUpdateError(
+        getApiErrorMessage(error, 'Could not update the order status.'),
+      );
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -843,15 +844,17 @@ export function OrdersScreen({
             {/* Quick Action Button for Status Transition */}
             {theme.nextStatus ? (
               <Pressable
+                accessibilityLabel={`Change order status to ${theme.nextStatus}`}
+                accessibilityRole="button"
                 disabled={isUpdatingStatus}
                 onPress={() => handleUpdateStatus(item, theme.nextStatus!)}
-                className="flex-1 items-center justify-center rounded-xl py-2.5 shadow-sm"
+                className="min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl px-2 py-2.5 shadow-sm"
                 style={({ pressed }) => ({
                   backgroundColor: theme.accentColor,
                   opacity: pressed || isUpdatingStatus ? 0.85 : 1,
                 })}
               >
-                <Text className="text-xs font-black text-white">
+                <Text className="text-center text-xs font-black text-white">
                   {theme.nextActionText}
                 </Text>
               </Pressable>
@@ -1171,6 +1174,15 @@ export function OrdersScreen({
         </View>
       )}
 
+      {statusUpdateError ? (
+        <Text
+          accessibilityRole="alert"
+          className="mx-5 mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {statusUpdateError}
+        </Text>
+      ) : null}
+
       {/* Main Order List Section */}
       {isLoading && !isRefreshing ? (
         <View className="flex-1 items-center justify-center p-8">
@@ -1271,6 +1283,7 @@ export function OrdersScreen({
           <Pressable
             onPress={e => e.stopPropagation()}
             className="rounded-t-3xl bg-white p-5 max-h-[85%]"
+            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
           >
             <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
             <View className="flex-row items-center justify-between border-b border-[#F3F4F6] pb-3">
@@ -1380,7 +1393,7 @@ export function OrdersScreen({
               </View>
             </ScrollView>
 
-            <View className="flex-row gap-3 pt-3 border-t border-[#F3F4F6]">
+            <View className="flex-row gap-3 border-t border-[#F3F4F6] pt-3">
               <Pressable
                 onPress={resetAllFilters}
                 className="flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] py-3 bg-[#F9FAFB]"
@@ -1388,10 +1401,14 @@ export function OrdersScreen({
                 <Text className="text-xs font-bold text-[#4B5563]">Reset</Text>
               </Pressable>
               <Pressable
+                accessibilityLabel="Apply order filters"
+                accessibilityRole="button"
                 onPress={() => setShowFilterModal(false)}
-                className="flex-2 items-center justify-center rounded-xl bg-[#116C0B] py-3 px-6 shadow-sm"
+                className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B] px-4 py-3 shadow-sm"
               >
-                <Text className="text-xs font-bold text-white">Apply Filters</Text>
+                <Text className="text-center text-xs font-bold text-white">
+                  Apply Filters
+                </Text>
               </Pressable>
             </View>
           </Pressable>
