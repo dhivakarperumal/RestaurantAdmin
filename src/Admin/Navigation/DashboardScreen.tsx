@@ -32,6 +32,7 @@ import {
   ReceiptIcon,
   SearchIcon,
 } from './NavigationIcons';
+import Svg, { Circle } from 'react-native-svg';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import MoreInnerHeader from './MoreInnerHeader';
 import { BottomNavigation, type AppTab } from './Bottombar';
@@ -75,7 +76,7 @@ import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen
 import TablesScreen from '../Screens/Tables';
 import CustomersScreen from '../Screens/Customers';
 import MorePage, { type MoreFeature } from '../Tabs/More';
-import api from '../../../api';
+import api, { API_BASE_URL } from '../../../api';
 import {
   BaseModal,
   CheckIcon,
@@ -1259,6 +1260,80 @@ function readCatalogRows(payload: unknown, depth = 0): ApiCatalogItem[] {
   return [];
 }
 
+function resolveFoodImage(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const image = value.trim();
+    if (!image) {
+      return undefined;
+    }
+    if (/^(https?:|data:image\/|file:|content:)/i.test(image)) {
+      return image;
+    }
+    if (image.startsWith('//')) {
+      const protocol = API_BASE_URL.match(/^(https?:)/i)?.[1] || 'https:';
+      return `${protocol}${image}`;
+    }
+    if (image.startsWith('[') || image.startsWith('{')) {
+      try {
+        return resolveFoodImage(JSON.parse(image) as unknown);
+      } catch {
+        return undefined;
+      }
+    }
+    const apiRoot = API_BASE_URL.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    return `${apiRoot}/${image.replace(/^\.?\//, '')}`;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const image = resolveFoodImage(entry);
+      if (image) {
+        return image;
+      }
+    }
+  } else if (typeof value === 'object' && value !== null) {
+    const record = value as Record<string, unknown>;
+    for (const key of ['url', 'image_url', 'imageUrl', 'image', 'src', 'path']) {
+      const image = resolveFoodImage(record[key]);
+      if (image) {
+        return image;
+      }
+    }
+  }
+  return undefined;
+}
+
+function TopSellingItemImage({
+  name,
+  uri,
+}: {
+  name: string;
+  uri?: string;
+}) {
+  const [hasLoadError, setHasLoadError] = useState(false);
+
+  useEffect(() => {
+    setHasLoadError(false);
+  }, [uri]);
+
+  if (!uri || hasLoadError) {
+    return (
+      <View className="h-[52px] w-[52px] items-center justify-center rounded-xl bg-[#EFF6FF]">
+        <ProductIcon color={colors.primary} size={22} />
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      accessibilityLabel={`${name} image`}
+      source={{ uri }}
+      onError={() => setHasLoadError(true)}
+      resizeMode="cover"
+      className="h-[52px] w-[52px] rounded-xl bg-[#F3F4F6]"
+    />
+  );
+}
+
 function readResponsePropertyRows<T>(
   payload: unknown,
   property: 'bills' | 'orders' | 'kitchen_requests',
@@ -1844,9 +1919,89 @@ function HomePage({
       }
     });
   const topSellingItems = [...topItems.entries()]
-    .map(([id, item]) => ({ id, ...item }))
+    .map(([id, item]) => {
+      const food = apiData.foods.find(
+        catalogItem =>
+          String(catalogItem.food_id || '') === id ||
+          String(
+            catalogItem.product_name ||
+              catalogItem.productName ||
+              catalogItem.name ||
+              catalogItem.food_name ||
+              '',
+          )
+            .trim()
+            .toLowerCase() === item.name.trim().toLowerCase(),
+      );
+      return {
+        id,
+        ...item,
+        image: resolveFoodImage(
+          food?.food_images ??
+            food?.food_image ??
+            food?.image_url ??
+            food?.image,
+        ),
+      };
+    })
     .sort((left, right) => right.revenue - left.revenue)
     .slice(0, 5);
+  const categoryRevenue = new Map<
+    string,
+    { name: string; revenue: number }
+  >();
+  topItems.forEach((item, itemId) => {
+    const food = apiData.foods.find(
+      catalogItem =>
+        String(catalogItem.food_id || '') === itemId ||
+        String(
+          catalogItem.product_name ||
+            catalogItem.productName ||
+            catalogItem.name ||
+            catalogItem.food_name ||
+            '',
+        )
+          .trim()
+          .toLowerCase() === item.name.trim().toLowerCase(),
+    );
+    const foodCategoryName = food?.category_name || food?.category;
+    const category = apiData.categories.find(
+      catalogCategory =>
+        (food?.category_id !== undefined &&
+          String(catalogCategory.category_id) === String(food.category_id)) ||
+        (foodCategoryName &&
+          catalogCategory.category_name?.trim().toLowerCase() ===
+            foodCategoryName.trim().toLowerCase()),
+    );
+    const categoryName =
+      foodCategoryName || category?.category_name || 'Other';
+    const categoryId =
+      food?.category_id ?? category?.category_id ?? categoryName.toLowerCase();
+    const key = String(categoryId);
+    const current = categoryRevenue.get(key) || {
+      name: categoryName,
+      revenue: 0,
+    };
+    current.revenue += Number.isFinite(item.revenue) ? item.revenue : 0;
+    categoryRevenue.set(key, current);
+  });
+  const categoryOverview = [...categoryRevenue.entries()]
+    .map(([id, category]) => ({ id, ...category }))
+    .filter(category => category.revenue > 0);
+  const categorySpendTotal = categoryOverview.reduce(
+    (total, category) => total + category.revenue,
+    0,
+  );
+  const categoryChartColors = [
+    '#8B5CF6',
+    '#3B82F6',
+    '#10B981',
+    '#F59E0B',
+    '#EF4444',
+    '#EC4899',
+    '#06B6D4',
+    '#84CC16',
+  ];
   const recentApiOrders = [...filteredOrders]
     .sort(
       (a, b) =>
@@ -2163,9 +2318,7 @@ function HomePage({
             key={item.id}
             className="mb-2 flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
           >
-            <View className="h-[42px] w-[42px] items-center justify-center rounded-xl bg-[#EFF6FF]">
-              <ProductIcon color={colors.primary} size={18} />
-            </View>
+            <TopSellingItemImage name={item.name} uri={item.image} />
             <View className="ml-3 flex-1">
               <Text className="text-sm font-semibold text-[#012711]">
                 {item.name}
@@ -2190,25 +2343,96 @@ function HomePage({
       {apiData.categories.length ? (
         <>
           <View className="mb-3 mt-7 flex-row items-center justify-between">
-            <Text className="text-base font-bold text-[#012711]">
-              Food categories
+            <Text className="text-lg font-bold text-[#012711]">
+              Category Overview
             </Text>
           </View>
-          <View className="mt-5 flex-row flex-wrap gap-3">
-            {apiData.categories.slice(0, 8).map((category, index) => (
-              <View
-                key={category.category_id || category.category_name || index}
-                className="grow rounded-2xl border border-[#E5E7EB] bg-white p-[18px]"
-                style={{ flexBasis: 150 }}
-              >
-                <Text className="text-sm font-semibold text-[#012711]">
-                  {category.category_name || 'Category'}
+          <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white py-5">
+            <View className="h-[210px] w-[210px] items-center justify-center">
+              <Svg width={210} height={210} viewBox="0 0 210 210">
+                <Circle
+                  cx={105}
+                  cy={105}
+                  r={85}
+                  fill="none"
+                  stroke="#E5E7EB"
+                  strokeWidth={28}
+                />
+                {categorySpendTotal > 0
+                  ? categoryOverview.map((category, index) => {
+                      const circumference = 2 * Math.PI * 85;
+                      const segmentLength =
+                        (category.revenue / categorySpendTotal) *
+                          circumference -
+                        3;
+                      const previousRevenue = categoryOverview
+                        .slice(0, index)
+                        .reduce((total, entry) => total + entry.revenue, 0);
+                      const offset =
+                        (previousRevenue / categorySpendTotal) *
+                        circumference;
+                      return (
+                        <Circle
+                          key={category.id}
+                          cx={105}
+                          cy={105}
+                          r={85}
+                          fill="none"
+                          stroke={
+                            categoryChartColors[
+                              index % categoryChartColors.length
+                            ]
+                          }
+                          strokeWidth={28}
+                          strokeDasharray={`${Math.max(0, segmentLength)} ${circumference}`}
+                          strokeDashoffset={-offset}
+                          rotation={-90}
+                          origin="105, 105"
+                        />
+                      );
+                    })
+                  : null}
+              </Svg>
+              <View className="absolute items-center rounded-xl bg-[#F3F4F6] px-2 py-1">
+                <Text className="text-2xl font-extrabold text-[#1E293B]">
+                  {`₹${Math.round(categorySpendTotal).toLocaleString('en-IN')}`}
                 </Text>
-                <Text className="mt-[3px] text-[11px] leading-4 text-[#6B7280]">
-                  {category.status || 'Available'}
+                <Text className="mt-0.5 text-sm text-[#64748B]">
+                  Total Spend
                 </Text>
               </View>
-            ))}
+            </View>
+            {categoryOverview.length ? (
+              <View className="mt-4 w-full gap-3 px-5">
+                {categoryOverview.map((category, index) => (
+                  <View
+                    key={category.id}
+                    className="flex-row items-center justify-between"
+                  >
+                    <View className="flex-1 flex-row items-center gap-2 pr-3">
+                      <View
+                        className="h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor:
+                            categoryChartColors[
+                              index % categoryChartColors.length
+                            ],
+                        }}
+                      />
+                      <Text
+                        numberOfLines={1}
+                        className="flex-1 text-sm text-[#475569]"
+                      >
+                        {category.name}
+                      </Text>
+                    </View>
+                    <Text className="text-sm font-bold text-[#1E293B]">
+                      {`₹${Math.round(category.revenue).toLocaleString('en-IN')}`}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </View>
         </>
       ) : null}
