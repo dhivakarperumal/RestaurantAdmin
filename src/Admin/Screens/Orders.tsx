@@ -1430,6 +1430,7 @@ export function OrdersScreen({
             <Pressable
               onPress={e => e.stopPropagation()}
               className="rounded-t-3xl bg-white p-5 max-h-[92%]"
+              style={{ paddingBottom: Math.max(insets.bottom, 20) }}
             >
               <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
 
