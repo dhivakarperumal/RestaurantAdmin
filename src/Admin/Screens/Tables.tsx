@@ -274,6 +274,11 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
     setIsFormOpen(true);
   };
 
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingTable(null);
+  };
+
   const openEditForm = (table: ServerTable) => {
     setEditingTable(table);
     setTableNumber(
@@ -482,7 +487,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
 
         <FormModal
           visible={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
+          onClose={closeForm}
           title={editingTable ? 'Edit Table' : 'Add New Table'}
           subtitle={
             editingTable
@@ -500,10 +505,7 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
             <View className="flex-row gap-3">
               <Pressable
                 accessibilityRole="button"
-                onPress={() => {
-                  setIsFormOpen(false);
-                  setEditingTable(null);
-                }}
+                onPress={closeForm}
                 disabled={isSaving}
                 className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4"
               >
