@@ -3210,7 +3210,6 @@ function EntryForm({
     </FormModal>
   );
 }
-}
 
 function Sidebar({
   fullWidth = false,
