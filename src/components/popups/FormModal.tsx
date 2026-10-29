@@ -54,22 +54,6 @@ export function FormModal({
       {footerExtra}
 
       <View style={styles.actionButtons}>
-        {cancelLabel ? (
-          <Pressable
-            accessibilityLabel={cancelLabel}
-            accessibilityRole="button"
-            disabled={isSaving}
-            onPress={onClose}
-            style={({ pressed }) => [
-              styles.cancelButton,
-              pressed && styles.buttonPressed,
-              isSaving && styles.buttonDisabled,
-            ]}
-          >
-            <Text style={styles.cancelText}>{cancelLabel}</Text>
-          </Pressable>
-        ) : null}
-
         {onSave ? (
           <Pressable
             accessibilityLabel={saveLabel}
@@ -88,6 +72,22 @@ export function FormModal({
             ) : (
               <Text style={styles.saveText}>{saveLabel}</Text>
             )}
+          </Pressable>
+        ) : null}
+
+        {cancelLabel ? (
+          <Pressable
+            accessibilityLabel={cancelLabel}
+            accessibilityRole="button"
+            disabled={isSaving}
+            onPress={onClose}
+            style={({ pressed }) => [
+              styles.cancelButton,
+              pressed && styles.buttonPressed,
+              isSaving && styles.buttonDisabled,
+            ]}
+          >
+            <Text style={styles.cancelText}>{cancelLabel}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -176,9 +176,8 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     alignSelf: 'stretch',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'flex-end',
+    flexDirection: 'column',
+    gap: 8,
     width: '100%',
   },
   cancelButton: {
@@ -187,12 +186,11 @@ const styles = StyleSheet.create({
     borderColor: '#CBD5E1',
     borderRadius: 12,
     borderWidth: 1,
-    flexShrink: 0,
     justifyContent: 'center',
     minHeight: 48,
-    minWidth: 110,
     paddingHorizontal: 20,
     paddingVertical: 12,
+    width: '100%',
   },
 
   cancelText: {
@@ -206,18 +204,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#064E3B',
     borderRadius: 12,
     elevation: 3,
-    flexBasis: 0,
-    flexGrow: 1,
-    flexShrink: 0,
     justifyContent: 'center',
     minHeight: 48,
-    minWidth: 130,
     paddingHorizontal: 20,
     paddingVertical: 12,
     shadowColor: '#064E3B',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
+    width: '100%',
   },
 
   saveButtonDisabled: {
