@@ -175,6 +175,42 @@ function FoodImage({
   );
 }
 
+function FoodSkeletonCard({ viewMode }: { viewMode: ViewMode }) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      className={`mb-3 rounded-2xl border border-slate-200 bg-white p-4 ${
+        viewMode === 'card' ? 'w-full' : 'flex-row items-center'
+      }`}
+    >
+      <View
+        className={`rounded-xl bg-slate-100 ${
+          viewMode === 'card' ? 'mb-3 h-40 w-full' : 'mr-3 h-16 w-16'
+        }`}
+      />
+      <View className={viewMode === 'card' ? '' : 'min-w-0 flex-1'}>
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-1 gap-2">
+            <View className="h-4 w-2/3 rounded-md bg-slate-100" />
+            <View className="h-3 w-1/3 rounded-md bg-slate-100" />
+          </View>
+          <View className="h-6 w-11 rounded-full bg-slate-100" />
+        </View>
+        <View className="mt-3 flex-row gap-2">
+          <View className="h-6 w-20 rounded-full bg-slate-100" />
+          <View className="h-6 w-14 rounded-full bg-slate-100" />
+          <View className="h-6 w-16 rounded-full bg-slate-100" />
+        </View>
+        <View className="mt-3 flex-row gap-4 border-t border-slate-100 pt-3">
+          <View className="h-3 w-28 rounded-md bg-slate-100" />
+          <View className="h-3 w-20 rounded-md bg-slate-100" />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function ChefFoodsScreen({
   foods,
   isLoading,
@@ -535,9 +571,10 @@ function ChefFoodsScreen({
       ) : null}
 
       {isLoading ? (
-        <View className="items-center py-8">
-          <ActivityIndicator color="#116C0B" />
-          <Text className="mt-2 text-sm text-slate-500">Loading foods…</Text>
+        <View accessibilityLabel="Loading foods" className="gap-0">
+          {[0, 1, 2, 3].map(index => (
+            <FoodSkeletonCard key={index} viewMode={viewMode} />
+          ))}
         </View>
       ) : filteredFoods.length ? (
         visibleFoods.map(renderFoodCard)
