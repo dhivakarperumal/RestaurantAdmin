@@ -1706,6 +1706,8 @@ function MainContent({
       isReportLoading={isReportLoading}
       records={records}
       userName={userName}
+      onOpenBilling={onOpenBilling}
+      onSelectFeature={onSelectFeature}
       onRefresh={onRefreshDashboard}
       onSetDateFilter={onSetDateFilter}
       onSetCustomFrom={onSetCustomFrom}
@@ -1725,6 +1727,8 @@ function HomePage({
   isReportLoading,
   records,
   userName,
+  onOpenBilling,
+  onSelectFeature,
   onRefresh,
   onSetDateFilter,
   onSetCustomFrom,
@@ -1740,6 +1744,8 @@ function HomePage({
   isReportLoading: boolean;
   records: LocalRecord[];
   userName: string;
+  onOpenBilling: () => void;
+  onSelectFeature: (feature: string | null) => void;
   onRefresh: () => void;
   onSetDateFilter: (filter: DashboardDateFilter) => void;
   onSetCustomFrom: (date: string) => void;
@@ -2273,6 +2279,49 @@ function HomePage({
             icon={ReceiptIcon}
           />
         </View>
+      </View>
+
+      <View className="mb-3 mt-7 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-[#012711]">Quick access</Text>
+      </View>
+      <View className="flex-row flex-wrap gap-3">
+        {[
+          {
+            label: 'Orders',
+            icon: OrdersIcon,
+            onPress: () => onSelectFeature('Orders'),
+          },
+          {
+            label: 'Billing',
+            icon: PaymentIcon,
+            onPress: onOpenBilling,
+          },
+          {
+            label: 'Inventory',
+            icon: ProductIcon,
+            onPress: () => onSelectFeature('Products & Inventory'),
+          },
+          {
+            label: 'Customers',
+            icon: CustomersIcon,
+            onPress: () => onSelectFeature('Customers'),
+          },
+        ].map(({ label, icon: Icon, onPress }) => (
+          <Pressable
+            key={label}
+            accessibilityLabel={`Open ${label}`}
+            accessibilityRole="button"
+            onPress={onPress}
+            className="min-w-[45%] flex-1 flex-row items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F0F7EE]">
+              <Icon color={colors.primary} size={20} />
+            </View>
+            <Text className="text-sm font-semibold text-[#012711]">
+              {label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       <View className="mb-3 mt-7 flex-row items-center justify-between">
