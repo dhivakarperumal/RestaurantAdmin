@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { getApiErrorMessage } from '../../../api';
 import { PlusIcon } from '../Navigation/NavigationIcons';
+import colors from '../../theme/colors';
 
 type AssinedOrdertoDeliveryProps = {
   onBack: () => void;
@@ -676,7 +677,8 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
               accessibilityLabel="Choose home delivery order"
               accessibilityRole="button"
               onPress={() => setIsOrderPickerOpen(open => !open)}
-              className="flex-row items-center justify-between rounded-xl border border-[#F97316] bg-white px-4 py-4"
+              className="flex-row items-center justify-between rounded-xl border bg-white px-4 py-4"
+              style={{ borderColor: colors.primary }}
             >
               <Text className="font-bold text-[#1E293B]">
                 {selectedOrder
@@ -729,7 +731,7 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
                   onPress={() => setRefreshKey(count => count + 1)}
                   className="rounded-lg px-3 py-2"
                 >
-                  <Text className="font-semibold text-[#F97316]">Refresh</Text>
+                  <Text className="font-semibold" style={{ color: colors.primary }}>Refresh</Text>
                 </Pressable>
               </View>
               {partners.length ? (
@@ -745,25 +747,39 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
                         setSelectedPartnerId(partner.id);
                         setSuccessMessage('');
                       }}
-                      className={`flex-row items-center gap-3 rounded-2xl border bg-white px-4 py-3 ${
+                      className="flex-row items-center gap-3 rounded-2xl border bg-white px-4 py-3"
+                      style={
                         isSelected
-                          ? 'border-[#116C0B] bg-[#F0FDF4]'
-                          : 'border-[#E2E8F0]'
-                      }`}
+                          ? {
+                              borderColor: colors.primary,
+                              backgroundColor: colors.surfaceSecondary,
+                            }
+                          : undefined
+                      }
                     >
                       <View
-                        className={`h-5 w-5 items-center justify-center rounded-full border ${
+                        className="h-5 w-5 items-center justify-center rounded-full border"
+                        style={
                           isSelected
-                            ? 'border-[#116C0B] bg-[#116C0B]'
-                            : 'border-[#CBD5E1]'
-                        }`}
+                            ? {
+                                borderColor: colors.primary,
+                                backgroundColor: colors.primary,
+                              }
+                            : undefined
+                        }
                       >
                         {isSelected ? (
                           <View className="h-2 w-2 rounded-full bg-white" />
                         ) : null}
                       </View>
-                      <View className="h-12 w-12 items-center justify-center rounded-full bg-[#FFF1E2]">
-                        <Text className="text-base font-bold text-[#EA7A52]">
+                      <View
+                        className="h-12 w-12 items-center justify-center rounded-full"
+                        style={{ backgroundColor: colors.surfaceSecondary }}
+                      >
+                        <Text
+                          className="text-base font-bold"
+                          style={{ color: colors.primary }}
+                        >
                           {partner.name.charAt(0).toUpperCase()}
                         </Text>
                       </View>
@@ -797,7 +813,11 @@ function AssinedOrdertoDelivery({ onBack }: AssinedOrdertoDeliveryProps) {
               </Text>
             ) : null}
             {successMessage ? (
-              <Text accessibilityRole="alert" className="text-sm text-[#116C0B]">
+              <Text
+                accessibilityRole="alert"
+                className="text-sm"
+                style={{ color: colors.primary }}
+              >
                 {successMessage}
               </Text>
             ) : null}

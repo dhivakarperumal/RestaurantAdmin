@@ -255,11 +255,6 @@ const moreFeatures: MoreFeature[] = [
     subtitle: 'Review and manage kitchen inventory requests',
     icon: MenuIcon,
   },
-  {
-    title: 'Kitchen Requests',
-    subtitle: 'Review and manage kitchen inventory requests',
-    icon: MenuIcon,
-  },
 
   {
     title: 'Reports & Analytics',
@@ -302,6 +297,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isItemsInnerPageOpen, setIsItemsInnerPageOpen] = useState(false);
+  const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<QuickActionId | null>(
     null,
@@ -522,6 +518,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const navigateToTab = (tab: AppTab) => {
     setActiveTab(tab);
     setIsItemsInnerPageOpen(false);
+    setIsBillPreviewOpen(false);
+    setIsDeliveryAssignmentOpen(false);
     setSelectedAction(null);
     setSelectedFeature(null);
     setIsSidebarOpen(false);
@@ -531,6 +529,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const navigateToMoreFeature = (feature: string | null) => {
     setActiveTab('more');
     setIsItemsInnerPageOpen(false);
+    setIsDeliveryAssignmentOpen(false);
     setSelectedAction(null);
     setSelectedFeature(feature);
     setIsSidebarOpen(false);
@@ -580,6 +579,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const openAddCuisinePage = (returnFeature: string | null) => {
     cuisineReturnFeature.current = returnFeature;
+    setActiveTab('more');
     setSelectedAction(null);
     setSelectedFeature('AddCuisine');
     setIsSidebarOpen(false);
@@ -768,9 +768,15 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           moreFeatureBack();
           return true;
         }
+        if (isBillPreviewOpen) {
+          setIsBillPreviewOpen(false);
+          setActiveTab('home');
+          return true;
+        }
         // 5. Non-home tab → go to home
         if (activeTab !== 'home') {
           setActiveTab('home');
+          setIsDeliveryAssignmentOpen(false);
           setSelectedAction(null);
           setSelectedFeature(null);
           setIsItemsInnerPageOpen(false);
@@ -787,6 +793,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     isNotificationsOpen,
     selectedAction,
     isMoreFeatureOpen,
+    isBillPreviewOpen,
     selectedFeature,
     activeTab,
   ]);
@@ -798,11 +805,16 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           ? ['bottom']
           : isMoreFeatureOpen
           ? ['bottom']
+          : isBillPreviewOpen
+          ? ['bottom']
           : []
       }
       className="flex-1 bg-[#F9FAFB]"
     >
-      {!isItemsInnerPageOpen && !isMoreFeatureOpen && !isDeliveryAssignmentOpen ? (
+      {!isItemsInnerPageOpen &&
+      !isMoreFeatureOpen &&
+      !isDeliveryAssignmentOpen &&
+      !isBillPreviewOpen ? (
         <TopHeader
           user={user}
           unreadNotifications={0}
@@ -883,6 +895,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onRemoveFoodFromBilling={removeFoodFromBilling}
               onQuantityChange={updateBillingItemQuantity}
               onOpenBilling={() => navigateToTab('billing')}
+              onBillPreviewVisibilityChange={setIsBillPreviewOpen}
               onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
               onCompleteBill={() => {
                 createInvoiceFromBillingItems();
@@ -940,6 +953,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onRemoveFoodFromBilling={removeFoodFromBilling}
             onQuantityChange={updateBillingItemQuantity}
             onOpenBilling={() => navigateToTab('billing')}
+            onBillPreviewVisibilityChange={setIsBillPreviewOpen}
             onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
             onCompleteBill={() => {
               createInvoiceFromBillingItems();
@@ -956,7 +970,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         </View>
       )}
 
-      {!isMoreFeatureOpen && !isDeliveryAssignmentOpen && !isItemsInnerPageOpen ? (
+      {!isMoreFeatureOpen &&
+      !isDeliveryAssignmentOpen &&
+      !isItemsInnerPageOpen &&
+      !isBillPreviewOpen ? (
         <BottomNavigation activeTab={activeTab} onPressTab={navigateToTab} />
       ) : null}
       {!isWide && activeTab === 'items' && !isItemsInnerPageOpen ? (
@@ -1286,6 +1303,7 @@ function MainContent({
   onRemoveFoodFromBilling,
   onQuantityChange,
   onOpenBilling,
+  onBillPreviewVisibilityChange,
   onCreateInvoiceFromBillingItems,
   onCompleteBill,
   onSelectFeature,
@@ -1325,6 +1343,7 @@ function MainContent({
   onRemoveFoodFromBilling: (itemId: string) => void;
   onQuantityChange: (itemId: string, quantity: number) => void;
   onOpenBilling: () => void;
+  onBillPreviewVisibilityChange: (isVisible: boolean) => void;
   onCreateInvoiceFromBillingItems: () => void;
   onCompleteBill: () => void;
   onSelectFeature: (feature: string | null) => void;
@@ -1561,6 +1580,7 @@ function MainContent({
         onQuantityChange={onQuantityChange}
         onOpenBilling={onOpenBilling}
         onConfirmBill={onCompleteBill}
+        onBillPreviewVisibilityChange={onBillPreviewVisibilityChange}
       />
     );
   }
@@ -1973,7 +1993,7 @@ function HomePage({
             value={isLoading && !hasAnyData ? '-' : String(pendingOrderCount)}
             detail="active right now"
             badge="LIVE"
-            tone="orange"
+            tone="green"
             icon={OrdersIcon}
           />
           <StatCard
@@ -2188,7 +2208,7 @@ function HomePage({
                   Stock is running low
                 </Text>
               </View>
-              <Text className="text-[13px] font-bold text-[#F59E0B]">
+              <Text className="text-[13px] font-bold" style={{ color: colors.primary }}>
                 {getItemStock(item)} left
               </Text>
             </View>
@@ -2905,7 +2925,7 @@ function BillingPage({
             </Text>
           </View>
           {billingHasUnpricedItems ? (
-            <Text className="mt-2 text-xs text-[#B45309]">
+            <Text className="mt-2 text-xs text-[#116C0B]">
               Set a price for every item before creating the invoice.
             </Text>
           ) : null}
@@ -3602,7 +3622,13 @@ function KitchenRequestsScreen() {
                     {requestId}
                   </Text>
                 </View>
-                <Text className="rounded-lg bg-[#FFF7ED] px-2.5 py-1 text-xs font-bold capitalize text-[#C2410C]">
+                <Text
+                  className="rounded-lg px-2.5 py-1 text-xs font-bold capitalize"
+                  style={{
+                    backgroundColor: colors.surfaceSecondary,
+                    color: colors.primary,
+                  }}
+                >
                   {status}
                 </Text>
               </View>
@@ -3625,7 +3651,6 @@ function KitchenRequestsScreen() {
 type StatTone =
   | 'green'
   | 'blue'
-  | 'orange'
   | 'purple'
   | 'cyan'
   | 'pink'
@@ -3642,9 +3667,14 @@ const statCardGradients: Record<
     glow2: string;
   }
 > = {
-  green:  { bg: '#052E10', bgMid: '#0B4D1A', bgDark: '#147524', glow1: 'rgba(129,194,56,0.22)', glow2: 'rgba(34,197,94,0.14)' },
+  green:  {
+    bg: colors.primaryDark,
+    bgMid: colors.primary,
+    bgDark: colors.primaryLight,
+    glow1: colors.primaryGlow,
+    glow2: colors.primaryGlowSoft,
+  },
   blue:   { bg: '#0B1E4D', bgMid: '#1230A0', bgDark: '#1D4ED8', glow1: 'rgba(96,165,250,0.22)', glow2: 'rgba(59,130,246,0.14)' },
-  orange: { bg: '#431407', bgMid: '#9A3412', bgDark: '#C2410C', glow1: 'rgba(251,146,60,0.22)',  glow2: 'rgba(249,115,22,0.14)' },
   purple: { bg: '#2E1065', bgMid: '#5B21B6', bgDark: '#7C3AED', glow1: 'rgba(167,139,250,0.22)', glow2: 'rgba(139,92,246,0.14)' },
   cyan:   { bg: '#083344', bgMid: '#0E7490', bgDark: '#0891B2', glow1: 'rgba(34,211,238,0.22)',  glow2: 'rgba(6,182,212,0.14)' },
   pink:   { bg: '#500724', bgMid: '#9D174D', bgDark: '#BE185D', glow1: 'rgba(244,114,182,0.22)', glow2: 'rgba(236,72,153,0.14)' },
@@ -3776,7 +3806,7 @@ function StatCard({
                   width: 7,
                   height: 7,
                   borderRadius: 4,
-                  backgroundColor: '#FFC107',
+                  backgroundColor: '#81C238',
                 }}
               />
             ) : null}
@@ -3898,13 +3928,13 @@ function StatusPill({
 }) {
   const tint =
     status === 'Pending'
-      ? '#B45309'
+      ? colors.primary
       : status === 'Completed'
-      ? '#15803D'
+      ? colors.success
       : colors.error;
   const bg =
     status === 'Pending'
-      ? '#FFFBEB'
+      ? colors.surfaceSecondary
       : status === 'Completed'
       ? '#F0FDF4'
       : '#FEF2F2';

@@ -17,6 +17,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
 } from '../../components/popups';
+import colors from '../../theme/colors';
 
 type FoodOption = {
   value: string;
@@ -328,7 +329,7 @@ function ToggleField({
         accessibilityLabel={label}
         onValueChange={onChange}
         trackColor={{ false: '#D1D5DB', true: '#86A980' }}
-        thumbColor={value ? '#116C0B' : '#F9FAFB'}
+        thumbColor={value ? colors.primary : colors.background}
         value={value}
       />
     </View>
@@ -812,7 +813,7 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
           subtitle={foodId || undefined}
         />
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#116C0B" />
+          <ActivityIndicator color={colors.primary} />
           <Text className="mt-3 text-sm text-[#6B7280]">
             Loading food form...
           </Text>
@@ -922,11 +923,13 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
                 accessibilityRole="button"
                 disabled={isUploadingImages || images.length >= 5}
                 onPress={chooseImages}
-                className={`rounded-xl px-3 py-2.5 ${
-                  isUploadingImages || images.length >= 5
-                    ? 'bg-[#9CA3AF]'
-                    : 'bg-[#116C0B]'
-                }`}
+                className="rounded-xl px-3 py-2.5"
+                style={{
+                  backgroundColor:
+                    isUploadingImages || images.length >= 5
+                      ? colors.disabled
+                      : colors.primary,
+                }}
               >
                 <Text className="text-xs font-bold text-white">
                   {isUploadingImages ? 'Uploading…' : 'Choose images'}
@@ -955,9 +958,10 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
                           image.error
                             ? 'text-red-700'
                             : image.url
-                              ? 'text-[#116C0B]'
-                              : 'text-[#9A6700]'
+                              ? ''
+                              : ''
                         }`}
+                        style={image.error ? undefined : { color: colors.primary }}
                       >
                         {image.isUploading
                           ? 'Uploading…'
@@ -972,9 +976,10 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
                           accessibilityLabel={`Retry upload image ${index + 1}`}
                           accessibilityRole="button"
                           onPress={() => uploadImage(image)}
-                          className="mx-2 mb-1.5 items-center rounded-md bg-[#FFF7ED] py-1"
+                          className="mx-2 mb-1.5 items-center rounded-md py-1"
+                          style={{ backgroundColor: colors.surfaceSecondary }}
                         >
-                          <Text className="text-[10px] font-semibold text-[#C2410C]">
+                          <Text className="text-[10px] font-semibold" style={{ color: colors.primary }}>
                             Retry upload
                           </Text>
                         </Pressable>
@@ -1021,9 +1026,12 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
             placeholder="0"
             value={form.discount}
           />
-          <View className="mb-3 rounded-xl bg-[#F0F7EE] p-3.5">
+          <View
+            className="mb-3 rounded-xl p-3.5"
+            style={{ backgroundColor: colors.surfaceSecondary }}
+          >
             <Text className="text-xs text-[#4B5563]">Final price (₹)</Text>
-            <Text className="mt-1 text-lg font-bold text-[#116C0B]">
+            <Text className="mt-1 text-lg font-bold" style={{ color: colors.primary }}>
               {finalPrice.toFixed(2)}
             </Text>
           </View>
@@ -1176,9 +1184,10 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
             accessibilityLabel="Add add-on"
             accessibilityRole="button"
             onPress={addAddon}
-            className="items-center rounded-xl border border-dashed border-[#FF5A00] py-3"
+            className="items-center rounded-xl border border-dashed py-3"
+            style={{ borderColor: colors.primary }}
           >
-            <Text className="font-semibold text-[#EA580C]">+ Add add-on</Text>
+            <Text className="font-semibold" style={{ color: colors.primary }}>+ Add add-on</Text>
           </Pressable>
         </Section>
 
@@ -1310,9 +1319,10 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
                     ),
                   )
                 }
-                className="mb-2 items-center rounded-lg bg-[#FFF7ED] py-2"
+                className="mb-2 items-center rounded-lg py-2"
+                style={{ backgroundColor: colors.surfaceSecondary }}
               >
-                <Text className="font-semibold text-[#EA580C]">+ Add option</Text>
+                <Text className="font-semibold" style={{ color: colors.primary }}>+ Add option</Text>
               </Pressable>
               <Pressable
                 accessibilityLabel={`Remove customization ${groupIndex + 1}`}
@@ -1332,9 +1342,10 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
             accessibilityLabel="Add customization"
             accessibilityRole="button"
             onPress={addCustomization}
-            className="items-center rounded-xl border border-dashed border-[#FF5A00] py-3"
+            className="items-center rounded-xl border border-dashed py-3"
+            style={{ borderColor: colors.primary }}
           >
-            <Text className="font-semibold text-[#EA580C]">+ Add customization group</Text>
+            <Text className="font-semibold" style={{ color: colors.primary }}>+ Add customization group</Text>
           </Pressable>
         </Section>
       </ScrollView>
@@ -1358,11 +1369,13 @@ function AddFood({ actor = 'Admin', foodId: existingFoodId, onCancel, onSaved }:
             !isFoodLoaded
           }
           onPress={handleSave}
-          className={`h-12 flex-1 items-center justify-center rounded-xl ${
-            isSaving || isUploadingImages || images.some(image => !image.url) || !isFoodLoaded
-              ? 'bg-[#86A980]'
-              : 'bg-[#FF5A00]'
-          }`}
+          className="h-12 flex-1 items-center justify-center rounded-xl"
+          style={{
+            backgroundColor:
+              isSaving || isUploadingImages || images.some(image => !image.url) || !isFoodLoaded
+                ? colors.disabled
+                : colors.primary,
+          }}
         >
           {isSaving ? (
             <ActivityIndicator color="#FFFFFF" />

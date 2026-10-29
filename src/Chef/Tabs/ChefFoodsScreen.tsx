@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
+import colors from '../../theme/colors';
 
 export type ChefFood = {
   food_id?: string | number;
@@ -170,6 +171,42 @@ function FoodImage({
           Food
         </Text>
       )}
+    </View>
+  );
+}
+
+function FoodSkeletonCard({ viewMode }: { viewMode: ViewMode }) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      className={`mb-3 rounded-2xl border border-slate-200 bg-white p-4 ${
+        viewMode === 'card' ? 'w-full' : 'flex-row items-center'
+      }`}
+    >
+      <View
+        className={`rounded-xl bg-slate-100 ${
+          viewMode === 'card' ? 'mb-3 h-40 w-full' : 'mr-3 h-16 w-16'
+        }`}
+      />
+      <View className={viewMode === 'card' ? '' : 'min-w-0 flex-1'}>
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-1 gap-2">
+            <View className="h-4 w-2/3 rounded-md bg-slate-100" />
+            <View className="h-3 w-1/3 rounded-md bg-slate-100" />
+          </View>
+          <View className="h-6 w-11 rounded-full bg-slate-100" />
+        </View>
+        <View className="mt-3 flex-row gap-2">
+          <View className="h-6 w-20 rounded-full bg-slate-100" />
+          <View className="h-6 w-14 rounded-full bg-slate-100" />
+          <View className="h-6 w-16 rounded-full bg-slate-100" />
+        </View>
+        <View className="mt-3 flex-row gap-4 border-t border-slate-100 pt-3">
+          <View className="h-3 w-28 rounded-md bg-slate-100" />
+          <View className="h-3 w-20 rounded-md bg-slate-100" />
+        </View>
+      </View>
     </View>
   );
 }
@@ -424,14 +461,21 @@ function ChefFoodsScreen({
 
       <View className="mb-4 flex-row flex-wrap gap-2">
         {[
-          { label: 'Total dishes', value: foods.length, color: 'bg-orange-50' },
-          { label: 'Active', value: activeCount, color: 'bg-emerald-50' },
-          { label: 'Menu visible', value: visibleCount, color: 'bg-blue-50' },
-          { label: 'Hidden', value: foods.length - visibleCount, color: 'bg-pink-50' },
+          { label: 'Total dishes', value: foods.length, usesBrandColor: true, color: '' },
+          { label: 'Active', value: activeCount, usesBrandColor: false, color: 'bg-emerald-50' },
+          { label: 'Menu visible', value: visibleCount, usesBrandColor: false, color: 'bg-blue-50' },
+          { label: 'Hidden', value: foods.length - visibleCount, usesBrandColor: false, color: 'bg-pink-50' },
         ].map(stat => (
           <View
             key={stat.label}
-            className={`min-w-[46%] flex-1 rounded-xl border border-slate-200 p-3 ${stat.color}`}
+            className={`min-w-[46%] flex-1 rounded-xl border border-slate-200 p-3 ${
+              stat.usesBrandColor ? '' : stat.color
+            }`}
+            style={
+              stat.usesBrandColor
+                ? { backgroundColor: colors.surfaceSecondary }
+                : undefined
+            }
           >
             <Text className="text-[11px] font-medium text-slate-600">
               {stat.label}
@@ -527,9 +571,10 @@ function ChefFoodsScreen({
       ) : null}
 
       {isLoading ? (
-        <View className="items-center py-8">
-          <ActivityIndicator color="#116C0B" />
-          <Text className="mt-2 text-sm text-slate-500">Loading foods…</Text>
+        <View accessibilityLabel="Loading foods" className="gap-0">
+          {[0, 1, 2, 3].map(index => (
+            <FoodSkeletonCard key={index} viewMode={viewMode} />
+          ))}
         </View>
       ) : filteredFoods.length ? (
         visibleFoods.map(renderFoodCard)

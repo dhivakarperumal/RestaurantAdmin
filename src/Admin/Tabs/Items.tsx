@@ -443,7 +443,7 @@ function Items({
         actor={actor}
         foodId={editingFoodId}
         onCancel={() => {
-          onInnerPageVisibilityChange?.(false);
+          onInnerPageVisibilityChange?.(true);
           setEditingFoodId(null);
         }}
         onSaved={() => {
@@ -461,6 +461,7 @@ function Items({
       <FoodDetails
         foodId={selectedFoodId}
         onEdit={() => {
+          onInnerPageVisibilityChange?.(true);
           setEditingFoodId(selectedFoodId);
         }}
         onDeleted={() => {
@@ -487,12 +488,12 @@ function Items({
       >
         <Defs>
           <LinearGradient id="pageGlow1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#116C0B" stopOpacity="0.08" />
-            <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+            <Stop offset="0%" stopColor={colors.primary} stopOpacity="0.08" />
+            <Stop offset="100%" stopColor={colors.primaryLight} stopOpacity="0" />
           </LinearGradient>
           <LinearGradient id="pageGlow2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#FC5805" stopOpacity="0.05" />
-            <Stop offset="100%" stopColor="#FC5805" stopOpacity="0" />
+            <Stop offset="0%" stopColor={colors.primaryLight} stopOpacity="0.05" />
+            <Stop offset="100%" stopColor={colors.primaryLight} stopOpacity="0" />
           </LinearGradient>
         </Defs>
         <Circle cx="94%" cy="8%" r="180" fill="url(#pageGlow1)" />
@@ -610,8 +611,7 @@ function Items({
                 </View>
               </View>
 
-              {/* Title & Refresh Button */}
-              <View className="mt-3.5 flex-row items-end justify-between gap-3">
+              <View className="mt-3.5 flex-row items-end gap-3">
                 <View className="flex-1">
                   <Text className="text-2xl font-black tracking-tight text-white">
                     All items
@@ -620,29 +620,6 @@ function Items({
                     {items.length} {items.length === 1 ? 'item' : 'items'} in your menu
                   </Text>
                 </View>
-
-                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                  <Pressable
-                    accessibilityLabel="Refresh items"
-                    accessibilityRole="button"
-                    disabled={isLoading}
-                    onPress={() => setRetry(count => count + 1)}
-                    className="flex-row items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-3.5 py-2 shadow-sm"
-                    style={({ pressed }) => ({
-                      backgroundColor: pressed
-                        ? 'rgba(255, 255, 255, 0.28)'
-                        : 'rgba(255, 255, 255, 0.16)',
-                    })}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text className="text-xs font-bold text-white">
-                        Refresh
-                      </Text>
-                    )}
-                  </Pressable>
-                </Animated.View>
               </View>
 
               {/* Stats Chips Row */}

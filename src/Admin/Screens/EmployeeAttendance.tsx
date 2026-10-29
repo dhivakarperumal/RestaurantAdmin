@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import api from '../../../api';
 import { DetailsModal, FormModal } from '../../components/popups';
+import colors from '../../theme/colors';
 
 type AttendanceRecord = {
   employee_id: string | number;
@@ -715,7 +716,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
                   <Text
                     className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
                       status === 'Late'
-                        ? 'bg-[#FEF3C7] text-[#92400E]'
+                        ? 'bg-[#F0F7EE] text-[#116C0B]'
                         : status === 'Absent'
                           ? 'bg-[#FEE2E2] text-[#991B1B]'
                           : isWorking

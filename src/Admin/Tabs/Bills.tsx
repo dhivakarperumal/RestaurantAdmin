@@ -35,6 +35,7 @@ type BillsProps = {
   onQuantityChange: (id: string, quantity: number) => void;
   onOpenBilling: () => void;
   onConfirmBill: () => void;
+  onBillPreviewVisibilityChange: (isVisible: boolean) => void;
 };
 
 type FoodRecord = Record<string, unknown>;
@@ -276,6 +277,7 @@ function Bills({
   onQuantityChange,
   onOpenBilling,
   onConfirmBill,
+  onBillPreviewVisibilityChange,
 }: BillsProps) {
   const [foods, setFoods] = useState<BillFood[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -290,6 +292,14 @@ function Bills({
     (sum, item) => sum + (item.amount ?? 0) * item.quantity,
     0,
   );
+  const openBillPreview = () => {
+    setIsPreviewOpen(true);
+    onBillPreviewVisibilityChange(true);
+  };
+  const closeBillPreview = () => {
+    setIsPreviewOpen(false);
+    onBillPreviewVisibilityChange(false);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -332,6 +342,7 @@ function Bills({
         onRemoveItem={onRemoveBillingItem}
         onQuantityChange={onQuantityChange}
         onConfirm={onConfirmBill}
+        onBack={closeBillPreview}
       />
     );
   }
@@ -395,8 +406,8 @@ function Bills({
           <Pressable
             accessibilityLabel="Review bill"
             accessibilityRole="button"
-            onPress={() => setIsPreviewOpen(true)}
-            className="mt-3 items-center rounded-lg bg-[#FF5A00] px-4 py-2.5"
+            onPress={openBillPreview}
+            className="mt-3 items-center rounded-lg bg-[#116C0B] px-4 py-2.5"
           >
             <Text className="text-sm font-bold text-white">Review bill</Text>
           </Pressable>
@@ -468,7 +479,7 @@ function Bills({
                   accessibilityLabel={`Add ${food.name} to billing`}
                   accessibilityRole="button"
                   onPress={() => onAddFood(food)}
-                  className="h-9 w-9 items-center justify-center rounded-full bg-[#FF5A00]"
+                  className="h-9 w-9 items-center justify-center rounded-full bg-[#116C0B]"
                 >
                   <PlusIcon color="#FFFFFF" size={19} />
                 </Pressable>

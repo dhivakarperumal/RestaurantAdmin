@@ -660,11 +660,12 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
         <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
           {filteredEmployees.map(employee => {
             const employeeStatus = normalizeEmployeeStatus(employee);
+            const isOnBreak = employeeStatus.toLowerCase() === 'break';
             const statusClass =
               employeeStatus.toLowerCase() === 'working' || employeeStatus.toLowerCase() === 'on duty' || employeeStatus.toLowerCase() === 'available'
                 ? 'bg-[#DCFCE7] text-[#166534]'
-                : employeeStatus.toLowerCase() === 'break'
-                  ? 'bg-[#FEF3C7] text-[#92400E]'
+                : isOnBreak
+                  ? ''
                   : 'bg-[#F3F4F6] text-[#4B5563]';
             const initials = String(employee.full_name || 'E')
               .split(' ')
@@ -690,7 +691,17 @@ function EmployeesPage({ onBack }: { onBack?: () => void } = {}) {
                   <Text className="mt-[2px] text-[11px] leading-4 text-[#6B7280]">{employee.email || employee.phone_number || 'No contact added'}</Text>
                 </View>
                 <View className="items-end">
-                  <Text className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}>
+                  <Text
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}
+                    style={
+                      isOnBreak
+                        ? {
+                            backgroundColor: colors.surfaceSecondary,
+                            color: colors.primary,
+                          }
+                        : undefined
+                    }
+                  >
                     {employeeStatus}
                   </Text>
                   <Text className="mt-2 text-[10px] font-medium text-[#6B7280]">

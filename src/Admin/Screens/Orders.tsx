@@ -218,12 +218,11 @@ function getStatusTheme(status: NormalizedStatus) {
   switch (status) {
     case 'Pending':
       return {
-        badgeBg: '#FFFBEB',
-        badgeBorder: '#FDE68A',
-        badgeText: '#B45309',
-        headerBg: '#FFFBEB',
-        accentColor: '#F59E0B',
-        dotColor: '#D97706',
+        badgeBg: colors.surfaceSecondary,
+        badgeBorder: colors.borderLight,
+        badgeText: colors.primary,
+        accentColor: colors.primary,
+        dotColor: colors.primaryLight,
         label: 'Pending',
         nextStatus: 'Preparing' as NormalizedStatus,
         nextActionText: 'Start Preparing',
@@ -341,9 +340,10 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
     return {
       type: 'takeaway',
       label: 'Pickup',
-      bg: '#FFFBEB',
-      border: '#FDE68A',
-      text: '#92400E',
+      icon: '🛍️',
+      bg: colors.surfaceSecondary,
+      border: colors.borderLight,
+      text: colors.primary,
     };
   }
   if (type === 'Kitchen Orders') {
@@ -627,6 +627,7 @@ export function OrdersScreen({
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusUpdateError, setStatusUpdateError] = useState('');
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] = useState(false);
 
   useEffect(() => {
@@ -693,50 +694,50 @@ export function OrdersScreen({
     fetchOrders();
   }, [fetchOrders]);
 
-  // Update order status with API & Optimistic UI
+  // Update order status through the order-management API.
   const handleUpdateStatus = async (
     order: ApiOrder,
     newStatus: NormalizedStatus,
   ) => {
     const orderId = order.order_id || order.id || order.order_number;
-    if (!orderId) return;
-
-    setIsUpdatingStatus(true);
-
-    setOrders(current =>
-      current.map(o => {
-        const id = o.order_id || o.id || o.order_number;
-        if (String(id) === String(orderId)) {
-          return {
-            ...o,
-            order_status: newStatus,
-            status: newStatus,
-          };
-        }
-        return o;
-      }),
-    );
-
-    if (selectedOrder) {
-      setSelectedOrder(prev =>
-        prev ? { ...prev, order_status: newStatus, status: newStatus } : null,
-      );
+    if (!orderId) {
+      setStatusUpdateError('This order is missing its order number.');
+      return;
     }
 
+    setIsUpdatingStatus(true);
+    setStatusUpdateError('');
     try {
-      await api
-        .put(`/orders/management/${orderId}`, { status: newStatus })
-        .catch(async () => {
-          return await api
-            .patch(`/orders/${orderId}/status`, { status: newStatus })
-            .catch(async () => {
-              return await api.put(`/orders/${orderId}`, {
-                order_status: newStatus,
-              });
-            });
-        });
-    } catch {
-      // Retain optimistic update
+      const response = await api.patch(
+        `/orders/management/${encodeURIComponent(String(orderId))}/status`,
+        { status: newStatus.toLowerCase() },
+      );
+      if (!isRecord(response.data) || response.data.success !== true) {
+        throw new Error(
+          isRecord(response.data) && typeof response.data.message === 'string'
+            ? response.data.message
+            : 'The order status could not be updated.',
+        );
+      }
+
+      setOrders(current =>
+        current.map(currentOrder => {
+          const id =
+            currentOrder.order_id || currentOrder.id || currentOrder.order_number;
+          return String(id) === String(orderId)
+            ? { ...currentOrder, order_status: newStatus, status: newStatus }
+            : currentOrder;
+        }),
+      );
+      setSelectedOrder(current =>
+        current
+          ? { ...current, order_status: newStatus, status: newStatus }
+          : null,
+      );
+    } catch (error) {
+      setStatusUpdateError(
+        getApiErrorMessage(error, 'Could not update the order status.'),
+      );
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -1199,17 +1200,58 @@ export function OrdersScreen({
               No individual item rows available
             </Text>
           )}
+
+          {/* Notes / Special Request Banner */}
+          {item.notes ? (
+            <View className="mt-2.5 rounded-lg bg-green-50 border border-green-200 p-2 flex-row items-start gap-1.5">
+              <Text className="text-xs">📝</Text>
+              <Text className="text-[11px] text-green-900 flex-1 font-medium">
+                "{item.notes}"
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* TICKET FOOTER: TOTAL & ACTION BUTTONS */}
         <View className="border-t border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-3">
           <View className="flex-row items-center justify-between mb-3">
-            <View>
-              <Text className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
-                Order Total • {items.length} {items.length === 1 ? 'item' : 'items'}
-              </Text>
-              <Text className="text-base font-black text-[#116C0B] mt-0.5">
-                {formatCurrency(amount)}
+            <View className="flex-row items-center gap-2">
+              <View
+                className={`rounded-md px-2 py-0.5 border ${
+                  item.payment_method?.toLowerCase().includes('cash') ||
+                  item.payment_method?.toLowerCase().includes('cod')
+                  ? ''
+                    : 'bg-[#DCFCE7] border-[#BBF7D0]'
+                }`}
+                style={
+                  item.payment_method?.toLowerCase().includes('cash') ||
+                  item.payment_method?.toLowerCase().includes('cod')
+                  ? {
+                      backgroundColor: colors.surfaceSecondary,
+                      borderColor: colors.borderLight,
+                    }
+                  : undefined
+                }
+              >
+                <Text
+                  className={`text-[10px] font-extrabold uppercase tracking-wider ${
+                    item.payment_method?.toLowerCase().includes('cash') ||
+                    item.payment_method?.toLowerCase().includes('cod')
+                      ? ''
+                      : 'text-[#166534]'
+                  }`}
+                  style={
+                    item.payment_method?.toLowerCase().includes('cash') ||
+                    item.payment_method?.toLowerCase().includes('cod')
+                      ? { color: colors.primary }
+                      : undefined
+                  }
+                >
+                  {item.payment_method || 'PAID'}
+                </Text>
+              </View>
+              <Text className="text-xs text-[#6B7280]">
+                {items.length} {items.length === 1 ? 'item' : 'items'}
               </Text>
             </View>
 
@@ -1223,20 +1265,19 @@ export function OrdersScreen({
             {/* Quick Status Action Button */}
             {theme.nextStatus ? (
               <Pressable
+                accessibilityLabel={`Change order status to ${theme.nextStatus}`}
+                accessibilityRole="button"
                 disabled={isUpdatingStatus}
                 onPress={() => handleUpdateStatus(item, theme.nextStatus!)}
-                className="flex-1 h-10 flex-row items-center justify-center rounded-xl bg-[#116C0B] px-3 active:bg-[#0D5208] shadow-xs"
+                className="min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl px-2 py-2.5 shadow-sm"
+                style={({ pressed }) => ({
+                  backgroundColor: theme.accentColor,
+                  opacity: pressed || isUpdatingStatus ? 0.85 : 1,
+                })}
               >
-                {isUpdatingStatus ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <CheckIcon color="#FFFFFF" size={14} />
-                    <Text className="ml-1.5 text-xs font-black text-white">
-                      {theme.nextActionText}
-                    </Text>
-                  </>
-                )}
+                <Text className="text-center text-xs font-black text-white">
+                  {theme.nextActionText}
+                </Text>
               </Pressable>
             ) : null}
 
@@ -1334,20 +1375,27 @@ export function OrdersScreen({
           {/* 1. Pending Action */}
           <Pressable
             onPress={() => setStatusFilter(statusFilter === 'Pending' ? 'All' : 'Pending')}
-            className={`flex-row items-center gap-3 rounded-2xl border px-3.5 py-2.5 min-w-[125px] ${
-              statusFilter === 'Pending'
-                ? 'bg-[#FEF3C7] border-[#F59E0B] shadow-xs'
-                : 'bg-[#FFFBEB] border-[#FDE68A]'
-            }`}
+            className="flex-row min-w-[125px] items-center gap-3 rounded-2xl border px-3.5 py-2.5"
+            style={{
+              backgroundColor: colors.surfaceSecondary,
+              borderColor: statusFilter === 'Pending' ? colors.primary : colors.borderLight,
+              ...(statusFilter === 'Pending' ? { elevation: 2 } : {}),
+            }}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#FDE68A]">
-              <Text className="text-sm font-black text-[#B45309]">⚡</Text>
+            <View
+              className="h-8 w-8 items-center justify-center rounded-xl"
+              style={{ backgroundColor: colors.borderLight }}
+            >
+              <Text className="text-base">⚡</Text>
             </View>
             <View>
-              <Text className="text-[10px] font-black uppercase tracking-wider text-[#92400E]">
+              <Text
+                className="text-[10px] font-extrabold uppercase tracking-wider"
+                style={{ color: colors.primary }}
+              >
                 Pending
               </Text>
-              <Text className="text-lg font-black text-[#78350F]">
+              <Text className="text-lg font-black" style={{ color: colors.primaryDark }}>
                 {metrics.pending}
               </Text>
             </View>
@@ -1608,6 +1656,15 @@ export function OrdersScreen({
         </View>
       )}
 
+      {statusUpdateError ? (
+        <Text
+          accessibilityRole="alert"
+          className="mx-5 mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {statusUpdateError}
+        </Text>
+      ) : null}
+
       {/* Main Order List Section */}
       {isLoading && !isRefreshing ? (
         <View className="flex-1 items-center justify-center p-8">
@@ -1698,28 +1755,30 @@ export function OrdersScreen({
       {/* FILTER DRAWER / MODAL */}
       <BaseModal
         visible={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        title="Filter & Sort Orders"
-        subtitle="Filter by order type, payment status, and timeline"
-        scrollable
-        footer={
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={resetAllFilters}
-              className="flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] py-3 bg-[#F8FAFC]"
-            >
-              <Text className="text-xs font-bold text-[#475569]">Reset</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setShowFilterModal(false)}
-              className="flex-1 items-center justify-center rounded-xl bg-[#116C0B] py-3 px-6 shadow-sm active:bg-[#0D5208]"
-            >
-              <Text className="text-xs font-bold text-white">Apply Filters</Text>
-            </Pressable>
-          </View>
-        }
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilterModal(false)}
       >
-        <View className="gap-3">
+        <Pressable
+          onPress={() => setShowFilterModal(false)}
+          className="flex-1 bg-black/50 justify-end"
+        >
+          <Pressable
+            onPress={e => e.stopPropagation()}
+            className="rounded-t-3xl bg-white p-5 max-h-[85%]"
+            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+          >
+            <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
+            <View className="flex-row items-center justify-between border-b border-[#F3F4F6] pb-3">
+              <Text className="text-lg font-black text-[#012711]">
+                Filter & Sort Orders
+              </Text>
+              <Pressable onPress={() => setShowFilterModal(false)} className="p-1">
+                <Text className="text-base font-bold text-[#6B7280]">✕</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView className="py-3">
               {/* Order Type */}
               <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B] mb-2">
                 Order Type
@@ -1823,83 +1882,106 @@ export function OrdersScreen({
                   );
                 })}
               </View>
-        </View>
-      </BaseModal>
+            </ScrollView>
+
+            <View className="flex-row gap-3 border-t border-[#F3F4F6] pt-3">
+              <Pressable
+                onPress={resetAllFilters}
+                className="flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] py-3 bg-[#F9FAFB]"
+              >
+                <Text className="text-xs font-bold text-[#4B5563]">Reset</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Apply order filters"
+                accessibilityRole="button"
+                onPress={() => setShowFilterModal(false)}
+                className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B] px-4 py-3 shadow-sm"
+              >
+                <Text className="text-center text-xs font-bold text-white">
+                  Apply Filters
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* FULL RECEIPT / ORDER DETAILS MODAL */}
       <DetailsModal
         visible={selectedOrder !== null}
-        onClose={() => setSelectedOrder(null)}
-        title={
-          selectedOrder
-            ? String(
-                selectedOrder.order_number ||
-                  selectedOrder.order_id ||
-                  selectedOrder.id ||
-                  'Order',
-              ).startsWith('#')
-              ? String(
-                  selectedOrder.order_number ||
-                    selectedOrder.order_id ||
-                    selectedOrder.id,
-                )
-              : `#${
-                  selectedOrder.order_number ||
-                    selectedOrder.order_id ||
-                    selectedOrder.id
-                }`
-            : 'Order Details'
-        }
-        subtitle={
-          selectedOrder
-            ? formatOrderDate(parseOrderDate(selectedOrder))
-            : undefined
-        }
-        badge={
-          selectedOrder
-            ? (() => {
-                const s = normalizeStatus(
-                  selectedOrder.order_status || selectedOrder.status,
-                );
-                const theme = getStatusTheme(s);
-                return {
-                  label: theme.label,
-                  bg: theme.badgeBg,
-                  text: theme.badgeText,
-                  border: theme.badgeBorder,
-                };
-              })()
-            : undefined
-        }
-        footer={
-          selectedOrder ? (
-            <View className="flex-row gap-3">
-              <Pressable
-                onPress={() => void printOrderReceipt(selectedOrder)}
-                className="flex-row items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 shadow-xs active:bg-[#F1F5F9]"
-              >
-                <PrinterIcon color="#334155" size={16} />
-                <Text className="ml-1.5 text-xs font-black text-[#334155]">
-                  Share
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => setSelectedOrder(null)}
-                className="flex-1 items-center justify-center rounded-xl bg-[#116C0B] py-3.5 shadow-sm active:bg-[#0D5208]"
-              >
-                <Text className="text-sm font-black text-white">Close Receipt</Text>
-              </Pressable>
-            </View>
-          ) : null
-        }
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedOrder(null)}
       >
-        {selectedOrder ? (
-          <View>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 8 }}
+        <Pressable
+          onPress={() => setSelectedOrder(null)}
+          className="flex-1 bg-black/60 justify-end"
+        >
+          {selectedOrder && (
+            <Pressable
+              onPress={e => e.stopPropagation()}
+              className="rounded-t-3xl bg-white p-5 max-h-[92%]"
+              style={{ paddingBottom: Math.max(insets.bottom, 20) }}
             >
+              <View className="self-center w-12 h-1 rounded-full bg-[#E5E7EB] mb-3" />
+
+              {/* Order Header in Modal */}
+              <View className="flex-row items-center justify-between pb-3 border-b border-[#F3F4F6]">
+                <View>
+                  <Text className="text-xl font-black text-[#012711]">
+                    {String(
+                      selectedOrder.order_number ||
+                        selectedOrder.order_id ||
+                        selectedOrder.id ||
+                        'Order',
+                    ).startsWith('#')
+                      ? String(
+                          selectedOrder.order_number ||
+                            selectedOrder.order_id ||
+                            selectedOrder.id,
+                        )
+                      : `#${
+                          selectedOrder.order_number ||
+                            selectedOrder.order_id ||
+                            selectedOrder.id
+                        }`}
+                  </Text>
+                  <Text className="text-xs text-[#6B7280] mt-0.5">
+                    {formatOrderDate(parseOrderDate(selectedOrder))}
+                  </Text>
+                </View>
+
+                {/* Status Badge in Modal */}
+                {(() => {
+                  const s = normalizeStatus(
+                    selectedOrder.order_status || selectedOrder.status,
+                  );
+                  const theme = getStatusTheme(s);
+                  return (
+                    <View
+                      className="flex-row items-center rounded-full px-3 py-1"
+                      style={{
+                        backgroundColor: theme.badgeBg,
+                        borderColor: theme.badgeBorder,
+                        borderWidth: 1,
+                      }}
+                    >
+                      <View
+                        className="mr-1.5 h-2 w-2 rounded-full"
+                        style={{ backgroundColor: theme.dotColor }}
+                      />
+                      <Text
+                        className="text-xs font-bold"
+                        style={{ color: theme.badgeText }}
+                      >
+                        {theme.label}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
+
+              <ScrollView className="py-3">
                 {/* Guest & Table Info */}
                 <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5 mb-3.5">
                   <View className="flex-row items-center justify-between">
