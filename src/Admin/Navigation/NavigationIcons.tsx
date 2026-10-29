@@ -232,3 +232,47 @@ export function SearchIcon({ color, size = 20 }: NavigationIconProps) {
     </Svg>
   );
 }
+
+export function TableOrderIcon({ color, size = 24 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 8h16v6H4zM6 14v6m12-6v6M8 5v3m8-3v3"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function DeliveryScooterIcon({ color, size = 24 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="6" cy="17" r="2.5" stroke={color} strokeWidth="1.8" />
+      <Circle cx="18" cy="17" r="2.5" stroke={color} strokeWidth="1.8" />
+      <Path
+        d="M8.5 17h4l-2-5H7l-1 2.5m6.5 2.5 3-6h2l2 6M14 7h3m-1 0 1 4"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function TakeawayBagIcon({ color, size = 24 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 9h14l-1 12H6L5 9Zm4 0V6a3 3 0 0 1 6 0v3"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}

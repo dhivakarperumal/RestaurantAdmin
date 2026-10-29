@@ -53,12 +53,18 @@ import type {
   DashboardDateFilter,
   DashboardReport,
   LocalRecord,
+  NewOrderType,
   QuickAction,
   QuickActionId,
 } from './DashboardTypes';
 import FloatingActionMenu from './FloatingActionMenu';
 import AddCategoryIcon from './AddCategoryIcon';
-import Bills, { type BillFood } from '../Tabs/Bills';
+import Bills, {
+  type BillCompletionDetails,
+  type BillFood,
+} from '../Tabs/Bills';
+import NewOrderFlow from '../Tabs/NewOrderFlow';
+import OrderTypeSheet from '../Tabs/OrderTypeSheet';
 import Items from '../Tabs/Items';
 import InventoryScreen from '../Tabs/Inventory';
 import CategoriesScreen from '../Screens/Categories';
@@ -296,6 +302,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<AppTab>('home');
+  const [isOrderTypeSheetOpen, setIsOrderTypeSheetOpen] = useState(false);
+  const [newOrderType, setNewOrderType] = useState<NewOrderType | null>(null);
   const [itemsAddRequest, setItemsAddRequest] =
     useState<ItemsAddRequest | null>(null);
   const nextItemsAddRequestId = useRef(0);
@@ -523,6 +531,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   }, [dateFilter, customFrom, customTo, dashboardRefresh]);
 
   const navigateToTab = (tab: AppTab) => {
+    if (tab === 'add') {
+      setIsOrderTypeSheetOpen(true);
+      return;
+    }
+    setNewOrderType(null);
+    setIsOrderTypeSheetOpen(false);
     setActiveTab(tab);
     setIsItemsInnerPageOpen(false);
     setIsBillPreviewOpen(false);
@@ -531,6 +545,30 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setSelectedFeature(null);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+  };
+
+  const startNewOrder = (orderType: NewOrderType) => {
+    setNewOrderType(orderType);
+    setIsOrderTypeSheetOpen(false);
+    setActiveTab('add');
+    setIsItemsInnerPageOpen(false);
+    setIsBillPreviewOpen(false);
+    setIsDeliveryAssignmentOpen(false);
+    setSelectedAction(null);
+    setSelectedFeature(null);
+    setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
+  };
+
+  const closeNewOrder = () => {
+    setNewOrderType(null);
+    navigateToTab('home');
+  };
+
+  const finishNewOrder = () => {
+    setNewOrderType(null);
+    setDashboardRefresh(count => count + 1);
+    navigateToTab('orders');
   };
 
   const navigateToMoreFeature = (feature: string | null) => {
@@ -646,6 +684,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       ...current,
       {
         id: `${food.id}-${Date.now()}-${current.length}`,
+        productId: food.productId ?? food.id,
         name: food.name,
         category: food.category,
         image: food.image,
@@ -669,22 +708,29 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setBillingItems(current => current.filter(item => item.id !== itemId));
   };
 
-  const createInvoiceFromBillingItems = () => {
+  const createInvoiceFromBillingItems = (details?: BillCompletionDetails) => {
     if (
       !billingItems.length ||
       billingItems.some(item => item.amount === null)
     ) {
       return;
     }
-    const total = billingItems.reduce(
-      (sum, item) => sum + (item.amount ?? 0) * item.quantity,
-      0,
-    );
+    const total =
+      details?.total ??
+      billingItems.reduce(
+        (sum, item) => sum + (item.amount ?? 0) * item.quantity,
+        0,
+      );
+    const completionLabel = details
+      ? ` · ${details.orderType}${
+          details.tableNumber ? ` · Table ${details.tableNumber}` : ''
+        }`
+      : '';
     setRecords(current => [
       {
         id: Date.now(),
         action: 'invoice',
-        name: `Food billing - ${billingItems.length} ${
+        name: `Food billing${completionLabel} - ${billingItems.length} ${
           billingItems.length === 1 ? 'item' : 'items'
         }`,
         amount: total,
@@ -692,6 +738,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           hour: 'numeric',
           minute: '2-digit',
         }),
+        status: 'Completed',
+        tableNumber: details?.tableNumber ?? undefined,
+        orderType: details?.orderType,
       },
       ...current,
     ]);
@@ -782,6 +831,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         }
         // 5. Non-home tab → go to home
         if (activeTab !== 'home') {
+          setNewOrderType(null);
+          setIsOrderTypeSheetOpen(false);
           setActiveTab('home');
           setIsDeliveryAssignmentOpen(false);
           setSelectedAction(null);
@@ -875,6 +926,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           <View className="flex-1">
             <MainContent
               activeTab={activeTab}
+              newOrderType={newOrderType}
               invoices={invoices}
               billingItems={billingItems}
               orders={orders}
@@ -902,13 +954,15 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
+              onCloseNewOrder={closeNewOrder}
+              onNewOrderSubmitted={finishNewOrder}
               onRemoveFoodFromBilling={removeFoodFromBilling}
               onQuantityChange={updateBillingItemQuantity}
               onOpenBilling={() => navigateToTab('billing')}
               onBillPreviewVisibilityChange={setIsBillPreviewOpen}
               onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
-              onCompleteBill={() => {
-                createInvoiceFromBillingItems();
+              onCompleteBill={details => {
+                createInvoiceFromBillingItems(details);
                 navigateToTab('billing');
               }}
               onSelectFeature={navigateToMoreFeature}
@@ -934,6 +988,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           ) : null}
           <MainContent
             activeTab={activeTab}
+            newOrderType={newOrderType}
             invoices={invoices}
             billingItems={billingItems}
             orders={orders}
@@ -961,13 +1016,15 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
+            onCloseNewOrder={closeNewOrder}
+            onNewOrderSubmitted={finishNewOrder}
             onRemoveFoodFromBilling={removeFoodFromBilling}
             onQuantityChange={updateBillingItemQuantity}
             onOpenBilling={() => navigateToTab('billing')}
             onBillPreviewVisibilityChange={setIsBillPreviewOpen}
             onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
-            onCompleteBill={() => {
-              createInvoiceFromBillingItems();
+            onCompleteBill={details => {
+              createInvoiceFromBillingItems(details);
               navigateToTab('billing');
             }}
             onSelectFeature={navigateToMoreFeature}
@@ -1056,6 +1113,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           onSave={handleSaveAction}
         />
       ) : null}
+
+      <OrderTypeSheet
+        visible={isOrderTypeSheetOpen}
+        onClose={() => setIsOrderTypeSheetOpen(false)}
+        onSelect={startNewOrder}
+      />
 
       <ConfirmDialog
         visible={isLogoutConfirmOpen}
@@ -1377,6 +1440,7 @@ function getErrorMessage(error: unknown) {
 
 function MainContent({
   activeTab,
+  newOrderType,
   invoices,
   billingItems,
   orders,
@@ -1402,6 +1466,8 @@ function MainContent({
   onInnerPageVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
+  onCloseNewOrder,
+  onNewOrderSubmitted,
   onRemoveFoodFromBilling,
   onQuantityChange,
   onOpenBilling,
@@ -1418,6 +1484,7 @@ function MainContent({
   onLogout,
 }: {
   activeTab: AppTab;
+  newOrderType: NewOrderType | null;
   invoices: LocalRecord[];
   billingItems: BillingLineItem[];
   orders: LocalRecord[];
@@ -1443,12 +1510,14 @@ function MainContent({
   onInnerPageVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
+  onCloseNewOrder: () => void;
+  onNewOrderSubmitted: () => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
   onQuantityChange: (itemId: string, quantity: number) => void;
   onOpenBilling: () => void;
   onBillPreviewVisibilityChange: (isVisible: boolean) => void;
   onCreateInvoiceFromBillingItems: () => void;
-  onCompleteBill: () => void;
+  onCompleteBill: (details: BillCompletionDetails) => void;
   onSelectFeature: (feature: string | null) => void;
   onUpdateOrderStatus: (
     orderId: number,
@@ -1676,6 +1745,15 @@ function MainContent({
     );
   }
   if (activeTab === 'add') {
+    if (newOrderType) {
+      return (
+        <NewOrderFlow
+          orderType={newOrderType}
+          onBack={onCloseNewOrder}
+          onOrderSubmitted={onNewOrderSubmitted}
+        />
+      );
+    }
     return (
       <Bills
         billingItems={billingItems}

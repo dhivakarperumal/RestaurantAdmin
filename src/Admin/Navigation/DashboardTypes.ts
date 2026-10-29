@@ -10,6 +10,8 @@ export type QuickActionId =
   | 'purchase'
   | 'stock';
 
+export type NewOrderType = 'DINE_IN' | 'HOME_DELIVERY' | 'PICK_UP';
+
 export type LocalRecord = {
   id: number;
   action: QuickActionId;
@@ -17,6 +19,8 @@ export type LocalRecord = {
   amount?: number;
   createdAt: string;
   status?: 'Pending' | 'Completed' | 'Cancelled';
+  tableNumber?: string;
+  orderType?: 'Dine In' | 'Take Away' | 'Delivery';
 };
 
 export type ReservationStatus =
@@ -27,6 +31,7 @@ export type ReservationStatus =
 
 export type BillingLineItem = {
   id: string;
+  productId?: string;
   name: string;
   category?: string;
   image?: string;

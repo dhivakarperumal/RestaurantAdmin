@@ -28,13 +28,19 @@ export type BillFood = {
   variantDetails: string[];
 };
 
+export type BillCompletionDetails = {
+  orderType: 'Dine In' | 'Take Away' | 'Delivery';
+  tableNumber: string | null;
+  total: number;
+};
+
 type BillsProps = {
   billingItems: BillPreviewItem[];
   onAddFood: (food: BillFood) => void;
   onRemoveBillingItem: (id: string) => void;
   onQuantityChange: (id: string, quantity: number) => void;
   onOpenBilling: () => void;
-  onConfirmBill: () => void;
+  onConfirmBill: (details: BillCompletionDetails) => void;
   onBillPreviewVisibilityChange: (isVisible: boolean) => void;
 };
 

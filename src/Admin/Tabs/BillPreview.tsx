@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -14,9 +15,69 @@ import { PlusIcon } from '../Navigation/NavigationIcons';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 import colors from '../../theme/colors';
 import { DetailsModal, PrinterIcon } from '../../components/popups';
+import api from '../../../api';
+import type { BillCompletionDetails } from './Bills';
+
+type TableRecord = {
+  id?: string | number;
+  table_id?: string | number;
+  table_number?: string | number;
+  status?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function readTables(payload: unknown, depth = 0): TableRecord[] {
+  if (depth > 5) {
+    return [];
+  }
+  if (Array.isArray(payload)) {
+    return payload.filter(isRecord).map(table => ({
+      id:
+        typeof table.id === 'string' || typeof table.id === 'number'
+          ? table.id
+          : undefined,
+      table_id:
+        typeof table.table_id === 'string' ||
+        typeof table.table_id === 'number'
+          ? table.table_id
+          : undefined,
+      table_number:
+        typeof table.table_number === 'string' ||
+        typeof table.table_number === 'number'
+          ? table.table_number
+          : undefined,
+      status: typeof table.status === 'string' ? table.status : undefined,
+    }));
+  }
+  if (!isRecord(payload)) {
+    return [];
+  }
+  for (const key of ['server_tables', 'tables', 'data']) {
+    if (key in payload) {
+      const tables = readTables(payload[key], depth + 1);
+      if (tables.length || Array.isArray(payload[key])) {
+        return tables;
+      }
+    }
+  }
+  return [];
+}
+
+function getErrorMessage(
+  error: unknown,
+  fallback = 'Unable to load tables. Please try again.',
+) {
+  return isRecord(error) && typeof error.message === 'string'
+    ? error.message
+    : fallback;
+}
 
 export type BillPreviewItem = {
   id: string;
+  productId?: string;
   name: string;
   category?: string;
   image?: string;
@@ -28,7 +89,7 @@ type BillPreviewProps = {
   items: BillPreviewItem[];
   onRemoveItem: (id: string) => void;
   onQuantityChange: (id: string, quantity: number) => void;
-  onConfirm: () => void;
+  onConfirm: (details: BillCompletionDetails) => void;
   onBack: () => void;
 };
 
@@ -46,7 +107,13 @@ function BillPreview({
   onConfirm,
   onBack,
 }: BillPreviewProps) {
-  const [tableNumber, setTableNumber] = useState('T-05');
+  const [tables, setTables] = useState<TableRecord[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [isLoadingTables, setIsLoadingTables] = useState(true);
+  const [tablesError, setTablesError] = useState('');
+  const [tablesRetry, setTablesRetry] = useState(0);
+  const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
+  const [isKitchenOrderSent, setIsKitchenOrderSent] = useState(false);
   const [orderType, setOrderType] = useState<'Dine In' | 'Take Away' | 'Delivery'>('Dine In');
   const [discount, setDiscount] = useState('0');
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
@@ -63,13 +130,45 @@ function BillPreview({
   const cgst = taxableAmount * 0.025;
   const sgst = taxableAmount * 0.025;
   const grandTotal = taxableAmount + cgst + sgst;
+  const availableTableRecords = tables
+    .filter(table => !table.status || table.status.trim().toLowerCase() === 'available')
+    .filter(table => String(table.table_number ?? '').trim())
+    .filter(
+      (table, index, available) =>
+        available.findIndex(
+          candidate =>
+            String(candidate.table_number ?? '').trim() ===
+            String(table.table_number ?? '').trim(),
+        ) === index,
+    );
+  const availableTables = availableTableRecords.map(table =>
+    String(table.table_number).trim(),
+  );
+  const selectedTableRecord =
+    availableTableRecords.find(
+      table => String(table.table_number).trim() === selectedTable,
+    ) ?? null;
+  const canConfirm =
+    !hasUnpricedItems &&
+    items.length > 0 &&
+    (orderType !== 'Dine In' ||
+      (!isLoadingTables &&
+        !tablesError &&
+        selectedTable !== null &&
+        availableTables.includes(selectedTable)));
+  const canSendToKitchen =
+    canConfirm &&
+    orderType === 'Dine In' &&
+    selectedTableRecord !== null &&
+    !isSendingToKitchen &&
+    !isKitchenOrderSent;
   const now = new Date();
   const billNumber = `BF${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-001`;
   const receiptText = [
     'BUY FOOD',
     `Bill No: ${billNumber}`,
     `Date: ${now.toLocaleDateString('en-GB')}`,
-    `Table: ${tableNumber}`,
+    `Table: ${orderType === 'Dine In' ? selectedTable ?? 'N/A' : 'N/A'}`,
     `Order Type: ${orderType}`,
     '',
     ...items.map(item =>
@@ -98,6 +197,133 @@ function BillPreview({
     }
   };
 
+  const sendToKitchen = async () => {
+    if (!canSendToKitchen || !selectedTableRecord) {
+      return;
+    }
+
+    const itemsWithoutProductIds = items.filter(item => !item.productId);
+    if (itemsWithoutProductIds.length) {
+      Alert.alert(
+        'Unable to send order',
+        `Missing menu item IDs for: ${itemsWithoutProductIds
+          .map(item => item.name)
+          .join(', ')}.`,
+      );
+      return;
+    }
+
+    setIsSendingToKitchen(true);
+    try {
+      const tableIdentifier =
+        selectedTableRecord.table_id ??
+        selectedTableRecord.id ??
+        selectedTableRecord.table_number;
+      const cleanTableId =
+        tableIdentifier !== undefined &&
+        Number.isFinite(Number(tableIdentifier))
+          ? Number(tableIdentifier)
+          : tableIdentifier;
+      const response = await api.post('/kitchen-orders', {
+        table_id: cleanTableId,
+        table_number: selectedTable,
+        items: items.map(item => ({
+          food_id:
+            item.productId && Number.isFinite(Number(item.productId))
+              ? Number(item.productId)
+              : item.productId,
+          food_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.amount,
+          selected_addons: [],
+          selected_customizations: {},
+        })),
+        total_amount: subtotal,
+        status: 'pending',
+      });
+
+      if (isRecord(response.data) && response.data.success === false) {
+        throw new Error(
+          typeof response.data.message === 'string'
+            ? response.data.message
+            : 'The kitchen rejected this order.',
+        );
+      }
+
+      setIsKitchenOrderSent(true);
+      Alert.alert(
+        'Order sent',
+        `The order for Table ${selectedTable} has been sent to the kitchen.`,
+      );
+    } catch (error) {
+      Alert.alert(
+        'Unable to send order',
+        getErrorMessage(error, 'Please check the connection and try again.'),
+      );
+    } finally {
+      setIsSendingToKitchen(false);
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    setIsLoadingTables(true);
+    setTablesError('');
+
+    const loadTables = async () => {
+      const config = {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache, no-store',
+          Pragma: 'no-cache',
+        },
+      };
+
+      try {
+        let response;
+        try {
+          response = await api.get('/server-tables', config);
+        } catch (error) {
+          if (
+            isRecord(error) &&
+            Number(error.status) === 304 &&
+            !controller.signal.aborted
+          ) {
+            response = await api.get('/server-tables', {
+              ...config,
+              params: { _refresh: Date.now() },
+            });
+          } else {
+            throw error;
+          }
+        }
+        if (active) {
+          setTables(readTables(response.data));
+        }
+      } catch (error) {
+        if (active && !controller.signal.aborted) {
+          setTablesError(getErrorMessage(error));
+        }
+      } finally {
+        if (active) {
+          setIsLoadingTables(false);
+        }
+      }
+    };
+
+    void loadTables();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [tablesRetry]);
+
+  useEffect(() => {
+    setIsKitchenOrderSent(false);
+  }, [items]);
+
   return (
     <SafeAreaView edges={['bottom']} className="flex-1 bg-white">
       <View className="flex-1">
@@ -108,12 +334,18 @@ function BillPreview({
           onBack={onBack}
           rightContent={
             <Pressable
-              accessibilityLabel="Send bill"
+              accessibilityLabel="Complete bill"
               accessibilityRole="button"
-              disabled={hasUnpricedItems || items.length === 0}
-              onPress={onConfirm}
+              disabled={!canConfirm}
+              onPress={() =>
+                onConfirm({
+                  orderType,
+                  tableNumber: orderType === 'Dine In' ? selectedTable : null,
+                  total: grandTotal,
+                })
+              }
               className={`h-10 w-10 items-center justify-center rounded-xl ${
-                hasUnpricedItems || items.length === 0
+                !canConfirm
                   ? 'bg-white/10'
                   : 'bg-white/20'
               }`}
@@ -139,15 +371,82 @@ function BillPreview({
                 })}
               </Text>
             </View>
-            <View className="w-[48%] flex-row items-center justify-between gap-1">
-              <Text className="text-xs text-[#374151]">Table No</Text>
-              <TextInput
-                accessibilityLabel="Bill table number"
-                className="min-w-[64px] rounded border border-[#E5E7EB] px-2 py-1 text-right text-xs font-bold text-[#111827]"
-                onChangeText={setTableNumber}
-                value={tableNumber}
-              />
-            </View>
+            {orderType === 'Dine In' ? (
+              <View className="w-full gap-2">
+                <Text className="text-xs font-semibold text-[#374151]">
+                  Select available table (required)
+                </Text>
+                {isLoadingTables ? (
+                  <View className="flex-row items-center gap-2 py-1">
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text className="text-xs text-[#6B7280]">Loading tables...</Text>
+                  </View>
+                ) : tablesError ? (
+                  <View className="flex-row flex-wrap items-center gap-2">
+                    <Text accessibilityRole="alert" className="text-xs text-[#DC2626]">
+                      {tablesError}
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setTablesRetry(value => value + 1)}
+                      className="rounded-lg border border-[#DCE8D8] px-3 py-1.5"
+                    >
+                      <Text className="text-xs font-semibold text-[#116C0B]">Retry</Text>
+                    </Pressable>
+                  </View>
+                ) : availableTables.length ? (
+                  <View className="flex-row flex-wrap gap-2">
+                    {availableTables.map(tableNumber => {
+                      const isSelected = selectedTable === tableNumber;
+                      return (
+                        <Pressable
+                          accessibilityLabel={`Select table ${tableNumber}`}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: isSelected }}
+                          key={tableNumber}
+                          onPress={() => {
+                            setSelectedTable(tableNumber);
+                            setIsKitchenOrderSent(false);
+                          }}
+                          className="rounded-lg border px-3 py-2"
+                          style={{
+                            backgroundColor: isSelected
+                              ? colors.primary
+                              : colors.surface,
+                            borderColor: isSelected
+                              ? colors.primary
+                              : colors.border,
+                          }}
+                        >
+                          <Text
+                            className="text-xs font-semibold"
+                            style={{
+                              color: isSelected
+                                ? colors.textOnPrimary
+                                : colors.textPrimary,
+                            }}
+                          >
+                            Table {tableNumber}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <Text className="text-xs text-[#DC2626]">
+                    No available tables found. Add or free a table before completing this bill.
+                  </Text>
+                )}
+                {!isLoadingTables &&
+                !tablesError &&
+                availableTables.length > 0 &&
+                !selectedTable ? (
+                  <Text className="text-xs text-[#6B7280]">
+                    Choose a table to enable bill completion.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             <View className="w-[48%] flex-row justify-between gap-1">
               <Text className="text-xs text-[#374151]">Time</Text>
               <Text className="text-xs font-bold text-[#111827]">
@@ -166,7 +465,10 @@ function BillPreview({
                     accessibilityRole="button"
                     accessibilityState={{ selected: orderType === type }}
                     key={type}
-                    onPress={() => setOrderType(type)}
+                    onPress={() => {
+                      setOrderType(type);
+                      setIsKitchenOrderSent(false);
+                    }}
                     className="rounded-md border px-2 py-1"
                     style={
                       orderType === type
@@ -309,6 +611,29 @@ function BillPreview({
             Enter prices for all items before sending the bill.
           </Text>
         ) : null}
+        <Pressable
+          accessibilityLabel={
+            isKitchenOrderSent ? 'Order sent to kitchen' : 'Send order to kitchen'
+          }
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSendToKitchen }}
+          disabled={!canSendToKitchen}
+          onPress={sendToKitchen}
+          className={`mx-4 mb-2 h-12 flex-row items-center justify-center gap-2 rounded-xl ${
+            canSendToKitchen ? 'bg-[#0B4D1A]' : 'bg-[#9CA3AF]'
+          }`}
+        >
+          {isSendingToKitchen ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : null}
+          <Text className="text-sm font-bold text-white">
+            {isKitchenOrderSent
+              ? 'Sent to Kitchen'
+              : isSendingToKitchen
+              ? 'Sending to Kitchen...'
+              : 'Send to Kitchen'}
+          </Text>
+        </Pressable>
         <View
           className="flex-row items-center justify-between px-5 py-3.5"
           style={{ backgroundColor: colors.primary }}
