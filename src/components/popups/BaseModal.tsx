@@ -110,31 +110,31 @@ export function BaseModal({
     >
       {/* Mobile Drag Indicator */}
       {!isCenter ? (
-        <View style={styles.dragPillContainer}>
-          <View style={styles.dragPill} />
+        <View className="items-center pb-1 pt-2.5" style={styles.dragPillContainer}>
+          <View className="h-1 w-11 rounded-full bg-slate-300" style={styles.dragPill} />
         </View>
       ) : null}
 
       {/* Header */}
       {title || subtitle || icon || showCloseButton || headerRight ? (
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            {icon ? <View style={styles.iconWrapper}>{icon}</View> : null}
-            <View style={styles.titleColumn}>
+        <View className="flex-row items-center justify-between border-b border-slate-100 px-5 py-3.5" style={styles.header}>
+          <View className="flex-1 flex-row items-center pr-2.5" style={styles.headerLeft}>
+            {icon ? <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-emerald-50" style={styles.iconWrapper}>{icon}</View> : null}
+            <View className="flex-1" style={styles.titleColumn}>
               {title ? (
-                <Text numberOfLines={2} style={styles.title}>
+                <Text numberOfLines={2} className="text-lg font-extrabold text-[#012711]" style={styles.title}>
                   {title}
                 </Text>
               ) : null}
               {subtitle ? (
-                <Text numberOfLines={2} style={styles.subtitle}>
+                <Text numberOfLines={2} className="mt-0.5 text-xs font-medium text-slate-500" style={styles.subtitle}>
                   {subtitle}
                 </Text>
               ) : null}
             </View>
           </View>
 
-          <View style={styles.headerActions}>
+          <View className="flex-row items-center gap-2" style={styles.headerActions}>
             {headerRight}
             {showCloseButton ? (
               <Pressable
@@ -142,10 +142,8 @@ export function BaseModal({
                 accessibilityRole="button"
                 hitSlop={10}
                 onPress={onClose}
-                style={({ pressed }) => [
-                  styles.closeButton,
-                  pressed && styles.closeButtonPressed,
-                ]}
+                className="h-9 w-9 items-center justify-center rounded-full bg-slate-100 active:bg-slate-200"
+                style={styles.closeButton}
               >
                 <XIcon size={18} color="#64748B" />
               </Pressable>
@@ -169,7 +167,11 @@ export function BaseModal({
       )}
 
       {/* Footer */}
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      {footer ? (
+        <View className="border-t border-slate-100 px-5 py-3.5" style={styles.footer}>
+          {footer}
+        </View>
+      ) : null}
     </View>
   );
 
@@ -329,6 +331,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flexShrink: 1,
+    width: '100%',
   },
   scrollContent: {
     padding: 20,

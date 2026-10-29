@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
-import { ActionSheet, BaseModal, DetailsModal, PhoneIcon, PrinterIcon } from '../../components/popups';
+import { ActionSheet, BaseModal, ConfirmDialog, DetailsModal, PhoneIcon, PrinterIcon } from '../../components/popups';
 
 /* ==========================================================================
    Crisp SVG Icons for Server Tools
@@ -402,6 +402,8 @@ export default function ServerMore({
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isTestingPrint, setIsTestingPrint] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isClockOutConfirmOpen, setIsClockOutConfirmOpen] = useState(false);
 
   const handleSyncWorkspace = () => {
     setIsSyncing(true);
@@ -423,34 +425,11 @@ export default function ServerMore({
   };
 
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out of the server app?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Log Out',
-        style: 'destructive',
-        onPress: () => {
-          if (onLogout) onLogout();
-        },
-      },
-    ]);
+    setIsLogoutConfirmOpen(true);
   };
 
   const handleClockOut = () => {
-    Alert.alert(
-      'Clock Out Shift',
-      'End your shift and clock out for today? You will be signed out.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clock Out & Finish',
-          style: 'destructive',
-          onPress: () => {
-            if (onClockOut) void onClockOut();
-            else if (onLogout) onLogout();
-          },
-        },
-      ],
-    );
+    setIsClockOutConfirmOpen(true);
   };
 
   return (
@@ -1485,6 +1464,37 @@ export default function ServerMore({
             },
           },
         ]}
+      />
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        visible={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        title="Sign Out"
+        message="Are you sure you want to log out of the server app?"
+        itemName={name}
+        confirmLabel="Log Out"
+        variantType="danger"
+        onConfirm={() => {
+          setIsLogoutConfirmOpen(false);
+          if (onLogout) onLogout();
+        }}
+      />
+
+      {/* Clock Out Confirmation Dialog */}
+      <ConfirmDialog
+        visible={isClockOutConfirmOpen}
+        onClose={() => setIsClockOutConfirmOpen(false)}
+        title="Clock Out Shift"
+        message="End your shift and clock out for today? You will be signed out."
+        itemName={name}
+        confirmLabel="Clock Out & Finish"
+        variantType="warning"
+        onConfirm={() => {
+          setIsClockOutConfirmOpen(false);
+          if (onClockOut) void onClockOut();
+          else if (onLogout) onLogout();
+        }}
       />
     </ScrollView>
   );

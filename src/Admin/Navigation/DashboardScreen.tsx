@@ -78,8 +78,10 @@ import api from '../../../api';
 import {
   BaseModal,
   CheckIcon,
+  ConfirmDialog,
   DetailsModal,
   FormModal,
+  LogOutIcon,
 } from '../../components/popups';
 
 type DashboardScreenProps = {
@@ -307,6 +309,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [billingItems, setBillingItems] = useState<BillingLineItem[]>([]);
   const [records, setRecords] = useState<LocalRecord[]>([]);
   const [logoutError, setLogoutError] = useState('');
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     orders: [],
     bills: [],
@@ -861,6 +864,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onNavigate={navigateFromSidebar}
             features={moreFeatures}
             onSelectFeature={navigateToMoreFeature}
+            onLogout={() => setIsLogoutConfirmOpen(true)}
           />
           <View className="flex-1">
             <MainContent
@@ -908,6 +912,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onSetCustomFrom={setCustomFrom}
               onSetCustomTo={setCustomTo}
               onDeliveryAssignmentVisibilityChange={setIsDeliveryAssignmentOpen}
+              onLogout={() => setIsLogoutConfirmOpen(true)}
             />
           </View>
         </View>
@@ -966,6 +971,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onSetCustomFrom={setCustomFrom}
             onSetCustomTo={setCustomTo}
             onDeliveryAssignmentVisibilityChange={setIsDeliveryAssignmentOpen}
+            onLogout={() => setIsLogoutConfirmOpen(true)}
           />
         </View>
       )}
@@ -1001,6 +1007,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onNavigate={navigateFromSidebar}
               features={moreFeatures}
               onSelectFeature={navigateToMoreFeature}
+              onLogout={() => setIsLogoutConfirmOpen(true)}
             />
           </View>
         </View>
@@ -1042,6 +1049,20 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           onSave={handleSaveAction}
         />
       ) : null}
+
+      <ConfirmDialog
+        visible={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        title="Sign Out"
+        message="Are you sure you want to log out of your administrative account?"
+        itemName={userName}
+        confirmLabel="Log Out"
+        variantType="danger"
+        onConfirm={async () => {
+          setIsLogoutConfirmOpen(false);
+          await handleLogout();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -1313,6 +1334,7 @@ function MainContent({
   onSetCustomFrom,
   onSetCustomTo,
   onDeliveryAssignmentVisibilityChange,
+  onLogout,
 }: {
   activeTab: AppTab;
   invoices: LocalRecord[];
@@ -1356,6 +1378,7 @@ function MainContent({
   onSetCustomFrom: (date: string) => void;
   onSetCustomTo: (date: string) => void;
   onDeliveryAssignmentVisibilityChange: (isVisible: boolean) => void;
+  onLogout?: () => void;
 }) {
   if (selectedAction) {
     return (
@@ -1589,6 +1612,7 @@ function MainContent({
       <MorePage
         features={moreFeatures}
         onSelectFeature={onSelectFeature}
+        onLogout={onLogout}
       />
     );
   }
@@ -3217,12 +3241,14 @@ function Sidebar({
   onNavigate,
   features,
   onSelectFeature,
+  onLogout,
 }: {
   fullWidth?: boolean;
   onClose: () => void;
   onNavigate: (tab: AppTab) => void;
   features: MoreFeature[];
   onSelectFeature: (feature: string) => void;
+  onLogout?: () => void;
 }) {
   const [isMoreExpanded, setIsMoreExpanded] = useState(false);
 
@@ -3325,6 +3351,27 @@ function Sidebar({
                 </Pressable>
               );
             })}
+          </View>
+        ) : null}
+
+        {onLogout ? (
+          <View className="mt-5 border-t border-[#E5E7EB] pt-4">
+            <Pressable
+              accessibilityLabel="Sign out of account"
+              accessibilityRole="button"
+              onPress={() => {
+                onClose();
+                onLogout();
+              }}
+              className="w-full flex-row items-center gap-3 rounded-xl bg-[#FEF2F2] px-3 py-3 active:bg-[#FEE2E2]"
+            >
+              <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-xs">
+                <LogOutIcon color="#DC2626" size={18} />
+              </View>
+              <Text className="flex-1 text-sm font-bold text-[#DC2626]">
+                Sign Out
+              </Text>
+            </Pressable>
           </View>
         ) : null}
       </ScrollView>

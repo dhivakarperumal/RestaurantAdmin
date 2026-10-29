@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import colors from '../../theme/colors';
+import { LogOutIcon } from '../../components/popups';
 
 type MoreFeatureIconProps = {
   color: string;
@@ -17,11 +18,12 @@ export type MoreFeature = {
 type MorePageProps = {
   features: MoreFeature[];
   onSelectFeature: (feature: string) => void;
+  onLogout?: () => void;
 };
 
-function MorePage({ features, onSelectFeature }: MorePageProps) {
+function MorePage({ features, onSelectFeature, onLogout }: MorePageProps) {
   return (
-    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-7 pt-6">
+    <ScrollView contentContainerClassName="mx-auto w-full max-w-[1100px] px-5 pb-12 pt-6">
       <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
         TOOLS
       </Text>
@@ -59,6 +61,25 @@ function MorePage({ features, onSelectFeature }: MorePageProps) {
           );
         })}
       </View>
+
+      {onLogout ? (
+        <View className="mt-8 border-t border-[#E5E7EB] pt-6">
+          <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
+            ACCOUNT & SECURITY
+          </Text>
+          <Pressable
+            accessibilityLabel="Sign out of administrative account"
+            accessibilityRole="button"
+            onPress={onLogout}
+            className="mt-3 min-h-[56px] w-full flex-row items-center justify-center gap-2.5 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 active:bg-[#FEE2E2]"
+          >
+            <LogOutIcon color="#DC2626" size={20} />
+            <Text className="text-sm font-bold text-[#DC2626]">
+              Sign Out / Log Out
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }

@@ -46,12 +46,12 @@ export function ActionSheet({
       accessibilityLabel={cancelLabel}
       accessibilityRole="button"
       onPress={onClose}
-      style={({ pressed }) => [
-        styles.cancelButton,
-        pressed && styles.cancelButtonPressed,
-      ]}
+      className="h-12 w-full flex-row items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 active:bg-slate-100"
+      style={styles.cancelButton}
     >
-      <Text style={styles.cancelText}>{cancelLabel}</Text>
+      <Text className="text-sm font-bold text-slate-700" style={styles.cancelText}>
+        {cancelLabel}
+      </Text>
     </Pressable>
   ) : null;
 
@@ -76,7 +76,9 @@ export function ActionSheet({
 
           return (
             <React.Fragment key={action.id || `${action.label}-${index}`}>
-              {index > 0 && <View style={styles.separator} />}
+              {index > 0 && (
+                <View className="my-1 h-px w-full bg-slate-100" style={styles.separator} />
+              )}
               <Pressable
                 accessibilityLabel={action.label}
                 accessibilityRole="button"
@@ -89,15 +91,24 @@ export function ActionSheet({
                   action.onPress();
                   onClose();
                 }}
-                style={({ pressed }) => [
+                className={`w-full flex-row items-center min-h-[56px] px-3.5 py-3 rounded-2xl active:bg-slate-100 ${
+                  isSelected ? 'bg-emerald-50' : 'bg-transparent'
+                } ${action.disabled ? 'opacity-40' : ''}`}
+                style={[
                   styles.actionItem,
                   isSelected && styles.actionItemSelected,
-                  pressed && styles.actionItemPressed,
                   action.disabled && styles.actionItemDisabled,
                 ]}
               >
                 {action.icon ? (
                   <View
+                    className={`mr-3.5 h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                      isDestructive
+                        ? 'bg-red-50'
+                        : isSelected
+                        ? 'bg-emerald-100'
+                        : 'bg-slate-100'
+                    }`}
                     style={[
                       styles.actionIconContainer,
                       isDestructive && styles.destructiveIconContainer,
@@ -108,8 +119,15 @@ export function ActionSheet({
                   </View>
                 ) : null}
 
-                <View style={styles.actionTextColumn}>
+                <View className="flex-1" style={styles.actionTextColumn}>
                   <Text
+                    className={`text-[15px] font-bold ${
+                      isDestructive
+                        ? 'text-red-600'
+                        : isSelected
+                        ? 'text-emerald-800'
+                        : 'text-slate-900'
+                    }`}
                     style={[
                       styles.actionLabel,
                       isDestructive && styles.destructiveLabel,
@@ -119,7 +137,10 @@ export function ActionSheet({
                     {action.label}
                   </Text>
                   {action.description ? (
-                    <Text style={styles.actionDescription}>
+                    <Text
+                      className="mt-0.5 text-xs font-medium text-slate-500"
+                      style={styles.actionDescription}
+                    >
                       {action.description}
                     </Text>
                   ) : null}
@@ -127,12 +148,18 @@ export function ActionSheet({
 
                 {action.badge ? (
                   <View
+                    className={`ml-2 rounded-lg px-2 py-0.5 ${
+                      isSelected ? 'bg-emerald-200' : 'bg-slate-100'
+                    }`}
                     style={[
                       styles.badgeContainer,
                       isSelected && styles.selectedBadgeContainer,
                     ]}
                   >
                     <Text
+                      className={`text-[11px] font-bold ${
+                        isSelected ? 'text-emerald-900' : 'text-slate-600'
+                      }`}
                       style={[
                         styles.badgeText,
                         isSelected && styles.selectedBadgeText,
@@ -142,6 +169,10 @@ export function ActionSheet({
                     </Text>
                   </View>
                 ) : null}
+
+                <View className="ml-2">
+                  <Text className="text-base font-bold text-slate-300">›</Text>
+                </View>
               </Pressable>
             </React.Fragment>
           );

@@ -53,20 +53,17 @@ export function FormModal({
     <View style={styles.footerContainer}>
       {footerExtra}
 
-      <View style={styles.actionButtons}>
+      <View className="w-full flex-row items-center justify-between gap-3" style={styles.actionButtons}>
         {cancelLabel ? (
           <Pressable
             accessibilityLabel={cancelLabel}
             accessibilityRole="button"
             disabled={isSaving}
             onPress={onClose}
-            style={({ pressed }) => [
-              styles.cancelButton,
-              pressed && styles.buttonPressed,
-              isSaving && styles.buttonDisabled,
-            ]}
+            className="flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl border border-slate-300 bg-white active:bg-slate-100"
+            style={styles.cancelButton}
           >
-            <Text style={styles.cancelText}>{cancelLabel}</Text>
+            <Text className="text-sm font-bold text-slate-700" style={styles.cancelText}>{cancelLabel}</Text>
           </Pressable>
         ) : null}
 
@@ -76,17 +73,19 @@ export function FormModal({
             accessibilityRole="button"
             disabled={isSubmitDisabled}
             onPress={onSave}
-            style={({ pressed }) => [
+            className={`flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl active:opacity-90 ${
+              isSubmitDisabled ? 'opacity-50' : ''
+            }`}
+            style={[
               styles.saveButton,
               { backgroundColor: saveButtonColor },
-              pressed && styles.buttonPressed,
               isSubmitDisabled && styles.saveButtonDisabled,
             ]}
           >
             {isSaving ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.saveText}>{saveLabel}</Text>
+              <Text className="text-sm font-bold text-white" style={styles.saveText}>{saveLabel}</Text>
             )}
           </Pressable>
         ) : null}

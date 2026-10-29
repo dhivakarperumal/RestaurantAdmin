@@ -12,6 +12,7 @@ import {
   CheckCircle2Icon,
   InfoIcon,
   Trash2Icon,
+  XIcon,
 } from './LucideIcons';
 
 export type ConfirmDialogProps = {
@@ -76,17 +77,17 @@ export function ConfirmDialog({
     }
   };
 
-  const getConfirmButtonStyle = () => {
+  const getConfirmBgColor = () => {
     switch (type) {
       case 'danger':
-        return { backgroundColor: '#DC2626' };
+        return '#DC2626';
       case 'warning':
-        return { backgroundColor: '#D97706' };
+        return '#D97706';
       case 'success':
-        return { backgroundColor: '#15803D' };
+        return '#15803D';
       case 'info':
       default:
-        return { backgroundColor: '#116C0B' };
+        return '#116C0B';
     }
   };
 
@@ -95,12 +96,28 @@ export function ConfirmDialog({
       closeOnBackdropPress={!isLoading}
       maxWidth={maxWidth}
       onClose={isLoading ? () => {} : onClose}
-      showCloseButton={!isLoading}
+      showCloseButton={false}
       variant="center"
       visible={visible}
       containerStyle={styles.dialogContainer}
     >
       <View style={styles.dialogBody}>
+        {/* Floating Top-Right Close Button */}
+        {!isLoading ? (
+          <Pressable
+            accessibilityLabel="Close dialog"
+            accessibilityRole="button"
+            hitSlop={10}
+            onPress={onClose}
+            style={({ pressed }) => [
+              styles.floatingCloseButton,
+              pressed && styles.closeButtonPressed,
+            ]}
+          >
+            <XIcon size={18} color="#64748B" />
+          </Pressable>
+        ) : null}
+
         {/* Prominent Circular Icon Badge */}
         <View style={[styles.iconBadge, getBadgeStyle()]}>{getIcon()}</View>
 
@@ -127,19 +144,16 @@ export function ConfirmDialog({
         ) : null}
 
         {/* Action Buttons */}
-        <View style={styles.buttonRow}>
+        <View className="w-full flex-row items-center justify-between gap-3 mt-5" style={styles.buttonRow}>
           <Pressable
             accessibilityLabel={cancelLabel}
             accessibilityRole="button"
             disabled={isLoading}
             onPress={onClose}
-            style={({ pressed }) => [
-              styles.cancelButton,
-              pressed && styles.buttonPressed,
-              isLoading && styles.buttonDisabled,
-            ]}
+            className="flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl border border-slate-300 bg-white active:bg-slate-100"
+            style={styles.cancelButton}
           >
-            <Text style={styles.cancelText}>{cancelLabel}</Text>
+            <Text className="text-sm font-bold text-slate-700" style={styles.cancelText}>{cancelLabel}</Text>
           </Pressable>
 
           <Pressable
@@ -147,17 +161,25 @@ export function ConfirmDialog({
             accessibilityRole="button"
             disabled={isLoading}
             onPress={onConfirm}
-            style={({ pressed }) => [
+            className={`flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl active:opacity-90 ${
+              type === 'danger'
+                ? 'bg-[#DC2626]'
+                : type === 'warning'
+                ? 'bg-[#D97706]'
+                : type === 'success'
+                ? 'bg-[#15803D]'
+                : 'bg-[#116C0B]'
+            } ${isLoading ? 'opacity-60' : ''}`}
+            style={[
               styles.confirmButton,
-              getConfirmButtonStyle(),
-              pressed && styles.buttonPressed,
+              { backgroundColor: getConfirmBgColor() },
               isLoading && styles.buttonDisabled,
             ]}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.confirmText}>{confirmLabel}</Text>
+              <Text className="text-sm font-bold text-white" style={styles.confirmText}>{confirmLabel}</Text>
             )}
           </Pressable>
         </View>
@@ -170,10 +192,30 @@ const styles = StyleSheet.create({
   dialogContainer: {
     borderRadius: 24,
     overflow: 'hidden',
+    width: '100%',
   },
   dialogBody: {
     alignItems: 'center',
-    padding: 24,
+    paddingBottom: 22,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    position: 'relative',
+    width: '100%',
+  },
+  floatingCloseButton: {
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    width: 36,
+    zIndex: 10,
+  },
+  closeButtonPressed: {
+    backgroundColor: '#E2E8F0',
   },
   iconBadge: {
     alignItems: 'center',
@@ -181,7 +223,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     height: 60,
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
     width: 60,
   },
   title: {
@@ -196,10 +238,10 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 12,
     borderWidth: 1,
-    marginTop: 10,
+    marginTop: 8,
     maxWidth: '100%',
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
   itemText: {
     color: '#0F172A',
@@ -212,7 +254,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 20,
-    marginTop: 10,
+    marginTop: 8,
     textAlign: 'center',
   },
   errorContainer: {
@@ -232,17 +274,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
-    marginTop: 24,
+    marginTop: 22,
     width: '100%',
   },
   cancelButton: {
     alignItems: 'center',
-    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
     borderRadius: 14,
     borderWidth: 1.5,
     flex: 1,
+    height: 48,
     justifyContent: 'center',
     minHeight: 48,
     paddingHorizontal: 16,
@@ -255,15 +300,11 @@ const styles = StyleSheet.create({
   confirmButton: {
     alignItems: 'center',
     borderRadius: 14,
-    elevation: 2,
     flex: 1,
+    height: 48,
     justifyContent: 'center',
     minHeight: 48,
     paddingHorizontal: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
   },
   confirmText: {
     color: '#FFFFFF',
