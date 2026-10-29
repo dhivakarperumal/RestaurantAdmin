@@ -24,9 +24,8 @@ function AdminStatCard({
       onPress={onPress}
       disabled={!onPress}
       style={({ pressed }) => ({
-        width: '48%',
-        minWidth: 0,
-        flexGrow: 0,
+        flexBasis: 140,
+        flexGrow: 1,
         flexShrink: 0,
         minHeight: 90,
         padding: 12,
