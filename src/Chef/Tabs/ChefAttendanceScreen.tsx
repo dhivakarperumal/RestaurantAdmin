@@ -5,6 +5,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import colors from '../../theme/colors';
 
 type AttendanceRecord = Record<string, unknown>;
 type StatusFilter = 'All' | 'Present' | 'Late' | 'Working' | 'Completed';
@@ -253,8 +254,16 @@ function ChefAttendanceScreen({
                 ? 'bg-emerald-100 text-emerald-800'
                 : isCompleted
                   ? 'bg-blue-100 text-blue-800'
-                  : 'bg-amber-100 text-amber-800'
+                  : ''
             }`}
+            style={
+              !isWorking && !isCompleted
+                ? {
+                    backgroundColor: colors.surfaceSecondary,
+                    color: colors.primary,
+                  }
+                : undefined
+            }
           >
             {isWorking ? 'ACTIVE DUTY' : isCompleted ? 'COMPLETED' : 'NOT STARTED'}
           </Text>
@@ -450,9 +459,17 @@ function ChefAttendanceScreen({
                         recordIsWorking
                           ? 'bg-emerald-100 text-emerald-800'
                           : record.status === 'Late'
-                            ? 'bg-amber-100 text-amber-800'
+                            ? ''
                             : 'bg-[#F3F4F6] text-[#4B5563]'
                       }`}
+                      style={
+                        record.status === 'Late'
+                          ? {
+                              backgroundColor: colors.surfaceSecondary,
+                              color: colors.primary,
+                            }
+                          : undefined
+                      }
                     >
                       {recordIsWorking
                         ? 'ACTIVE DUTY'

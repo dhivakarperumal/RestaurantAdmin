@@ -393,21 +393,33 @@ function BannerManagementPage({
                       ) : null}
                     </View>
                     <View
-                      className={`rounded-full px-2.5 py-1 ${
-                        banner.active ? 'bg-green-50' : 'bg-gray-100'
-                      }`}
+                      className="rounded-full px-2.5 py-1"
+                      style={{
+                        backgroundColor: banner.active
+                          ? colors.surfaceSecondary
+                          : colors.background,
+                      }}
                     >
                       <Text
-                        className={`text-[10px] font-bold uppercase ${
-                          banner.active ? 'text-green-700' : 'text-gray-500'
-                        }`}
+                        className="text-[10px] font-bold uppercase"
+                        style={{
+                          color: banner.active
+                            ? colors.primary
+                            : colors.textSecondary,
+                        }}
                       >
                         {banner.active ? 'Published' : 'Draft'}
                       </Text>
                     </View>
                   </View>
                   <View className="flex-row items-center justify-between">
-                    <Text className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase text-orange-700">
+                    <Text
+                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase"
+                      style={{
+                        backgroundColor: colors.surfaceSecondary,
+                        color: colors.primary,
+                      }}
+                    >
                       {banner.type} section
                     </Text>
                     <Text className="text-xs text-[#6B7280]">No. {index + 1}</Text>
@@ -569,16 +581,19 @@ function BannerManagementPage({
                 accessibilityRole="switch"
                 accessibilityState={{ checked: draft.active }}
                 onPress={() => updateDraft('active', !draft.active)}
-                className={`min-h-12 flex-row items-center justify-center rounded-xl border ${
-                  draft.active
-                    ? 'border-orange-100 bg-orange-50'
-                    : 'border-[#E5E7EB] bg-[#F9FAFB]'
-                }`}
+                className="min-h-12 flex-row items-center justify-center rounded-xl border"
+                style={{
+                  borderColor: draft.active ? colors.borderLight : colors.border,
+                  backgroundColor: draft.active
+                    ? colors.surfaceSecondary
+                    : colors.background,
+                }}
               >
                 <Text
-                  className={`text-sm font-bold ${
-                    draft.active ? 'text-orange-700' : 'text-[#6B7280]'
-                  }`}
+                  className="text-sm font-bold"
+                  style={{
+                    color: draft.active ? colors.primary : colors.textSecondary,
+                  }}
                 >
                   {draft.active ? 'Published on website' : 'Saved as draft'}
                 </Text>

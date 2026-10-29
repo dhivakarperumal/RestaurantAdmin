@@ -28,11 +28,21 @@ type ReservationApiRecord = {
   created_at?: string;
 };
 
-const reservationStatusStyles: Record<ReservationStatus, string> = {
-  Pending: 'border-amber-200 bg-amber-50 text-amber-700',
-  Confirmed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  Declined: 'border-rose-200 bg-rose-50 text-rose-700',
-  Cancelled: 'border-slate-200 bg-slate-100 text-slate-600',
+const reservationStatusStyles: Record<
+  ReservationStatus,
+  { className: string; style?: { backgroundColor: string; borderColor: string; color: string } }
+> = {
+  Pending: {
+    className: 'border',
+    style: {
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.borderLight,
+      color: colors.primary,
+    },
+  },
+  Confirmed: { className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  Declined: { className: 'border-rose-200 bg-rose-50 text-rose-700' },
+  Cancelled: { className: 'border-slate-200 bg-slate-100 text-slate-600' },
 };
 
 function ReservationsScreen({ onBack }: { onBack: () => void }) {
@@ -103,7 +113,7 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
           onPress={onBack}
           className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2"
         >
-          <Text className="text-sm font-semibold text-[#116C0B]">‹ More</Text>
+          <Text className="text-sm font-semibold" style={{ color: colors.primary }}>‹ More</Text>
         </Pressable>
       </View>
 
@@ -129,13 +139,27 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
             key={status}
             accessibilityRole="button"
             onPress={() => setSelectedStatus(status)}
-            className={`rounded-full border px-3 py-1.5 ${
+            className="rounded-full border px-3 py-1.5"
+            style={
               selectedStatus === status
-                ? 'border-[#116C0B] bg-[#E8F5E9] text-[#116C0B]'
-                : 'border-[#E5E7EB] bg-white text-[#374151]'
-            }`}
+                ? {
+                    borderColor: colors.primary,
+                    backgroundColor: colors.surfaceSecondary,
+                  }
+                : { borderColor: colors.border, backgroundColor: colors.surface }
+            }
           >
-            <Text className="text-xs font-semibold">{status}</Text>
+            <Text
+              className="text-xs font-semibold"
+              style={{
+                color:
+                  selectedStatus === status
+                    ? colors.primary
+                    : colors.textSecondary,
+              }}
+            >
+              {status}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -161,9 +185,17 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
                   </Text>
                 </View>
                 <View
-                  className={`rounded-full border px-2.5 py-1 ${reservationStatusStyles[reservation.status || 'Pending']}`}
+                  className={`rounded-full border px-2.5 py-1 ${reservationStatusStyles[reservation.status || 'Pending'].className}`}
+                  style={reservationStatusStyles[reservation.status || 'Pending'].style}
                 >
-                  <Text className="text-[10px] font-bold uppercase">
+                  <Text
+                    className="text-[10px] font-bold uppercase"
+                    style={
+                      reservation.status === 'Pending'
+                        ? { color: colors.primary }
+                        : undefined
+                    }
+                  >
                     {reservation.status || 'Pending'}
                   </Text>
                 </View>
@@ -181,7 +213,8 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
                 <View className="mt-4 flex-row flex-wrap gap-2">
                   <Pressable
                     onPress={() => { void updateStatus(reservation.reservation_id, 'Confirmed'); }}
-                    className="rounded-lg bg-[#116C0B] px-3 py-2"
+                    className="rounded-lg px-3 py-2"
+                    style={{ backgroundColor: colors.primary }}
                   >
                     <Text className="text-xs font-semibold text-white">Confirm</Text>
                   </Pressable>

@@ -844,7 +844,15 @@ function ReviewsManagementPage({
                       onPress={() => updateDraft('rating', rating)}
                       className="p-1"
                     >
-                      <Text className={`text-3xl ${rating <= draft.rating ? 'text-amber-400' : 'text-gray-300'}`}>
+                      <Text
+                        className="text-3xl"
+                        style={{
+                          color:
+                            rating <= draft.rating
+                              ? colors.success
+                              : colors.disabled,
+                        }}
+                      >
                         ★
                       </Text>
                     </Pressable>
@@ -1135,8 +1143,20 @@ function ReviewChoice({
 function StatusBadge({ status }: { status: string }) {
   const isPublished = status.toLowerCase() === 'published';
   return (
-    <View className={`rounded-full px-2.5 py-1 ${isPublished ? 'bg-green-50' : 'bg-amber-50'}`}>
-      <Text className={`text-[10px] font-bold ${isPublished ? 'text-green-700' : 'text-amber-700'}`}>
+    <View
+      className="rounded-full px-2.5 py-1"
+      style={{
+        backgroundColor: isPublished
+          ? colors.surfaceSecondary
+          : colors.background,
+      }}
+    >
+      <Text
+        className="text-[10px] font-bold"
+        style={{
+          color: isPublished ? colors.primary : colors.textSecondary,
+        }}
+      >
         {status}
       </Text>
     </View>
@@ -1147,7 +1167,11 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <View accessibilityLabel={`${rating} out of 5 stars`} className="flex-row">
       {[1, 2, 3, 4, 5].map(star => (
-        <Text key={star} className={`text-sm ${star <= rating ? 'text-amber-400' : 'text-gray-300'}`}>
+        <Text
+          key={star}
+          className="text-sm"
+          style={{ color: star <= rating ? colors.success : colors.disabled }}
+        >
           ★
         </Text>
       ))}

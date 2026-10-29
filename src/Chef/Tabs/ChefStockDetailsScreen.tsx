@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import api from '../../../api';
+import colors from '../../theme/colors';
 
 type StockProduct = Record<string, unknown> & {
   id?: string | number;
@@ -169,14 +170,22 @@ function ChefStockDetailsScreen({
 
       <View className="flex-row flex-wrap gap-2">
         {[
-          { title: 'Stock Items', value: products.length, color: 'bg-orange-50' },
-          { title: 'Categories', value: categoryCount, color: 'bg-emerald-50' },
-          { title: 'Low Stock', value: lowStockCount, color: 'bg-amber-50' },
-          { title: 'Out of Stock', value: outOfStockCount, color: 'bg-rose-50' },
+          { title: 'Stock Items', value: products.length, usesBrandColor: true, color: '' },
+          { title: 'Categories', value: categoryCount, usesBrandColor: false, color: 'bg-emerald-50' },
+          { title: 'Low Stock', value: lowStockCount, usesBrandColor: true, color: '' },
+          { title: 'Out of Stock', value: outOfStockCount, usesBrandColor: false, color: 'bg-rose-50' },
         ].map(stat => (
           <View
             key={stat.title}
-            className={`min-h-[90px] w-[48%] flex-grow rounded-2xl border border-[#E5E7EB] ${stat.color} p-3`}
+            className={`min-h-[90px] w-[48%] flex-grow rounded-2xl border p-3 ${
+              stat.usesBrandColor ? '' : stat.color
+            }`}
+            style={{
+              borderColor: colors.border,
+              ...(stat.usesBrandColor
+                ? { backgroundColor: colors.surfaceSecondary }
+                : {}),
+            }}
           >
             <Text className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
               {stat.title}
@@ -290,7 +299,10 @@ function ChefStockDetailsScreen({
                     </Text>
                   </View>
                   <Text
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${stockLevelClass(level)}`}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                      stockLevelClass(level).className
+                    }`}
+                    style={stockLevelClass(level).style}
                   >
                     {level}
                   </Text>
@@ -383,9 +395,16 @@ function sortLabel(order: SortOrder) {
 }
 
 function stockLevelClass(level: Exclude<StockLevel, 'All Stock'>) {
-  if (level === 'Out of Stock') return 'bg-rose-50 text-rose-700';
-  if (level === 'Low Stock') return 'bg-amber-50 text-amber-800';
-  return 'bg-emerald-50 text-emerald-700';
+  if (level === 'Out of Stock') {
+    return { className: 'bg-rose-50 text-rose-700', style: undefined };
+  }
+  if (level === 'Low Stock') {
+    return {
+      className: '',
+      style: { backgroundColor: colors.surfaceSecondary, color: colors.primary },
+    };
+  }
+  return { className: 'bg-emerald-50 text-emerald-700', style: undefined };
 }
 
 export default ChefStockDetailsScreen;

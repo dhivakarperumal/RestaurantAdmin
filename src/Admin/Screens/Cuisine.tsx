@@ -285,7 +285,13 @@ function Cuisine({
                         {name}
                       </Text>
                       {isFeatured(cuisine.featured) ? (
-                        <Text className="rounded-full bg-[#FFF7D6] px-2 py-1 text-[10px] font-semibold text-[#8A6100]">
+                        <Text
+                          className="rounded-full px-2 py-1 text-[10px] font-semibold"
+                          style={{
+                            backgroundColor: colors.surfaceSecondary,
+                            color: colors.primary,
+                          }}
+                        >
                           Featured
                         </Text>
                       ) : null}
@@ -305,11 +311,15 @@ function Cuisine({
                     ) : null}
                   </View>
                   <Text
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                    className="rounded-full px-2.5 py-1 text-[10px] font-semibold"
+                    style={
                       status.toLowerCase() === 'inactive'
-                        ? 'bg-[#F3F4F6] text-[#6B7280]'
-                        : 'bg-[#F0F7EE] text-[#116C0B]'
-                    }`}
+                        ? { backgroundColor: colors.background, color: colors.textSecondary }
+                        : {
+                            backgroundColor: colors.surfaceSecondary,
+                            color: colors.primary,
+                          }
+                    }
                   >
                     {status}
                   </Text>
