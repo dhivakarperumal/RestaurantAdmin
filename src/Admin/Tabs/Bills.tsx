@@ -353,8 +353,22 @@ function Bills({
         className="mb-4 w-full flex-row items-center justify-between gap-3 self-center px-4 pt-5"
         style={{ maxWidth: 1100 }}
       >
-       
-     
+        <View className="min-w-0 flex-1">
+          <Text className="text-xl font-bold text-[#012711]">Add food to billing</Text>
+          <Text className="mt-1 text-xs text-[#6B7280]">
+            Select menu items to build a bill.
+          </Text>
+        </View>
+        <Pressable
+          accessibilityLabel={`View billing, ${billingItems.length} ${billingItems.length === 1 ? 'item' : 'items'}`}
+          accessibilityRole="button"
+          onPress={onOpenBilling}
+          className="rounded-xl bg-[#116C0B] px-3 py-2.5"
+        >
+          <Text className="text-xs font-bold text-white">
+            Bill · {billingItems.length} · {formatCurrency(total)}
+          </Text>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -465,7 +479,7 @@ function Bills({
 
       {billingItems.length ? (
         <View
-          className="mb-3 mt-2 w-full self-center rounded-xl border border-[#E5E7EB] bg-white p-3.5"
+          className="mb-3 mt-2 w-full self-center rounded-xl border border-[#DCE8D8] bg-white p-3.5"
           style={{ maxWidth: 1100 }}
         >
           <View className="flex-row items-center justify-between">
@@ -474,25 +488,22 @@ function Bills({
               {billingItems.length} {billingItems.length === 1 ? 'item' : 'items'}
             </Text>
           </View>
-          {billingItems.slice(0, 3).map(item => (
-            <View key={item.id} className="mt-2 flex-row items-center justify-between gap-3">
-              <Text numberOfLines={1} className="min-w-0 flex-1 text-xs text-[#374151]">
-                {item.name} × {item.quantity}
-              </Text>
-              <Text className="text-xs font-semibold text-[#111827]">
-                {item.amount === null
-                  ? 'Price needed'
-                  : formatCurrency(item.amount * item.quantity)}
-              </Text>
-            </View>
-          ))}
+          <View className="mt-2 flex-row items-center justify-between">
+            <Text className="text-xs font-semibold text-[#6B7280]">Subtotal</Text>
+            <Text className="text-sm font-bold text-[#111827]">
+              {formatCurrency(total)}
+            </Text>
+          </View>
           <Pressable
-            accessibilityLabel="Review bill"
+            accessibilityLabel={`Review bill, subtotal ${formatCurrency(total)}`}
             accessibilityRole="button"
             onPress={openBillPreview}
-            className="mt-3 items-center rounded-lg bg-[#116C0B] px-4 py-2.5"
+            className="mt-3 items-center rounded-xl border border-[#81C238] bg-[#02480B] px-4 py-3 shadow-sm"
+            style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
           >
-            <Text className="text-sm font-bold text-white">Review bill</Text>
+            <Text className="text-sm font-bold text-white">
+              Review bill · {formatCurrency(total)}
+            </Text>
           </Pressable>
         </View>
       ) : null}
