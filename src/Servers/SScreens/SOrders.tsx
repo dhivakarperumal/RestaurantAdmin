@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
+import { DetailsModal, PrinterIcon } from '../../components/popups';
 
 type Order = Record<string, unknown>;
 
@@ -1086,102 +1087,84 @@ export default function ServerOrders({
       </ScrollView>
 
       {/* Order Details Bottom Sheet Modal */}
-      <Modal
-        visible={Boolean(selectedOrder)}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSelectedOrder(null)}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <View
-            className="max-h-[86%] rounded-t-3xl bg-white px-5 pt-4 shadow-xl"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
-          >
-            {/* Modal Drag Pill */}
-            <View className="mb-4 h-1.5 w-12 self-center rounded-full bg-[#CBD5E1]" />
-
-            {/* Modal Header */}
-            <View className="flex-row items-center justify-between">
-              <View>
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-xl font-black text-[#0F172A]">
-                    {cleanOrderId(
-                      selectedOrder &&
-                        firstValue(selectedOrder, ['kitchen_order_id', 'order_id', 'id']),
-                      1,
-                    )}
-                  </Text>
-                  {selectedOrder ? (
-                    <View
-                      style={{
-                        backgroundColor: getStatusConfig(
-                          displayValue(
-                            firstValue(selectedOrder, ['status', 'order_status']),
-                            'Pending',
-                          ),
-                        ).bg,
-                        borderColor: getStatusConfig(
-                          displayValue(
-                            firstValue(selectedOrder, ['status', 'order_status']),
-                            'Pending',
-                          ),
-                        ).border,
-                      }}
-                      className="rounded-full border px-2.5 py-0.5"
-                    >
-                      <Text
-                        style={{
-                          color: getStatusConfig(
-                            displayValue(
-                              firstValue(selectedOrder, ['status', 'order_status']),
-                              'Pending',
-                            ),
-                          ).text,
-                        }}
-                        className="text-[11px] font-extrabold"
-                      >
-                        {
-                          getStatusConfig(
-                            displayValue(
-                              firstValue(selectedOrder, ['status', 'order_status']),
-                              'Pending',
-                            ),
-                          ).label
-                        }
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <Text className="mt-1 text-xs font-semibold text-[#64748B]">
-                  Table{' '}
-                  {displayValue(
-                    selectedOrder &&
-                      firstValue(selectedOrder, ['table_number', 'table_id', 'table']),
-                    '—',
+      {selectedOrder ? (
+        <DetailsModal
+          visible={Boolean(selectedOrder)}
+          onClose={() => setSelectedOrder(null)}
+          title={cleanOrderId(
+            firstValue(selectedOrder, ['kitchen_order_id', 'order_id', 'id']),
+            1,
+          )}
+          subtitle={`Table ${displayValue(
+            firstValue(selectedOrder, ['table_number', 'table_id', 'table']),
+            '—',
+          )}${
+            firstValue(selectedOrder, ['server_name'])
+              ? ` • Server: ${firstValue(selectedOrder, ['server_name'])}`
+              : ''
+          }`}
+          badge={(() => {
+            const cfg = getStatusConfig(
+              displayValue(
+                firstValue(selectedOrder, ['status', 'order_status']),
+                'Pending',
+              ),
+            );
+            return {
+              label: cfg.label,
+              bg: cfg.bg,
+              text: cfg.text,
+              border: cfg.border,
+            };
+          })()}
+          footer={
+            <View className="w-full flex-row gap-3">
+              {String(
+                firstValue(selectedOrder, ['status', 'order_status']) || '',
+              )
+                .toLowerCase()
+                .includes('ready') ? (
+                <Pressable
+                  disabled={updatingOrderId === String(firstValue(selectedOrder, ['id']))}
+                  onPress={() => void updateOrderStatus(selectedOrder, 'served')}
+                  className="min-h-12 flex-1 flex-row items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+                >
+                  {updatingOrderId ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <CheckSvg color="#FFFFFF" size={16} />
+                      <Text className="ml-2 font-bold text-white">Mark as Served</Text>
+                    </>
                   )}
-                  {selectedOrder && firstValue(selectedOrder, ['server_name'])
-                    ? ` • Server: ${firstValue(selectedOrder, ['server_name'])}`
-                    : ''}
-                </Text>
-              </View>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={() => setSelectedOrder(null)}
+                  className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
+                >
+                  <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+                </Pressable>
+              )}
 
               <Pressable
-                accessibilityLabel="Close order details"
-                onPress={() => setSelectedOrder(null)}
-                className="h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9] active:bg-[#E2E8F0]"
+                accessibilityLabel="Print order receipt"
+                onPress={() => void printSelectedOrder()}
+                className="min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#0F172A] active:bg-[#1E293B]"
               >
-                <Text className="text-lg font-bold text-[#475569]">×</Text>
+                <PrinterIcon color="#FFFFFF" size={18} />
+                <Text className="text-sm font-bold text-white">Print / Share</Text>
               </Pressable>
             </View>
-
+          }
+        >
+          <View className="gap-3">
             {/* Special Instructions in Modal */}
-            {selectedOrder &&
-            firstValue(selectedOrder, ['notes', 'instruction', 'special_notes']) ? (
-              <View className="mt-3.5 flex-row items-center rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-3">
+            {firstValue(selectedOrder, ['notes', 'instruction', 'special_notes']) ? (
+              <View className="flex-row items-center rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-3.5">
                 <NoteSvg color="#D97706" size={16} />
                 <View className="ml-2.5 flex-1">
-                  <Text className="text-xs font-extrabold uppercase text-[#B45309]">
+                  <Text className="text-xs font-bold uppercase text-[#B45309]">
                     Special Cooking Notes
                   </Text>
                   <Text className="mt-0.5 text-xs font-medium text-[#92400E]">
@@ -1193,131 +1176,65 @@ export default function ServerOrders({
               </View>
             ) : null}
 
-            {/* Items Scroll List */}
-            <ScrollView className="mt-3.5 max-h-[320px]" showsVerticalScrollIndicator={false}>
-              <Text className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[#64748B]">
+            {/* Items List */}
+            <View className="gap-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
                 Order Food Items ({selectedOrderItems.length})
               </Text>
 
               {selectedOrderItems.length > 0 ? (
-                selectedOrderItems.map((item, index) => {
-                  const name = displayValue(
-                    firstValue(item, ['food_name', 'name', 'item_name']),
-                    'Item',
-                  );
-                  const quantity = displayValue(firstValue(item, ['quantity']), '1');
-                  const price = firstValue(item, ['total_price', 'price', 'unit_price']);
-                  const isNonVegItem = checkIsNonVeg(name);
+                <View className="rounded-2xl border border-[#CBD5E1] bg-white overflow-hidden">
+                  {selectedOrderItems.map((item, index) => {
+                    const name = displayValue(
+                      firstValue(item, ['food_name', 'name', 'item_name']),
+                      'Item',
+                    );
+                    const quantity = displayValue(firstValue(item, ['quantity']), '1');
+                    const price = firstValue(item, ['total_price', 'price', 'unit_price']);
+                    const isNonVegItem = checkIsNonVeg(name);
 
-                  return (
-                    <View
-                      key={index}
-                      className="flex-row items-center justify-between border-b border-[#F1F5F9] py-3"
-                    >
-                      <View className="flex-1 flex-row items-center pr-3">
-                        <DietaryBadge isNonVeg={isNonVegItem} />
-                        <View className="ml-2.5 flex-1">
-                          <Text className="text-sm font-bold text-[#0F172A]">{name}</Text>
-                          <Text className="mt-0.5 text-xs font-semibold text-[#64748B]">
-                            Quantity: {quantity}
-                          </Text>
+                    return (
+                      <View
+                        key={index}
+                        className={`flex-row items-center justify-between p-3.5 ${
+                          index > 0 ? 'border-t border-[#F1F5F9]' : ''
+                        }`}
+                      >
+                        <View className="flex-1 flex-row items-center pr-3">
+                          <DietaryBadge isNonVeg={isNonVegItem} />
+                          <View className="ml-2.5 flex-1">
+                            <Text className="text-sm font-bold text-[#0F172A]">{name}</Text>
+                            <Text className="mt-0.5 text-xs font-semibold text-[#64748B]">
+                              Quantity: {quantity}
+                            </Text>
+                          </View>
                         </View>
+                        <Text className="text-sm font-extrabold text-[#116C0B]">
+                          {formatPrice(price)}
+                        </Text>
                       </View>
-                      <Text className="text-sm font-extrabold text-[#116C0B]">
-                        {formatPrice(price)}
-                      </Text>
-                    </View>
-                  );
-                })
+                    );
+                  })}
+                </View>
               ) : (
                 <Text className="py-8 text-center text-sm text-[#64748B]">
                   No item details were returned for this order.
                 </Text>
               )}
-            </ScrollView>
+            </View>
 
             {/* Total Summary Box */}
-            <View className="mt-3 rounded-2xl bg-[#F8FAFC] p-4 border border-[#E2E8F0]">
+            <View className="rounded-2xl bg-[#F8FAFC] p-4 border border-[#CBD5E1]">
               <View className="flex-row items-center justify-between">
-                <Text className="text-sm font-extrabold text-[#0F172A]">Ticket Grand Total</Text>
-                <Text className="text-lg font-black text-[#116C0B]">
-                  {selectedOrder ? formatPrice(getOrderTotal(selectedOrder)) : '—'}
+                <Text className="text-sm font-bold text-[#64748B]">Ticket Grand Total</Text>
+                <Text className="text-xl font-black text-[#116C0B]">
+                  {formatPrice(getOrderTotal(selectedOrder))}
                 </Text>
               </View>
             </View>
-
-            {/* Modal Actions */}
-            <View className="mt-4 flex-row gap-3">
-              {/* Ready -> Mark Served */}
-              {selectedOrder &&
-              String(
-                firstValue(selectedOrder, ['status', 'order_status']) || '',
-              )
-                .toLowerCase()
-                .includes('ready') ? (
-                <Pressable
-                  disabled={updatingOrderId === String(firstValue(selectedOrder, ['id']))}
-                  onPress={() => void updateOrderStatus(selectedOrder, 'served')}
-                  className="flex-1 h-12 flex-row items-center justify-center rounded-xl bg-[#116C0B] shadow-xs active:bg-[#0D5208]"
-                >
-                  {updatingOrderId ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <CheckSvg color="#FFFFFF" size={16} />
-                      <Text className="ml-2 font-black text-white">Mark as Served</Text>
-                    </>
-                  )}
-                </Pressable>
-              ) : null}
-
-              {/* Print Ticket Button */}
-              <Pressable
-                accessibilityLabel="Print order receipt"
-                onPress={() => void printSelectedOrder()}
-                className={`h-12 flex-row items-center justify-center rounded-xl border border-[#CBD5E1] bg-white active:bg-[#F8FAFC] ${
-                  selectedOrder &&
-                  String(
-                    firstValue(selectedOrder, ['status', 'order_status']) || '',
-                  )
-                    .toLowerCase()
-                    .includes('ready')
-                    ? 'px-4'
-                    : 'flex-1 bg-[#0F172A] border-[#0F172A]'
-                }`}
-              >
-                <PrinterSvg
-                  color={
-                    selectedOrder &&
-                    String(
-                      firstValue(selectedOrder, ['status', 'order_status']) || '',
-                    )
-                      .toLowerCase()
-                      .includes('ready')
-                      ? '#334155'
-                      : '#FFFFFF'
-                  }
-                  size={16}
-                />
-                <Text
-                  className={`ml-2 font-extrabold ${
-                    selectedOrder &&
-                    String(
-                      firstValue(selectedOrder, ['status', 'order_status']) || '',
-                    )
-                      .toLowerCase()
-                      .includes('ready')
-                      ? 'text-[#334155]'
-                      : 'text-white'
-                  }`}
-                >
-                  Print / Share Ticket
-                </Text>
-              </Pressable>
-            </View>
           </View>
-        </View>
-      </Modal>
+        </DetailsModal>
+      ) : null}
     </>
   );
 }

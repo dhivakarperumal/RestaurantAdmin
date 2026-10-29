@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -11,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../../api';
 import colors from '../../theme/colors';
+import { DetailsModal } from '../../components/popups';
 
 type EventOrder = Record<string, unknown> & {
   id?: string | number;
@@ -548,216 +548,182 @@ function ChefEventOrdersScreen() {
         </Text>
       </Pressable>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => setSelectedOrder(null)}
-        transparent
-        visible={selectedOrder !== null}
-      >
-        {selectedOrder ? (
-          <View className="flex-1 justify-end bg-black/50">
-            <View
-              className="max-h-[90%] rounded-t-3xl bg-white"
-              style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-            >
-              <View className="flex-row items-center justify-between border-b border-[#E5E7EB] p-4">
-                <View className="flex-1 pr-3">
-                  <Text className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    Kitchen prep sheet
-                  </Text>
-                  <Text className="mt-1 text-base font-extrabold text-[#123B2D]">
-                    #{text(selectedOrder.event_order_number)}
-                  </Text>
-                  <Text className="mt-1 text-xs text-[#6B7280]">
-                    {text(selectedOrder.event_type, 'Catering event')} · {text(selectedOrder.customer_name)}
-                  </Text>
-                </View>
-                <Pressable
-                  accessibilityLabel="Close event order prep sheet"
-                  accessibilityRole="button"
-                  onPress={() => setSelectedOrder(null)}
-                  className="h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6]"
-                >
-                  <Text className="text-lg text-[#374151]">×</Text>
-                </Pressable>
-              </View>
-
-              <ScrollView
-                className="shrink"
-                contentContainerClassName="gap-3 p-4"
-                keyboardShouldPersistTaps="handled"
+      {selectedOrder ? (
+        <DetailsModal
+          visible={selectedOrder !== null}
+          onClose={() => setSelectedOrder(null)}
+          title={`#${text(selectedOrder.event_order_number)}`}
+          subtitle={`${text(selectedOrder.event_type, 'Catering event')} · ${text(selectedOrder.customer_name)}`}
+          badge={{
+            label: text(selectedOrder.status, 'Pending'),
+            bg: '#F0FDF4',
+            text: '#116C0B',
+            border: '#DCFCE7',
+          }}
+          footer={
+            <View className="w-full flex-row gap-3">
+              <Pressable
+                onPress={() => setSelectedOrder(null)}
+                className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
               >
-                <View
-                  className="flex-row gap-2 rounded-xl border p-3"
-                  style={{
-                    borderColor: colors.borderLight,
-                    backgroundColor: colors.surfaceSecondary,
-                  }}
+                <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+              </Pressable>
+              {selectedOrder.status === 'Confirmed' ? (
+                <Pressable
+                  disabled={updatingId === orderId(selectedOrder)}
+                  onPress={() => void updateStatus(selectedOrder, 'Preparing')}
+                  className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-blue-600 active:bg-blue-700"
                 >
-                  <View className="flex-1">
-                    <Text
-                      className="text-[9px] font-bold uppercase"
-                      style={{ color: colors.primary }}
-                    >
-                      Event timing
-                    </Text>
-                    <Text
-                      className="mt-1 text-xs font-extrabold"
-                      style={{ color: colors.primaryDark }}
-                    >
-                      {formatDate(selectedOrder.event_date)}
-                    </Text>
-                    <Text
-                      className="text-[10px] font-semibold"
-                      style={{ color: colors.primary }}
-                    >
-                      {formatTime(selectedOrder.event_time)}
-                    </Text>
-                  </View>
-                  <View className="flex-1">
-                    <Text
-                      className="text-[9px] font-bold uppercase"
-                      style={{ color: colors.primary }}
-                    >
-                      Catering details
-                    </Text>
-                    <Text className="mt-1 text-xs font-extrabold text-[#123B2D]">
-                      {text(selectedOrder.guest_count, '0')} guests
-                    </Text>
-                    <Text className="text-[10px] text-[#6B7280]">
-                      Diet: {text(selectedOrder.dietary_preference, 'Mixed')}
-                    </Text>
-                  </View>
-                </View>
-
-                {selectedOrder.special_requests ? (
-                  <View className="rounded-xl border border-rose-100 bg-rose-50 p-3">
-                    <Text className="text-[9px] font-bold uppercase text-rose-700">
-                      Customer kitchen notes
-                    </Text>
-                    <Text className="mt-1 text-xs leading-5 text-rose-900">
-                      {text(selectedOrder.special_requests)}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {selectedOrder.venue_address ? (
-                  <View className="rounded-xl bg-[#F9FAFB] p-3">
-                    <Text className="text-[9px] font-bold uppercase text-[#6B7280]">
-                      Venue / delivery location
-                    </Text>
-                    <Text className="mt-1 text-xs leading-5 text-[#1F2937]">
-                      {text(selectedOrder.venue_address)}
-                    </Text>
-                  </View>
-                ) : null}
-
-                <View>
-                  <Text className="mb-2 text-sm font-extrabold text-[#111827]">
-                    Dishes to prepare
-                  </Text>
-                  {(Array.isArray(selectedOrder.items) ? selectedOrder.items : []).map(
-                    (item, index) => {
-                      const itemId = text(item.id, String(index));
-                      const checkKey = `${orderId(selectedOrder)}-${itemId}`;
-                      const checked = Boolean(checkedItems[checkKey]);
-                      return (
-                        <Pressable
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked }}
-                          key={checkKey}
-                          onPress={() =>
-                            setCheckedItems(current => ({
-                              ...current,
-                              [checkKey]: !current[checkKey],
-                            }))
-                          }
-                          className={`mb-2 flex-row items-center gap-3 rounded-xl border p-3 ${
-                            checked
-                              ? 'border-emerald-300 bg-emerald-50'
-                              : 'border-[#E5E7EB] bg-white'
-                          }`}
-                        >
-                          <View
-                            className={`h-5 w-5 items-center justify-center rounded border ${
-                              checked
-                                ? 'border-emerald-600 bg-emerald-600'
-                                : 'border-[#D1D5DB] bg-white'
-                            }`}
-                          >
-                            {checked ? (
-                              <Text className="text-[10px] font-bold text-white">✓</Text>
-                            ) : null}
-                          </View>
-                          <View className="flex-1">
-                            <Text
-                              className={`text-xs font-bold ${
-                                checked ? 'text-[#6B7280] line-through' : 'text-[#111827]'
-                              }`}
-                            >
-                              {text(item.product_name, 'Menu item')}
-                            </Text>
-                            <Text className="mt-1 text-[10px] text-[#6B7280]">
-                              {text(item.category_name, '')}
-                              {item.portion_size ? ` · ${text(item.portion_size)}` : ''}
-                              {item.notes ? ` · Note: ${text(item.notes)}` : ''}
-                            </Text>
-                          </View>
-                          <Text className="text-[10px] font-extrabold text-[#123B2D]">
-                            × {text(item.quantity, '1')}
-                          </Text>
-                        </Pressable>
-                      );
-                    },
-                  )}
-                </View>
-
-                <View>
-                  <Text className="mb-1.5 text-xs font-bold text-[#374151]">
-                    Kitchen notes
-                  </Text>
-                  <TextInput
-                    accessibilityLabel="Kitchen notes"
-                    className="min-h-[82px] rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-xs text-[#1F2937]"
-                    multiline
-                    onChangeText={setKitchenNotes}
-                    placeholder="Add internal preparation notes"
-                    textAlignVertical="top"
-                    value={kitchenNotes}
-                  />
-                </View>
-              </ScrollView>
-
-              <View className="flex-row flex-wrap justify-end gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] p-3">
-                {selectedOrder.status === 'Confirmed' ? (
-                  <ActionButton
-                    label="Start preparing"
-                    disabled={updatingId === orderId(selectedOrder)}
-                    onPress={() => void updateStatus(selectedOrder, 'Preparing')}
-                    className="bg-blue-600"
-                  />
-                ) : null}
-                {selectedOrder.status === 'Preparing' ? (
-                  <ActionButton
-                    label="Mark ready"
-                    disabled={updatingId === orderId(selectedOrder)}
-                    onPress={() => void updateStatus(selectedOrder, 'Ready')}
-                    className="bg-emerald-600"
-                  />
-                ) : null}
-                {selectedOrder.status === 'Ready' ? (
-                  <ActionButton
-                    label="Complete order"
-                    disabled={updatingId === orderId(selectedOrder)}
-                    onPress={() => void updateStatus(selectedOrder, 'Completed')}
-                    className="bg-[#123B2D]"
-                  />
-                ) : null}
+                  <Text className="text-sm font-bold text-white">Start Preparing</Text>
+                </Pressable>
+              ) : null}
+              {selectedOrder.status === 'Preparing' ? (
+                <Pressable
+                  disabled={updatingId === orderId(selectedOrder)}
+                  onPress={() => void updateStatus(selectedOrder, 'Ready')}
+                  className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-emerald-600 active:bg-emerald-700"
+                >
+                  <Text className="text-sm font-bold text-white">Mark Ready</Text>
+                </Pressable>
+              ) : null}
+              {selectedOrder.status === 'Ready' ? (
+                <Pressable
+                  disabled={updatingId === orderId(selectedOrder)}
+                  onPress={() => void updateStatus(selectedOrder, 'Completed')}
+                  className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+                >
+                  <Text className="text-sm font-bold text-white">Complete Order</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          }
+        >
+          <View className="gap-3">
+            <View className="flex-row gap-3 rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-4">
+              <View className="flex-1">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+                  Event timing
+                </Text>
+                <Text className="mt-1 text-sm font-bold text-[#0F172A]">
+                  {formatDate(selectedOrder.event_date)}
+                </Text>
+                <Text className="text-xs text-[#64748B]">
+                  {formatTime(selectedOrder.event_time)}
+                </Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+                  Catering details
+                </Text>
+                <Text className="mt-1 text-sm font-bold text-[#0F172A]">
+                  {text(selectedOrder.guest_count, '0')} guests
+                </Text>
+                <Text className="text-xs text-[#64748B]">
+                  Diet: {text(selectedOrder.dietary_preference, 'Mixed')}
+                </Text>
               </View>
             </View>
+
+            {selectedOrder.special_requests ? (
+              <View className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-rose-700">
+                  Customer kitchen notes
+                </Text>
+                <Text className="mt-1 text-xs leading-5 text-rose-900">
+                  {text(selectedOrder.special_requests)}
+                </Text>
+              </View>
+            ) : null}
+
+            {selectedOrder.venue_address ? (
+              <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+                  Venue / delivery location
+                </Text>
+                <Text className="mt-1 text-xs leading-5 text-[#334155]">
+                  {text(selectedOrder.venue_address)}
+                </Text>
+              </View>
+            ) : null}
+
+            <View className="gap-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Dishes to prepare
+              </Text>
+              {(Array.isArray(selectedOrder.items) ? selectedOrder.items : []).map(
+                (item, index) => {
+                  const itemId = text(item.id, String(index));
+                  const checkKey = `${orderId(selectedOrder)}-${itemId}`;
+                  const checked = Boolean(checkedItems[checkKey]);
+                  return (
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked }}
+                      key={checkKey}
+                      onPress={() =>
+                        setCheckedItems(current => ({
+                          ...current,
+                          [checkKey]: !current[checkKey],
+                        }))
+                      }
+                      className={`flex-row items-center gap-3 rounded-2xl border p-3.5 ${
+                        checked
+                          ? 'border-[#116C0B] bg-[#116C0B]/5'
+                          : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                      }`}
+                    >
+                      <View
+                        className={`h-5 w-5 items-center justify-center rounded-lg border ${
+                          checked
+                            ? 'border-[#116C0B] bg-[#116C0B]'
+                            : 'border-[#94A3B8] bg-white'
+                        }`}
+                      >
+                        {checked ? (
+                          <Text className="text-[10px] font-bold text-white">✓</Text>
+                        ) : null}
+                      </View>
+                      <View className="flex-1">
+                        <Text
+                          className={`text-xs font-bold ${
+                            checked ? 'text-[#64748B] line-through' : 'text-[#0F172A]'
+                          }`}
+                        >
+                          {text(item.product_name, 'Menu item')}
+                        </Text>
+                        <Text className="mt-0.5 text-[11px] text-[#64748B]">
+                          {text(item.category_name, '')}
+                          {item.portion_size ? ` · ${text(item.portion_size)}` : ''}
+                          {item.notes ? ` · Note: ${text(item.notes)}` : ''}
+                        </Text>
+                      </View>
+                      <Text className="text-xs font-bold text-[#116C0B]">
+                        × {text(item.quantity, '1')}
+                      </Text>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
+
+            <View className="gap-1.5">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Kitchen notes
+              </Text>
+              <TextInput
+                accessibilityLabel="Kitchen notes"
+                className="min-h-[82px] rounded-2xl border border-[#CBD5E1] bg-white px-4 py-3 text-xs text-[#0F172A]"
+                multiline
+                onChangeText={setKitchenNotes}
+                placeholder="Add internal preparation notes"
+                placeholderTextColor="#94A3B8"
+                textAlignVertical="top"
+                value={kitchenNotes}
+              />
+            </View>
           </View>
-        ) : null}
-      </Modal>
+        </DetailsModal>
+      ) : null}
     </View>
   );
 }

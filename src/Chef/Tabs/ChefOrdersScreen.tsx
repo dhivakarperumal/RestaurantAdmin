@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -11,6 +10,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../../api';
 import colors from '../../theme/colors';
+import {
+  CheckIcon,
+  DetailsModal,
+  FormModal,
+} from '../../components/popups';
 
 export type ChefOrderPage =
   | 'kitchen'
@@ -680,235 +684,212 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
         </Text>
       </Pressable>
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => {
-          setSelectedOrder(null);
-          setAssignmentOrder(null);
-        }}
-        transparent
-        visible={selectedOrder !== null || assignmentOrder !== null}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <View
-            className="max-h-[90%] rounded-t-3xl bg-white"
-            style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-          >
-            {assignmentOrder ? (
-              <View className="p-4">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1 pr-3">
-                    <Text className="text-base font-extrabold text-[#123B2D]">
-                      Assign delivery partner
+      {assignmentOrder ? (
+        <FormModal
+          visible={assignmentOrder !== null}
+          onClose={() => setAssignmentOrder(null)}
+          title="Assign Delivery Partner"
+          subtitle={`Order #${text(assignmentOrder.order_number)}`}
+          onSave={submitAssignment}
+          saveLabel="Assign Partner"
+          cancelLabel="Cancel"
+          isSaveDisabled={!selectedPartner || Boolean(updatingId)}
+          isSaving={Boolean(updatingId)}
+        >
+          <ScrollView className="max-h-[360px]" contentContainerClassName="gap-2 pb-2">
+            {partners.map((partner, index) => {
+              const id = text(partner.employee_id, '');
+              const selected = id === selectedPartner;
+              return (
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  key={id || index}
+                  onPress={() => setSelectedPartner(id)}
+                  className={`flex-row items-center justify-between rounded-2xl border p-3.5 ${
+                    selected
+                      ? 'border-[#116C0B] bg-[#116C0B]/5'
+                      : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                  }`}
+                >
+                  <View className="flex-1 pr-2">
+                    <Text className="text-sm font-bold text-[#0F172A]">
+                      {text(partner.full_name, 'Delivery partner')}
                     </Text>
-                    <Text className="mt-1 text-xs text-[#6B7280]">
-                      Order #{text(assignmentOrder.order_number)}
+                    <Text className="mt-1 text-xs text-[#64748B]">
+                      {text(partner.phone_number, 'No phone number')}
                     </Text>
                   </View>
-                  <Pressable
-                    accessibilityLabel="Close delivery partner assignment"
-                    accessibilityRole="button"
-                    onPress={() => setAssignmentOrder(null)}
-                    className="h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6]"
-                  >
-                    <Text className="text-lg text-[#374151]">×</Text>
-                  </Pressable>
-                </View>
-                <ScrollView className="mt-3 max-h-[360px]">
-                  {partners.map((partner, index) => {
-                    const id = text(partner.employee_id, '');
-                    const selected = id === selectedPartner;
-                    return (
-                      <Pressable
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected }}
-                        key={id || index}
-                        onPress={() => setSelectedPartner(id)}
-                        className={`mb-2 rounded-xl border p-3 ${
-                          selected
-                            ? 'border-[#116C0B] bg-[#F0F7EE]'
-                            : 'border-[#E5E7EB] bg-white'
+                  {selected && <CheckIcon size={18} color="#116C0B" />}
+                </Pressable>
+              );
+            })}
+            {!partners.length ? (
+              <Text className="py-8 text-center text-sm text-[#64748B]">
+                No available delivery partners were found.
+              </Text>
+            ) : null}
+          </ScrollView>
+        </FormModal>
+      ) : null}
+
+      {selectedOrder ? (
+        <DetailsModal
+          visible={selectedOrder !== null}
+          onClose={() => setSelectedOrder(null)}
+          title={
+            isKitchen
+              ? formatKotNumber(selectedOrder)
+              : `#${text(selectedOrder.order_number)}`
+          }
+          subtitle={
+            isKitchen
+              ? `Table ${text(selectedOrder.table_number)} · ${formatTime(selectedOrder.created_at)}`
+              : `${text(selectedOrder.customer_name, 'Customer')} · ${formatTime(selectedOrder.created_at)}`
+          }
+          badge={{
+            label: String(orderStatus(selectedOrder, isKitchen) || 'Pending'),
+            bg: '#F0FDF4',
+            text: '#116C0B',
+            border: '#DCFCE7',
+          }}
+          footer={(() => {
+            const nextStatus = isKitchen
+              ? nextKitchenStatus(orderStatus(selectedOrder, true))
+              : nextCustomerStatus(selectedOrder);
+            return (
+              <View className="w-full flex-row gap-3">
+                <Pressable
+                  onPress={() => setSelectedOrder(null)}
+                  className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
+                >
+                  <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+                </Pressable>
+                {nextStatus ? (
+                  nextStatus === 'assigned' ? (
+                    <Pressable
+                      onPress={() => {
+                        const ord = selectedOrder;
+                        setSelectedOrder(null);
+                        startAssignment(ord);
+                      }}
+                      className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+                    >
+                      <Text className="text-sm font-bold text-white">Assign Partner</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      disabled={updatingId === orderIdentity(selectedOrder, isKitchen)}
+                      onPress={() => updateOrder(selectedOrder, nextStatus)}
+                      className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+                    >
+                      {updatingId === orderIdentity(selectedOrder, isKitchen) ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text className="text-sm font-bold text-white">
+                          {actionLabel(nextStatus)}
+                        </Text>
+                      )}
+                    </Pressable>
+                  )
+                ) : null}
+              </View>
+            );
+          })()}
+        >
+          <View className="gap-3">
+            {/* Customer & Address Details */}
+            <View className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5">
+              <Text className="text-sm font-bold text-[#0F172A]">
+                {isKitchen
+                  ? `Table ${text(selectedOrder.table_number)}`
+                  : text(selectedOrder.customer_name, 'Customer')}
+              </Text>
+              {!isKitchen && selectedOrder.customer_phone ? (
+                <Text className="mt-1 text-xs text-[#64748B]">
+                  {text(selectedOrder.customer_phone)}
+                </Text>
+              ) : null}
+              {formattedAddress ? (
+                <Text className="mt-2 text-xs leading-5 text-[#334155]">
+                  Delivery address: {formattedAddress}
+                </Text>
+              ) : null}
+            </View>
+
+            {/* Checklist */}
+            <View className="gap-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Prep Checklist ({Array.isArray(selectedOrder.items) ? selectedOrder.items.length : 0})
+              </Text>
+              {(Array.isArray(selectedOrder.items) ? selectedOrder.items : []).map(
+                (item, index) => {
+                  const checkKey = `${orderIdentity(selectedOrder, isKitchen)}-${text(item.food_id ?? item.id, String(index))}`;
+                  const checked = Boolean(checkedItems[checkKey]);
+                  return (
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked }}
+                      key={checkKey}
+                      onPress={() =>
+                        setCheckedItems(current => ({
+                          ...current,
+                          [checkKey]: !current[checkKey],
+                        }))
+                      }
+                      className={`flex-row items-center gap-3 rounded-2xl border p-3.5 ${
+                        checked
+                          ? 'border-[#116C0B] bg-[#116C0B]/5'
+                          : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                      }`}
+                    >
+                      <View
+                        className={`h-5 w-5 items-center justify-center rounded-lg border ${
+                          checked
+                            ? 'border-[#116C0B] bg-[#116C0B]'
+                            : 'border-[#94A3B8]'
                         }`}
                       >
-                        <Text className="text-sm font-bold text-[#012711]">
-                          {text(partner.full_name, 'Delivery partner')}
-                        </Text>
-                        <Text className="mt-1 text-xs text-[#6B7280]">
-                          {text(partner.phone_number, 'No phone number')}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                  {!partners.length ? (
-                    <Text className="py-8 text-center text-sm text-[#6B7280]">
-                      No available delivery partners were found.
-                    </Text>
-                  ) : null}
-                </ScrollView>
-                <ActionButton
-                  label="Assign partner"
-                  disabled={!selectedPartner || Boolean(updatingId)}
-                  onPress={submitAssignment}
-                  className="mt-2 bg-[#116C0B]"
-                />
-              </View>
-            ) : selectedOrder ? (
-              <>
-                <View className="flex-row items-center justify-between border-b border-[#E5E7EB] p-4">
-                  <View className="flex-1 pr-3">
-                    <Text className="text-[10px] font-bold uppercase text-[#6B7280]">
-                      {isKitchen ? 'Kitchen order details' : 'Customer order details'}
-                    </Text>
-                    <Text className="mt-1 text-base font-extrabold text-[#123B2D]">
-                      {isKitchen
-                        ? formatKotNumber(selectedOrder)
-                        : `#${text(selectedOrder.order_number)}`}
-                    </Text>
-                  </View>
-                  <Pressable
-                    accessibilityLabel="Close order details"
-                    accessibilityRole="button"
-                    onPress={() => setSelectedOrder(null)}
-                    className="h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6]"
-                  >
-                    <Text className="text-lg text-[#374151]">×</Text>
-                  </Pressable>
-                </View>
-                <ScrollView
-                  className="shrink"
-                  contentContainerClassName="gap-3 p-4"
-                >
-                  <View className="rounded-xl bg-[#F9FAFB] p-3">
-                    <Text className="text-sm font-bold text-[#012711]">
-                      {isKitchen
-                        ? `Table ${text(selectedOrder.table_number)}`
-                        : text(selectedOrder.customer_name, 'Customer')}
-                    </Text>
-                    <Text className="mt-1 text-xs text-[#6B7280]">
-                      {formatTime(selectedOrder.created_at)}
-                    </Text>
-                    {!isKitchen ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">
-                        {text(selectedOrder.customer_phone)}
-                      </Text>
-                    ) : null}
-                    {formattedAddress ? (
-                      <Text className="mt-2 text-xs leading-5 text-[#374151]">
-                        Delivery address: {formattedAddress}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text className="text-sm font-extrabold text-[#111827]">
-                    Items ({Array.isArray(selectedOrder.items) ? selectedOrder.items.length : 0})
-                  </Text>
-                  {(Array.isArray(selectedOrder.items) ? selectedOrder.items : []).map(
-                    (item, index) => {
-                      const checkKey = `${orderIdentity(selectedOrder, isKitchen)}-${text(item.food_id ?? item.id, String(index))}`;
-                      const checked = Boolean(checkedItems[checkKey]);
-                      return (
-                        <Pressable
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked }}
-                          key={checkKey}
-                          onPress={() =>
-                            setCheckedItems(current => ({
-                              ...current,
-                              [checkKey]: !current[checkKey],
-                            }))
-                          }
-                          className={`flex-row items-center gap-3 rounded-xl border p-3 ${
-                            checked
-                              ? 'border-emerald-300 bg-emerald-50'
-                              : 'border-[#E5E7EB] bg-white'
+                        {checked ? (
+                          <Text className="text-[10px] font-bold text-white">✓</Text>
+                        ) : null}
+                      </View>
+                      <View className="flex-1">
+                        <Text
+                          className={`text-xs font-bold ${
+                            checked ? 'line-through text-[#64748B]' : 'text-[#0F172A]'
                           }`}
                         >
-                          <View
-                            className={`h-5 w-5 items-center justify-center rounded border ${
-                              checked
-                                ? 'border-emerald-600 bg-emerald-600'
-                                : 'border-[#D1D5DB]'
-                            }`}
-                          >
-                            {checked ? (
-                              <Text className="text-[10px] font-bold text-white">✓</Text>
-                            ) : null}
-                          </View>
-                          <View className="flex-1">
-                            <Text className="text-xs font-bold text-[#111827]">
-                              {text(item.food_name ?? item.product_name, 'Menu item')}
-                            </Text>
-                            <Text className="mt-1 text-[10px] text-[#6B7280]">
-                              {text(item.quantity, '1')} × ₹{Number(item.unit_price || 0).toFixed(2)}
-                            </Text>
-                            {item.cooking_notes || item.notes ? (
-                              <Text
-                                className="mt-1 text-[10px]"
-                                style={{ color: colors.primary }}
-                              >
-                                Note: {text(item.cooking_notes ?? item.notes)}
-                              </Text>
-                            ) : null}
-                          </View>
-                        </Pressable>
-                      );
-                    },
-                  )}
-                  {selectedOrder.special_requests ? (
-                    <View
-                      className="rounded-xl border p-3"
-                      style={{
-                        borderColor: colors.borderLight,
-                        backgroundColor: colors.surfaceSecondary,
-                      }}
-                    >
-                      <Text
-                        className="text-[10px] font-bold uppercase"
-                        style={{ color: colors.primary }}
-                      >
-                        Special requests
-                      </Text>
-                      <Text
-                        className="mt-1 text-xs leading-5"
-                        style={{ color: colors.primaryDark }}
-                      >
-                        {text(selectedOrder.special_requests)}
-                      </Text>
-                    </View>
-                  ) : null}
-                </ScrollView>
-                {(() => {
-                  const nextStatus = isKitchen
-                    ? nextKitchenStatus(orderStatus(selectedOrder, true))
-                    : nextCustomerStatus(selectedOrder);
-                  return nextStatus ? (
-                    <View className="border-t border-[#E5E7EB] bg-[#F9FAFB] p-3">
-                      {nextStatus === 'assigned' ? (
-                        <ActionButton
-                          label="Assign delivery partner"
-                          disabled={false}
-                          onPress={() => {
-                            setSelectedOrder(null);
-                            startAssignment(selectedOrder);
-                          }}
-                          className=""
-                          style={{ backgroundColor: colors.primary }}
-                        />
-                      ) : (
-                        <ActionButton
-                          label={actionLabel(nextStatus)}
-                          disabled={updatingId === orderIdentity(selectedOrder, isKitchen)}
-                          onPress={() => updateOrder(selectedOrder, nextStatus)}
-                          className="bg-[#116C0B]"
-                        />
-                      )}
-                    </View>
-                  ) : null;
-                })()}
-              </>
+                          {text(item.food_name ?? item.product_name, 'Menu item')}
+                        </Text>
+                        <Text className="mt-0.5 text-[11px] text-[#64748B]">
+                          {text(item.quantity, '1')} × ₹{Number(item.unit_price || 0).toFixed(2)}
+                        </Text>
+                        {item.cooking_notes || item.notes ? (
+                          <Text className="mt-1 text-[11px] font-semibold text-[#116C0B]">
+                            Note: {text(item.cooking_notes ?? item.notes)}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
+
+            {selectedOrder.special_requests ? (
+              <View className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                  Special Requests
+                </Text>
+                <Text className="mt-1 text-xs leading-5 text-amber-900">
+                  {text(selectedOrder.special_requests)}
+                </Text>
+              </View>
             ) : null}
           </View>
-        </View>
-      </Modal>
+        </DetailsModal>
+      ) : null}
     </View>
   );
 }

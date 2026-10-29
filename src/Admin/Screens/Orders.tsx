@@ -57,10 +57,14 @@ export type ApiOrder = {
   customer_mobile?: string;
   phone?: string;
   order_type?: string;
+  orderType?: string;
+  service_type?: string;
   kitchen_order_id?: string | number;
   kot_number?: string | number;
   event_id?: string | number;
   event_booking_id?: string | number;
+  table_id?: string | number;
+  table?: string | number;
   table_number?: string | number;
   payment_method?: string;
   payment_status?: string;
@@ -82,6 +86,7 @@ export type OrderTypeFilter =
   | 'Kitchen Orders'
   | 'Dine-in Orders'
   | 'Pickup Orders'
+  | 'Home Delivery'
   | 'Event Orders';
 export type TimeFilter = 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month';
 export type SortOption = 'newest' | 'oldest' | 'amount_high' | 'amount_low';
@@ -128,6 +133,82 @@ function extractOrdersFromResponse(payload: unknown): ApiOrder[] {
     return payload.rows.filter(isRecord) as ApiOrder[];
   }
   return [];
+}
+
+function normalizeEventOrders(payload: unknown): ApiOrder[] {
+  return extractOrdersFromResponse(payload).map(eventOrder => {
+    const items = Array.isArray(eventOrder.items)
+      ? eventOrder.items.map(item => ({
+          ...item,
+          food_name: item.food_name || item.product_name || item.name,
+          unit_price: item.unit_price || item.price || item.total_price,
+        }))
+      : eventOrder.items;
+    const eo = eventOrder as Record<string, any>;
+    const eventId =
+      eventOrder.event_id ||
+      eo.event_booking_id ||
+      eventOrder.id ||
+      eventOrder.order_id;
+    return {
+      ...eventOrder,
+      id: eventOrder.id || eventId,
+      order_id: eventOrder.order_id || eo.event_order_number || eventId,
+      order_number: eventOrder.order_number || eo.event_order_number,
+      order_type: 'event',
+      event_id: eventId,
+      status: eventOrder.status || 'Confirmed',
+      order_status: eventOrder.order_status || eventOrder.status || 'Confirmed',
+      created_at: eventOrder.created_at || eo.event_date,
+      total_amount:
+        eventOrder.total_amount ||
+        eventOrder.grand_total ||
+        eventOrder.amount ||
+        0,
+      items,
+    };
+  });
+}
+
+function normalizeKitchenOrders(payload: unknown): ApiOrder[] {
+  return extractOrdersFromResponse(payload).map(kitchenOrder => {
+    const raw = kitchenOrder as Record<string, unknown>;
+    const kitchenId =
+      kitchenOrder.kitchen_order_id ||
+      kitchenOrder.kot_number ||
+      kitchenOrder.order_id ||
+      kitchenOrder.id;
+    const rawOrderType =
+      kitchenOrder.order_type ||
+      kitchenOrder.orderType ||
+      kitchenOrder.service_type ||
+      (typeof raw.type === 'string' ? raw.type : undefined);
+    const hasTable = [
+      kitchenOrder.table_id,
+      kitchenOrder.table_number,
+      kitchenOrder.table,
+    ].some(value => value !== undefined && value !== null && String(value).trim() !== '');
+    return {
+      ...kitchenOrder,
+      id: kitchenOrder.id || kitchenId,
+      order_id: kitchenOrder.order_id || kitchenId,
+      order_number: kitchenOrder.order_number || kitchenOrder.kot_number || kitchenId,
+      kitchen_order_id: kitchenOrder.kitchen_order_id || kitchenId,
+      kot_number: kitchenOrder.kot_number || kitchenId,
+      order_type: rawOrderType || (hasTable ? 'dine-in' : 'kitchen'),
+      status: kitchenOrder.status || kitchenOrder.order_status || 'Pending',
+      order_status: kitchenOrder.order_status || kitchenOrder.status || 'Pending',
+      created_at:
+        kitchenOrder.created_at ||
+        kitchenOrder.order_date ||
+        (typeof raw.createdAt === 'string' ? raw.createdAt : undefined),
+      total_amount:
+        kitchenOrder.total_amount ||
+        kitchenOrder.grand_total ||
+        kitchenOrder.amount ||
+        0,
+    };
+  });
 }
 
 function parseOrderDate(order: ApiOrder): Date | null {
@@ -291,38 +372,59 @@ function getStatusTheme(status: NormalizedStatus) {
 }
 
 function normalizeOrderType(raw?: string): string {
-  const t = String(raw || '').trim().toLowerCase();
-  if (t.includes('dine') || t.includes('table')) return 'Dine-in Orders';
+  const t = String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+  if (t.includes('dine') || t.includes('dining') || t.includes('dinning') || t.includes('table')) {
+    return 'Dine-in Orders';
+  }
   if (t.includes('take') || t.includes('pick')) return 'Pickup Orders';
   if (t.includes('event') || t.includes('banquet') || t.includes('function')) return 'Event Orders';
   if (t.includes('kitchen') || t.includes('kot')) return 'Kitchen Orders';
-  if (t.includes('deliv') || t.includes('online')) return 'Delivery';
+  if (t.includes('deliv') || t.includes('online')) return 'Home Delivery';
   return raw ? String(raw) : 'Dine-in Orders';
 }
 
-function getOrderCategory(order: ApiOrder): OrderTypeFilter {
-  const rawType = String(order.order_type || '').trim().toLowerCase();
-  if (
-    order.event_id !== undefined ||
-    order.event_booking_id !== undefined ||
-    rawType.includes('event') ||
-    rawType.includes('banquet') ||
-    rawType.includes('function')
-  ) {
-    return 'Event Orders';
+function matchesOrderCategory(order: ApiOrder, category: OrderTypeFilter): boolean {
+  if (category === 'All') return true;
+
+  const raw = order as Record<string, unknown>;
+  const rawType = String(
+    order.order_type || order.orderType || order.service_type || raw.type || '',
+  )
+    .trim()
+    .toLowerCase();
+  const normalizedType = normalizeOrderType(rawType);
+
+  if (category === 'Event Orders') {
+    return (
+      order.event_id !== undefined ||
+      order.event_booking_id !== undefined ||
+      normalizedType === 'Event Orders'
+    );
   }
-  if (
-    order.kitchen_order_id !== undefined ||
-    order.kot_number !== undefined ||
-    rawType.includes('kitchen') ||
-    rawType.includes('kot')
-  ) {
-    return 'Kitchen Orders';
+  if (category === 'Kitchen Orders') {
+    return (
+      order.kitchen_order_id !== undefined ||
+      order.kot_number !== undefined ||
+      normalizedType === 'Kitchen Orders'
+    );
   }
-  const normalized = normalizeOrderType(order.order_type);
-  if (normalized === 'Dine-in Orders') return normalized;
-  if (normalized === 'Pickup Orders') return normalized;
-  return 'Dine-in Orders';
+  if (category === 'Pickup Orders') return normalizedType === 'Pickup Orders';
+  if (category === 'Home Delivery') return normalizedType === 'Home Delivery';
+
+  const hasTable =
+    order.table_id !== undefined ||
+    order.table_number !== undefined ||
+    order.table !== undefined;
+  return (
+    normalizedType === 'Dine-in Orders' ||
+    (hasTable &&
+      normalizedType !== 'Pickup Orders' &&
+      normalizedType !== 'Home Delivery' &&
+      normalizedType !== 'Event Orders')
+  );
 }
 
 function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
@@ -362,6 +464,15 @@ function getOrderTypeConfig(orderType: string, tableNumber?: string | number) {
       bg: '#FFF7ED',
       border: '#FED7AA',
       text: '#C2410C',
+    };
+  }
+  if (type === 'Home Delivery') {
+    return {
+      type: 'delivery',
+      label: 'Home Delivery',
+      bg: '#EFF6FF',
+      border: '#BFDBFE',
+      text: '#1E40AF',
     };
   }
   return {
@@ -659,15 +770,83 @@ export function OrdersScreen({
   const fetchOrders = useCallback(async (signal?: AbortSignal) => {
     setErrorMessage('');
     try {
-      const response = await api.get('/orders/management', {
-        signal,
-        headers: {
-          'Cache-Control': 'no-cache, no-store',
-          Pragma: 'no-cache',
-        },
+      const [ordersResult, eventOrdersResult, kitchenOrdersResult] = await Promise.allSettled([
+        api.get('/orders/management', {
+          params: {
+            page: 1,
+            limit: 1000,
+            pageSize: 1000,
+          },
+          signal,
+          headers: {
+            'Cache-Control': 'no-cache, no-store',
+            Pragma: 'no-cache',
+          },
+        }),
+        api.get('/event-orders', {
+          params: {
+            page: 1,
+            limit: 1000,
+            pageSize: 1000,
+          },
+          signal,
+          headers: {
+            'Cache-Control': 'no-cache, no-store',
+            Pragma: 'no-cache',
+          },
+        }),
+        api.get('/kitchen-orders', {
+          params: {
+            page: 1,
+            limit: 1000,
+            pageSize: 1000,
+          },
+          signal,
+          headers: {
+            'Cache-Control': 'no-cache, no-store',
+            Pragma: 'no-cache',
+          },
+        }),
+      ]);
+
+      if (signal?.aborted) return;
+      const regularOrders =
+        ordersResult.status === 'fulfilled'
+          ? extractOrdersFromResponse(ordersResult.value.data)
+          : [];
+      const eventOrders =
+        eventOrdersResult.status === 'fulfilled'
+          ? normalizeEventOrders(eventOrdersResult.value.data)
+          : [];
+      const kitchenOrders =
+        kitchenOrdersResult.status === 'fulfilled'
+          ? normalizeKitchenOrders(kitchenOrdersResult.value.data)
+          : [];
+      const mergedOrders: ApiOrder[] = [];
+      const seenOrderIds = new Set<string>();
+      [...regularOrders, ...kitchenOrders, ...eventOrders].forEach(order => {
+        const orderIds = [
+          order.id,
+          order.order_id,
+          order.order_number,
+          order.kitchen_order_id,
+          order.kot_number,
+        ]
+          .filter(value => value !== undefined && value !== null && String(value).trim())
+          .map(value => String(value).trim());
+        if (orderIds.some(id => seenOrderIds.has(id))) return;
+        orderIds.forEach(id => seenOrderIds.add(id));
+        mergedOrders.push(order);
       });
-      const rows = extractOrdersFromResponse(response.data);
-      setOrders(rows);
+      setOrders(mergedOrders);
+
+      if (
+        ordersResult.status === 'rejected' &&
+        eventOrdersResult.status === 'rejected' &&
+        kitchenOrdersResult.status === 'rejected'
+      ) {
+        throw ordersResult.reason;
+      }
     } catch (err: unknown) {
       if (signal?.aborted) return;
       const msg = getApiErrorMessage(
@@ -774,10 +953,15 @@ export function OrdersScreen({
       'Kitchen Orders': 0,
       'Dine-in Orders': 0,
       'Pickup Orders': 0,
+      'Home Delivery': 0,
       'Event Orders': 0,
     };
     orders.forEach(order => {
-      counts[getOrderCategory(order)] += 1;
+      (Object.keys(counts) as OrderTypeFilter[]).forEach(category => {
+        if (category !== 'All' && matchesOrderCategory(order, category)) {
+          counts[category] += 1;
+        }
+      });
     });
     return counts;
   }, [orders]);
@@ -820,9 +1004,7 @@ export function OrdersScreen({
     }
 
     if (orderTypeFilter !== 'All') {
-      result = result.filter(
-        o => getOrderCategory(o) === orderTypeFilter,
-      );
+      result = result.filter(o => matchesOrderCategory(o, orderTypeFilter));
     }
 
     if (timeFilter !== 'All') {
@@ -1320,50 +1502,7 @@ export function OrdersScreen({
 
   return (
     <View className="flex-1 bg-[#F8FAFC]">
-      {/* Modern Executive Page Header */}
-      <View className="bg-white px-5 pt-3.5 pb-3 border-b border-[#E2E8F0] shadow-xs">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-2xl font-black text-[#0F172A] tracking-tight">
-                Order Management
-              </Text>
-              <View className="flex-row items-center gap-1.5 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] px-2.5 py-0.5">
-                <Animated.View
-                  className="h-2 w-2 rounded-full bg-[#16A34A]"
-                  style={{ transform: [{ scale: pulseAnim }] }}
-                />
-                <Text className="text-[11px] font-black text-[#065F46]">
-                  LIVE ({orders.length})
-                </Text>
-              </View>
-            </View>
-            <Text className="text-xs font-semibold text-[#64748B] mt-0.5">
-              Live orders, kitchen queue & delivery tracking
-            </Text>
-          </View>
-
-          <View className="flex-row items-center gap-2">
-            {onAddOrder ? (
-              <Pressable
-                onPress={onAddOrder}
-                className="h-9 flex-row items-center rounded-xl bg-[#116C0B] px-3 active:bg-[#0D5208] shadow-xs"
-              >
-                <PlusIcon color="#FFFFFF" size={16} />
-                <Text className="ml-1 text-xs font-black text-white">New</Text>
-              </Pressable>
-            ) : null}
-
-            <Pressable
-              accessibilityLabel="Refresh orders"
-              onPress={onRefresh}
-              className="h-9 w-9 items-center justify-center rounded-xl bg-[#F1F5F9] border border-[#CBD5E1] active:bg-[#E2E8F0]"
-            >
-              <RefreshIcon color="#334155" size={16} />
-            </Pressable>
-          </View>
-        </View>
-      </View>
+     
 
       {/* Interactive Metric Cards Carousel */}
       <View className="bg-white px-5 py-2.5 border-b border-[#E2E8F0]">
@@ -1495,6 +1634,7 @@ export function OrdersScreen({
               'Kitchen Orders',
               'Dine-in Orders',
               'Pickup Orders',
+              'Home Delivery',
               'Event Orders',
             ] as OrderTypeFilter[]
           ).map(category => {
@@ -1743,10 +1883,16 @@ export function OrdersScreen({
         accessibilityLabel="Assign order to delivery"
         accessibilityRole="button"
         onPress={() => setIsDeliveryAssignmentOpen(true)}
-        className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg active:bg-[#0D5208]"
+        className="absolute h-14 w-14 items-center justify-center rounded-full bg-[#116C0B] shadow-lg active:bg-[#0D5208]"
         style={{
-          bottom: insets.bottom + 78,
-          elevation: 8,
+          bottom: insets.bottom + 10,
+          elevation: 10,
+          right: 16,
+          shadowColor: '#012711',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.22,
+          shadowRadius: 8,
+          zIndex: 20,
         }}
       >
         <PlusIcon color="#FFFFFF" size={26} />
@@ -1793,6 +1939,7 @@ export function OrdersScreen({
                   'Kitchen Orders',
                   'Dine-in Orders',
                   'Pickup Orders',
+                  'Home Delivery',
                   'Event Orders',
                 ] as OrderTypeFilter[]
               ).map(type => {

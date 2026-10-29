@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
+import { ActionSheet, BaseModal, DetailsModal, PhoneIcon, PrinterIcon } from '../../components/popups';
 
 /* ==========================================================================
    Crisp SVG Icons for Server Tools
@@ -1316,224 +1317,175 @@ export default function ServerMore({
       {/* ====================================================================
           Modal 1: Digital Staff ID Card Modal
           ==================================================================== */}
-      <Modal
+      <BaseModal
         visible={isIdModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsIdModalOpen(false)}
+        onClose={() => setIsIdModalOpen(false)}
+        title="Digital Staff Badge"
+        subtitle="DINESERVE RESTAURANT"
+        maxWidth={380}
+        footer={
+          <Pressable
+            onPress={() => setIsIdModalOpen(false)}
+            className="min-h-12 w-full items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+          >
+            <Text className="text-sm font-bold text-white">Done</Text>
+          </Pressable>
+        }
       >
-        <View className="flex-1 items-center justify-center bg-black/60 px-6">
-          <View className="w-full max-w-[340px] rounded-3xl bg-white p-6 shadow-2xl">
-            {/* Card Header */}
-            <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3">
-              <View>
-                <Text className="text-[10px] font-bold tracking-widest text-[#116C0B]">
-                  DINESERVE RESTAURANT
-                </Text>
-                <Text className="text-base font-black text-[#012711]">
-                  Digital Staff Badge
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setIsIdModalOpen(false)}
-                className="rounded-full bg-slate-100 p-2"
-              >
-                <CloseSvg size={16} />
-              </Pressable>
-            </View>
-
-            {/* Avatar & Info */}
-            <View className="items-center py-6">
-              <View className="h-20 w-20 items-center justify-center rounded-full bg-[#116C0B] shadow-lg">
-                <Text className="text-3xl font-black text-white">{initial}</Text>
-              </View>
-              <Text className="mt-3 text-xl font-extrabold text-[#0F172A]">
-                {name}
-              </Text>
-              <Text className="text-xs text-[#64748B]">{role}</Text>
-              <View className="mt-2 rounded-full bg-[#E8F5E9] px-3 py-1 border border-[#BBF7D0]">
-                <Text className="text-xs font-bold text-[#15803D]">
-                  ID: {employeeId}
-                </Text>
-              </View>
-
-              {/* Barcode simulation */}
-              <View className="mt-6 w-full items-center rounded-xl bg-slate-50 p-3 border border-slate-200">
-                <View className="flex-row items-center gap-1">
-                  {[4, 2, 6, 3, 5, 2, 7, 3, 4, 2, 6, 4, 3, 5, 2, 6, 3, 5].map(
-                    (w, idx) => (
-                      <View
-                        key={idx}
-                        style={{
-                          backgroundColor: '#0F172A',
-                          height: 36,
-                          width: w,
-                        }}
-                      />
-                    ),
-                  )}
-                </View>
-                <Text className="mt-2 font-mono text-[10px] tracking-widest text-[#64748B]">
-                  *DS-EMP-{employeeId}*
-                </Text>
-              </View>
-
-              <Text className="mt-3 text-[10px] text-[#94A3B8]">
-                Authorized server for Dining Station A • Valid for 2026-2027
-              </Text>
-            </View>
-
-            <Pressable
-              onPress={() => setIsIdModalOpen(false)}
-              className="h-11 items-center justify-center rounded-xl bg-[#116C0B]"
-            >
-              <Text className="font-bold text-white">Done</Text>
-            </Pressable>
+        <View className="items-center py-2">
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-[#116C0B] shadow-lg">
+            <Text className="text-3xl font-black text-white">{initial}</Text>
           </View>
+          <Text className="mt-3 text-xl font-extrabold text-[#0F172A]">
+            {name}
+          </Text>
+          <Text className="text-xs text-[#64748B]">{role}</Text>
+          <View className="mt-2 rounded-full bg-[#E8F5E9] px-3 py-1 border border-[#BBF7D0]">
+            <Text className="text-xs font-bold text-[#15803D]">
+              ID: {employeeId}
+            </Text>
+          </View>
+
+          {/* Barcode simulation */}
+          <View className="mt-5 w-full items-center rounded-2xl bg-slate-50 p-3.5 border border-slate-200">
+            <View className="flex-row items-center gap-1">
+              {[4, 2, 6, 3, 5, 2, 7, 3, 4, 2, 6, 4, 3, 5, 2, 6, 3, 5].map(
+                (w, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      backgroundColor: '#0F172A',
+                      height: 36,
+                      width: w,
+                    }}
+                  />
+                ),
+              )}
+            </View>
+            <Text className="mt-2 font-mono text-[10px] tracking-widest text-[#64748B]">
+              *DS-EMP-{employeeId}*
+            </Text>
+          </View>
+
+          <Text className="mt-3 text-center text-[11px] text-[#94A3B8]">
+            Authorized server for Dining Station A • Valid for 2026-2027
+          </Text>
         </View>
-      </Modal>
+      </BaseModal>
 
       {/* ====================================================================
           Modal 2: Printer Setup & Test Modal
           ==================================================================== */}
-      <Modal
+      <DetailsModal
         visible={isPrinterModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsPrinterModalOpen(false)}
+        onClose={() => setIsPrinterModalOpen(false)}
+        title="POS Printers Status"
+        subtitle="Network and thermal ticket printers"
+        icon={<PrinterIcon color="#116C0B" size={22} />}
+        maxWidth={440}
+        footer={
+          <View className="w-full flex-row gap-3">
+            <Pressable
+              onPress={() => setIsPrinterModalOpen(false)}
+              className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
+            >
+              <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+            </Pressable>
+            <Pressable
+              disabled={isTestingPrint}
+              onPress={handleTestPrint}
+              className="min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+            >
+              {isTestingPrint ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <PrinterIcon size={18} color="#FFFFFF" />
+                  <Text className="text-sm font-bold text-white">Print Test Slip</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        }
       >
-        <View className="flex-1 items-center justify-center bg-black/60 px-6">
-          <View className="w-full max-w-[360px] rounded-3xl bg-white p-6 shadow-2xl">
-            <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3">
-              <View className="flex-row items-center gap-2">
-                <PrinterSvg color="#116C0B" size={20} />
-                <Text className="text-base font-extrabold text-[#012711]">
-                  POS Printers Status
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setIsPrinterModalOpen(false)}
-                className="rounded-full bg-slate-100 p-2"
-              >
-                <CloseSvg size={16} />
-              </Pressable>
-            </View>
-
-            <View className="my-4 gap-3">
-              <View className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-bold text-[#0F172A]">
-                    Kitchen KOT Printer
-                  </Text>
-                  <View className="flex-row items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5">
-                    <CheckSvg color="#15803D" size={12} />
-                    <Text className="text-[10px] font-bold text-[#15803D]">
-                      Online
-                    </Text>
-                  </View>
-                </View>
-                <Text className="mt-1 text-xs text-[#64748B]">
-                  EPSON TM-T88VI • IP: 192.168.1.120 (Thermal 80mm)
-                </Text>
-              </View>
-
-              <View className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5">
-                <View className="flex-row items-center justify-between">
-                  <Text className="font-bold text-[#0F172A]">
-                    Cashier Bill Printer
-                  </Text>
-                  <View className="flex-row items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5">
-                    <CheckSvg color="#15803D" size={12} />
-                    <Text className="text-[10px] font-bold text-[#15803D]">
-                      Online
-                    </Text>
-                  </View>
-                </View>
-                <Text className="mt-1 text-xs text-[#64748B]">
-                  Star TSP143 • USB / Bluetooth Station (80mm)
+        <View className="gap-3">
+          <View className="rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="font-bold text-[#0F172A]">
+                Kitchen KOT Printer
+              </Text>
+              <View className="flex-row items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-0.5">
+                <CheckSvg color="#15803D" size={12} />
+                <Text className="text-[10px] font-bold text-[#15803D]">
+                  Online
                 </Text>
               </View>
             </View>
+            <Text className="mt-1 text-xs text-[#64748B]">
+              EPSON TM-T88VI • IP: 192.168.1.120 (Thermal 80mm)
+            </Text>
+          </View>
 
-            <View className="gap-2">
-              <Pressable
-                disabled={isTestingPrint}
-                onPress={handleTestPrint}
-                className="h-11 items-center justify-center rounded-xl bg-[#116C0B] active:bg-[#02480B]"
-              >
-                {isTestingPrint ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="font-bold text-white">Print Test Slip</Text>
-                )}
-              </Pressable>
-
-              <Pressable
-                onPress={() => setIsPrinterModalOpen(false)}
-                className="h-10 items-center justify-center rounded-xl bg-slate-100"
-              >
-                <Text className="font-semibold text-[#475569]">Close</Text>
-              </Pressable>
+          <View className="rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] p-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="font-bold text-[#0F172A]">
+                Cashier Bill Printer
+              </Text>
+              <View className="flex-row items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-0.5">
+                <CheckSvg color="#15803D" size={12} />
+                <Text className="text-[10px] font-bold text-[#15803D]">
+                  Online
+                </Text>
+              </View>
             </View>
+            <Text className="mt-1 text-xs text-[#64748B]">
+              Star TSP143 • USB / Bluetooth Station (80mm)
+            </Text>
           </View>
         </View>
-      </Modal>
+      </DetailsModal>
 
       {/* ====================================================================
           Modal 3: Floor Support & Hotlines Modal
           ==================================================================== */}
-      <Modal
+      <ActionSheet
         visible={isSupportModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsSupportModalOpen(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/60 px-6">
-          <View className="w-full max-w-[340px] rounded-3xl bg-white p-6 shadow-2xl">
-            <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3">
-              <View className="flex-row items-center gap-2">
-                <PhoneSvg color="#DC2626" size={20} />
-                <Text className="text-base font-extrabold text-[#012711]">
-                  Restaurant Helpdesk
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setIsSupportModalOpen(false)}
-                className="rounded-full bg-slate-100 p-2"
-              >
-                <CloseSvg size={16} />
-              </Pressable>
-            </View>
-
-            <View className="my-4 gap-2.5">
-              {[
-                { title: 'Floor Supervisor', phone: 'Ext 101 • Manager Desk' },
-                { title: 'Executive Chef / Kitchen', phone: 'Ext 104 • Kitchen Pass' },
-                { title: 'POS Technical Admin', phone: 'Ext 110 • IT Support' },
-              ].map((item, idx) => (
-                <Pressable
-                  key={idx}
-                  onPress={() => {
-                    setIsSupportModalOpen(false);
-                    Alert.alert('Contacting', `Connecting to ${item.title} (${item.phone})...`);
-                  }}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 active:bg-slate-100"
-                >
-                  <Text className="text-xs font-bold text-[#0F172A]">{item.title}</Text>
-                  <Text className="mt-0.5 text-xs text-[#116C0B]">{item.phone}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Pressable
-              onPress={() => setIsSupportModalOpen(false)}
-              className="h-11 items-center justify-center rounded-xl bg-slate-100"
-            >
-              <Text className="font-bold text-[#475569]">Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsSupportModalOpen(false)}
+        title="Restaurant Helpdesk"
+        subtitle="Floor Support & Internal Hotlines"
+        actions={[
+          {
+            id: 'supervisor',
+            label: 'Floor Supervisor',
+            description: 'Ext 101 • Manager Desk',
+            icon: <PhoneIcon color="#116C0B" size={20} />,
+            onPress: () => {
+              setIsSupportModalOpen(false);
+              Alert.alert('Contacting', 'Connecting to Floor Supervisor (Ext 101)...');
+            },
+          },
+          {
+            id: 'chef',
+            label: 'Executive Chef / Kitchen',
+            description: 'Ext 104 • Kitchen Pass',
+            icon: <PhoneIcon color="#116C0B" size={20} />,
+            onPress: () => {
+              setIsSupportModalOpen(false);
+              Alert.alert('Contacting', 'Connecting to Executive Chef (Ext 104)...');
+            },
+          },
+          {
+            id: 'pos_admin',
+            label: 'POS Technical Admin',
+            description: 'Ext 110 • IT Support',
+            icon: <PhoneIcon color="#116C0B" size={20} />,
+            onPress: () => {
+              setIsSupportModalOpen(false);
+              Alert.alert('Contacting', 'Connecting to POS Technical Admin (Ext 110)...');
+            },
+          },
+        ]}
+      />
     </ScrollView>
   );
 }

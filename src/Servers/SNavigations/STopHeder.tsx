@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Alert, Image, Modal, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  BellIcon,
-  LogoutIcon,
-  ProfileIcon,
-} from '../../Admin/Navigation/NavigationIcons';
+import { BellIcon } from '../../Admin/Navigation/NavigationIcons';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
+import {
+  ActionSheet,
+  ClockIcon,
+  ConfirmDialog,
+  LogOutIcon,
+  UserIcon,
+} from '../../components/popups';
 
 export default function ServerTopHeader({
   user,
@@ -22,14 +25,9 @@ export default function ServerTopHeader({
   const name = user.name?.trim() || user.username?.trim() || 'Team member';
   const initial = name.charAt(0).toUpperCase();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    setIsProfileMenuOpen(false);
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: onLogout },
-    ]);
-  };
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isCheckoutConfirmOpen, setIsCheckoutConfirmOpen] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   return (
     <SafeAreaView
@@ -76,84 +74,90 @@ export default function ServerTopHeader({
         <Pressable
           accessibilityLabel="Open profile menu"
           accessibilityRole="button"
-          onPress={() => setIsProfileMenuOpen(open => !open)}
-          className="relative h-11 w-11 items-center justify-center rounded-full border border-white/40 bg-white shadow-md"
+          onPress={() => setIsProfileMenuOpen(true)}
+          className="relative h-11 w-11 items-center justify-center rounded-full border border-white/40 bg-white shadow-md active:bg-gray-100"
         >
           <Text className="text-lg font-black text-[#012711]">{initial}</Text>
           <View className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#012711] bg-[#22C55E]" />
         </Pressable>
       </View>
 
-      {/* Profile Popup Menu */}
-      <Modal
+      {/* Profile Actions Sheet */}
+      <ActionSheet
         visible={isProfileMenuOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsProfileMenuOpen(false)}
-      >
-        <View className="flex-1">
-          <Pressable
-            accessibilityLabel="Close profile menu"
-            accessibilityRole="button"
-            onPress={() => setIsProfileMenuOpen(false)}
-            className="absolute inset-0 bg-black/20"
-          />
-          <View className="absolute right-5 top-16 w-56 rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-lg">
-            <View className="border-b border-[#E5E7EB] px-3 py-2">
-              <Text className="font-bold text-[#012711]">{name}</Text>
-              <Text className="mt-1 text-xs text-[#64748B]">
-                {user.email?.trim() || 'Team member'}
-              </Text>
-            </View>
-            <Pressable
-              accessibilityLabel="Open profile"
-              accessibilityRole="button"
-              onPress={() => {
-                setIsProfileMenuOpen(false);
-                if (onOpenProfile) onOpenProfile();
-              }}
-              className="flex-row items-center gap-3 rounded-xl px-3 py-3"
-            >
-              <ProfileIcon color="#116C0B" size={18} />
-              <Text className="font-semibold text-[#334155]">Profile</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="Logout"
-              accessibilityRole="button"
-              onPress={handleLogout}
-              className="flex-row items-center gap-3 rounded-xl px-3 py-3"
-            >
-              <LogoutIcon color="#B91C1C" size={18} />
-              <Text className="font-semibold text-[#B91C1C]">Logout</Text>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="Check out"
-              accessibilityRole="button"
-              onPress={() => {
-                setIsProfileMenuOpen(false);
-                Alert.alert(
-                  'Check out',
-                  'Are you sure you want to check out?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Check out',
-                      style: 'destructive',
-                      onPress: () => {
-                        void onClockOut();
-                      },
-                    },
-                  ],
-                );
-              }}
-              className="flex-row items-center gap-3 rounded-xl px-3 py-3"
-            >
-              <Text className="text-lg text-[#C2410C]">↪</Text>
-              <Text className="font-semibold text-[#C2410C]">Check out</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsProfileMenuOpen(false)}
+        title={name}
+        subtitle={user.email?.trim() || 'Restaurant Server'}
+        actions={[
+          {
+            id: 'profile',
+            label: 'My Profile',
+            description: 'View ID badge and personal details',
+            icon: <UserIcon color="#116C0B" size={20} />,
+            onPress: () => {
+              setIsProfileMenuOpen(false);
+              if (onOpenProfile) onOpenProfile();
+            },
+          },
+          {
+            id: 'checkout',
+            label: 'Check Out / Clock Out',
+            description: 'End your working shift for today',
+            icon: <ClockIcon color="#C2410C" size={20} />,
+            onPress: () => {
+              setIsProfileMenuOpen(false);
+              setIsCheckoutConfirmOpen(true);
+            },
+          },
+          {
+            id: 'logout',
+            label: 'Log Out',
+            description: 'Sign out of the server app',
+            icon: <LogOutIcon color="#DC2626" size={20} />,
+            destructive: true,
+            onPress: () => {
+              setIsProfileMenuOpen(false);
+              setIsLogoutConfirmOpen(true);
+            },
+          },
+        ]}
+      />
+
+      {/* Clock Out Confirmation Dialog */}
+      <ConfirmDialog
+        visible={isCheckoutConfirmOpen}
+        onClose={() => setIsCheckoutConfirmOpen(false)}
+        title="Check Out Shift"
+        message="Are you sure you want to clock out and conclude your active server shift?"
+        itemName={name}
+        confirmLabel="Check Out"
+        variantType="warning"
+        isLoading={isCheckingOut}
+        onConfirm={async () => {
+          setIsCheckingOut(true);
+          try {
+            await onClockOut();
+          } finally {
+            setIsCheckingOut(false);
+            setIsCheckoutConfirmOpen(false);
+          }
+        }}
+      />
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        visible={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        title="Sign Out"
+        message="Are you sure you want to log out of the Restaurant Server app?"
+        itemName={name}
+        confirmLabel="Log Out"
+        variantType="danger"
+        onConfirm={() => {
+          setIsLogoutConfirmOpen(false);
+          onLogout();
+        }}
+      />
     </SafeAreaView>
   );
 }

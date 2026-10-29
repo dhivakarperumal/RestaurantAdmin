@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { API_BASE_URL } from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
+import { BaseModal, CheckIcon, FormModal } from '../../components/popups';
 
 /* ==========================================================================
    Types
@@ -1446,219 +1447,168 @@ export default function ServerItems({
         </View>
       ) : null}
 
-      <Modal
+      <BaseModal
         visible={isTablePickerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsTablePickerOpen(false)}
+        onClose={() => setIsTablePickerOpen(false)}
+        title="Choose Table"
+        subtitle="Select a table to assign this food order"
+        variant="bottom-sheet"
       >
-        <Pressable
-          className="flex-1 justify-center bg-black/60 px-5"
-          onPress={() => setIsTablePickerOpen(false)}
-        >
-          <Pressable
-            className="max-h-[70%] rounded-2xl bg-white p-5"
-            onPress={event => event.stopPropagation()}
-          >
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-lg font-extrabold text-[#012711]">Choose table</Text>
+        <ScrollView className="max-h-[360px]" contentContainerClassName="gap-2 pb-2" showsVerticalScrollIndicator={false}>
+          {tables.map(option => {
+            const optionId = String(option.id ?? option.table_id ?? '');
+            const optionLabel = String(
+              option.table_number ?? option.id ?? option.table_id ?? '1',
+            );
+            const isCurrent = optionId === tableId;
+            return (
               <Pressable
-                accessibilityLabel="Close table picker"
-                onPress={() => setIsTablePickerOpen(false)}
-                className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]"
+                key={optionId}
+                accessibilityLabel={`Select Table ${optionLabel}`}
+                onPress={() => {
+                  setIsTablePickerOpen(false);
+                  if (!isCurrent) onTableChange?.(option);
+                }}
+                className={`flex-row items-center justify-between rounded-2xl border p-4 ${
+                  isCurrent
+                    ? 'border-[#116C0B] bg-[#116C0B]/5'
+                    : 'border-[#CBD5E1] bg-white active:bg-gray-50'
+                }`}
               >
-                <CloseSvg size={16} />
+                <View>
+                  <Text className="text-base font-black text-[#0F172A]">
+                    Table {optionLabel}
+                  </Text>
+                  <Text className="mt-0.5 text-xs font-semibold text-[#64748B]">
+                    {option.no_of_seats ?? 4} seats
+                  </Text>
+                </View>
+                {isCurrent ? (
+                  <View className="flex-row items-center gap-1.5 rounded-full bg-[#116C0B] px-3 py-1">
+                    <CheckIcon size={14} color="#FFFFFF" />
+                    <Text className="text-xs font-bold text-white">Selected</Text>
+                  </View>
+                ) : null}
               </Pressable>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {tables.map(option => {
-                const optionId = String(option.id ?? option.table_id ?? '');
-                const optionLabel = String(
-                  option.table_number ?? option.id ?? option.table_id ?? '1',
-                );
-                const isCurrent = optionId === tableId;
-                return (
-                  <Pressable
-                    key={optionId}
-                    accessibilityLabel={`Select Table ${optionLabel}`}
-                    onPress={() => {
-                      setIsTablePickerOpen(false);
-                      if (!isCurrent) onTableChange?.(option);
-                    }}
-                    className={`mb-2 flex-row items-center justify-between rounded-xl border px-4 py-3 ${
-                      isCurrent
-                        ? 'border-[#116C0B] bg-[#F0FDF4]'
-                        : 'border-[#E2E8F0] bg-white'
-                    }`}
-                  >
-                    <View>
-                      <Text className="text-sm font-extrabold text-[#0F172A]">
-                        Table {optionLabel}
-                      </Text>
-                      <Text className="mt-0.5 text-xs font-semibold text-[#64748B]">
-                        {option.no_of_seats ?? 4} seats
-                      </Text>
-                    </View>
-                    {isCurrent ? (
-                      <Text className="text-xs font-black text-[#116C0B]">Selected</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+            );
+          })}
+        </ScrollView>
+      </BaseModal>
 
       {/* ====================================================================
           Review & Send Order Modal Bottom Sheet
           ==================================================================== */}
-      <Modal
+      <FormModal
         visible={isReviewOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsReviewOpen(false)}
+        onClose={() => setIsReviewOpen(false)}
+        title={`Order for Table ${tableLabel}`}
+        subtitle={`${itemCount} item${itemCount === 1 ? '' : 's'} · Total: ${formatPrice(total)}`}
+        onSave={() => void sendToKitchen()}
+        saveLabel="Send Order to Kitchen 👨‍🍳"
+        cancelLabel="Close"
+        isSaving={submitting}
+        isSaveDisabled={submitting || !cart.length}
       >
-        <View className="flex-1 justify-end bg-black/60">
-          <Pressable className="flex-1" onPress={() => setIsReviewOpen(false)} />
-          <View className="max-h-[85%] rounded-t-3xl bg-white px-5 pb-8 pt-5 shadow-2xl">
-            {/* Modal Header */}
-            <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3.5">
-              <View>
-                <Text className="text-xl font-extrabold text-[#012711]">
-                  Order for Table {tableLabel}
-                </Text>
-                <Text className="text-xs font-semibold text-[#64748B]">
-                  {itemCount} item{itemCount === 1 ? '' : 's'} · Total: {formatPrice(total)}
-                </Text>
-              </View>
+        <View className="gap-3">
+          {/* Cart Items List */}
+          <ScrollView className="max-h-64" showsVerticalScrollIndicator={false}>
+            {cart.map(({ food, quantity }) => {
+              const id = foodCartKey(food);
+              const name = textValue(food, ['food_name', 'name', 'product_name'], 'Food');
+              const price = priceValue(food);
+              const foodType = getFoodType(food);
+              const lineTotal = price * quantity;
 
-              <Pressable
-                onPress={() => setIsReviewOpen(false)}
-                className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]"
-              >
-                <CloseSvg size={16} />
-              </Pressable>
-            </View>
-
-            {/* Cart Items List */}
-            <ScrollView
-              className="mt-3 max-h-72"
-              showsVerticalScrollIndicator={false}
-            >
-              {cart.map(({ food, quantity }) => {
-                const id = foodCartKey(food);
-                const name = textValue(food, ['food_name', 'name', 'product_name'], 'Food');
-                const price = priceValue(food);
-                const foodType = getFoodType(food);
-                const lineTotal = price * quantity;
-
-                return (
-                  <View
-                    key={id}
-                    className="flex-row items-center justify-between border-b border-[#F1F5F9] py-3"
-                  >
-                    <View className="flex-1 pr-3">
-                      <View className="flex-row items-center gap-1.5">
-                        <DietaryBadge type={foodType} />
-                        <Text
-                          numberOfLines={1}
-                          className="flex-1 text-sm font-bold text-[#0F172A]"
-                        >
-                          {name}
-                        </Text>
-                      </View>
-                      <Text className="mt-0.5 text-xs font-semibold text-[#116C0B]">
-                        {formatPrice(price)} each ·{' '}
-                        <Text className="font-extrabold text-[#0F172A]">
-                          {formatPrice(lineTotal)}
-                        </Text>
+              return (
+                <View
+                  key={id}
+                  className="flex-row items-center justify-between border-b border-[#F1F5F9] py-3"
+                >
+                  <View className="flex-1 pr-3">
+                    <View className="flex-row items-center gap-1.5">
+                      <DietaryBadge type={foodType} />
+                      <Text
+                        numberOfLines={1}
+                        className="flex-1 text-sm font-bold text-[#0F172A]"
+                      >
+                        {name}
                       </Text>
                     </View>
-
-                    {/* Stepper */}
-                    <View className="flex-row items-center rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] p-1">
-                      <Pressable
-                        onPress={() => changeQuantity(food, -1)}
-                        className="h-7 w-7 items-center justify-center rounded-lg bg-white shadow-xs"
-                      >
-                        <Text className="text-base font-bold text-[#475569]">−</Text>
-                      </Pressable>
-                      <Text className="mx-2 min-w-[16px] text-center text-xs font-extrabold text-[#0F172A]">
-                        {quantity}
+                    <Text className="mt-0.5 text-xs font-semibold text-[#116C0B]">
+                      {formatPrice(price)} each ·{' '}
+                      <Text className="font-extrabold text-[#0F172A]">
+                        {formatPrice(lineTotal)}
                       </Text>
-                      <Pressable
-                        onPress={() => changeQuantity(food, 1)}
-                        className="h-7 w-7 items-center justify-center rounded-lg bg-[#116C0B]"
-                      >
-                        <Text className="text-base font-bold text-white">+</Text>
-                      </Pressable>
-                    </View>
+                    </Text>
                   </View>
-                );
-              })}
-            </ScrollView>
 
-            {/* Special Kitchen Instructions */}
-            <View className="mt-4">
-              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
-                Kitchen Instructions (Optional)
-              </Text>
-              <TextInput
-                value={orderNotes}
-                onChangeText={setOrderNotes}
-                placeholder="e.g. Less spicy, serve drinks first, no onions..."
-                placeholderTextColor="#94A3B8"
-                className="mt-1.5 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] p-3 text-xs text-[#0F172A]"
-              />
-            </View>
+                  {/* Stepper */}
+                  <View className="flex-row items-center rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-1">
+                    <Pressable
+                      onPress={() => changeQuantity(food, -1)}
+                      className="h-8 w-8 items-center justify-center rounded-xl bg-white shadow-xs"
+                    >
+                      <Text className="text-base font-bold text-[#475569]">−</Text>
+                    </Pressable>
+                    <Text className="mx-2.5 min-w-[16px] text-center text-xs font-extrabold text-[#0F172A]">
+                      {quantity}
+                    </Text>
+                    <Pressable
+                      onPress={() => changeQuantity(food, 1)}
+                      className="h-8 w-8 items-center justify-center rounded-xl bg-[#116C0B]"
+                    >
+                      <Text className="text-base font-bold text-white">+</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
 
-            {/* Bill Summary Strip */}
-            <View className="mt-4 flex-row items-center justify-between rounded-xl bg-[#F0FDF4] p-3">
-              <View>
-                <Text className="text-xs font-bold text-[#166534]">
-                  Table {tableLabel} Subtotal
-                </Text>
-                <Text className="text-[11px] text-[#4B7A58]">
-                  {activeBill ? 'Will link to active bill' : 'Opens new table session'}
-                </Text>
-              </View>
-              <Text className="text-xl font-black text-[#116C0B]">
-                {formatPrice(total)}
-              </Text>
-            </View>
-
-            {/* Send to Kitchen Button */}
-            <Pressable
-              disabled={submitting || !cart.length}
-              onPress={() => void sendToKitchen()}
-              className="mt-4 h-12 flex-row items-center justify-center rounded-xl bg-[#116C0B] active:bg-[#0F5A09]"
-            >
-              {submitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text className="text-sm font-black text-white">
-                  Send Order to Kitchen 👨‍🍳
-                </Text>
-              )}
-            </Pressable>
-
-            {/* Clear Cart Button */}
-            <Pressable
-              onPress={() => {
-                setCart([]);
-                setIsReviewOpen(false);
-              }}
-              className="mt-2.5 flex-row items-center justify-center py-2"
-            >
-              <TrashSvg color="#EF4444" size={14} />
-              <Text className="ml-1 text-xs font-bold text-[#EF4444]">
-                Clear Cart
-              </Text>
-            </Pressable>
+          {/* Special Kitchen Instructions */}
+          <View className="gap-1.5">
+            <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+              Kitchen Instructions (Optional)
+            </Text>
+            <TextInput
+              value={orderNotes}
+              onChangeText={setOrderNotes}
+              placeholder="e.g. Less spicy, serve drinks first, no onions..."
+              placeholderTextColor="#94A3B8"
+              className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-3.5 text-xs text-[#0F172A]"
+            />
           </View>
+
+          {/* Bill Summary Strip */}
+          <View className="flex-row items-center justify-between rounded-2xl bg-[#F0FDF4] border border-[#DCFCE7] p-3.5">
+            <View>
+              <Text className="text-xs font-bold text-[#166534]">
+                Table {tableLabel} Subtotal
+              </Text>
+              <Text className="text-[11px] text-[#4B7A58]">
+                {activeBill ? 'Will link to active bill' : 'Opens new table session'}
+              </Text>
+            </View>
+            <Text className="text-xl font-black text-[#116C0B]">
+              {formatPrice(total)}
+            </Text>
+          </View>
+
+          {/* Clear Cart Button */}
+          <Pressable
+            onPress={() => {
+              setCart([]);
+              setIsReviewOpen(false);
+            }}
+            className="flex-row items-center justify-center py-2"
+          >
+            <TrashSvg color="#EF4444" size={14} />
+            <Text className="ml-1 text-xs font-bold text-[#EF4444]">
+              Clear Cart
+            </Text>
+          </Pressable>
         </View>
-      </Modal>
+      </FormModal>
     </View>
   );
 }

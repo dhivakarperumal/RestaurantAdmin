@@ -23,6 +23,7 @@ import ServerMore from './SMore';
 import ServerProfile from './Profile';
 import ServerItems, { type ServerOrderTable } from './SItems';
 import ServerTables from './STables';
+import { BaseModal, ConfirmDialog, DetailsModal } from '../../components/popups';
 
 /* ==========================================================================
    Types & Utilities
@@ -1614,21 +1615,20 @@ function HomeTabContent({
                 onPress={() => onSelectTab('foods')}
                 style={({ pressed }) => ({
                   backgroundColor: '#FFFFFF',
-                  borderColor: pressed ? '#B7DDBB' : '#E2E8F0',
+                  borderColor: pressed ? '#5FAF68' : '#B8D8BD',
                   borderRadius: 20,
-                  borderWidth: 1,
-                  elevation: 3,
+                  borderWidth: 1.5,
+                  elevation: 8,
                   opacity: pressed ? 0.9 : 1,
-                  overflow: 'hidden',
-                  shadowColor: '#0F172A',
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.08,
-                  shadowRadius: 8,
+                  shadowColor: '#14532D',
+                  shadowOffset: { width: 0, height: 5 },
+                  shadowOpacity: pressed ? 0.12 : 0.2,
+                  shadowRadius: 12,
                   width: '48.5%',
                 })}
               >
                 {/* Image Container with Badges */}
-                <View className="relative h-32 w-full bg-[#F1F5F9]">
+                <View className="relative h-32 w-full overflow-hidden rounded-t-[18px] bg-[#F1F5F9]">
                   {image ? (
                     <Image
                       source={{ uri: image }}
@@ -2340,8 +2340,8 @@ function OrderDetailsModal({
 }) {
   if (!order) return null;
 
-  const orderNumber = value(order, ['order_number', 'order_id', 'id'], '#000');
-  const tableNum = value(order, ['table_number', 'table_id', 'table'], 'Takeaway');
+  const orderNumber = value(order, ['order_number', 'order_id', 'id'], '#ORD');
+  const tableNum = value(order, ['table_number', 'table'], 'Takeout');
   const customerName = value(order, ['customer_name', 'customerName', 'customer'], 'Guest');
   const status = value(order, ['status', 'order_status'], 'Pending');
   const totalAmount = value(order, ['total_amount', 'grand_total', 'amount'], '0');
@@ -2349,92 +2349,76 @@ function OrderDetailsModal({
   const isReady = ['ready', 'prepared', 'cooked'].includes(status.toLowerCase());
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/50">
-        <Pressable className="flex-1" onPress={onClose} />
-        <View
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            maxHeight: '85%',
-            padding: 20,
-          }}
-        >
-          {/* Modal Header */}
-          <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3">
-            <View>
-              <Text className="text-lg font-extrabold text-[#012711]">
-                Order Details • {orderNumber}
-              </Text>
-              <Text className="text-xs text-[#64748B]">
-                Table: <Text className="font-bold text-[#012711]">{tableNum}</Text> • Guest: {customerName}
-              </Text>
-            </View>
-            <Pressable onPress={onClose} className="rounded-full bg-slate-100 p-2">
-              <CloseSvg color="#64748B" size={18} />
+    <DetailsModal
+      visible={order !== null}
+      onClose={onClose}
+      title={`Order • ${orderNumber}`}
+      subtitle={`Table: ${tableNum} • Guest: ${customerName}`}
+      badge={{
+        label: status,
+        bg: isReady ? '#F0FDF4' : '#FEF3C7',
+        text: isReady ? '#15803D' : '#D97706',
+        border: isReady ? '#DCFCE7' : '#FDE68A',
+      }}
+      footer={
+        <View className="w-full flex-row gap-3">
+          <Pressable
+            onPress={onClose}
+            className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
+          >
+            <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+          </Pressable>
+          {isReady ? (
+            <Pressable
+              onPress={() => {
+                onServe(order);
+                onClose();
+              }}
+              className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+            >
+              <Text className="text-sm font-bold text-white">Serve Table Now</Text>
             </Pressable>
-          </View>
-
-          {/* Items List */}
-          <ScrollView className="my-4 max-h-72">
-            <Text className="mb-2 text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
-              Ordered Items ({items.length})
-            </Text>
-            {items.map((item, idx) => (
-              <View
-                key={`${item.name}-${idx}`}
-                className="mb-2 rounded-xl border border-[#F1F5F9] bg-[#F8FAFC] p-3"
-              >
-                <View className="flex-row items-center justify-between">
-                  <Text className="flex-1 text-sm font-bold text-[#0F172A]">
-                    {item.quantity}x {item.name}
-                  </Text>
-                  <Text className="text-sm font-extrabold text-[#116C0B]">
-                    {formatPrice(item.price * item.quantity)}
-                  </Text>
-                </View>
-                {item.notes ? (
-                  <Text className="mt-1 text-xs text-[#DC2626]">
-                    Note: {item.notes}
-                  </Text>
-                ) : null}
+          ) : null}
+        </View>
+      }
+    >
+      <View className="gap-3">
+        {/* Ordered Items */}
+        <View className="gap-2">
+          <Text className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
+            Ordered Items ({items.length})
+          </Text>
+          {items.map((item, idx) => (
+            <View
+              key={`${item.name}-${idx}`}
+              className="rounded-2xl border border-[#F1F5F9] bg-[#F8FAFC] p-3.5"
+            >
+              <View className="flex-row items-center justify-between">
+                <Text className="flex-1 text-sm font-bold text-[#0F172A]">
+                  {item.quantity}x {item.name}
+                </Text>
+                <Text className="text-sm font-extrabold text-[#116C0B]">
+                  {formatPrice(item.price * item.quantity)}
+                </Text>
               </View>
-            ))}
-          </ScrollView>
-
-          {/* Total & Action */}
-          <View className="border-t border-[#F1F5F9] pt-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-sm font-bold text-[#64748B]">Grand Total</Text>
-              <Text className="text-xl font-extrabold text-[#012711]">
-                {formatPrice(totalAmount)}
-              </Text>
-            </View>
-
-            <View className="mt-4 flex-row gap-2">
-              {isReady ? (
-                <Pressable
-                  onPress={() => {
-                    onServe(order);
-                    onClose();
-                  }}
-                  className="flex-1 h-12 items-center justify-center rounded-xl bg-[#116C0B]"
-                >
-                  <Text className="font-extrabold text-white">Serve Table Now</Text>
-                </Pressable>
+              {item.notes ? (
+                <Text className="mt-1 text-xs text-[#DC2626]">
+                  Note: {item.notes}
+                </Text>
               ) : null}
-              <Pressable
-                onPress={onClose}
-                className="flex-1 h-12 items-center justify-center rounded-xl bg-slate-100"
-              >
-                <Text className="font-bold text-[#475569]">Close</Text>
-              </Pressable>
             </View>
-          </View>
+          ))}
+        </View>
+
+        {/* Grand Total */}
+        <View className="flex-row items-center justify-between rounded-2xl border border-[#E2E8F0] bg-white p-4">
+          <Text className="text-sm font-bold text-[#64748B]">Grand Total</Text>
+          <Text className="text-xl font-black text-[#012711]">
+            {formatPrice(totalAmount)}
+          </Text>
         </View>
       </View>
-    </Modal>
+    </DetailsModal>
   );
 }
 
@@ -2872,53 +2856,18 @@ export default function ServerHome({
       )}
 
       {/* Attendance Modal */}
-      <Modal
+      <ConfirmDialog
         visible={isAttendanceOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsAttendanceOpen(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/60 px-6">
-          <View className="w-full max-w-[360px] rounded-3xl bg-white p-6 shadow-2xl">
-            <View className="items-center">
-              <View className="h-16 w-16 items-center justify-center rounded-full bg-[#FFF0DE]">
-                <ClockSvg color="#EA580C" size={32} />
-              </View>
-              <Text className="mt-4 text-xl font-extrabold text-[#012711]">
-                Mark Shift Attendance
-              </Text>
-              <Text className="mt-2 text-center text-xs leading-5 text-[#64748B]">
-                Clock in before starting your tables service shift today.
-              </Text>
-            </View>
-
-            {attendanceError ? (
-              <Text className="mt-4 rounded-xl bg-[#FEF2F2] p-3 text-center text-xs font-semibold text-[#B91C1C]">
-                {attendanceError}
-              </Text>
-            ) : null}
-
-            <Pressable
-              disabled={isClockingIn}
-              onPress={() => void clockIn()}
-              className="mt-5 h-12 items-center justify-center rounded-xl bg-[#FF7800] active:bg-[#EA580C]"
-            >
-              {isClockingIn ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text className="font-extrabold text-white">Clock In & Start Shift</Text>
-              )}
-            </Pressable>
-
-            <Pressable
-              onPress={() => setIsAttendanceOpen(false)}
-              className="mt-2 h-10 items-center justify-center"
-            >
-              <Text className="text-xs font-bold text-[#64748B]">Dismiss For Now</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsAttendanceOpen(false)}
+        title="Mark Shift Attendance"
+        message="Clock in before starting your tables service shift today."
+        confirmLabel="Clock In & Start Shift"
+        cancelLabel="Dismiss For Now"
+        variantType="warning"
+        isLoading={isClockingIn}
+        errorMessage={attendanceError}
+        onConfirm={() => void clockIn()}
+      />
 
       {/* Order Details Bottom Sheet */}
       <OrderDetailsModal
@@ -2938,104 +2887,88 @@ export default function ServerHome({
           onPlusPress={() => setIsAssignedTablesOpen(true)}
         />
       ) : null}
-      <Modal
+
+      {/* Assigned Tables Modal */}
+      <BaseModal
         visible={isAssignedTablesOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsAssignedTablesOpen(false)}
-      >
-        <View className="flex-1 justify-end bg-black/40">
+        onClose={() => setIsAssignedTablesOpen(false)}
+        title="Assigned Tables"
+        subtitle={`${assignedTables.length} tables assigned to your station`}
+        variant="bottom-sheet"
+        footer={
           <Pressable
-            className="flex-1"
             onPress={() => setIsAssignedTablesOpen(false)}
-          />
-          <View className="rounded-t-3xl bg-white px-5 pb-8 pt-5 max-h-[75%]">
-            <View className="mb-4 flex-row items-center justify-between">
-              <View>
-                <Text className="text-xl font-extrabold text-[#012711]">
-                  Assigned Tables
-                </Text>
-                <Text className="text-xs text-[#64748B]">
-                  {assignedTables.length} tables assigned to your station
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close assigned tables"
-                accessibilityRole="button"
-                onPress={() => setIsAssignedTablesOpen(false)}
-                className="h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9]"
-              >
-                <Text className="text-xl text-[#475569]">×</Text>
-              </Pressable>
-            </View>
+            className="min-h-12 w-full items-center justify-center rounded-2xl bg-[#012711] active:bg-[#0B4D1A]"
+          >
+            <Text className="text-sm font-extrabold text-white">Close</Text>
+          </Pressable>
+        }
+      >
+        <ScrollView className="max-h-[380px]" contentContainerClassName="gap-2.5 pb-2" showsVerticalScrollIndicator={false}>
+          {assignedTables.length ? (
+            assignedTables.map((table, index) => {
+              const num = String(table.table_number ?? table.id ?? table.table_id);
+              const isOccupied =
+                occupiedTableNumbers.has(num) ||
+                String(table.status || '').toLowerCase() === 'occupied';
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {assignedTables.length ? (
-                assignedTables.map((table, index) => {
-                  const num = String(table.table_number ?? table.id ?? table.table_id);
-                  const isOccupied =
-                    occupiedTableNumbers.has(num) ||
-                    String(table.status || '').toLowerCase() === 'occupied';
-
-                  return (
-                    <Pressable
-                      key={`${table.table_id ?? table.id ?? index}`}
-                      onPress={() => void openTableOrder(table)}
-                      className="mb-2.5 flex-row items-center justify-between rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 active:bg-[#F1F5F9]"
+              return (
+                <Pressable
+                  key={`${table.table_id ?? table.id ?? index}`}
+                  onPress={() => void openTableOrder(table)}
+                  className="flex-row items-center justify-between rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 active:bg-[#F1F5F9]"
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View
+                      className={`h-11 w-11 items-center justify-center rounded-xl ${
+                        isOccupied ? 'bg-amber-100' : 'bg-emerald-100'
+                      }`}
                     >
-                      <View className="flex-row items-center gap-3">
-                        <View
-                          className={`h-11 w-11 items-center justify-center rounded-xl ${
-                            isOccupied ? 'bg-amber-100' : 'bg-emerald-100'
-                          }`}
-                        >
-                          <TableSvg color={isOccupied ? '#D97706' : '#15803D'} size={20} />
-                        </View>
-                        <View>
-                          <Text className="text-base font-black text-[#012711]">
-                            Table {num}
-                          </Text>
-                          <Text className="mt-0.5 text-xs text-[#64748B]">
-                            {table.no_of_seats ?? 4} Seats • Station Floor
-                          </Text>
-                        </View>
-                      </View>
+                      <TableSvg color={isOccupied ? '#D97706' : '#15803D'} size={20} />
+                    </View>
+                    <View>
+                      <Text className="text-base font-black text-[#012711]">
+                        Table {num}
+                      </Text>
+                      <Text className="mt-0.5 text-xs text-[#64748B]">
+                        {table.no_of_seats ?? 4} Seats • Station Floor
+                      </Text>
+                    </View>
+                  </View>
 
-                      <View className="items-end">
-                        <View
-                          className={`rounded-full px-2.5 py-1 ${
-                            isOccupied ? 'bg-amber-100' : 'bg-emerald-100'
-                          }`}
-                        >
-                          <Text
-                            className={`text-[10px] font-black uppercase ${
-                              isOccupied ? 'text-amber-800' : 'text-emerald-800'
-                            }`}
-                          >
-                            {isOccupied ? 'Occupied' : 'Available'}
-                          </Text>
-                        </View>
-                        <Text className="mt-1 text-[10px] font-bold text-[#116C0B]">
-                          Tap to take order ›
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })
-              ) : (
-                <View className="items-center py-8">
-                  <Text className="text-sm font-bold text-[#64748B]">
-                    No tables are assigned to you.
-                  </Text>
-                  <Text className="mt-1 text-center text-xs text-[#94A3B8]">
-                    Tables assigned by floor supervisor will show up here automatically.
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+                  <View className="items-end">
+                    <View
+                      className={`rounded-full px-2.5 py-1 ${
+                        isOccupied ? 'bg-amber-100' : 'bg-emerald-100'
+                      }`}
+                    >
+                      <Text
+                        className={`text-[10px] font-black uppercase ${
+                          isOccupied ? 'text-amber-800' : 'text-emerald-800'
+                        }`}
+                      >
+                        {isOccupied ? 'Occupied' : 'Available'}
+                      </Text>
+                    </View>
+                    <Text className="mt-1 text-[10px] font-bold text-[#116C0B]">
+                      Tap to take order ›
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })
+          ) : (
+            <View className="items-center py-8">
+              <Text className="text-sm font-bold text-[#64748B]">
+                No tables are assigned to you.
+              </Text>
+              <Text className="mt-1 text-center text-xs text-[#94A3B8]">
+                Tables assigned by floor supervisor will show up here automatically.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </BaseModal>
     </SafeAreaView>
   );
 }

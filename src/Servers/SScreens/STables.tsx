@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
+import { DetailsModal } from '../../components/popups';
 
 /* ==========================================================================
    Types & Utilities
@@ -953,121 +954,129 @@ export default function ServerTables({
         )}
       </View>
       </ScrollView>
-      <Modal
-        visible={Boolean(billPreview)}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          if (!settlingTable) setBillPreview(null);
-        }}
-      >
-        <View className="flex-1 justify-end bg-black/40">
-          <View
-            className="max-h-[88%] rounded-t-3xl bg-white px-5 pt-4"
-            style={{ paddingBottom: Math.max(insets.bottom, 16) + 16 }}
-          >
-            <View className="mb-4 h-1.5 w-12 self-center rounded-full bg-[#CBD5E1]" />
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-xl font-black text-[#0F172A]">Bill Preview</Text>
-                <Text className="mt-1 text-xs font-semibold text-[#64748B]">
-                  Table {String(billPreview?.table_number || '—')}
-                </Text>
-              </View>
+      {billPreview ? (
+        <DetailsModal
+          visible={Boolean(billPreview)}
+          onClose={() => {
+            if (!settlingTable) setBillPreview(null);
+          }}
+          title="Bill Preview"
+          subtitle={`Table ${String(billPreview?.table_number || '—')}`}
+          footer={
+            <View className="w-full flex-row gap-3">
               <Pressable
                 disabled={Boolean(settlingTable)}
                 onPress={() => setBillPreview(null)}
-                className="h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9]"
+                className="min-h-12 flex-1 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white active:bg-gray-100"
               >
-                <Text className="text-lg font-bold text-[#475569]">×</Text>
+                <Text className="text-sm font-semibold text-[#334155]">Close</Text>
+              </Pressable>
+              <Pressable
+                disabled={Boolean(settlingTable)}
+                onPress={() => void settleBill()}
+                className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
+              >
+                {settlingTable ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text className="text-sm font-bold text-white">
+                    Complete • {paymentMethod}
+                  </Text>
+                )}
               </Pressable>
             </View>
-
-            <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+          }
+        >
+          <View className="gap-3">
+            {/* Bill Items List */}
+            <View className="gap-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Billed Items ({billItems.length})
+              </Text>
               {billItems.length > 0 ? (
-                billItems.map((item, index) => (
-                  <View key={index} className="flex-row items-center justify-between border-b border-[#F1F5F9] py-3">
-                    <View className="flex-1 pr-3">
-                      <Text className="text-sm font-bold text-[#0F172A]">
-                        {String(item.food_name || item.name || item.item_name || 'Food item')}
-                      </Text>
-                      <Text className="mt-1 text-xs text-[#64748B]">
-                        Qty: {String(item.quantity || 1)}
+                <View className="rounded-2xl border border-[#CBD5E1] bg-white overflow-hidden">
+                  {billItems.map((item, index) => (
+                    <View
+                      key={index}
+                      className={`flex-row items-center justify-between p-3.5 ${
+                        index > 0 ? 'border-t border-[#F1F5F9]' : ''
+                      }`}
+                    >
+                      <View className="flex-1 pr-3">
+                        <Text className="text-sm font-bold text-[#0F172A]">
+                          {String(item.food_name || item.name || item.item_name || 'Food item')}
+                        </Text>
+                        <Text className="mt-0.5 text-xs text-[#64748B]">
+                          Qty: {String(item.quantity || 1)}
+                        </Text>
+                      </View>
+                      <Text className="text-sm font-extrabold text-[#116C0B]">
+                        {formatBillAmount(item.total_price ?? item.price ?? item.unit_price)}
                       </Text>
                     </View>
-                    <Text className="text-sm font-extrabold text-[#116C0B]">
-                      {formatBillAmount(item.total_price ?? item.price ?? item.unit_price)}
-                    </Text>
-                  </View>
-                ))
+                  ))}
+                </View>
               ) : (
-                <Text className="py-8 text-center text-sm text-[#64748B]">
+                <Text className="py-6 text-center text-sm text-[#64748B]">
                   No food items found for this bill.
                 </Text>
               )}
+            </View>
 
-              <View className="mt-4 rounded-2xl bg-[#F8FAFC] p-4">
-                <View className="flex-row justify-between">
-                  <Text className="text-sm text-[#64748B]">Subtotal</Text>
-                  <Text className="text-sm font-bold text-[#0F172A]">
-                    {formatBillAmount(billPreview?.subtotal ?? billPreview?.total_amount)}
-                  </Text>
-                </View>
-                <View className="mt-2 flex-row justify-between">
-                  <Text className="text-base font-extrabold text-[#0F172A]">Grand Total</Text>
-                  <Text className="text-lg font-black text-[#116C0B]">
-                    {formatBillAmount(
-                      billPreview?.grand_total ??
-                        billPreview?.total ??
-                        billPreview?.total_amount,
-                    )}
-                  </Text>
-                </View>
+            {/* Total Breakdown */}
+            <View className="rounded-2xl bg-[#F8FAFC] p-4 border border-[#CBD5E1]">
+              <View className="flex-row justify-between">
+                <Text className="text-sm text-[#64748B]">Subtotal</Text>
+                <Text className="text-sm font-bold text-[#0F172A]">
+                  {formatBillAmount(billPreview?.subtotal ?? billPreview?.total_amount)}
+                </Text>
               </View>
+              <View className="mt-2.5 flex-row justify-between pt-2 border-t border-[#E2E8F0]">
+                <Text className="text-base font-extrabold text-[#0F172A]">Grand Total</Text>
+                <Text className="text-xl font-black text-[#116C0B]">
+                  {formatBillAmount(
+                    billPreview?.grand_total ??
+                      billPreview?.total ??
+                      billPreview?.total_amount,
+                  )}
+                </Text>
+              </View>
+            </View>
 
-              <Text className="mb-2 mt-5 text-xs font-extrabold uppercase tracking-wider text-[#64748B]">
+            {/* Payment Method Selector */}
+            <View className="gap-2">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
                 Select Payment Method
               </Text>
               <View className="flex-row gap-2">
-                {['Cash', 'Card', 'UPI'].map(method => (
-                  <Pressable
-                    key={method}
-                    disabled={Boolean(settlingTable)}
-                    onPress={() => setPaymentMethod(method)}
-                    className={`flex-1 items-center rounded-xl border py-3 ${
-                      paymentMethod === method
-                        ? 'border-[#116C0B] bg-[#116C0B]'
-                        : 'border-[#CBD5E1] bg-white'
-                    }`}
-                  >
-                    <Text
-                      className={`text-xs font-extrabold ${
-                        paymentMethod === method ? 'text-white' : 'text-[#475569]'
+                {['Cash', 'Card', 'UPI'].map(method => {
+                  const isSelected = paymentMethod === method;
+                  return (
+                    <Pressable
+                      key={method}
+                      disabled={Boolean(settlingTable)}
+                      onPress={() => setPaymentMethod(method)}
+                      className={`min-h-12 flex-1 items-center justify-center rounded-2xl border ${
+                        isSelected
+                          ? 'border-[#116C0B] bg-[#116C0B]'
+                          : 'border-[#CBD5E1] bg-white active:bg-gray-50'
                       }`}
                     >
-                      {method}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-white' : 'text-[#475569]'
+                        }`}
+                      >
+                        {method}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-            </ScrollView>
-
-            <Pressable
-              disabled={Boolean(settlingTable)}
-              onPress={() => void settleBill()}
-              className="mt-4 h-12 items-center justify-center rounded-xl bg-[#116C0B]"
-            >
-              {settlingTable ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text className="font-extrabold text-white">
-                  Complete Bill • {paymentMethod}
-                </Text>
-              )}
-            </Pressable>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </DetailsModal>
+      ) : null}
     </>
   );
 }

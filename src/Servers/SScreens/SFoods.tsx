@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { API_BASE_URL } from '../../../api';
+import { DetailsModal } from '../../components/popups';
 
 /* ==========================================================================
    Types & Utilities
@@ -881,151 +881,129 @@ export default function ServerFoods() {
       {/* ====================================================================
           Dish Details Modal
           ==================================================================== */}
-      <Modal
-        visible={!!selectedFood}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSelectedFood(null)}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <Pressable
-            className="flex-1"
-            onPress={() => setSelectedFood(null)}
-          />
-          {selectedFood ? (
-            <View
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderTopLeftRadius: 28,
-                borderTopRightRadius: 28,
-                maxHeight: '85%',
-                padding: 20,
-              }}
+      {selectedFood ? (
+        <DetailsModal
+          visible={!!selectedFood}
+          onClose={() => setSelectedFood(null)}
+          title={textValue(
+            selectedFood,
+            ['food_name', 'product_name', 'name'],
+            'Dish Details',
+          )}
+          subtitle={textValue(
+            selectedFood,
+            ['category_name', 'category'],
+            'Main Menu',
+          )}
+          badge={{
+            label: getFoodType(selectedFood) === 'veg' ? 'Vegetarian' : 'Non-Veg',
+            bg: getFoodType(selectedFood) === 'veg' ? '#F0FDF4' : '#FEF2F2',
+            text: getFoodType(selectedFood) === 'veg' ? '#15803D' : '#DC2626',
+            border: getFoodType(selectedFood) === 'veg' ? '#DCFCE7' : '#FECACA',
+          }}
+          footer={
+            <Pressable
+              onPress={() => setSelectedFood(null)}
+              className="min-h-12 w-full items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#02480B]"
             >
-              {/* Close Button Header */}
-              <View className="flex-row items-center justify-between border-b border-[#F1F5F9] pb-3">
-                <View className="flex-row items-center gap-2">
-                  <DietaryBadge type={getFoodType(selectedFood)} />
-                  <Text className="text-lg font-extrabold text-[#012711]">
-                    {textValue(
-                      selectedFood,
-                      ['food_name', 'product_name', 'name'],
-                      'Dish Details',
-                    )}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => setSelectedFood(null)}
-                  className="rounded-full bg-slate-100 p-2"
-                >
-                  <CloseSvg color="#64748B" size={18} />
-                </Pressable>
+              <Text className="text-sm font-bold text-white">Done</Text>
+            </Pressable>
+          }
+        >
+          <View className="gap-4">
+            {/* Large Image Banner */}
+            {imageValue(selectedFood) ? (
+              <Image
+                source={{ uri: imageValue(selectedFood) }}
+                className="h-44 w-full rounded-2xl"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="h-28 w-full items-center justify-center rounded-2xl bg-[#FFF7ED]">
+                <UtensilsSvg color="#EA580C" size={40} />
               </View>
+            )}
 
-              <ScrollView className="my-4">
-                {/* Large Image Banner */}
-                {imageValue(selectedFood) ? (
-                  <Image
-                    source={{ uri: imageValue(selectedFood) }}
-                    className="h-44 w-full rounded-2xl"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="h-28 w-full items-center justify-center rounded-2xl bg-[#FFF7ED]">
-                    <UtensilsSvg color="#EA580C" size={40} />
-                  </View>
-                )}
-
-                {/* Categories & Price */}
-                <View className="mt-4 flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2">
-                    <View className="rounded-lg bg-[#FFF7ED] px-3 py-1">
-                      <Text className="text-xs font-bold text-[#EA580C]">
-                        {textValue(
-                          selectedFood,
-                          ['category_name', 'category'],
-                          'Main Menu',
-                        )}
-                      </Text>
-                    </View>
-                    <View className="rounded-lg bg-[#F0FDF4] px-3 py-1">
-                      <Text className="text-xs font-bold text-[#15803D]">
-                        {getFoodType(selectedFood) === 'veg' ? 'Vegetarian' : 'Non-Veg'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className="text-2xl font-black text-[#116C0B]">
-                    {formatPrice(
-                      textValue(selectedFood, [
-                        'final_price',
-                        'selling_price',
-                        'price',
-                        'unit_price',
-                      ]),
-                    )}
-                  </Text>
-                </View>
-
-                {/* Description & Ingredients */}
-                <View className="mt-4 rounded-xl bg-[#F8FAFC] p-4">
-                  <Text className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
-                    Description & Notes
-                  </Text>
-                  <Text className="mt-1 text-xs leading-5 text-[#475569]">
+            {/* Categories & Price */}
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <View className="rounded-xl bg-[#FFF7ED] px-3 py-1.5">
+                  <Text className="text-xs font-bold text-[#EA580C]">
                     {textValue(
                       selectedFood,
-                      ['description', 'details', 'ingredients'],
-                      'Freshly prepared dish with authentic restaurant kitchen herbs and spices. Prepared to order.',
+                      ['category_name', 'category'],
+                      'Main Menu',
                     )}
                   </Text>
                 </View>
-
-                {/* Stock & Availability */}
-                <View className="mt-3 flex-row items-center justify-between rounded-xl border border-[#E2E8F0] p-3.5">
-                  <Text className="text-xs font-semibold text-[#64748B]">
-                    Kitchen Availability
+                <View className="rounded-xl bg-[#F0FDF4] px-3 py-1.5">
+                  <Text className="text-xs font-bold text-[#15803D]">
+                    {getFoodType(selectedFood) === 'veg' ? 'Vegetarian' : 'Non-Veg'}
                   </Text>
-                  <View className="flex-row items-center gap-1.5">
-                    <View
-                      style={{
-                        backgroundColor:
-                          getStockInfo(selectedFood).status === 'out_of_stock'
-                            ? '#DC2626'
-                            : '#10B981',
-                        borderRadius: 9999,
-                        height: 8,
-                        width: 8,
-                      }}
-                    />
-                    <Text
-                      style={{
-                        color:
-                          getStockInfo(selectedFood).status === 'out_of_stock'
-                            ? '#DC2626'
-                            : '#15803D',
-                        fontSize: 12,
-                        fontWeight: '700',
-                      }}
-                    >
-                      {getStockInfo(selectedFood).status === 'out_of_stock'
-                        ? 'Sold Out'
-                        : 'Available in Kitchen'}
-                    </Text>
-                  </View>
                 </View>
-              </ScrollView>
-
-              {/* Close Action */}
-              <Pressable
-                onPress={() => setSelectedFood(null)}
-                className="h-12 items-center justify-center rounded-xl bg-[#116C0B] active:bg-[#02480B]"
-              >
-                <Text className="font-extrabold text-white">Done</Text>
-              </Pressable>
+              </View>
+              <Text className="text-2xl font-black text-[#116C0B]">
+                {formatPrice(
+                  textValue(selectedFood, [
+                    'final_price',
+                    'selling_price',
+                    'price',
+                    'unit_price',
+                  ]),
+                )}
+              </Text>
             </View>
-          ) : null}
-        </View>
-      </Modal>
+
+            {/* Description & Ingredients */}
+            <View className="rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] p-4">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">
+                Description & Notes
+              </Text>
+              <Text className="mt-1 text-xs leading-5 text-[#475569]">
+                {textValue(
+                  selectedFood,
+                  ['description', 'details', 'ingredients'],
+                  'Freshly prepared dish with authentic restaurant kitchen herbs and spices. Prepared to order.',
+                )}
+              </Text>
+            </View>
+
+            {/* Stock & Availability */}
+            <View className="flex-row items-center justify-between rounded-2xl border border-[#E2E8F0] p-4 bg-white">
+              <Text className="text-xs font-semibold text-[#64748B]">
+                Kitchen Availability
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <View
+                  style={{
+                    backgroundColor:
+                      getStockInfo(selectedFood).status === 'out_of_stock'
+                        ? '#DC2626'
+                        : '#10B981',
+                    borderRadius: 9999,
+                    height: 8,
+                    width: 8,
+                  }}
+                />
+                <Text
+                  style={{
+                    color:
+                      getStockInfo(selectedFood).status === 'out_of_stock'
+                        ? '#DC2626'
+                        : '#15803D',
+                    fontSize: 12,
+                    fontWeight: '700',
+                  }}
+                >
+                  {getStockInfo(selectedFood).status === 'out_of_stock'
+                    ? 'Sold Out'
+                    : 'Available in Kitchen'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </DetailsModal>
+      ) : null}
     </ScrollView>
   );
 }

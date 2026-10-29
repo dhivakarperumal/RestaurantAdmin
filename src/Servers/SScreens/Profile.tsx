@@ -18,6 +18,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL, getStoredUser, logoutUser, saveUser } from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
+import { BaseModal, FormModal } from '../../components/popups';
 
 /* ==========================================================================
    Crisp Vector SVG Icons
@@ -1790,428 +1791,257 @@ export default function ServerProfile({
       {/* ====================================================================
           MODAL 1: EDIT PROFILE FORM
           ==================================================================== */}
-      <Modal
+      <FormModal
         visible={isEditModalOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setIsEditModalOpen(false)}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Staff Profile"
+        subtitle="Updates will sync to restaurant management"
+        onSave={() => void handleSaveProfile()}
+        saveLabel="Save & Update Profile"
+        isSaving={isSavingEdit}
+        errorMessage={editFormError}
       >
-        <SafeAreaView className="flex-1 bg-black/60">
-          <View className="flex-1 justify-end">
-            <View
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderTopLeftRadius: 32,
-                borderTopRightRadius: 32,
-                maxHeight: '90%',
-              }}
-            >
-              {/* Modal Top Bar */}
-              <View className="flex-row items-center justify-between border-b border-[#F1F5F9] px-6 py-4">
-                <View>
-                  <Text className="text-lg font-extrabold text-[#012711]">
-                    Edit Staff Profile
-                  </Text>
-                  <Text className="text-xs text-[#64748B]">
-                    Updates will sync to restaurant management
-                  </Text>
-                </View>
+        <View className="gap-3">
+          <Text className="text-xs font-extrabold uppercase tracking-wider text-[#116C0B]">
+            Personal & Contact
+          </Text>
 
-                <Pressable
-                  onPress={() => setIsEditModalOpen(false)}
-                  className="h-9 w-9 items-center justify-center rounded-full bg-[#F1F5F9]"
-                >
-                  <CloseSvg size={18} />
-                </Pressable>
-              </View>
+          <FormField
+            label="Full Name *"
+            value={editForm.full_name}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, full_name: txt }))}
+            placeholder="e.g. Ramesh Kumar"
+          />
 
-              {/* Scrollable Form Fields */}
-              <ScrollView
-                className="px-6 py-4"
-                contentContainerStyle={{ paddingBottom: 40 }}
-                showsVerticalScrollIndicator={false}
-              >
-                {editFormError ? (
-                  <View className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
-                    <Text className="text-xs font-bold text-red-700">{editFormError}</Text>
-                  </View>
-                ) : null}
+          <FormField
+            label="Phone Number *"
+            value={editForm.phone_number}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, phone_number: txt }))}
+            keyboardType="phone-pad"
+            placeholder="10-digit mobile number"
+          />
 
-                <Text className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[#116C0B]">
-                  Personal & Contact
-                </Text>
+          <FormField
+            label="WhatsApp Number"
+            value={editForm.whatsapp_number}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, whatsapp_number: txt }))}
+            keyboardType="phone-pad"
+            placeholder="WhatsApp number (optional)"
+          />
 
-                <FormField
-                  label="Full Name *"
-                  value={editForm.full_name}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, full_name: txt }))}
-                  placeholder="e.g. Ramesh Kumar"
-                />
+          <FormField
+            label="Personal Email"
+            value={editForm.email}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, email: txt }))}
+            keyboardType="email-address"
+            placeholder="email@example.com"
+          />
 
-                <FormField
-                  label="Phone Number *"
-                  value={editForm.phone_number}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, phone_number: txt }))}
-                  keyboardType="phone-pad"
-                  placeholder="10-digit mobile number"
-                />
+          <FormField
+            label="Residential Address"
+            value={editForm.address}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, address: txt }))}
+            placeholder="Complete street address"
+          />
 
-                <FormField
-                  label="WhatsApp Number"
-                  value={editForm.whatsapp_number}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, whatsapp_number: txt }))}
-                  keyboardType="phone-pad"
-                  placeholder="WhatsApp number"
-                />
+          <Text className="mt-2 text-xs font-extrabold uppercase tracking-wider text-[#116C0B]">
+            Job & Identification
+          </Text>
 
-                <FormField
-                  label="Email Address"
-                  value={editForm.email}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, email: txt }))}
-                  keyboardType="email-address"
-                  placeholder="name@restaurant.com"
-                />
+          <FormField
+            label="City"
+            value={editForm.city}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, city: txt }))}
+            placeholder="City"
+          />
 
-                <FormField
-                  label="Date of Birth"
-                  value={editForm.date_of_birth}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, date_of_birth: txt }))}
-                  placeholder="YYYY-MM-DD"
-                />
+          <FormField
+            label="Pincode"
+            value={editForm.pincode}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, pincode: txt }))}
+            keyboardType="numeric"
+            placeholder="Pincode"
+          />
 
-                <Text className="mb-2 mt-4 text-xs font-extrabold uppercase tracking-wider text-[#116C0B]">
-                  Residential Address
-                </Text>
+          <FormField
+            label="PAN Card Number"
+            value={editForm.pan_number}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, pan_number: txt }))}
+            placeholder="10-character PAN number"
+          />
 
-                <FormField
-                  label="Street Address"
-                  value={editForm.address}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, address: txt }))}
-                  placeholder="Door / Flat / Street name"
-                />
+          <Text className="mt-2 text-xs font-extrabold uppercase tracking-wider text-[#116C0B]">
+            Emergency Contact
+          </Text>
 
-                <FormField
-                  label="Area / Locality"
-                  value={editForm.area_locality}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, area_locality: txt }))}
-                  placeholder="Area / Sector"
-                />
+          <FormField
+            label="Contact Person Name"
+            value={editForm.emergency_contact_name}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, emergency_contact_name: txt }))}
+            placeholder="Name of family/guardian"
+          />
 
-                <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <FormField
-                      label="City"
-                      value={editForm.city}
-                      onChangeText={txt => setEditForm(prev => ({ ...prev, city: txt }))}
-                      placeholder="City"
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <FormField
-                      label="State"
-                      value={editForm.state}
-                      onChangeText={txt => setEditForm(prev => ({ ...prev, state: txt }))}
-                      placeholder="State"
-                    />
-                  </View>
-                </View>
-
-                <FormField
-                  label="Pincode"
-                  value={editForm.pincode}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, pincode: txt }))}
-                  keyboardType="numeric"
-                  placeholder="6-digit PIN"
-                />
-
-                <Text className="mb-2 mt-4 text-xs font-extrabold uppercase tracking-wider text-[#116C0B]">
-                  Bank & Payroll Information
-                </Text>
-
-                <FormField
-                  label="Bank Name"
-                  value={editForm.bank_name}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, bank_name: txt }))}
-                  placeholder="e.g. State Bank of India"
-                />
-
-                <FormField
-                  label="Account Holder Name"
-                  value={editForm.account_holder_name}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, account_holder_name: txt }))}
-                  placeholder="As per passbook"
-                />
-
-                <FormField
-                  label="Account Number"
-                  value={editForm.account_number}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, account_number: txt }))}
-                  keyboardType="numeric"
-                  placeholder="Bank account number"
-                />
-
-                <FormField
-                  label="IFSC Code"
-                  value={editForm.ifsc_code}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, ifsc_code: txt.toUpperCase() }))}
-                  placeholder="e.g. SBIN0001234"
-                />
-
-                <FormField
-                  label="UPI ID"
-                  value={editForm.upi_id}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, upi_id: txt }))}
-                  placeholder="username@bank"
-                />
-
-                <FormField
-                  label="PAN Card Number"
-                  value={editForm.pan_number}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, pan_number: txt.toUpperCase() }))}
-                  placeholder="ABCDE1234F"
-                />
-
-                <Text className="mb-2 mt-4 text-xs font-extrabold uppercase tracking-wider text-[#116C0B]">
-                  Emergency Contact
-                </Text>
-
-                <FormField
-                  label="Contact Person Name"
-                  value={editForm.emergency_contact_name}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, emergency_contact_name: txt }))}
-                  placeholder="Name of family/guardian"
-                />
-
-                <FormField
-                  label="Contact Person Phone"
-                  value={editForm.emergency_contact_phone}
-                  onChangeText={txt => setEditForm(prev => ({ ...prev, emergency_contact_phone: txt }))}
-                  keyboardType="phone-pad"
-                  placeholder="Phone number"
-                />
-
-                {/* Save Button */}
-                <Pressable
-                  disabled={isSavingEdit}
-                  onPress={() => void handleSaveProfile()}
-                  className="mt-6 flex-row items-center justify-center rounded-2xl bg-[#116C0B] py-4 active:bg-[#0E5609]"
-                >
-                  {isSavingEdit ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text className="text-base font-extrabold text-white">
-                      Save & Update Profile
-                    </Text>
-                  )}
-                </Pressable>
-              </ScrollView>
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
+          <FormField
+            label="Contact Person Phone"
+            value={editForm.emergency_contact_phone}
+            onChangeText={txt => setEditForm(prev => ({ ...prev, emergency_contact_phone: txt }))}
+            keyboardType="phone-pad"
+            placeholder="Phone number"
+          />
+        </View>
+      </FormModal>
 
       {/* ====================================================================
           MODAL 2: DIGITAL STAFF ID CARD
           ==================================================================== */}
-      <Modal
+      <BaseModal
         visible={isIdModalOpen}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setIsIdModalOpen(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/75 px-5">
-          <View
-            style={{
-              backgroundColor: '#012711',
-              borderColor: '#114D26',
-              borderRadius: 32,
-              borderWidth: 1.5,
-              elevation: 20,
-              maxWidth: 360,
-              overflow: 'hidden',
-              padding: 24,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.4,
-              shadowRadius: 18,
-              width: '100%',
-            }}
+        onClose={() => setIsIdModalOpen(false)}
+        title="Staff ID Pass"
+        subtitle="Official Dining Server Pass"
+        maxWidth={380}
+        footer={
+          <Pressable
+            onPress={() => setIsIdModalOpen(false)}
+            className="min-h-12 w-full items-center justify-center rounded-2xl bg-[#012711] active:bg-[#0B4D1A]"
           >
-            {/* Top Lanyard Cutout Graphic */}
-            <View className="mb-4 items-center">
-              <View
-                style={{
-                  backgroundColor: '#114D26',
-                  borderRadius: 12,
-                  height: 12,
-                  width: 54,
-                }}
-              />
-            </View>
+            <Text className="text-sm font-extrabold text-white">Close ID Pass</Text>
+          </Pressable>
+        }
+      >
+        <View className="items-center rounded-3xl bg-[#012711] p-5 border border-[#114D26]">
+          {/* Top Lanyard Cutout Graphic */}
+          <View className="mb-3 items-center">
+            <View
+              style={{
+                backgroundColor: '#114D26',
+                borderRadius: 12,
+                height: 10,
+                width: 50,
+              }}
+            />
+          </View>
 
-            {/* Restaurant Brand Header */}
-            <View className="items-center border-b border-white/10 pb-4">
-              <Text className="text-[11px] font-black tracking-widest text-[#86EFAC]">
-                RESTAURANT MANAGEMENT
-              </Text>
-              <Text className="mt-0.5 text-lg font-black text-white">
-                BUY FOOD DINING
-              </Text>
-              <Text className="text-[10px] text-[#CBD5E1]">
-                OFFICIAL DINING SERVER PASS
-              </Text>
-            </View>
+          {/* Restaurant Brand Header */}
+          <View className="items-center border-b border-white/10 pb-3 w-full">
+            <Text className="text-[10px] font-black tracking-widest text-[#86EFAC]">
+              RESTAURANT MANAGEMENT
+            </Text>
+            <Text className="mt-0.5 text-base font-black text-white">
+              BUY FOOD DINING
+            </Text>
+            <Text className="text-[9px] text-[#CBD5E1]">
+              OFFICIAL DINING SERVER PASS
+            </Text>
+          </View>
 
-            {/* Photo & Name Center */}
-            <View className="my-5 items-center">
-              <View
-                style={{
-                  alignItems: 'center',
-                  backgroundColor: '#FF7800',
-                  borderColor: '#FFAA5C',
-                  borderRadius: 36,
-                  borderWidth: 3,
-                  elevation: 6,
-                  height: 72,
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                  width: 72,
-                }}
-              >
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} className="h-full w-full" />
-                ) : (
-                  <Text className="text-2xl font-black text-white">{userInitial}</Text>
-                )}
-              </View>
-
-              <Text className="mt-3 text-lg font-black text-white">
-                {displayName}
-              </Text>
-              <Text className="text-xs font-bold text-[#86EFAC]">
-                {displayRole}
-              </Text>
-
-              <View className="mt-2 rounded-md bg-[#114D26] px-3 py-1">
-                <Text className="text-xs font-black tracking-wider text-white">
-                  ID: {displayEmployeeId}
-                </Text>
-              </View>
-            </View>
-
-            {/* Simulated QR Code for Terminal Scanner */}
-            <View className="items-center rounded-2xl bg-white p-3 shadow-inner">
-              <QrPlaceholderSvg size={95} />
-              <Text className="mt-1.5 text-[9px] font-bold text-[#475569]">
-                SCAN AT POS FOR ORDER DISPATCH
-              </Text>
-            </View>
-
-            {/* Emergency & Floor Station Details */}
-            <View className="mt-4 flex-row justify-between border-t border-white/10 pt-3">
-              <View>
-                <Text className="text-[9px] font-bold text-[#94A3B8]">STATION</Text>
-                <Text className="text-[11px] font-bold text-white">Zone A • Floor</Text>
-              </View>
-              <View className="items-end">
-                <Text className="text-[9px] font-bold text-[#94A3B8]">STATUS</Text>
-                <Text className="text-[11px] font-bold text-[#86EFAC]">
-                  {isClockedIn ? 'Active On Shift' : 'Off Shift'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Dismiss Button */}
-            <Pressable
-              onPress={() => setIsIdModalOpen(false)}
-              className="mt-5 items-center rounded-xl bg-white/10 py-3 active:bg-white/15"
+          {/* Photo & Name Center */}
+          <View className="my-4 items-center">
+            <View
+              style={{
+                alignItems: 'center',
+                backgroundColor: '#FF7800',
+                borderColor: '#FFAA5C',
+                borderRadius: 36,
+                borderWidth: 3,
+                elevation: 6,
+                height: 72,
+                justifyContent: 'center',
+                overflow: 'hidden',
+                width: 72,
+              }}
             >
-              <Text className="text-xs font-extrabold text-white">Close ID Pass</Text>
-            </Pressable>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} className="h-full w-full" />
+              ) : (
+                <Text className="text-2xl font-black text-white">{userInitial}</Text>
+              )}
+            </View>
+
+            <Text className="mt-3 text-lg font-black text-white">
+              {displayName}
+            </Text>
+            <Text className="text-xs font-bold text-[#86EFAC]">
+              {displayRole}
+            </Text>
+
+            <View className="mt-2 rounded-lg bg-[#114D26] px-3 py-1">
+              <Text className="text-xs font-black tracking-wider text-white">
+                ID: {displayEmployeeId}
+              </Text>
+            </View>
+          </View>
+
+          {/* Simulated QR Code for Terminal Scanner */}
+          <View className="items-center rounded-2xl bg-white p-3 shadow-inner w-full">
+            <QrPlaceholderSvg size={95} />
+            <Text className="mt-1.5 text-[9px] font-bold text-[#475569]">
+              SCAN AT POS FOR ORDER DISPATCH
+            </Text>
+          </View>
+
+          {/* Emergency & Floor Station Details */}
+          <View className="mt-3.5 flex-row justify-between border-t border-white/10 pt-3 w-full">
+            <View>
+              <Text className="text-[9px] font-bold text-[#94A3B8]">STATION</Text>
+              <Text className="text-[11px] font-bold text-white">Zone A • Floor</Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-[9px] font-bold text-[#94A3B8]">STATUS</Text>
+              <Text className="text-[11px] font-bold text-[#86EFAC]">
+                {isClockedIn ? 'Active On Shift' : 'Off Shift'}
+              </Text>
+            </View>
           </View>
         </View>
-      </Modal>
+      </BaseModal>
 
       {/* ====================================================================
           MODAL 3: CHANGE PASSWORD FORM
           ==================================================================== */}
-      <Modal
+      <FormModal
         visible={isPasswordModalOpen}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setIsPasswordModalOpen(false)}
+        onClose={() => setIsPasswordModalOpen(false)}
+        title="Change Password"
+        subtitle="Set a secure password for your server login"
+        onSave={() => void handleChangePassword()}
+        saveLabel="Update Password"
+        isSaving={isChangingPassword}
+        errorMessage={passwordError}
+        maxWidth={400}
       >
-        <View className="flex-1 items-center justify-center bg-black/60 px-6">
-          <View className="w-full max-w-[360px] rounded-3xl bg-white p-6 shadow-2xl">
-            <View className="mb-4 flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <LockSvg color="#116C0B" size={20} />
-                <Text className="text-lg font-black text-[#012711]">
-                  Change Password
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setIsPasswordModalOpen(false)}
-                className="h-8 w-8 items-center justify-center rounded-full bg-[#F1F5F9]"
-              >
-                <CloseSvg size={16} />
-              </Pressable>
-            </View>
+        <View className="gap-3">
+          <FormField
+            label="New Password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry={!showPassword}
+            placeholder="At least 6 characters"
+          />
 
-            {passwordError ? (
-              <View className="mb-3 rounded-xl border border-red-200 bg-red-50 p-2.5">
-                <Text className="text-xs font-bold text-red-700">{passwordError}</Text>
-              </View>
-            ) : null}
+          <FormField
+            label="Confirm New Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showPassword}
+            placeholder="Re-enter new password"
+          />
 
-            <View className="gap-3">
-              <FormField
-                label="New Password"
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry={!showPassword}
-                placeholder="At least 6 characters"
-              />
-
-              <FormField
-                label="Confirm New Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showPassword}
-                placeholder="Re-enter new password"
-              />
-
-              <Pressable
-                onPress={() => setShowPassword(p => !p)}
-                className="flex-row items-center gap-2 py-1"
-              >
-                {showPassword ? (
-                  <EyeOffSvg color="#116C0B" size={16} />
-                ) : (
-                  <EyeSvg color="#116C0B" size={16} />
-                )}
-                <Text className="text-xs font-bold text-[#116C0B]">
-                  {showPassword ? 'Hide Passwords' : 'Show Passwords'}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                disabled={isChangingPassword}
-                onPress={() => void handleChangePassword()}
-                className="mt-3 items-center rounded-xl bg-[#116C0B] py-3.5 active:bg-[#0E5609]"
-              >
-                {isChangingPassword ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text className="text-sm font-extrabold text-white">
-                    Update Password
-                  </Text>
-                )}
-              </Pressable>
-            </View>
-          </View>
+          <Pressable
+            onPress={() => setShowPassword(p => !p)}
+            className="flex-row items-center gap-2 py-1"
+          >
+            {showPassword ? (
+              <EyeOffSvg color="#116C0B" size={16} />
+            ) : (
+              <EyeSvg color="#116C0B" size={16} />
+            )}
+            <Text className="text-xs font-bold text-[#116C0B]">
+              {showPassword ? 'Hide Passwords' : 'Show Passwords'}
+            </Text>
+          </Pressable>
         </View>
-      </Modal>
+      </FormModal>
     </SafeAreaView>
   );
 }

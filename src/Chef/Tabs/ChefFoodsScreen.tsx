@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   Switch,
@@ -13,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
+import { BaseModal } from '../../components/popups';
 
 export type ChefFood = {
   food_id?: string | number;
@@ -617,113 +617,101 @@ function ChefFoodsScreen({
         </View>
       ) : null}
 
-      <Modal
-        animationType="slide"
-        onRequestClose={() => {
+      <BaseModal
+        visible={isVisibilityModalOpen}
+        onClose={() => {
           if (!isBulkUpdating) setIsVisibilityModalOpen(false);
         }}
-        transparent
-        visible={isVisibilityModalOpen}
-      >
-        <View className="flex-1 justify-end bg-slate-950/45">
-          <View
-            className="max-h-[85%] rounded-t-2xl border border-slate-200 bg-white"
-            style={{ paddingBottom: insets.bottom }}
+        title="Manage Food Visibility"
+        subtitle="Choose which foods appear to customers and billing"
+        variant="bottom-sheet"
+        footer={
+          <Pressable
+            accessibilityLabel="Done managing food visibility"
+            accessibilityRole="button"
+            disabled={isBulkUpdating}
+            onPress={() => setIsVisibilityModalOpen(false)}
+            className="min-h-12 w-full items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
           >
-            <View className="flex-row items-center justify-between border-b border-slate-200 p-4">
-              <View className="flex-1 pr-3">
-                <Text className="text-base font-bold text-slate-900">
-                  Manage food visibility
-                </Text>
-                <Text className="mt-1 text-xs text-slate-500">
-                  Choose which foods appear to customers and billing.
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Close food visibility manager"
-                accessibilityRole="button"
-                disabled={isBulkUpdating}
-                onPress={() => setIsVisibilityModalOpen(false)}
-                className="h-10 w-10 items-center justify-center rounded-lg border border-slate-200"
-              >
-                <Text className="text-lg text-slate-600">×</Text>
-              </Pressable>
-            </View>
-
-            <View className="border-b border-slate-200 p-4">
-              <TextInput
-                accessibilityLabel="Search foods in visibility manager"
-                className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"
-                onChangeText={setVisibilitySearch}
-                placeholder="Search foods or categories"
-                value={visibilitySearch}
+            <Text className="text-sm font-bold text-white">Done</Text>
+          </Pressable>
+        }
+      >
+        <View className="gap-3 pb-2">
+          <TextInput
+            accessibilityLabel="Search foods in visibility manager"
+            className="min-h-12 rounded-2xl border border-[#CBD5E1] bg-white px-4 text-sm text-[#0F172A]"
+            onChangeText={setVisibilitySearch}
+            placeholder="Search foods or categories"
+            placeholderTextColor="#94A3B8"
+            value={visibilitySearch}
+          />
+          <View className="flex-row items-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <Text className="flex-1 text-sm font-bold text-emerald-950">
+              Show all foods
+            </Text>
+            {isBulkUpdating ? (
+              <ActivityIndicator color="#116C0B" />
+            ) : (
+              <VisibilitySwitch
+                disabled={isLoading || isBulkUpdating || !foods.length}
+                label="Show all foods to customers and billing"
+                onValueChange={() => void changeAllVisibility()}
+                value={allFoodsVisible}
               />
-              <View className="mt-3 flex-row items-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-                <Text className="flex-1 text-sm font-semibold text-emerald-900">
-                  Show all foods
-                </Text>
-                {isBulkUpdating ? (
-                  <ActivityIndicator color="#116C0B" />
-                ) : (
-                  <VisibilitySwitch
-                    disabled={isLoading || isBulkUpdating || !foods.length}
-                    label="Show all foods to customers and billing"
-                    onValueChange={() => void changeAllVisibility()}
-                    value={allFoodsVisible}
-                  />
-                )}
-              </View>
-              {visibilityError ? (
-                <Text accessibilityRole="alert" className="mt-2 text-xs text-red-700">
-                  {visibilityError}
-                </Text>
-              ) : null}
-            </View>
+            )}
+          </View>
+          {visibilityError ? (
+            <Text accessibilityRole="alert" className="text-xs text-red-700">
+              {visibilityError}
+            </Text>
+          ) : null}
 
-            <ScrollView className="max-h-[52%] p-2">
-              {filteredVisibilityFoods.length ? (
-                filteredVisibilityFoods.map((food, index) => {
-                  const key = food.food_id ?? `${food.food_name || 'food'}-${index}`;
-                  const updating =
-                    isBulkUpdating || updatingFoodId === food.food_id;
-                  return (
-                    <View
-                      key={String(key)}
-                      className="min-h-12 flex-row items-center gap-2 rounded-lg px-2 py-1"
+          <ScrollView className="max-h-[340px]" contentContainerClassName="gap-1 pb-2">
+            {filteredVisibilityFoods.length ? (
+              filteredVisibilityFoods.map((food, index) => {
+                const key = food.food_id ?? `${food.food_name || 'food'}-${index}`;
+                const updating =
+                  isBulkUpdating || updatingFoodId === food.food_id;
+                return (
+                  <View
+                    key={String(key)}
+                    className="min-h-12 flex-row items-center gap-2.5 rounded-2xl border border-[#F1F5F9] bg-[#F8FAFC] px-3 py-2"
+                  >
+                    <VisibilitySwitch
+                      disabled={updating}
+                      label={`Show ${food.food_name || 'food'} to customers and billing`}
+                      onValueChange={() => toggleSingle(food)}
+                      value={isFoodVisible(food)}
+                    />
+                    <Text
+                      numberOfLines={1}
+                      className="min-w-0 flex-1 text-xs font-semibold text-[#0F172A]"
                     >
-                      <VisibilitySwitch
-                        disabled={updating}
-                        label={`Show ${food.food_name || 'food'} to customers and billing`}
-                        onValueChange={() => toggleSingle(food)}
-                        value={isFoodVisible(food)}
-                      />
+                      {food.food_name || 'Unnamed food'}
+                    </Text>
+                    <View className="rounded-lg bg-white border border-[#E2E8F0] px-2 py-0.5">
                       <Text
                         numberOfLines={1}
-                        className="min-w-0 flex-1 text-xs font-medium text-slate-700"
-                      >
-                        {food.food_name || 'Unnamed food'}
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        className="max-w-[30%] text-[10px] text-slate-500"
+                        className="max-w-[120px] text-[10px] font-bold text-[#64748B]"
                       >
                         {food.category_name || 'Uncategorized'}
                       </Text>
-                      {updating ? (
-                        <Text className="text-[10px] text-slate-500">Saving…</Text>
-                      ) : null}
                     </View>
-                  );
-                })
-              ) : (
-                <Text className="px-3 py-8 text-center text-sm text-slate-500">
-                  {foods.length ? 'No foods match this search.' : 'No foods available.'}
-                </Text>
-              )}
-            </ScrollView>
-          </View>
+                    {updating ? (
+                      <Text className="text-[10px] text-[#64748B]">Saving…</Text>
+                    ) : null}
+                  </View>
+                );
+              })
+            ) : (
+              <Text className="px-3 py-8 text-center text-sm text-[#64748B]">
+                {foods.length ? 'No foods match this search.' : 'No foods available.'}
+              </Text>
+            )}
+          </ScrollView>
         </View>
-      </Modal>
+      </BaseModal>
     </View>
   );
 }
