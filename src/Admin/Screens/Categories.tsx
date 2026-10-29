@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL } from '../../../api';
+import AdminStatCard from '../../components/AdminStatCard';
 import {
   PlusIcon,
   ProductIcon,
@@ -768,37 +769,37 @@ function Categories({
               ) : null}
             </View>
             <View className="flex-row flex-wrap justify-between gap-y-3">
-              <CategoryStat
+              <AdminStatCard
                 label="Total categories"
                 value={categories.length}
-                icon="total"
                 tint="#166534"
                 iconBackground="#DCFCE7"
                 decorColor="#DCFCE7"
+                icon={<ImageIcon size={22} color="#166534" strokeWidth={2} />}
               />
-              <CategoryStat
+              <AdminStatCard
                 label="Active"
                 value={activeCategoryCount}
-                icon="active"
                 tint="#1D4ED8"
                 iconBackground="#DBEAFE"
                 decorColor="#BFDBFE"
+                icon={<CheckCircle2Icon size={22} color="#1D4ED8" />}
               />
-              <CategoryStat
+              <AdminStatCard
                 label="Inactive"
                 value={inactiveCategoryCount}
-                icon="inactive"
                 tint="#9A3412"
                 iconBackground="#FED7AA"
                 decorColor="#FED7AA"
+                icon={<AlertCircleIcon size={22} color="#9A3412" />}
               />
-              <CategoryStat
+              <AdminStatCard
                 label="Products"
                 value={foods.length}
-                icon="products"
                 tint="#6D28D9"
                 iconBackground="#DDD6FE"
                 decorColor="#DDD6FE"
+                icon={<ProductIcon color="#6D28D9" size={22} />}
               />
             </View>
             <View
@@ -1426,89 +1427,6 @@ function CategoryStatusBadge({ active }: { active: boolean }) {
       >
         {active ? 'Active' : 'Inactive'}
       </Text>
-    </View>
-  );
-}
-
-function CategoryStat({
-  label,
-  value,
-  icon,
-  tint,
-  iconBackground,
-  decorColor,
-}: {
-  label: string;
-  value: number;
-  icon: 'total' | 'active' | 'inactive' | 'products';
-  tint: string;
-  iconBackground: string;
-  decorColor: string;
-}) {
-  return (
-    <View
-      style={{
-        width: '48%',
-        minHeight: 90,
-        overflow: 'hidden',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-        borderRadius: 20,
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 14,
-        paddingVertical: 16,
-        elevation: 2,
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-      }}
-    >
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          bottom: -30,
-          right: -24,
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: decorColor,
-          opacity: 0.55,
-        }}
-      />
-      <View
-        className="h-11 w-11 items-center justify-center rounded-[14px]"
-        style={{ backgroundColor: iconBackground }}
-      >
-        {icon === 'total' ? (
-          <ImageIcon size={21} color={tint} strokeWidth={2} />
-        ) : icon === 'active' ? (
-          <CheckCircle2Icon size={21} color={tint} />
-        ) : icon === 'inactive' ? (
-          <AlertCircleIcon size={21} color={tint} />
-        ) : (
-          <ProductIcon color={tint} size={21} />
-        )}
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text
-          numberOfLines={1}
-          className="text-[10px] font-extrabold uppercase"
-          style={{ color: tint, letterSpacing: 0.8 }}
-        >
-          {label}
-        </Text>
-        <Text
-          className="mt-0.5 text-[22px] font-extrabold"
-          style={{ color: tint }}
-        >
-          {value}
-        </Text>
-      </View>
     </View>
   );
 }
