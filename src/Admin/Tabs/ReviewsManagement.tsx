@@ -23,6 +23,7 @@ import {
   ImageIcon,
   Trash2Icon,
 } from '../../components/popups';
+import AdminStatCard from '../../components/AdminStatCard';
 import { PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
 
 type ReviewStatus = 'Published' | 'Pending';
@@ -1380,23 +1381,26 @@ function ReviewStat({
   label: string;
   value: string | number;
 }) {
+  const theme =
+    label === 'Pending'
+      ? { tint: '#9A3412', iconBackground: '#FED7AA' }
+      : label === 'Five-star reviews'
+      ? { tint: '#1D4ED8', iconBackground: '#BFDBFE' }
+      : label === 'Photo reviews'
+      ? { tint: '#6D28D9', iconBackground: '#DDD6FE' }
+      : label === 'Published'
+      ? { tint: '#0F766E', iconBackground: '#CCFBF1' }
+      : { tint: '#166534', iconBackground: '#DCFCE7' };
+
   return (
-    <View className="min-h-[90px] w-[48%] flex-row items-center gap-3 overflow-hidden rounded-2xl border border-[#F1F5F9] bg-white px-3 py-4">
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#DCFCE7]">
-        <ImageIcon size={20} color="#166534" />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text
-          numberOfLines={1}
-          className="text-[10px] font-extrabold uppercase tracking-wide text-[#166534]"
-        >
-          {label}
-        </Text>
-        <Text className="mt-1 text-xl font-extrabold text-[#166534]">
-          {value}
-        </Text>
-      </View>
-    </View>
+    <AdminStatCard
+      label={label}
+      value={value}
+      tint={theme.tint}
+      iconBackground={theme.iconBackground}
+      decorColor={theme.iconBackground}
+      icon={<ImageIcon size={22} color={theme.tint} strokeWidth={2} />}
+    />
   );
 }
 

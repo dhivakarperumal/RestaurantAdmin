@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import api, { API_BASE_URL } from '../../../api';
+import AdminStatCard from '../../components/AdminStatCard';
 import {
   PlusIcon,
   ProductIcon,
@@ -563,27 +564,30 @@ function Cuisine({
 export default Cuisine;
 
 function CuisineStat({ label, value }: { label: string; value: number }) {
+  const theme =
+    label === 'Active'
+      ? { tint: '#9A3412', iconBackground: '#FED7AA' }
+      : label === 'Featured'
+      ? { tint: '#1D4ED8', iconBackground: '#BFDBFE' }
+      : label === 'Inactive'
+      ? { tint: '#6D28D9', iconBackground: '#DDD6FE' }
+      : { tint: '#166534', iconBackground: '#DCFCE7' };
+
   return (
-    <View className="min-h-[90px] w-[48%] flex-row items-center gap-3 rounded-2xl border border-[#F1F5F9] bg-white px-3 py-4">
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#DCFCE7]">
-        {label === 'Active' ? (
-          <CheckCircle2Icon size={20} color="#166534" />
+    <AdminStatCard
+      label={label}
+      value={value}
+      tint={theme.tint}
+      iconBackground={theme.iconBackground}
+      decorColor={theme.iconBackground}
+      icon={
+        label === 'Active' ? (
+          <CheckCircle2Icon size={22} color={theme.tint} />
         ) : (
-          <ImageIcon size={20} color="#166534" />
-        )}
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text
-          numberOfLines={1}
-          className="text-[10px] font-extrabold uppercase tracking-wide text-[#166534]"
-        >
-          {label}
-        </Text>
-        <Text className="mt-1 text-xl font-extrabold text-[#166534]">
-          {value}
-        </Text>
-      </View>
-    </View>
+          <ImageIcon size={22} color={theme.tint} strokeWidth={2} />
+        )
+      }
+    />
   );
 }
 
