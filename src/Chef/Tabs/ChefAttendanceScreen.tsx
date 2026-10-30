@@ -96,27 +96,43 @@ function AttendanceHistorySkeleton({ tableView }: { tableView: boolean }) {
   const renderRow = (index: number) => (
     <View
       key={index}
-      className={`flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white p-2 ${
-        tableView ? 'mb-2 h-[76px] w-[550px]' : 'mb-2 min-h-[76px] w-full'
+      className={`flex-row items-center rounded-xl border border-[#E5E7EB] bg-white ${
+        tableView
+          ? 'mb-2 h-[76px] w-[550px]'
+          : 'mb-2 min-h-[76px] w-full gap-2 p-2'
       }`}
     >
-      <View className="h-[58px] w-[54px] rounded-lg bg-slate-100" />
-      <View className={tableView ? 'w-[145px] gap-2 px-2' : 'w-[82px] gap-2'}>
+      <View
+        className={`h-[58px] rounded-lg bg-slate-100 ${
+          tableView ? 'mx-[9px] w-[54px] shrink-0' : 'w-[54px]'
+        }`}
+      />
+      <View
+        className={
+          tableView
+            ? 'w-[150px] shrink-0 gap-2 border-l border-[#E5E7EB] px-2'
+            : 'w-[82px] gap-2'
+        }
+      >
         <View className="h-5 w-16 rounded-full bg-slate-100" />
         <View className="h-3 w-20 rounded-md bg-slate-100" />
         <View className="h-3 w-16 rounded-md bg-slate-100" />
       </View>
       <View
-        className={`gap-2 border-l border-[#E5E7EB] pl-2 ${
-          tableView ? 'w-[215px]' : 'min-w-0 flex-1'
+        className={`gap-2 border-l border-[#E5E7EB] ${
+          tableView
+            ? 'w-[218px] shrink-0 px-3'
+            : 'min-w-0 flex-1 pl-2'
         }`}
       >
         <View className="h-3 w-20 rounded-md bg-slate-100" />
         <View className="h-3 w-20 rounded-md bg-slate-100" />
       </View>
       <View
-        className={`items-center justify-center gap-2 rounded-lg bg-[#F0F8F1] ${
-          tableView ? 'h-[58px] w-[90px]' : 'h-[58px] w-[68px]'
+        className={`h-[58px] items-center justify-center gap-2 rounded-lg bg-[#F0F8F1] ${
+          tableView
+            ? 'mx-[10px] w-[90px] shrink-0'
+            : 'w-[68px]'
         }`}
       >
         <View className="h-4 w-12 rounded-md bg-slate-100" />
@@ -137,8 +153,8 @@ function AttendanceHistorySkeleton({ tableView }: { tableView: boolean }) {
     <View accessibilityLabel="Loading attendance history">
       <ScrollView horizontal showsHorizontalScrollIndicator>
         <View className="w-[550px]">
-          <View className="mb-2 h-9 w-[550px] flex-row items-center rounded-lg border border-[#E5E7EB] bg-white px-2">
-            {[75, 145, 215, 90].map((width, index) => (
+          <View className="mb-2 h-9 w-[550px] flex-row items-center rounded-lg border border-[#E5E7EB] bg-white">
+            {[72, 150, 218, 110].map((width, index) => (
               <View key={index} className="px-2" style={{ width }}>
                 <View className="h-2.5 w-3/4 rounded-md bg-slate-200" />
               </View>
@@ -293,7 +309,13 @@ function ChefAttendanceScreen({
             : 'mb-2 min-h-[76px] w-full flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white p-2'
         }`}
       >
-        <View className={tableView ? 'w-[75px] items-center px-2' : 'w-[54px] shrink-0'}>
+        <View
+          className={
+            tableView
+              ? 'w-[72px] shrink-0 items-center px-2'
+              : 'w-[54px] shrink-0'
+          }
+        >
           <View className="h-[58px] w-full items-center justify-center rounded-lg bg-[#F7FAFC]">
             <Text className="text-[8px] font-bold text-[#64748B]">
               {parts.weekday}
@@ -314,7 +336,9 @@ function ChefAttendanceScreen({
 
         <View
           className={`justify-center ${
-            tableView ? 'w-[145px] px-2' : 'w-[82px] shrink-0'
+            tableView
+              ? 'w-[150px] shrink-0 border-l border-[#E5E7EB] px-2'
+              : 'w-[82px] shrink-0'
           }`}
         >
           <Text
@@ -338,7 +362,9 @@ function ChefAttendanceScreen({
 
         <View
           className={`justify-center border-l border-[#E5E7EB] pl-2 ${
-            tableView ? 'w-[215px] px-2' : 'min-w-0 flex-1'
+            tableView
+              ? 'w-[218px] shrink-0 px-3'
+              : 'min-w-0 flex-1'
           }`}
         >
           <View className="flex-row items-center gap-1.5">
@@ -364,7 +390,7 @@ function ChefAttendanceScreen({
         <View
           className={`items-center justify-center rounded-lg bg-[#F0F8F1] ${
             tableView
-              ? 'mx-2 h-[58px] w-[90px]'
+              ? 'mx-[10px] h-[58px] w-[90px] shrink-0'
               : 'h-[58px] w-[68px] shrink-0'
           }`}
         >
@@ -622,19 +648,19 @@ function ChefAttendanceScreen({
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <View className="w-[550px]">
                   <View className="mb-2 h-9 w-[550px] flex-row items-center rounded-lg border border-[#E5E7EB] bg-white">
-                    <View className="w-[75px] flex-row items-center justify-center gap-1">
+                    <View className="w-[72px] flex-row items-center justify-center gap-1">
                       <CalendarIcon color="#64748B" size={12} />
                       <Text className="text-[8px] font-bold uppercase text-[#64748B]">
                         Date
                       </Text>
                     </View>
-                    <Text className="w-[145px] px-2 text-[8px] font-bold uppercase text-[#64748B]">
+                    <Text className="w-[150px] border-l border-[#E5E7EB] px-2 text-[8px] font-bold uppercase text-[#64748B]">
                       Status / Shift
                     </Text>
-                    <Text className="w-[215px] px-2 text-[8px] font-bold uppercase text-[#64748B]">
+                    <Text className="w-[218px] border-l border-[#E5E7EB] px-3 text-[8px] font-bold uppercase text-[#64748B]">
                       Clock times
                     </Text>
-                    <Text className="w-[90px] text-center text-[8px] font-bold uppercase text-[#64748B]">
+                    <Text className="w-[110px] text-center text-[8px] font-bold uppercase text-[#64748B]">
                       Total
                     </Text>
                   </View>
