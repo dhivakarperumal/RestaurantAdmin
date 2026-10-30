@@ -722,6 +722,11 @@ function Categories({
           paddingBottom: 96,
           width: '100%',
         }}
+        ListHeaderComponentStyle={{
+          position: 'relative',
+          zIndex: openFilter ? 100 : 0,
+          elevation: openFilter ? 100 : 0,
+        }}
         ListHeaderComponent={
           <View
             className="mb-5 gap-5"
