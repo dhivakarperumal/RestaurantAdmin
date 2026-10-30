@@ -11,6 +11,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
+import {
+  CustomersIcon,
+  ReceiptIcon,
+} from '../Admin/Navigation/NavigationIcons';
 import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
 import { FormModal } from '../components/popups';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
@@ -591,99 +595,135 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         </Pressable>
       </View>
 
-      <Card className="border-emerald-200 bg-[#F0F7EE]">
-        <View className="flex-row items-center justify-between gap-3">
-          <View className="flex-1">
-            <View className="flex-row flex-wrap items-center gap-2">
-              <Text className="text-xs font-bold uppercase tracking-widest text-[#116C0B]">
+      <View className="relative mb-3 overflow-hidden rounded-[22px] border border-[#C9E9D4] bg-[#F1FBF4] p-3.5">
+        <View
+          pointerEvents="none"
+          className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-[#D9F2E0] opacity-70"
+        />
+        <View className="relative flex-row items-center gap-2.5">
+          <View className="h-[50px] w-[50px] items-center justify-center rounded-2xl border border-[#D5EDDD] bg-white/80">
+            <CustomersIcon color="#14764A" size={27} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <View className="flex-row flex-wrap items-center gap-1.5">
+              <Text className="text-[9px] font-extrabold uppercase tracking-[1px] text-[#28704B]">
                 Today’s Attendance
               </Text>
               {attendance?.status ? (
                 <Text
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ${
+                  className={`rounded-full px-2 py-0.5 text-[8px] font-extrabold uppercase ${
                     text(attendance.status).toLowerCase() === 'late'
                       ? 'bg-amber-100 text-amber-800'
-                      : 'bg-emerald-100 text-emerald-800'
+                      : 'bg-[#D9F5E5] text-[#187443]'
                   }`}
                 >
                   {text(attendance.status)}
                 </Text>
               ) : null}
             </View>
-            <Text className="mt-1 text-sm font-extrabold text-[#123B2D]">
+            <Text className="mt-1 text-[13px] font-extrabold text-[#123B2D]">
               {attendanceIsWorking
                 ? 'You are on duty'
                 : attendance?.check_in && attendance?.check_out
                   ? 'Shift completed for today'
                   : 'Shift not yet started'}
             </Text>
-            <Text className="mt-1 text-xs text-[#52665A]">
+            <Text numberOfLines={2} className="mt-0.5 text-[10px] leading-[15px] text-[#52665A]">
               {attendanceIsWorking
-                ? `Clocked in at ${formatTime(attendance?.check_in)} · ${formatDuration(attendanceSeconds)} logged`
+                ? `Clocked in at ${formatTime(attendance?.check_in)}`
                 : attendance?.check_in && attendance?.check_out
-                  ? `Worked from ${formatTime(attendance?.check_in)} to ${formatTime(attendance?.check_out)} (${text(attendance.total_hours, '0')} hrs total).`
-                  : 'Clock in here or during your scheduled shift to mark attendance.'}
+                  ? `Worked ${formatTime(attendance?.check_in)} – ${formatTime(attendance?.check_out)}`
+                  : 'Clock in to start your shift'}
             </Text>
-            {shiftInfo ? (
-              <Text className="mt-1 text-[11px] text-[#6B7280]">
-                Shift: {text(shiftInfo.name ?? shiftInfo.shift_name ?? shiftInfo.start_time, 'Scheduled')}
-              </Text>
-            ) : null}
+          </View>
+          <View className="w-[91px] items-stretch gap-2">
             <Pressable
               accessibilityRole="button"
-              onPress={() => navigateToChefTab('attendance')}
-              className="mt-2 self-start"
+              disabled={isAttendanceBusy}
+              onPress={updateAttendance}
+              className="items-center rounded-xl bg-[#08623F] px-2 py-2.5"
             >
-              <Text className="text-xs font-bold text-[#116C0B]">
-                Attendance history
+              <Text numberOfLines={1} className="text-[10px] font-extrabold text-white">
+                {isAttendanceBusy
+                  ? 'Please wait'
+                  : attendanceIsWorking
+                    ? 'Clock Out'
+                    : attendance?.check_in && attendance?.check_out
+                      ? 'Resume Shift'
+                      : 'Clock In'}
               </Text>
             </Pressable>
+            <View className="rounded-xl border border-[#D9EDE0] bg-white/80 px-2 py-1.5">
+              <Text className="text-[8px] font-semibold text-[#52715E]">
+                Today’s working time
+              </Text>
+              <Text className="mt-0.5 text-[10px] font-extrabold text-[#164D35]">
+                {formatDuration(attendanceSeconds)}
+              </Text>
+            </View>
           </View>
+        </View>
+        <View className="relative mt-2.5 flex-row items-center justify-between border-t border-[#DCEFE2] pt-2">
+          <Text numberOfLines={1} className="flex-1 text-[9px] text-[#617668]">
+            Shift: {text(shiftInfo?.name ?? shiftInfo?.shift_name, 'Scheduled')}
+          </Text>
           <Pressable
             accessibilityRole="button"
-            disabled={isAttendanceBusy}
-            onPress={updateAttendance}
-            className="rounded-xl bg-[#116C0B] px-3 py-2.5"
+            onPress={() => navigateToChefTab('attendance')}
+            className="pl-2"
           >
-            <Text className="text-xs font-bold text-white">
-              {isAttendanceBusy
-                ? 'Please wait…'
-                : attendanceIsWorking
-                  ? 'Clock out'
-                  : attendance?.check_in && attendance?.check_out
-                    ? 'Resume shift'
-                    : 'Clock in now'}
+            <Text className="text-[10px] font-extrabold text-[#14764A]">
+              Attendance
             </Text>
           </Pressable>
         </View>
-      </Card>
+      </View>
 
       {upcomingEventOrders.length > 0 ? (
-        <Card className="border-amber-300 bg-[#FFFBEB]">
-          <View className="flex-row items-center justify-between gap-3">
-            <View className="flex-1">
-              <Text className="text-sm font-extrabold text-amber-950">
-                {upcomingEventOrders.length} Confirmed Event Order
+        <View className="relative mb-3 overflow-hidden rounded-[22px] border border-[#F2D98C] bg-[#FFF9E9] p-3.5">
+          <View
+            pointerEvents="none"
+            className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-[#FCE9B9] opacity-60"
+          />
+          <View className="relative flex-row items-center gap-2.5">
+            <View className="h-[48px] w-[48px] items-center justify-center rounded-2xl border border-[#F5E3B0] bg-white/80">
+              <ReceiptIcon color="#B57618" size={25} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <View className="flex-row flex-wrap items-center gap-1.5">
+                <Text className="text-[9px] font-extrabold uppercase tracking-[0.8px] text-[#9A671F]">
+                  Confirmed Event Orders
+                </Text>
+                <Text className="rounded-full bg-[#FCE8B8] px-2 py-0.5 text-[8px] font-extrabold text-[#8A5A16]">
+                  {upcomingEventOrders.length}{' '}
+                  {upcomingEventOrders.length === 1 ? 'Order' : 'Orders'}
+                </Text>
+              </View>
+              <Text className="mt-1 text-[13px] font-extrabold text-[#5B3512]">
+                {upcomingEventOrders.length} Event Order
                 {upcomingEventOrders.length === 1 ? '' : 's'} to Prepare
               </Text>
-              <Text className="mt-1 text-xs text-amber-800">
+              <Text numberOfLines={1} className="mt-0.5 text-[10px] text-[#8A5A2A]">
                 Next: {text(upcomingEventOrders[0].event_type, 'Catering Event')}
-                {' · '}
-                {text(upcomingEventOrders[0].guest_count, '—')} guests on{' '}
+              </Text>
+              <Text numberOfLines={1} className="mt-1 text-[9px] font-semibold text-[#8A5A2A]">
+                {text(upcomingEventOrders[0].guest_count, '—')} guests
+                {'  ·  '}
                 {formatShortDate(upcomingEventOrders[0].event_date)}
               </Text>
             </View>
             <Pressable
               accessibilityRole="button"
               onPress={() => navigateToChefTab('event-orders')}
-              className="rounded-xl bg-[#123B2D] px-3 py-2.5"
+              className="flex-row items-center rounded-full bg-[#8A4B14] px-2.5 py-2"
             >
-              <Text className="text-xs font-bold text-white">
-                Event orders
+              <Text className="text-[9px] font-extrabold text-white">
+                Event Orders
               </Text>
+              <Text className="ml-1 text-[13px] leading-4 text-white">›</Text>
             </Pressable>
           </View>
-        </Card>
+        </View>
       ) : null}
 
       <View
