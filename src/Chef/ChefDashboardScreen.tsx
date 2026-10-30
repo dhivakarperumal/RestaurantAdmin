@@ -1806,7 +1806,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         onSave={submitInventoryRequest}
         saveLabel="Send Request"
         cancelLabel="Cancel"
-        cancelButtonVariant="text"
+        actionsLayout="horizontal"
         isSaving={isSavingRequest}
         errorMessage={requestError}
       >

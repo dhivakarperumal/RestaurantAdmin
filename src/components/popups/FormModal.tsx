@@ -17,6 +17,7 @@ export type FormModalProps = Omit<BaseModalProps, 'children' | 'footer'> & {
   saveLabel?: string;
   cancelLabel?: string;
   cancelButtonVariant?: 'outlined' | 'text';
+  actionsLayout?: 'vertical' | 'horizontal';
   isSaving?: boolean;
   isSaveDisabled?: boolean;
   errorMessage?: string | null;
@@ -40,6 +41,7 @@ export function FormModal({
   saveLabel = 'Save',
   cancelLabel = 'Cancel',
   cancelButtonVariant = 'outlined',
+  actionsLayout = 'vertical',
   isSaving = false,
   isSaveDisabled = false,
   errorMessage,
@@ -55,18 +57,28 @@ export function FormModal({
     <View style={styles.footerContainer}>
       {footerExtra}
 
-      <View style={styles.actionButtons}>
+      <View
+        style={[
+          styles.actionButtons,
+          actionsLayout === 'horizontal' && styles.actionButtonsHorizontal,
+        ]}
+      >
         {onSave ? (
           <Pressable
             accessibilityLabel={saveLabel}
             accessibilityRole="button"
             disabled={isSubmitDisabled}
             onPress={onSave}
-            className={`flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl active:opacity-90 ${
-              isSubmitDisabled ? 'opacity-50' : ''
-            }`}
+            className={
+              actionsLayout === 'horizontal'
+                ? undefined
+                : `flex-1 h-12 min-h-[48px] flex-row items-center justify-center rounded-2xl active:opacity-90 ${
+                    isSubmitDisabled ? 'opacity-50' : ''
+                  }`
+            }
             style={[
               styles.saveButton,
+              actionsLayout === 'horizontal' && styles.horizontalActionButton,
               { backgroundColor: saveButtonColor },
               isSubmitDisabled && styles.saveButtonDisabled,
             ]}
@@ -101,11 +113,22 @@ export function FormModal({
             onPress={onClose}
             style={({ pressed }) => [
               styles.cancelButton,
+              actionsLayout === 'horizontal' && [
+                styles.cancelButtonHalfWidth,
+                styles.horizontalActionButton,
+              ],
               pressed && styles.buttonPressed,
               isSaving && styles.buttonDisabled,
             ]}
           >
-            <Text style={styles.cancelText}>{cancelLabel}</Text>
+            <Text
+              style={[
+                styles.cancelText,
+                actionsLayout === 'horizontal' && styles.cancelTextGreen,
+              ]}
+            >
+              {cancelLabel}
+            </Text>
           </Pressable>
         ) : null}
       </View>
@@ -198,6 +221,9 @@ const styles = StyleSheet.create({
     gap: 8,
     width: '100%',
   },
+  actionButtonsHorizontal: {
+    flexDirection: 'row-reverse',
+  },
   cancelButton: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -209,6 +235,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     width: '100%',
+  },
+  cancelButtonHalfWidth: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#14764A',
+    flex: 1,
+    width: undefined,
+  },
+  horizontalActionButton: {
+    elevation: 0,
+    flex: 1,
+    height: 48,
+    minHeight: 48,
+    paddingVertical: 0,
+    shadowOpacity: 0,
+    width: undefined,
+  },
+  cancelTextGreen: {
+    color: '#14764A',
   },
   cancelTextButton: {
     alignItems: 'flex-start',
