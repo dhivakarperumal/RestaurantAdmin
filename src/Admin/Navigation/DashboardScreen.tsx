@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -625,10 +632,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       setExistingBillContext(null);
       setInitialOrderTable(null);
       setNewOrderType(null);
-      setSelectedFeature(null);
+      setSelectedFeature('Tables');
       setSelectedAction(null);
       setActiveTab('more');
-      setIsBillPreviewOpen(true);
+      setIsBillPreviewOpen(false);
       setIsSidebarOpen(false);
       setIsNotificationsOpen(false);
     }
@@ -639,6 +646,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setInitialOrderTable(activeBillTable);
     setNewOrderType('DINE_IN');
     setActiveTab('add');
+    setSelectedFeature(null);
     setIsBillPreviewOpen(false);
   };
 
@@ -662,6 +670,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setExistingBillContext(null);
     setInitialOrderTable(null);
     setNewOrderType(null);
+    setSelectedFeature('Tables');
     setActiveTab('more');
     setIsBillPreviewOpen(true);
     setDashboardRefresh(count => count + 1);
@@ -683,6 +692,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       setExistingBillContext(null);
       setInitialOrderTable(null);
       setNewOrderType(null);
+      setSelectedFeature('Tables');
       setActiveTab('more');
       setIsBillPreviewOpen(true);
       return;
@@ -717,9 +727,22 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const navigateFromSidebar = (tab: AppTab) => {
     if (tab === 'more') {
       navigateToMoreFeature(null);
+      if (isWide) {
+        setIsSidebarOpen(true);
+      }
       return;
     }
     navigateToTab(tab);
+    if (isWide) {
+      setIsSidebarOpen(true);
+    }
+  };
+
+  const navigateFeatureFromSidebar = (feature: string) => {
+    navigateToMoreFeature(feature);
+    if (isWide) {
+      setIsSidebarOpen(true);
+    }
   };
 
   const handleItemsInnerPageVisibilityChange = (isVisible: boolean) => {
@@ -1063,10 +1086,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       {isWide && isSidebarOpen ? (
         <View className="flex-1 flex-row">
           <Sidebar
+            activeTab={activeTab}
+            selectedFeature={selectedFeature}
             onClose={() => setIsSidebarOpen(false)}
             onNavigate={navigateFromSidebar}
             features={moreFeatures}
-            onSelectFeature={navigateToMoreFeature}
+            onSelectFeature={navigateFeatureFromSidebar}
             onLogout={() => setIsLogoutConfirmOpen(true)}
           />
           <View className="flex-1">
@@ -1235,10 +1260,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           >
             <Sidebar
               fullWidth
+              activeTab={activeTab}
+              selectedFeature={selectedFeature}
               onClose={() => setIsSidebarOpen(false)}
               onNavigate={navigateFromSidebar}
               features={moreFeatures}
-              onSelectFeature={navigateToMoreFeature}
+              onSelectFeature={navigateFeatureFromSidebar}
               onLogout={() => setIsLogoutConfirmOpen(true)}
             />
           </View>
@@ -1797,13 +1824,21 @@ function MainContent({
 }) {
   if (activeBillTable && !(activeTab === 'add' && newOrderType)) {
     return (
-      <ActiveBillPreview
-        table={activeBillTable}
-        onBack={onBackToTables}
-        onViewBillHistory={onOpenBillHistory}
-        onAddItems={onAddItemsToExistingBill}
-        onCompleted={onActiveBillCompleted}
-      />
+      <>
+        <TablesScreen
+          onBack={() => onSelectFeature(null)}
+          onSelectTable={onSelectTable}
+          showBackButton={false}
+          userId={userId}
+        />
+        <ActiveBillPreview
+          table={activeBillTable}
+          onBack={onBackToTables}
+          onViewBillHistory={onOpenBillHistory}
+          onAddItems={onAddItemsToExistingBill}
+          onCompleted={onActiveBillCompleted}
+        />
+      </>
     );
   }
 
@@ -4056,8 +4091,67 @@ function EntryForm({
   );
 }
 
+function SidebarNavItem({
+  icon: Icon,
+  label,
+  isActive,
+  onPress,
+}: {
+  icon: ComponentType<{ color: string; size?: number }>;
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isActive }}
+      onPress={onPress}
+      className="my-0.5 w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
+      style={({ pressed }) => ({
+        backgroundColor: isActive
+          ? pressed
+            ? '#E2F1E4'
+            : '#EBF6EC'
+          : pressed
+          ? '#F3F4F6'
+          : 'transparent',
+        borderColor: isActive ? '#BBE2B3' : 'transparent',
+        borderWidth: 1,
+      })}
+    >
+      <View
+        style={{
+          alignItems: 'center',
+          backgroundColor: isActive ? colors.primary : '#F0F7EE',
+          borderRadius: 12,
+          height: 38,
+          justifyContent: 'center',
+          width: 38,
+        }}
+      >
+        <Icon color={isActive ? '#FFFFFF' : colors.primary} size={19} />
+      </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          color: isActive ? colors.primaryDark : '#1F2937',
+          flex: 1,
+          fontSize: 14,
+          fontWeight: isActive ? '700' : '500',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function Sidebar({
   fullWidth = false,
+  activeTab,
+  selectedFeature,
   onClose,
   onNavigate,
   features,
@@ -4065,21 +4159,46 @@ function Sidebar({
   onLogout,
 }: {
   fullWidth?: boolean;
+  activeTab: AppTab;
+  selectedFeature?: string | null;
   onClose: () => void;
   onNavigate: (tab: AppTab) => void;
   features: MoreFeature[];
   onSelectFeature: (feature: string) => void;
   onLogout?: () => void;
 }) {
-  const [isMoreExpanded, setIsMoreExpanded] = useState(false);
+  const isFeatureActive = (featureTitle: string): boolean => {
+    if (activeTab !== 'more') return false;
+    if (selectedFeature === featureTitle) return true;
+    if (featureTitle === 'Categories' && selectedFeature === 'AddCategory') {
+      return true;
+    }
+    if (featureTitle === 'Cuisines' && selectedFeature === 'AddCuisine') {
+      return true;
+    }
+    if (
+      featureTitle === 'Staff & Employees' &&
+      (selectedFeature === 'Employee Management' ||
+        selectedFeature === 'Staff & Employees')
+    ) {
+      return true;
+    }
+    if (
+      featureTitle === 'Orders Management' &&
+      (selectedFeature === 'Orders Management' || selectedFeature === 'Orders')
+    ) {
+      return true;
+    }
+    return false;
+  };
 
   return (
     <View
       className={`${
-        fullWidth ? 'w-full' : 'w-64'
+        fullWidth ? 'w-full' : 'w-64 md:w-72'
       } flex-1 border-r border-[#E5E7EB] bg-white px-4 py-5`}
     >
-      <View className="mb-5 flex-row items-center justify-between gap-3">
+      <View className="mb-4 flex-row items-center justify-between gap-3">
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
           <Image
             accessibilityLabel="Buy Food logo"
@@ -4102,81 +4221,89 @@ function Sidebar({
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pb-5"
+        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
+        <Text
+          style={{
+            color: '#6B7280',
+            fontSize: 11,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+            marginBottom: 8,
+            paddingHorizontal: 12,
+            paddingTop: 4,
+          }}
+        >
           WORKSPACE
         </Text>
-        <TabButtonLarge
+        <SidebarNavItem
           icon={HomeIcon}
           label="Home"
+          isActive={activeTab === 'home' && !selectedFeature}
           onPress={() => onNavigate('home')}
         />
-        <TabButtonLarge
+        <SidebarNavItem
           icon={ReceiptIcon}
           label="Bill History"
+          isActive={activeTab === 'billHistory' && !selectedFeature}
           onPress={() => onNavigate('billHistory')}
         />
-        <TabButtonLarge
+        <SidebarNavItem
           icon={ProductIcon}
           label="Items"
+          isActive={activeTab === 'items' && !selectedFeature}
           onPress={() => onNavigate('items')}
         />
-        <TabButtonLarge
+        <SidebarNavItem
           icon={OrdersIcon}
           label="Orders"
+          isActive={activeTab === 'orders' && !selectedFeature}
           onPress={() => onNavigate('orders')}
         />
-        <Pressable
-          accessibilityLabel="More"
-          accessibilityRole="button"
-          accessibilityState={{ expanded: isMoreExpanded }}
-          onPress={() => setIsMoreExpanded(expanded => !expanded)}
-          className="w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
-          style={({ pressed }) => ({
-            backgroundColor: pressed ? '#EFF6FF' : colors.surface,
-          })}
+
+        <View
+          style={{
+            backgroundColor: '#E5E7EB',
+            height: 1,
+            marginHorizontal: 4,
+            marginVertical: 12,
+          }}
+        />
+
+        <Text
+          style={{
+            color: '#6B7280',
+            fontSize: 11,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+            marginBottom: 8,
+            paddingHorizontal: 12,
+            paddingTop: 4,
+          }}
         >
-          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F7EE]">
-            <MoreIcon color={colors.primary} size={21} />
-          </View>
-          <Text className="flex-1 text-base font-semibold text-[#012711]">
-            More
-          </Text>
-          <Text className="px-2 text-sm text-[#6B7280]">
-            {isMoreExpanded ? '⌃' : '⌄'}
-          </Text>
-        </Pressable>
-        {isMoreExpanded ? (
-          <View className="ml-4 mt-1 gap-1 border-l border-[#E5E7EB] pl-2">
-            {features.map(feature => {
-              const Icon = feature.icon;
-              return (
-                <Pressable
-                  accessibilityLabel={`Open ${feature.title}`}
-                  accessibilityRole="button"
-                  key={feature.title}
-                  onPress={() => onSelectFeature(feature.title)}
-                  className="min-h-12 w-full flex-row items-center gap-3 rounded-xl px-3 py-2"
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-                  })}
-                >
-                  <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0F7EE]">
-                    <Icon color={colors.primary} size={17} />
-                  </View>
-                  <Text className="flex-1 text-sm font-medium text-[#012711]">
-                    {feature.title}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
+          MANAGEMENT
+        </Text>
+        {features.map(feature => (
+          <SidebarNavItem
+            key={feature.title}
+            icon={feature.icon}
+            label={feature.title}
+            isActive={isFeatureActive(feature.title)}
+            onPress={() => onSelectFeature(feature.title)}
+          />
+        ))}
 
         {onLogout ? (
-          <View className="mt-5 border-t border-[#E5E7EB] pt-4">
+          <View
+            style={{
+              borderTopColor: '#E5E7EB',
+              borderTopWidth: 1,
+              marginTop: 16,
+              paddingTop: 16,
+            }}
+          >
             <Pressable
               accessibilityLabel="Sign out of account"
               accessibilityRole="button"
@@ -4184,12 +4311,44 @@ function Sidebar({
                 onClose();
                 onLogout();
               }}
-              className="w-full flex-row items-center gap-3 rounded-xl bg-[#FEF2F2] px-3 py-3 active:bg-[#FEE2E2]"
+              style={({ pressed }) => ({
+                alignItems: 'center',
+                backgroundColor: pressed ? '#FEE2E2' : '#FEF2F2',
+                borderColor: '#FECACA',
+                borderRadius: 14,
+                borderWidth: 1,
+                flexDirection: 'row',
+                gap: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+                width: '100%',
+              })}
             >
-              <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-xs">
+              <View
+                style={{
+                  alignItems: 'center',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 10,
+                  elevation: 1,
+                  height: 36,
+                  justifyContent: 'center',
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  width: 36,
+                }}
+              >
                 <LogOutIcon color="#DC2626" size={18} />
               </View>
-              <Text className="flex-1 text-sm font-bold text-[#DC2626]">
+              <Text
+                style={{
+                  color: '#DC2626',
+                  flex: 1,
+                  fontSize: 14,
+                  fontWeight: '700',
+                }}
+              >
                 Sign Out
               </Text>
             </Pressable>
@@ -4197,35 +4356,6 @@ function Sidebar({
         ) : null}
       </ScrollView>
     </View>
-  );
-}
-
-function TabButtonLarge({
-  icon: Icon,
-  label,
-  onPress,
-}: {
-  icon: typeof HomeIcon;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      onPress={onPress}
-      className="w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? '#EFF6FF' : colors.surface,
-      })}
-    >
-      <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F7EE]">
-        <Icon color={colors.primary} size={21} />
-      </View>
-      <Text className="flex-1 text-base font-semibold text-[#012711]">
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
