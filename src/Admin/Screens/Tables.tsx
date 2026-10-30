@@ -21,20 +21,18 @@ import {
   Trash2Icon,
 } from '../../components/popups';
 import AdminStatCard from '../../components/AdminStatCard';
+import type { AdminTableRecord } from '../Navigation/DashboardTypes';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-type ServerTable = {
-  id?: string | number;
-  table_id?: string | number;
-  table_number?: string | number;
+type ServerTable = AdminTableRecord & {
   no_of_seats?: number | string;
   image_url?: string | null;
-  status?: string;
 };
 
 type TablesProps = {
   onBack: () => void;
+  onSelectTable: (table: ServerTable) => void;
   userId: string;
   showBackButton?: boolean;
 };
@@ -103,7 +101,12 @@ function unwrapData(payload: unknown): unknown {
   return current;
 }
 
-function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
+function Tables({
+  onBack,
+  onSelectTable,
+  userId,
+  showBackButton = true,
+}: TablesProps) {
   const [tables, setTables] = useState<ServerTable[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All statuses');
@@ -397,6 +400,11 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
       />
     </View>
   );
+
+  const canOpenTable = (table: ServerTable) =>
+    ['available', 'occupied', 'busy', 'seated'].includes(
+      (table.status?.trim() || 'Available').toLowerCase(),
+    );
 
   return (
     <View className="flex-1 bg-[#F8FAF8]">
@@ -805,9 +813,18 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                         </View>
                       )}
                     </View>
-                    <Text className="flex-1 text-xs font-semibold text-[#334155]">
-                      Table {getTableNumber(table)}
-                    </Text>
+                    <Pressable
+                      accessibilityLabel={`Open table ${getTableNumber(table)}, ${status}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: !canOpenTable(table) }}
+                      disabled={!canOpenTable(table)}
+                      onPress={() => onSelectTable(table)}
+                      className="flex-1"
+                    >
+                      <Text className="text-xs font-semibold text-[#334155]">
+                        Table {getTableNumber(table)}
+                      </Text>
+                    </Pressable>
                     <Text className="w-24 text-xs text-[#334155]">
                       {table.no_of_seats ?? '—'}
                     </Text>
@@ -855,14 +872,26 @@ function Tables({ onBack, userId, showBackButton = true }: TablesProps) {
                       <MenuIcon color={colors.primary} size={24} />
                     </View>
                   )}
-                  <View className="min-w-0 flex-1">
+                  <Pressable
+                    accessibilityLabel={`Open table ${getTableNumber(table)}, ${status}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !canOpenTable(table) }}
+                    disabled={!canOpenTable(table)}
+                    onPress={() => onSelectTable(table)}
+                    className="min-w-0 flex-1"
+                  >
                     <Text className="text-base font-bold text-[#012711]">
                       Table {getTableNumber(table)}
                     </Text>
                     <Text className="mt-1 text-xs text-[#6B7280]">
                       {table.no_of_seats ?? '—'} seats
                     </Text>
-                  </View>
+                    <Text className="mt-1 text-[10px] font-semibold text-[#116C0B]">
+                      {status.toLowerCase() === 'available'
+                        ? 'Tap to start order'
+                        : 'Tap to view bill'}
+                    </Text>
+                  </Pressable>
                   <Text
                     className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
                       status.toLowerCase() === 'available'

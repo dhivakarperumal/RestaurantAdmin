@@ -15,7 +15,11 @@ import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
 import { BaseModal, CustomAlert as Alert } from '../../components/popups';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
-import type { NewOrderType } from '../Navigation/DashboardTypes';
+import type {
+  AdminTableRecord,
+  ExistingBillContext,
+  NewOrderType,
+} from '../Navigation/DashboardTypes';
 
 type RecordValue = Record<string, unknown>;
 
@@ -58,12 +62,8 @@ type CartLine = {
   customizations: Record<string, string[]>;
 };
 
-type TableRecord = {
-  id?: string | number;
-  table_id?: string | number;
-  table_number?: string | number;
+type TableRecord = AdminTableRecord & {
   no_of_seats?: number | string;
-  status?: string;
 };
 
 function isRecord(value: unknown): value is RecordValue {
@@ -271,6 +271,26 @@ function containsActiveBill(payload: unknown): boolean {
   );
 }
 
+function readActiveBillId(payload: unknown): string | null {
+  let current = payload;
+  for (let depth = 0; depth < 5; depth += 1) {
+    if (!isRecord(current)) {
+      return null;
+    }
+    if (isRecord(current.bill)) {
+      current = current.bill;
+      continue;
+    }
+    if (isRecord(current.data)) {
+      current = current.data;
+      continue;
+    }
+    const id = current.bill_id ?? current.id;
+    return id === undefined || id === null ? null : String(id);
+  }
+  return null;
+}
+
 function formatCurrency(value: number) {
   return `₹${value.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
@@ -295,16 +315,22 @@ function getLinePrice(line: CartLine) {
 
 export default function NewOrderFlow({
   orderType,
+  initialTable,
+  existingBill,
   onBack,
   onOrderSubmitted,
 }: {
   orderType: NewOrderType;
+  initialTable?: AdminTableRecord;
+  existingBill?: ExistingBillContext;
   onBack: () => void;
   onOrderSubmitted: () => void;
 }) {
   const { width } = useWindowDimensions();
   const [tables, setTables] = useState<TableRecord[]>([]);
-  const [selectedTable, setSelectedTable] = useState<TableRecord | null>(null);
+  const [selectedTable, setSelectedTable] = useState<TableRecord | null>(
+    initialTable ?? null,
+  );
   const [isLoadingTables, setIsLoadingTables] = useState(
     orderType === 'DINE_IN',
   );
@@ -639,34 +665,72 @@ export default function NewOrderFlow({
         const latestTable = latestTables.find(
           table => String(table.table_id ?? table.id) === String(tableId),
         );
-        if (!latestTable || tableStatus(latestTable) !== 'Available') {
+        if (!latestTable) {
           throw new Error(
             `Table ${text(
               selectedTable.table_number,
-            )} is no longer available. Refresh tables and choose another table.`,
+            )} could not be verified. Refresh tables and try again.`,
           );
         }
-        try {
-          const activeBillResponse = await api.get(
-            `/table-bills/active/${encodeURIComponent(String(tableId))}`,
-          );
-          if (containsActiveBill(activeBillResponse.data)) {
+        if (existingBill) {
+          if (String(existingBill.tableId) !== String(tableId)) {
+            throw new Error(
+              'The selected table does not match the active bill.',
+            );
+          }
+          if (tableStatus(latestTable) !== 'Occupied') {
             throw new Error(
               `Table ${text(
                 selectedTable.table_number,
-              )} already has an active bill.`,
+              )} is no longer occupied. Refresh the bill and try again.`,
             );
           }
-        } catch (error) {
-          if (!(isRecord(error) && Number(error.status) === 404)) {
-            throw error;
+          const activeBillResponse = await api.get(
+            `/table-bills/active/${encodeURIComponent(String(tableId))}`,
+          );
+          if (
+            readActiveBillId(activeBillResponse.data) !== existingBill.billId
+          ) {
+            throw new Error(
+              'The active bill changed. Refresh the table and try again.',
+            );
+          }
+          payload.bill_id =
+            Number.isFinite(Number(existingBill.billId)) &&
+            existingBill.billId.trim()
+              ? Number(existingBill.billId)
+              : existingBill.billId;
+        } else {
+          if (tableStatus(latestTable) !== 'Available') {
+            throw new Error(
+              `Table ${text(
+                selectedTable.table_number,
+              )} is no longer available. Refresh tables and choose another table.`,
+            );
+          }
+          try {
+            const activeBillResponse = await api.get(
+              `/table-bills/active/${encodeURIComponent(String(tableId))}`,
+            );
+            if (containsActiveBill(activeBillResponse.data)) {
+              throw new Error(
+                `Table ${text(
+                  selectedTable.table_number,
+                )} already has an active bill.`,
+              );
+            }
+          } catch (error) {
+            if (!(isRecord(error) && Number(error.status) === 404)) {
+              throw error;
+            }
           }
         }
         payload.table_id =
           Number.isFinite(Number(tableId)) && String(tableId).trim()
             ? Number(tableId)
             : tableId;
-        payload.table_number = selectedTable.table_number;
+        payload.table_number =
+          existingBill?.tableNumber ?? selectedTable.table_number;
       } else {
         payload.customer_name = customerName.trim();
         payload.customer_phone = customerPhone.trim();
@@ -685,7 +749,7 @@ export default function NewOrderFlow({
       }
       setHasSubmitted(true);
 
-      if (isDineIn && selectedTable) {
+      if (isDineIn && selectedTable && !existingBill) {
         const tableId = selectedTable.table_id ?? selectedTable.id;
         if (
           tableId === undefined ||
@@ -721,14 +785,19 @@ export default function NewOrderFlow({
       }
 
       Alert.alert(
-        'Order sent to kitchen',
+        existingBill ? 'Items added to bill' : 'Order sent to kitchen',
         `${orderLabel}${
           selectedTable ? ` · Table ${text(selectedTable.table_number)}` : ''
         } · ${cart.reduce(
           (count, line) => count + line.quantity,
           0,
         )} items · ${formatCurrency(total)}`,
-        [{ text: 'View Orders', onPress: onOrderSubmitted }],
+        [
+          {
+            text: existingBill ? 'View Bill' : 'View Orders',
+            onPress: onOrderSubmitted,
+          },
+        ],
       );
     } catch (error) {
       Alert.alert(
