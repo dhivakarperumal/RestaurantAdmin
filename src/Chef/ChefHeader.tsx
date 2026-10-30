@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import {
   BellIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   LogoutIcon,
   ProfileIcon,
 } from '../Admin/Navigation/NavigationIcons';
@@ -115,9 +117,11 @@ function ChefHeader({
                   {initial}
                 </Text>
               </View>
-              <Text className="text-base leading-4 text-white">
-                {isAccountMenuOpen ? '⌃' : '⌄'}
-              </Text>
+              {isAccountMenuOpen ? (
+                <ChevronUpIcon color="#FFFFFF" size={14} />
+              ) : (
+                <ChevronDownIcon color="#FFFFFF" size={14} />
+              )}
             </Pressable>
           </View>
         </View>

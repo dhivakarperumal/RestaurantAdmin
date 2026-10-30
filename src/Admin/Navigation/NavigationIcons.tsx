@@ -91,6 +91,34 @@ export function BellIcon({ color, size = 20 }: NavigationIconProps) {
   );
 }
 
+export function ChevronDownIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="m6 9 6 6 6-6"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function ChevronUpIcon({ color, size = 20 }: NavigationIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="m6 15 6-6 6 6"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 export function LogoutIcon({ color, size = 20 }: NavigationIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
