@@ -10,7 +10,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
@@ -218,6 +221,7 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<ChefTab>('dashboard');
   const [selectedMorePage, setSelectedMorePage] = useState<
     'inventory' | 'stock' | 'profile' | null
@@ -1786,7 +1790,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           }
           accessibilityRole="button"
           onPress={openRequestModal}
-          className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#07583D] shadow-lg"
+          className="absolute right-5 h-14 w-14 items-center justify-center rounded-full bg-[#07583D] shadow-lg"
+          style={{ bottom: 48 + insets.bottom }}
         >
           <PlusIcon color="#FFFFFF" size={27} />
         </Pressable>
