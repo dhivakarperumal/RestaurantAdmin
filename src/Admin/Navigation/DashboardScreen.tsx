@@ -48,10 +48,12 @@ import type {
   ApiRevenueSummary,
   ApiRevenueStatus,
   ApiRevenueTrend,
+  AdminTableRecord,
   BillingLineItem,
   DashboardData,
   DashboardDateFilter,
   DashboardReport,
+  ExistingBillContext,
   LocalRecord,
   NewOrderType,
   QuickAction,
@@ -80,6 +82,7 @@ import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
 import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen';
 import TablesScreen from '../Screens/Tables';
+import ActiveBillPreview from '../Tabs/ActiveBillPreview';
 import CustomersScreen from '../Screens/Customers';
 import MorePage, { type MoreFeature } from '../Tabs/More';
 import api, { API_BASE_URL } from '../../../api';
@@ -304,6 +307,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const [activeTab, setActiveTab] = useState<AppTab>('home');
   const [isOrderTypeSheetOpen, setIsOrderTypeSheetOpen] = useState(false);
   const [newOrderType, setNewOrderType] = useState<NewOrderType | null>(null);
+  const [initialOrderTable, setInitialOrderTable] =
+    useState<AdminTableRecord | null>(null);
+  const [activeBillTable, setActiveBillTable] =
+    useState<AdminTableRecord | null>(null);
+  const [existingBillContext, setExistingBillContext] =
+    useState<ExistingBillContext | null>(null);
   const [itemsAddRequest, setItemsAddRequest] =
     useState<ItemsAddRequest | null>(null);
   const nextItemsAddRequestId = useRef(0);
@@ -548,6 +557,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   };
 
   const startNewOrder = (orderType: NewOrderType) => {
+    setActiveBillTable(null);
+    setExistingBillContext(null);
+    setInitialOrderTable(null);
     setNewOrderType(orderType);
     setIsOrderTypeSheetOpen(false);
     setActiveTab('add');
@@ -560,12 +572,88 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsNotificationsOpen(false);
   };
 
+  const startTableOrder = (table: AdminTableRecord) => {
+    setActiveBillTable(null);
+    setExistingBillContext(null);
+    setInitialOrderTable(table);
+    setNewOrderType('DINE_IN');
+    setIsOrderTypeSheetOpen(false);
+    setActiveTab('add');
+    setIsItemsInnerPageOpen(false);
+    setIsBillPreviewOpen(false);
+    setIsDeliveryAssignmentOpen(false);
+    setSelectedAction(null);
+    setSelectedFeature(null);
+    setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
+  };
+
+  const openTable = (table: AdminTableRecord) => {
+    const status = (table.status?.trim() || 'Available').toLowerCase();
+    if (status === 'available') {
+      startTableOrder(table);
+    } else if (['occupied', 'busy', 'seated'].includes(status)) {
+      setActiveBillTable(table);
+      setExistingBillContext(null);
+      setInitialOrderTable(null);
+      setNewOrderType(null);
+      setSelectedFeature(null);
+      setSelectedAction(null);
+      setActiveTab('more');
+      setIsBillPreviewOpen(true);
+      setIsSidebarOpen(false);
+      setIsNotificationsOpen(false);
+    }
+  };
+
+  const addItemsToExistingBill = (context: ExistingBillContext) => {
+    setExistingBillContext(context);
+    setInitialOrderTable(activeBillTable);
+    setNewOrderType('DINE_IN');
+    setActiveTab('add');
+    setIsBillPreviewOpen(false);
+  };
+
+  const returnToActiveBill = () => {
+    setExistingBillContext(null);
+    setInitialOrderTable(null);
+    setNewOrderType(null);
+    setActiveTab('more');
+    setIsBillPreviewOpen(true);
+    setDashboardRefresh(count => count + 1);
+  };
+
+  const returnToTables = () => {
+    setActiveBillTable(null);
+    setExistingBillContext(null);
+    setInitialOrderTable(null);
+    setNewOrderType(null);
+    setSelectedFeature('Tables');
+    setActiveTab('more');
+    setIsBillPreviewOpen(false);
+    setDashboardRefresh(count => count + 1);
+  };
+
   const closeNewOrder = () => {
+    if (existingBillContext) {
+      setExistingBillContext(null);
+      setInitialOrderTable(null);
+      setNewOrderType(null);
+      setActiveTab('more');
+      setIsBillPreviewOpen(true);
+      return;
+    }
+    setInitialOrderTable(null);
     setNewOrderType(null);
     navigateToTab('home');
   };
 
   const finishNewOrder = () => {
+    if (existingBillContext) {
+      returnToActiveBill();
+      return;
+    }
+    setInitialOrderTable(null);
     setNewOrderType(null);
     setDashboardRefresh(count => count + 1);
     navigateToTab('orders');
@@ -928,6 +1016,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             <MainContent
               activeTab={activeTab}
               newOrderType={newOrderType}
+              initialOrderTable={initialOrderTable}
+              existingBillContext={existingBillContext}
+              activeBillTable={activeBillTable}
               invoices={invoices}
               billingItems={billingItems}
               orders={orders}
@@ -957,6 +1048,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onAddFoodToBilling={addFoodToBilling}
               onCloseNewOrder={closeNewOrder}
               onNewOrderSubmitted={finishNewOrder}
+              onSelectTable={openTable}
+              onAddItemsToExistingBill={addItemsToExistingBill}
+              onActiveBillCompleted={returnToTables}
+              onBackToTables={returnToTables}
               onRemoveFoodFromBilling={removeFoodFromBilling}
               onQuantityChange={updateBillingItemQuantity}
               onOpenBilling={() => navigateToTab('billing')}
@@ -990,6 +1085,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           <MainContent
             activeTab={activeTab}
             newOrderType={newOrderType}
+            initialOrderTable={initialOrderTable}
+            existingBillContext={existingBillContext}
+            activeBillTable={activeBillTable}
             invoices={invoices}
             billingItems={billingItems}
             orders={orders}
@@ -1019,6 +1117,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onAddFoodToBilling={addFoodToBilling}
             onCloseNewOrder={closeNewOrder}
             onNewOrderSubmitted={finishNewOrder}
+            onSelectTable={openTable}
+            onAddItemsToExistingBill={addItemsToExistingBill}
+            onActiveBillCompleted={returnToTables}
+            onBackToTables={returnToTables}
             onRemoveFoodFromBilling={removeFoodFromBilling}
             onQuantityChange={updateBillingItemQuantity}
             onOpenBilling={() => navigateToTab('billing')}
@@ -1442,6 +1544,9 @@ function getErrorMessage(error: unknown) {
 function MainContent({
   activeTab,
   newOrderType,
+  initialOrderTable,
+  existingBillContext,
+  activeBillTable,
   invoices,
   billingItems,
   orders,
@@ -1469,6 +1574,10 @@ function MainContent({
   onAddFoodToBilling,
   onCloseNewOrder,
   onNewOrderSubmitted,
+  onSelectTable,
+  onAddItemsToExistingBill,
+  onActiveBillCompleted,
+  onBackToTables,
   onRemoveFoodFromBilling,
   onQuantityChange,
   onOpenBilling,
@@ -1486,6 +1595,9 @@ function MainContent({
 }: {
   activeTab: AppTab;
   newOrderType: NewOrderType | null;
+  initialOrderTable: AdminTableRecord | null;
+  existingBillContext: ExistingBillContext | null;
+  activeBillTable: AdminTableRecord | null;
   invoices: LocalRecord[];
   billingItems: BillingLineItem[];
   orders: LocalRecord[];
@@ -1513,6 +1625,10 @@ function MainContent({
   onAddFoodToBilling: (food: BillFood) => void;
   onCloseNewOrder: () => void;
   onNewOrderSubmitted: () => void;
+  onSelectTable: (table: AdminTableRecord) => void;
+  onAddItemsToExistingBill: (context: ExistingBillContext) => void;
+  onActiveBillCompleted: () => void;
+  onBackToTables: () => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
   onQuantityChange: (itemId: string, quantity: number) => void;
   onOpenBilling: () => void;
@@ -1531,6 +1647,17 @@ function MainContent({
   onDeliveryAssignmentVisibilityChange: (isVisible: boolean) => void;
   onLogout?: () => void;
 }) {
+  if (activeBillTable && !(activeTab === 'add' && newOrderType)) {
+    return (
+      <ActiveBillPreview
+        table={activeBillTable}
+        onBack={onBackToTables}
+        onAddItems={onAddItemsToExistingBill}
+        onCompleted={onActiveBillCompleted}
+      />
+    );
+  }
+
   if (selectedAction) {
     return (
       <PageShell
@@ -1563,6 +1690,7 @@ function MainContent({
       return (
         <TablesScreen
           onBack={() => onSelectFeature(null)}
+          onSelectTable={onSelectTable}
           showBackButton={false}
           userId={userId}
         />
@@ -1750,6 +1878,8 @@ function MainContent({
       return (
         <NewOrderFlow
           orderType={newOrderType}
+          initialTable={initialOrderTable ?? undefined}
+          existingBill={existingBillContext ?? undefined}
           onBack={onCloseNewOrder}
           onOrderSubmitted={onNewOrderSubmitted}
         />

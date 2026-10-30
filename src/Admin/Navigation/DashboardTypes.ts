@@ -12,6 +12,19 @@ export type QuickActionId =
 
 export type NewOrderType = 'DINE_IN' | 'HOME_DELIVERY' | 'PICK_UP';
 
+export type AdminTableRecord = {
+  id?: string | number;
+  table_id?: string | number;
+  table_number?: string | number;
+  status?: string;
+};
+
+export type ExistingBillContext = {
+  billId: string;
+  tableId: string;
+  tableNumber: string;
+};
+
 export type LocalRecord = {
   id: number;
   action: QuickActionId;
