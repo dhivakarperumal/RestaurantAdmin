@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ActivityIndicator,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -493,8 +492,7 @@ export default function ActiveBillPreview({
   const preview = (
     <SafeAreaView
       edges={['bottom']}
-      className="flex-1 w-full max-w-[900px] overflow-hidden rounded-3xl bg-[#F9FAFB]"
-      style={{ maxHeight: '94%' }}
+      className="flex-1 w-full bg-[#F9FAFB]"
     >
       <MoreInnerHeader
         title="Bill Preview"
@@ -754,17 +752,5 @@ export default function ActiveBillPreview({
     </SafeAreaView>
   );
 
-  return (
-    <Modal
-      animationType="fade"
-      onRequestClose={onBack}
-      statusBarTranslucent
-      transparent
-      visible
-    >
-      <View className="flex-1 items-center justify-center bg-[#11182766] px-3 py-4">
-        {preview}
-      </View>
-    </Modal>
-  );
+  return preview;
 }

@@ -976,13 +976,7 @@ function Tables({
                         {reservationSummary}
                       </Text>
                     ) : null}
-                    <Text className="mt-1 text-[10px] font-semibold text-[#116C0B]">
-                      {selectable
-                        ? 'Tap to start order'
-                        : status === 'Occupied'
-                          ? 'Tap to view bill'
-                          : 'Reserved now'}
-                    </Text>
+                    
                   </Pressable>
                   <Text
                     className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${

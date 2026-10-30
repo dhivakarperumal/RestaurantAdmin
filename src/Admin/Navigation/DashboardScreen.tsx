@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   BackHandler,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -331,6 +330,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     useState<AdminTableRecord | null>(null);
   const [activeBillTable, setActiveBillTable] =
     useState<AdminTableRecord | null>(null);
+  const [
+    returnToTableChooserAfterBillPreview,
+    setReturnToTableChooserAfterBillPreview,
+  ] = useState(false);
   const [existingBillContext, setExistingBillContext] =
     useState<ExistingBillContext | null>(null);
   const [itemsAddRequest, setItemsAddRequest] =
@@ -583,6 +586,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const startNewOrder = (orderType: NewOrderType) => {
     setActiveBillTable(null);
+    setReturnToTableChooserAfterBillPreview(false);
     setExistingBillContext(null);
     setInitialOrderTable(null);
     setNewOrderType(orderType);
@@ -599,6 +603,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const startTableOrder = (table: AdminTableRecord) => {
     setActiveBillTable(null);
+    setReturnToTableChooserAfterBillPreview(false);
     setExistingBillContext(null);
     setInitialOrderTable(table);
     setNewOrderType('DINE_IN');
@@ -617,14 +622,17 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     if (canSelectTableForNewOrder(table)) {
       startTableOrder(table);
     } else if (getTableStatus(table) === 'Occupied') {
+      setReturnToTableChooserAfterBillPreview(
+        activeTab === 'add' && newOrderType === 'DINE_IN',
+      );
       setActiveBillTable(table);
       setExistingBillContext(null);
       setInitialOrderTable(null);
       setNewOrderType(null);
-      setSelectedFeature('Tables');
+      setSelectedFeature(null);
       setSelectedAction(null);
       setActiveTab('more');
-      setIsBillPreviewOpen(false);
+      setIsBillPreviewOpen(true);
       setIsSidebarOpen(false);
       setIsNotificationsOpen(false);
     }
@@ -643,6 +651,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     table: AdminTableRecord,
     context: ExistingBillContext,
   ) => {
+    setReturnToTableChooserAfterBillPreview(true);
     setActiveBillTable(table);
     setExistingBillContext(context);
     setInitialOrderTable(table);
@@ -657,7 +666,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setExistingBillContext(null);
     setInitialOrderTable(null);
     setNewOrderType(null);
-    setSelectedFeature('Tables');
+    setSelectedFeature(null);
     setActiveTab('more');
     setIsBillPreviewOpen(true);
     setDashboardRefresh(count => count + 1);
@@ -667,9 +676,16 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setActiveBillTable(null);
     setExistingBillContext(null);
     setInitialOrderTable(null);
-    setNewOrderType(null);
-    setSelectedFeature('Tables');
-    setActiveTab('more');
+    if (returnToTableChooserAfterBillPreview) {
+      setNewOrderType('DINE_IN');
+      setSelectedFeature(null);
+      setActiveTab('add');
+      setReturnToTableChooserAfterBillPreview(false);
+    } else {
+      setNewOrderType(null);
+      setSelectedFeature('Tables');
+      setActiveTab('more');
+    }
     setIsBillPreviewOpen(false);
     setDashboardRefresh(count => count + 1);
   };
@@ -679,7 +695,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       setExistingBillContext(null);
       setInitialOrderTable(null);
       setNewOrderType(null);
-      setSelectedFeature('Tables');
+      setSelectedFeature(null);
       setActiveTab('more');
       setIsBillPreviewOpen(true);
       return;
@@ -977,8 +993,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           return true;
         }
         if (isBillPreviewOpen) {
-          setIsBillPreviewOpen(false);
-          setActiveTab('home');
+          returnToTables();
           return true;
         }
         // 5. Non-home tab → go to home
@@ -1007,6 +1022,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     isBillPreviewOpen,
     selectedFeature,
     activeTab,
+    returnToTables,
   ]);
 
   return (
@@ -1810,20 +1826,12 @@ function MainContent({
 }) {
   if (activeBillTable && !(activeTab === 'add' && newOrderType)) {
     return (
-      <>
-        <TablesScreen
-          onBack={() => onSelectFeature(null)}
-          onSelectTable={onSelectTable}
-          showBackButton={false}
-          userId={userId}
-        />
-        <ActiveBillPreview
-          table={activeBillTable}
-          onBack={onBackToTables}
-          onAddItems={onAddItemsToExistingBill}
-          onCompleted={onActiveBillCompleted}
-        />
-      </>
+      <ActiveBillPreview
+        table={activeBillTable}
+        onBack={onBackToTables}
+        onAddItems={onAddItemsToExistingBill}
+        onCompleted={onActiveBillCompleted}
+      />
     );
   }
 
@@ -4261,14 +4269,7 @@ function Sidebar({
         ))}
 
         {onLogout ? (
-          <View
-            style={{
-              borderTopColor: '#E5E7EB',
-              borderTopWidth: 1,
-              marginTop: 16,
-              paddingTop: 16,
-            }}
-          >
+          <View className="mt-4 border-t border-[#E5E7EB] pt-4">
             <Pressable
               accessibilityLabel="Sign out of account"
               accessibilityRole="button"
@@ -4276,29 +4277,15 @@ function Sidebar({
                 onClose();
                 onLogout();
               }}
-              style={({ pressed }) => ({
+              className="min-h-[48px] w-full flex-row items-center justify-center gap-2.5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 active:bg-[#FEE2E2]"
+              style={{
                 alignItems: 'center',
-                backgroundColor: pressed ? '#FEE2E2' : '#FEF2F2',
-                borderColor: '#FECACA',
-                borderRadius: 12,
-                borderWidth: 1,
                 flexDirection: 'row',
-                gap: 8,
                 justifyContent: 'center',
-                minHeight: 44,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                width: '100%',
-              })}
+              }}
             >
               <LogOutIcon color="#DC2626" size={18} />
-              <Text
-                style={{
-                  color: '#DC2626',
-                  fontSize: 14,
-                  fontWeight: '700',
-                }}
-              >
+              <Text className="text-sm font-bold text-[#DC2626]">
                 Sign Out
               </Text>
             </Pressable>

@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
-import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
+import { MenuIcon, PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
 import { BaseModal } from '../../components/popups';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 import {
@@ -396,8 +396,9 @@ export default function NewOrderFlow({
 }) {
   const { width } = useWindowDimensions();
   const [tables, setTables] = useState<TableRecord[]>([]);
+  const [tableSearch, setTableSearch] = useState('');
   const [tableStatusFilter, setTableStatusFilter] =
-    useState<TableStatusFilter>('All');
+    useState<TableStatusFilter>('Available');
   const [activeBillTables, setActiveBillTables] = useState<
     ActiveBillTableReference[]
   >([]);
@@ -465,14 +466,27 @@ export default function NewOrderFlow({
     return counts;
   }, [activeBillTables, tables]);
   const filteredTables = useMemo(
-    () =>
-      tableStatusFilter === 'All'
-        ? tables
-        : tables.filter(table => {
-            const hasActiveBill = tableHasActiveBill(table, activeBillTables);
-            return tableStatus(table, hasActiveBill) === tableStatusFilter;
-          }),
-    [activeBillTables, tableStatusFilter, tables],
+    () => {
+      const query = tableSearch.trim().toLowerCase();
+      return tables.filter(table => {
+        const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+        const status = tableStatus(table, hasActiveBill);
+        const matchesStatus =
+          tableStatusFilter === 'All' || status === tableStatusFilter;
+        const searchableText = [
+          table.table_number,
+          table.no_of_seats,
+          status,
+          getServerAssignmentLabel(table),
+          getReservationSummary(table),
+        ]
+          .filter(value => value !== undefined && value !== null)
+          .join(' ')
+          .toLowerCase();
+        return matchesStatus && (!query || searchableText.includes(query));
+      });
+    },
+    [activeBillTables, tableSearch, tableStatusFilter, tables],
   );
   const horizontalPadding = width >= 768 ? 24 : 16;
   const cardGap = 12;
@@ -1178,6 +1192,18 @@ export default function NewOrderFlow({
             </View>
           ) : tables.length ? (
             <View>
+              <View className="mb-4 min-h-11 flex-row items-center rounded-xl border border-[#D1D5DB] bg-white px-3">
+                <SearchIcon color="#9CA3AF" size={17} />
+                <TextInput
+                  accessibilityLabel="Search tables"
+                  className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+                  onChangeText={setTableSearch}
+                  placeholder="Search by table, seats, server, or status"
+                  placeholderTextColor={colors.textSecondary}
+                  returnKeyType="search"
+                  value={tableSearch}
+                />
+              </View>
               <View className="mb-4 flex-row flex-wrap gap-2">
                 {(
                   ['All', 'Available', 'Occupied', 'Reserved'] as const
@@ -1355,10 +1381,14 @@ export default function NewOrderFlow({
               ) : (
                 <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
                   <Text className="text-base font-bold text-[#012711]">
-                    No {tableStatusFilter.toLowerCase()} tables
+                    {tableSearch.trim()
+                      ? 'No matching tables'
+                      : `No ${tableStatusFilter.toLowerCase()} tables`}
                   </Text>
                   <Text className="mt-2 text-center text-sm text-[#6B7280]">
-                    Choose another filter to see tables.
+                    {tableSearch.trim()
+                      ? 'Try another table number, server, status, or search term.'
+                      : 'Choose another filter to see tables.'}
                   </Text>
                 </View>
               )}
