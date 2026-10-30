@@ -5,7 +5,6 @@ import {
   ReceiptIcon,
 } from '../../Admin/Navigation/NavigationIcons';
 import { CalendarIcon, ClockIcon } from '../../components/popups';
-import colors from '../../theme/colors';
 import ChefListControls from './ChefListControls';
 import ChefStatCards from './ChefStatCards';
 
@@ -191,6 +190,7 @@ function ChefAttendanceScreen({
   const isWorking = Boolean(attendance?.check_in && !attendance?.check_out);
   const isCompleted = Boolean(attendance?.check_in && attendance?.check_out);
   const today = new Date().toISOString().slice(0, 10);
+  const todayParts = dateParts(today);
   const todayLabel = new Date().toLocaleDateString([], {
     weekday: 'long',
     month: 'long',
@@ -485,98 +485,129 @@ function ChefAttendanceScreen({
 
   return (
     <View className="gap-5">
-      <View>
-        <Text className="text-[23px] font-extrabold text-[#012711]">
-          Chef Attendance & Shift Log
-        </Text>
-      </View>
-
-      <View className="overflow-hidden rounded-2xl border border-[#D1E9D5] bg-white p-4">
-        <View className="mb-4 h-1 self-stretch rounded-full bg-[#116C0B]" />
-        <Text className="text-[10px] font-bold uppercase tracking-[1px] text-[#116C0B]">
-          {todayLabel}
-        </Text>
-        <View className="mt-2 flex-row flex-wrap items-center gap-2">
-          <Text className="text-lg font-extrabold text-[#012711]">
-            {isWorking
-              ? 'You are on duty'
-              : isCompleted
-                ? 'Shift completed for today'
-                : 'Shift not yet started'}
-          </Text>
-          <Text
-            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-              isWorking
-                ? 'bg-emerald-100 text-emerald-800'
-                : isCompleted
-                  ? 'bg-blue-100 text-blue-800'
-                  : ''
-            }`}
-            style={
-              !isWorking && !isCompleted
-                ? {
-                    backgroundColor: colors.surfaceSecondary,
-                    color: colors.primary,
-                  }
-                : undefined
-            }
-          >
-            {isWorking ? 'ACTIVE DUTY' : isCompleted ? 'COMPLETED' : 'NOT STARTED'}
-          </Text>
-          {attendance?.status ? (
-            <Text className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[10px] font-bold text-[#4B5563]">
-              {valueOf(attendance.status)}
+      <View className="overflow-hidden rounded-[26px] border border-[#DCEBE1] bg-white p-4 shadow-sm">
+        <View className="flex-row items-start gap-3">
+          <View className="h-[92px] w-[78px] shrink-0 items-center justify-center rounded-2xl border border-[#E1EFE5] bg-[#F3F8F4]">
+            <Text className="text-[10px] font-extrabold tracking-wider text-[#17633D]">
+              {todayParts.weekday}
             </Text>
-          ) : null}
+            <Text className="text-[32px] font-extrabold leading-[36px] text-[#10231A]">
+              {todayParts.day}
+            </Text>
+            <Text className="text-[9px] font-bold text-[#64748B]">
+              {todayParts.monthYear}
+            </Text>
+            <Text className="mt-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[8px] font-extrabold text-emerald-800">
+              TODAY
+            </Text>
+          </View>
+          <View className="min-w-0 flex-1 pt-1">
+            <View className="flex-row items-center gap-2">
+              <View className="h-10 w-10 items-center justify-center rounded-full bg-[#FFF5DE]">
+                <Text className="text-[21px]">👨‍🍳</Text>
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text className="text-lg font-extrabold text-[#10231A]">
+                  Chef Attendance
+                </Text>
+                <Text className="text-[11px] text-[#64748B]">
+                  Your current shift status
+                </Text>
+              </View>
+            </View>
+            <View className="mt-3 flex-row flex-wrap items-center gap-2">
+              <Text className="text-base font-extrabold text-[#10231A]">
+                {isWorking
+                  ? 'You are on duty'
+                  : isCompleted
+                    ? 'Shift completed'
+                    : 'Shift not started'}
+              </Text>
+              <View className="flex-row items-center gap-1.5 rounded-full bg-[#E8F8EC] px-2.5 py-1">
+                <View
+                  className={`h-2 w-2 rounded-full ${
+                    isWorking ? 'bg-green-500' : 'bg-slate-400'
+                  }`}
+                />
+                <Text className="text-[9px] font-extrabold text-[#14753B]">
+                  {isWorking ? 'ACTIVE DUTY' : isCompleted ? 'COMPLETED' : 'NOT STARTED'}
+                </Text>
+              </View>
+              {attendance?.status ? (
+                <Text className="rounded-full bg-[#F1F4F6] px-2.5 py-1 text-[9px] font-bold text-[#526170]">
+                  {valueOf(attendance.status)}
+                </Text>
+              ) : null}
+            </View>
+            <Text className="mt-2 text-[11px] leading-4 text-[#718096]">
+              {isWorking
+                ? `Clocked in at ${formatTime(attendance?.check_in)}. Your work time is being recorded.`
+                : isCompleted
+                  ? `Worked from ${formatTime(attendance?.check_in)} to ${formatTime(attendance?.check_out)}.`
+                  : scheduledStart
+                    ? `Scheduled shift: ${formatShiftTime(scheduledStart)} – ${formatShiftTime(scheduledEnd)}.`
+                    : 'Clock in to start recording your shift.'}
+            </Text>
+          </View>
         </View>
-        <Text className="mt-2 text-xs leading-[18px] text-[#6B7280]">
-          {isWorking
-            ? `Clocked in at ${formatTime(attendance?.check_in)}. Your work time is being recorded.`
-            : isCompleted
-              ? `Worked from ${formatTime(attendance?.check_in)} to ${formatTime(attendance?.check_out)} (${valueOf(attendance?.total_hours, '0')} hrs).`
-              : scheduledStart
-                ? `Your scheduled shift is ${formatShiftTime(scheduledStart)} – ${formatShiftTime(scheduledEnd)}. Clock in to start your shift.`
-                : 'Clock in to start recording your shift.'}
-        </Text>
 
-        <View className="mt-4 flex-row flex-wrap gap-2">
-          <View className="min-w-[45%] flex-1 rounded-xl bg-[#F9FAFB] p-3">
-            <Text className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+        <View className="mt-4 min-h-[86px] flex-row items-center rounded-2xl border border-[#E5EEE7] bg-[#F7FAF8] px-2 py-2">
+          <View className="min-w-0 flex-1 items-center px-1">
+            <View className="mb-1.5 h-8 w-8 items-center justify-center rounded-full bg-[#DDF4E2]">
+              <ClockIcon color="#14803D" size={17} />
+            </View>
+            <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
               Clock in
             </Text>
-            <Text className="mt-1 text-sm font-bold text-[#012711]">
+            <Text numberOfLines={1} className="mt-0.5 text-[11px] font-extrabold text-[#10231A]">
               {formatTime(attendance?.check_in)}
             </Text>
           </View>
-          <View className="min-w-[45%] flex-1 rounded-xl bg-[#F9FAFB] p-3">
-            <Text className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+          <View className="h-12 w-px bg-[#D7E3DA]" />
+          <View className="min-w-0 flex-1 items-center px-1">
+            <View className="mb-1.5 h-8 w-8 items-center justify-center rounded-full bg-[#FFF2D8]">
+              <ClockIcon color="#C1840B" size={17} />
+            </View>
+            <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
               Clock out
             </Text>
-            <Text className="mt-1 text-sm font-bold text-[#012711]">
+            <Text numberOfLines={1} className="mt-0.5 text-[11px] font-extrabold text-[#10231A]">
               {formatTime(attendance?.check_out)}
             </Text>
           </View>
-          {isWorking ? (
-            <View className="min-w-[45%] flex-1 rounded-xl bg-emerald-50 p-3">
-              <Text className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                Active duration
-              </Text>
-              <Text className="mt-1 text-sm font-extrabold text-[#012711]">
-                {formatDuration(liveSeconds)}
-              </Text>
+          <View className="h-12 w-px bg-[#D7E3DA]" />
+          <View className="min-w-0 flex-1 items-center px-1">
+            <View className="mb-1.5 h-8 w-8 items-center justify-center rounded-full bg-[#DDF4E2]">
+              <ClockIcon color="#14803D" size={17} />
             </View>
-          ) : null}
+            <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
+              {isWorking ? 'Active duration' : 'Total duration'}
+            </Text>
+            <Text numberOfLines={1} className="mt-0.5 text-[11px] font-extrabold text-[#10231A]">
+              {formatDuration(
+                isWorking
+                  ? liveSeconds
+                  : durationInSeconds(attendance ?? {}),
+              )}
+            </Text>
+          </View>
         </View>
 
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={
+            isWorking ? 'Clock out of current shift' : 'Clock in to shift'
+          }
           disabled={isBusy}
           onPress={onClockAction}
-          className={`mt-4 min-h-[48px] items-center justify-center rounded-xl px-4 ${
-            isWorking ? 'bg-rose-600' : 'bg-[#116C0B]'
-          } ${isBusy ? 'opacity-60' : 'opacity-100'}`}
+          className={`mt-3 min-h-[56px] flex-row items-center justify-between rounded-2xl bg-[#07583D] px-4 ${
+            isBusy ? 'opacity-60' : 'opacity-100'
+          }`}
         >
-          <Text className="text-sm font-bold text-white">
+          <View className="h-9 w-9 items-center justify-center rounded-xl bg-white/15">
+            <ClockIcon color="#FFFFFF" size={19} />
+          </View>
+          <Text className="flex-1 text-center text-sm font-extrabold text-white">
             {isBusy
               ? 'Updating attendance...'
               : isWorking
@@ -585,6 +616,7 @@ function ChefAttendanceScreen({
                   ? 'Resume Shift'
                   : 'Clock In Now'}
           </Text>
+          <Text className="text-xl font-bold text-white">→</Text>
         </Pressable>
       </View>
 
