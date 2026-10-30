@@ -22,12 +22,28 @@ import {
 } from '../../components/popups';
 import AdminStatCard from '../../components/AdminStatCard';
 import type { AdminTableRecord } from '../Navigation/DashboardTypes';
+import TableMergeModal from './TableMergeModal';
+import {
+  canSelectTableForNewOrder,
+  getAssignedServerName,
+  getReservationSummary,
+  getServerAssignmentLabel,
+  getTableStatus,
+  readActiveBillTables,
+  tableHasActiveBill,
+} from '../Tabs/tableAvailability';
+import type { ActiveBillTableReference } from '../Tabs/tableAvailability';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 type ServerTable = AdminTableRecord & {
   no_of_seats?: number | string;
   image_url?: string | null;
+  assigned_server_id?: string | number | null;
+  assigned_server_name?: string | null;
+  server_name?: string | null;
+  employee_name?: string | null;
+  assigned_server?: unknown;
 };
 
 type TablesProps = {
@@ -108,6 +124,7 @@ function Tables({
   showBackButton = true,
 }: TablesProps) {
   const [tables, setTables] = useState<ServerTable[]>([]);
+  const [activeBills, setActiveBills] = useState<ActiveBillTableReference[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All statuses');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -116,6 +133,7 @@ function Tables({
   const [errorMessage, setErrorMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isMergeOpen, setIsMergeOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<ServerTable | null>(null);
   const [tableNumber, setTableNumber] = useState('');
   const [seatCount, setSeatCount] = useState('');
@@ -157,10 +175,37 @@ function Tables({
     setIsLoading(true);
     setErrorMessage('');
 
-    loadTables(controller.signal)
-      .then(response => {
+    Promise.all([
+      loadTables(controller.signal),
+      api.get('/table-bills', {
+        params: { status: 'Active' },
+        signal: controller.signal,
+      }),
+    ])
+      .then(([tablesResponse, billsResponse]) => {
+        if (
+          isRecord(tablesResponse.data) &&
+          tablesResponse.data.success === false
+        ) {
+          throw new Error(
+            typeof tablesResponse.data.message === 'string'
+              ? tablesResponse.data.message
+              : 'Unable to load tables.',
+          );
+        }
+        if (
+          isRecord(billsResponse.data) &&
+          billsResponse.data.success === false
+        ) {
+          throw new Error(
+            typeof billsResponse.data.message === 'string'
+              ? billsResponse.data.message
+              : 'Unable to load active table bills.',
+          );
+        }
         if (active) {
-          setTables(readTables(response.data));
+          setTables(readTables(tablesResponse.data));
+          setActiveBills(readActiveBillTables(billsResponse.data));
         }
       })
       .catch(error => {
@@ -183,24 +228,32 @@ function Tables({
   const filteredTables = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     return tables.filter(table => {
-      const status = table.status?.trim() || 'Available';
+      const status = getTableStatus(
+        table,
+        tableHasActiveBill(table, activeBills),
+      );
       return (
         (!query ||
-          `${getTableNumber(table)} ${status} ${table.no_of_seats ?? ''}`
+          `${getTableNumber(table)} ${status} ${
+            table.no_of_seats ?? ''
+          } ${getAssignedServerName(table)}`
             .toLocaleLowerCase()
             .includes(query)) &&
         (statusFilter === 'All statuses' ||
           status.toLowerCase() === statusFilter.toLowerCase())
       );
     });
-  }, [tables, search, statusFilter]);
+  }, [activeBills, tables, search, statusFilter]);
 
   const availableCount = tables.filter(
     table =>
-      (table.status?.trim() || 'Available').toLowerCase() === 'available',
+      getTableStatus(table, tableHasActiveBill(table, activeBills)) ===
+      'Available',
   ).length;
   const occupiedCount = tables.filter(
-    table => (table.status?.trim() || 'Available').toLowerCase() === 'occupied',
+    table =>
+      getTableStatus(table, tableHasActiveBill(table, activeBills)) ===
+      'Occupied',
   ).length;
   const otherCount = tables.length - availableCount - occupiedCount;
 
@@ -401,10 +454,18 @@ function Tables({
     </View>
   );
 
+  const statusOf = (table: ServerTable) =>
+    getTableStatus(table, tableHasActiveBill(table, activeBills));
   const canOpenTable = (table: ServerTable) =>
-    ['available', 'occupied', 'busy', 'seated'].includes(
-      (table.status?.trim() || 'Available').toLowerCase(),
-    );
+    canSelectTableForNewOrder(table, tableHasActiveBill(table, activeBills)) ||
+    statusOf(table) === 'Occupied';
+  const openTable = (table: ServerTable) => {
+    const hasBill = tableHasActiveBill(table, activeBills);
+    onSelectTable({
+      ...table,
+      ...(hasBill ? { status: 'Occupied' } : {}),
+    });
+  };
 
   return (
     <View className="flex-1 bg-[#F8FAF8]">
@@ -456,6 +517,19 @@ function Tables({
               </Pressable>
             ) : null}
           </View>
+        </View>
+
+        <View className="flex-row justify-end">
+          <Pressable
+            accessibilityLabel="Merge active table bills"
+            accessibilityRole="button"
+            onPress={() => setIsMergeOpen(true)}
+            className="min-h-10 items-center justify-center rounded-xl border border-[#116C0B] bg-white px-4"
+          >
+            <Text className="text-sm font-bold text-[#116C0B]">
+              Merge table bills
+            </Text>
+          </Pressable>
         </View>
 
         <View className="flex-row flex-wrap justify-between gap-y-3">
@@ -657,9 +731,7 @@ function Tables({
                       'All statuses',
                       ...Array.from(
                         new Set(
-                          tables.map(
-                            table => table.status?.trim() || 'Available',
-                          ),
+                          tables.map(table => statusOf(table)),
                         ),
                       ),
                     ].map(status => (
@@ -784,7 +856,7 @@ function Tables({
                 </Text>
               </View>
               {filteredTables.map((table, index) => {
-                const status = table.status?.trim() || 'Available';
+                const status = statusOf(table);
                 const image = resolveImageUrl(table.image_url);
                 return (
                   <View
@@ -818,12 +890,28 @@ function Tables({
                       accessibilityRole="button"
                       accessibilityState={{ disabled: !canOpenTable(table) }}
                       disabled={!canOpenTable(table)}
-                      onPress={() => onSelectTable(table)}
+                      onPress={() => openTable(table)}
                       className="flex-1"
                     >
-                      <Text className="text-xs font-semibold text-[#334155]">
-                        Table {getTableNumber(table)}
-                      </Text>
+                      <View className="flex-1">
+                        <Text className="text-xs font-semibold text-[#334155]">
+                          Table {getTableNumber(table)}
+                        </Text>
+                        {getReservationSummary(table) ? (
+                          <Text
+                            numberOfLines={2}
+                            className="mt-1 text-[10px] text-[#64748B]"
+                          >
+                            {getReservationSummary(table)}
+                          </Text>
+                        ) : null}
+                        <Text
+                          numberOfLines={1}
+                          className="mt-1 text-[10px] text-[#64748B]"
+                        >
+                          {getServerAssignmentLabel(table)}
+                        </Text>
+                      </View>
                     </Pressable>
                     <Text className="w-24 text-xs text-[#334155]">
                       {table.no_of_seats ?? '—'}
@@ -846,7 +934,13 @@ function Tables({
         ) : (
           <View className="flex-row flex-wrap justify-between gap-y-3">
             {filteredTables.map((table, index) => {
-              const status = table.status?.trim() || 'Available';
+              const status = statusOf(table);
+              const hasBill = tableHasActiveBill(table, activeBills);
+              const selectable = canSelectTableForNewOrder(
+                table,
+                hasBill,
+              );
+              const reservationSummary = getReservationSummary(table);
               const image = resolveImageUrl(table.image_url);
               return (
                 <View
@@ -877,7 +971,7 @@ function Tables({
                     accessibilityRole="button"
                     accessibilityState={{ disabled: !canOpenTable(table) }}
                     disabled={!canOpenTable(table)}
-                    onPress={() => onSelectTable(table)}
+                    onPress={() => openTable(table)}
                     className="min-w-0 flex-1"
                   >
                     <Text className="text-base font-bold text-[#012711]">
@@ -886,10 +980,23 @@ function Tables({
                     <Text className="mt-1 text-xs text-[#6B7280]">
                       {table.no_of_seats ?? '—'} seats
                     </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="mt-1 text-[10px] text-[#64748B]"
+                    >
+                      {getServerAssignmentLabel(table)}
+                    </Text>
+                    {reservationSummary ? (
+                      <Text className="mt-1 text-[10px] text-[#6B7280]">
+                        {reservationSummary}
+                      </Text>
+                    ) : null}
                     <Text className="mt-1 text-[10px] font-semibold text-[#116C0B]">
-                      {status.toLowerCase() === 'available'
+                      {selectable
                         ? 'Tap to start order'
-                        : 'Tap to view bill'}
+                        : status === 'Occupied'
+                          ? 'Tap to view bill'
+                          : 'Reserved now'}
                     </Text>
                   </Pressable>
                   <Text
@@ -938,6 +1045,12 @@ function Tables({
         isDestructive
         isLoading={isDeleting}
         errorMessage={deleteError}
+      />
+      <TableMergeModal
+        visible={isMergeOpen}
+        tables={tables}
+        onClose={() => setIsMergeOpen(false)}
+        onMerged={() => setRefreshKey(current => current + 1)}
       />
     </View>
   );

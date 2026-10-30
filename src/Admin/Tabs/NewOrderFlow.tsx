@@ -16,11 +16,26 @@ import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
 import { BaseModal } from '../../components/popups';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
+import {
+  readActiveBillTables,
+  canSelectTableForNewOrder,
+  getReservationSummary,
+  getServerAssignmentLabel,
+  getTableStatus,
+  isReservationActive,
+  tableHasActiveBill,
+} from './tableAvailability';
+import {
+  getOrderSubmissionError,
+  hasValidTableId,
+  toApiOrderType,
+} from './orderSubmission';
 import type {
   AdminTableRecord,
   ExistingBillContext,
   NewOrderType,
 } from '../Navigation/DashboardTypes';
+import type { ActiveBillTableReference } from './tableAvailability';
 
 type RecordValue = Record<string, unknown>;
 
@@ -65,6 +80,15 @@ type CartLine = {
 
 type TableRecord = AdminTableRecord & {
   no_of_seats?: number | string;
+  reservation_is_active?: unknown;
+  next_reservation_status?: unknown;
+  next_reservation_date?: unknown;
+  next_reservation_start_time?: unknown;
+  next_reservation_end_time?: unknown;
+  next_reservation_customer_name?: unknown;
+  next_reservation_guests?: unknown;
+  assigned_to?: unknown;
+  waiter_id?: unknown;
 };
 
 function isRecord(value: unknown): value is RecordValue {
@@ -127,6 +151,34 @@ function readTables(payload: unknown): TableRecord[] {
         ? row.no_of_seats
         : undefined,
     status: typeof row.status === 'string' ? row.status : undefined,
+    reservation_is_active: row.reservation_is_active,
+    next_reservation_status: row.next_reservation_status,
+    next_reservation_date: row.next_reservation_date,
+    next_reservation_start_time: row.next_reservation_start_time,
+    next_reservation_end_time: row.next_reservation_end_time,
+    next_reservation_customer_name: row.next_reservation_customer_name,
+    next_reservation_guests: row.next_reservation_guests,
+    assigned_server_id:
+      row.assigned_server_id ??
+      row.assigned_employee_id ??
+      row.server_id ??
+      row.employee_id ??
+      row.waiter_id ??
+      row.assigned_to,
+    assigned_server_name:
+      row.assigned_server_name ??
+      row.server_name ??
+      row.assigned_employee_name ??
+      row.employee_name,
+    assigned_employee_name: row.assigned_employee_name,
+    server_name: row.server_name,
+    employee_name: row.employee_name,
+    assigned_server: row.assigned_server,
+    assigned_employee: row.assigned_employee,
+    server: row.server,
+    employee: row.employee,
+    assigned_to: row.assigned_to,
+    waiter_id: row.waiter_id,
   }));
 }
 
@@ -247,12 +299,11 @@ function getErrorMessage(error: unknown, fallback: string) {
     : fallback;
 }
 
-function tableStatus(table: TableRecord) {
-  const status = text(table.status, 'Available').toLowerCase();
-  if (status.includes('reserv')) return 'Reserved';
-  if (status.includes('occup')) return 'Occupied';
-  if (status.includes('avail')) return 'Available';
-  return text(table.status, 'Available');
+function tableStatus(
+  table: TableRecord,
+  hasActiveBill = false,
+) {
+  return getTableStatus(table, hasActiveBill);
 }
 
 function containsActiveBill(payload: unknown): boolean {
@@ -329,6 +380,9 @@ export default function NewOrderFlow({
 }) {
   const { width } = useWindowDimensions();
   const [tables, setTables] = useState<TableRecord[]>([]);
+  const [activeBillTables, setActiveBillTables] = useState<
+    ActiveBillTableReference[]
+  >([]);
   const [selectedTable, setSelectedTable] = useState<TableRecord | null>(
     initialTable ?? null,
   );
@@ -407,16 +461,20 @@ export default function NewOrderFlow({
   const tax = cgst + sgst;
   const total = taxableAmount + tax;
   const phoneDigits = customerPhone.replace(/\D/g, '');
-  const hasCustomerDetails =
+  const hasDeliveryDetails =
     customerName.trim().length > 0 &&
     phoneDigits.length >= 7 &&
     phoneDigits.length <= 15 &&
-    (!isDelivery || deliveryAddress.trim().length > 0);
+    deliveryAddress.trim().length > 0;
   const canSubmit =
     cart.length > 0 &&
     !cart.some(line => !line.food.id || line.food.price === null) &&
-    (!isDineIn || selectedTable !== null) &&
-    (isDineIn || hasCustomerDetails) &&
+    getOrderSubmissionError({
+      orderType,
+      itemCount: cart.length,
+      table: selectedTable,
+      hasDeliveryDetails,
+    }) === null &&
     !isSubmitting &&
     !hasSubmitted;
 
@@ -454,16 +512,42 @@ export default function NewOrderFlow({
   useEffect(() => {
     if (!isDineIn) {
       setIsLoadingTables(false);
+      setActiveBillTables([]);
       return;
     }
     const controller = new AbortController();
     let active = true;
     setIsLoadingTables(true);
     setTablesError('');
-    api
-      .get('/server-tables', { signal: controller.signal })
-      .then(response => {
-        if (active) setTables(readTables(response.data));
+    Promise.all([
+      api.get('/server-tables', { signal: controller.signal }),
+      api.get('/table-bills', {
+        params: { status: 'Active' },
+        signal: controller.signal,
+      }),
+    ])
+      .then(([tablesResponse, billsResponse]) => {
+        if (active) {
+          if (
+            (isRecord(tablesResponse.data) &&
+              tablesResponse.data.success === false) ||
+            (isRecord(billsResponse.data) &&
+              billsResponse.data.success === false)
+          ) {
+            const failedResponse =
+              isRecord(tablesResponse.data) &&
+              tablesResponse.data.success === false
+                ? tablesResponse.data
+                : billsResponse.data;
+            throw new Error(
+              typeof failedResponse.message === 'string'
+                ? failedResponse.message
+                : 'Unable to load tables and active bills.',
+            );
+          }
+          setTables(readTables(tablesResponse.data));
+          setActiveBillTables(readActiveBillTables(billsResponse.data));
+        }
       })
       .catch(error => {
         if (active && !controller.signal.aborted) {
@@ -482,7 +566,23 @@ export default function NewOrderFlow({
   }, [isDineIn, retry]);
 
   const chooseTable = async (table: TableRecord) => {
-    if (tableStatus(table) !== 'Available') {
+    const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+    if (!canSelectTableForNewOrder(table, hasActiveBill)) {
+      if (hasActiveBill) {
+        Alert.alert(
+          'Table already has an active bill',
+          `Table ${text(
+            table.table_number,
+          )} already has a bill. Open it from Table Management to add items.`,
+        );
+        return;
+      }
+      if (isReservationActive(table)) {
+        Alert.alert(
+          'Table reserved',
+          `Table ${text(table.table_number)} is currently reserved.`,
+        );
+      }
       return;
     }
     const identifier = table.table_id ?? table.id;
@@ -495,18 +595,25 @@ export default function NewOrderFlow({
         `/table-bills/active/${encodeURIComponent(String(identifier))}`,
       );
       const payload = response.data;
+      if (isRecord(payload) && payload.success === false) {
+        throw new Error(
+          typeof payload.message === 'string'
+            ? payload.message
+            : 'Unable to verify whether this table has an active bill.',
+        );
+      }
       const bill =
         isRecord(payload) && isRecord(payload.bill)
           ? payload.bill
           : isRecord(payload) && isRecord(payload.data)
           ? payload.data
           : payload;
-      const hasActiveBill =
+      const activeBillFound =
         isRecord(bill) &&
         (bill.bill_id !== undefined ||
           bill.id !== undefined ||
           (Array.isArray(bill.rounds) && bill.rounds.length > 0));
-      if (hasActiveBill) {
+      if (activeBillFound) {
         Alert.alert(
           'Table already has an active bill',
           `Table ${text(
@@ -614,12 +721,50 @@ export default function NewOrderFlow({
   };
 
   const sendOrder = async () => {
-    if (!canSubmit || submissionLock.current) return;
+    if (submissionLock.current || isSubmitting) return;
+    const validationError = getOrderSubmissionError({
+      orderType,
+      itemCount: cart.length,
+      table: selectedTable,
+      hasDeliveryDetails,
+    });
+    if (validationError) {
+      Alert.alert(
+        validationError.startsWith('Choose ')
+          ? 'Unable to send order'
+          : 'Order details required',
+        validationError,
+      );
+      return;
+    }
+    const apiOrderType = toApiOrderType(orderType);
+    if (!apiOrderType) {
+      Alert.alert(
+        'Unable to send order',
+        'Choose dine-in, home delivery, or pickup.',
+      );
+      return;
+    }
+    if (
+      cart.some(
+        line =>
+          !line.food.id ||
+          line.food.price === null ||
+          !Number.isFinite(line.quantity) ||
+          line.quantity <= 0,
+      )
+    ) {
+      Alert.alert(
+        'Unable to send order',
+        'Check that every food item has a valid ID, price, and quantity.',
+      );
+      return;
+    }
     submissionLock.current = true;
     setIsSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
-        order_type: orderType,
+        order_type: apiOrderType,
         items: cart.map(line => ({
           food_id:
             Number.isFinite(Number(line.food.id)) && line.food.id.trim()
@@ -655,14 +800,21 @@ export default function NewOrderFlow({
 
       if (isDineIn && selectedTable) {
         const tableId = selectedTable.table_id ?? selectedTable.id;
-        if (
-          tableId === undefined ||
-          tableId === null ||
-          !String(tableId).trim()
-        ) {
-          throw new Error('The selected table does not have a valid table ID.');
+        if (!hasValidTableId(selectedTable)) {
+          throw new Error('Select a valid table before sending this order.');
         }
-        const latestTables = readTables((await api.get('/server-tables')).data);
+        const latestTablesResponse = await api.get('/server-tables');
+        if (
+          isRecord(latestTablesResponse.data) &&
+          latestTablesResponse.data.success === false
+        ) {
+          throw new Error(
+            typeof latestTablesResponse.data.message === 'string'
+              ? latestTablesResponse.data.message
+              : 'Unable to verify the latest table status.',
+          );
+        }
+        const latestTables = readTables(latestTablesResponse.data);
         const latestTable = latestTables.find(
           table => String(table.table_id ?? table.id) === String(tableId),
         );
@@ -679,16 +831,19 @@ export default function NewOrderFlow({
               'The selected table does not match the active bill.',
             );
           }
-          if (tableStatus(latestTable) !== 'Occupied') {
-            throw new Error(
-              `Table ${text(
-                selectedTable.table_number,
-              )} is no longer occupied. Refresh the bill and try again.`,
-            );
-          }
           const activeBillResponse = await api.get(
             `/table-bills/active/${encodeURIComponent(String(tableId))}`,
           );
+          if (
+            isRecord(activeBillResponse.data) &&
+            activeBillResponse.data.success === false
+          ) {
+            throw new Error(
+              typeof activeBillResponse.data.message === 'string'
+                ? activeBillResponse.data.message
+                : 'Unable to verify the active bill.',
+            );
+          }
           if (
             readActiveBillId(activeBillResponse.data) !== existingBill.billId
           ) {
@@ -702,17 +857,32 @@ export default function NewOrderFlow({
               ? Number(existingBill.billId)
               : existingBill.billId;
         } else {
-          if (tableStatus(latestTable) !== 'Available') {
+          if (!canSelectTableForNewOrder(latestTable)) {
+            const reason = isReservationActive(latestTable)
+              ? 'is currently reserved'
+              : tableStatus(latestTable) === 'Occupied'
+                ? 'already has an active bill'
+                : 'is no longer available';
             throw new Error(
               `Table ${text(
                 selectedTable.table_number,
-              )} is no longer available. Refresh tables and choose another table.`,
+              )} ${reason}. Refresh tables and choose another table.`,
             );
           }
           try {
             const activeBillResponse = await api.get(
               `/table-bills/active/${encodeURIComponent(String(tableId))}`,
             );
+            if (
+              isRecord(activeBillResponse.data) &&
+              activeBillResponse.data.success === false
+            ) {
+              throw new Error(
+                typeof activeBillResponse.data.message === 'string'
+                  ? activeBillResponse.data.message
+                  : 'Unable to verify the active bill.',
+              );
+            }
             if (containsActiveBill(activeBillResponse.data)) {
               throw new Error(
                 `Table ${text(
@@ -733,8 +903,12 @@ export default function NewOrderFlow({
         payload.table_number =
           existingBill?.tableNumber ?? selectedTable.table_number;
       } else {
-        payload.customer_name = customerName.trim();
-        payload.customer_phone = customerPhone.trim();
+        if (customerName.trim()) {
+          payload.customer_name = customerName.trim();
+        }
+        if (customerPhone.trim()) {
+          payload.customer_phone = customerPhone.trim();
+        }
         if (isDelivery) {
           payload.delivery_address = deliveryAddress.trim();
         }
@@ -752,11 +926,7 @@ export default function NewOrderFlow({
 
       if (isDineIn && selectedTable && !existingBill) {
         const tableId = selectedTable.table_id ?? selectedTable.id;
-        if (
-          tableId === undefined ||
-          tableId === null ||
-          !String(tableId).trim()
-        ) {
+        if (!hasValidTableId(selectedTable)) {
           throw new Error('The selected table does not have a valid table ID.');
         }
         try {
@@ -817,7 +987,7 @@ export default function NewOrderFlow({
         <MoreInnerHeader
           title="Choose a Table"
           destination="Select Order Type"
-          subtitle="Only available tables can start a new order."
+          subtitle="Tables with an active reservation cannot be selected."
           onBack={onBack}
         />
         <ScrollView
@@ -856,25 +1026,34 @@ export default function NewOrderFlow({
           ) : tables.length ? (
             <View className="flex-row flex-wrap" style={{ gap: 12 }}>
               {tables.map((table, index) => {
-                const status = tableStatus(table);
-                const available = status === 'Available';
+                const hasActiveBill = tableHasActiveBill(
+                  table,
+                  activeBillTables,
+                );
+                const status = tableStatus(table, hasActiveBill);
+                const selectable = canSelectTableForNewOrder(
+                  table,
+                  hasActiveBill,
+                );
+                const reservationSummary = getReservationSummary(table);
+                const serverAssignment = getServerAssignmentLabel(table);
                 return (
                   <Pressable
                     accessibilityLabel={`Table ${text(
                       table.table_number,
                       String(index + 1),
                     )}, ${status}${
-                      available ? ', available for selection' : ''
+                      selectable ? ', available for selection' : ''
                     }`}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: !available }}
-                    disabled={!available}
+                    accessibilityState={{ disabled: !selectable }}
+                    disabled={!selectable}
                     key={String(
                       table.table_id ?? table.id ?? table.table_number ?? index,
                     )}
                     onPress={() => void chooseTable(table)}
                     className={`rounded-2xl border bg-white p-4 ${
-                      available
+                      selectable
                         ? 'border-[#DCE8D8]'
                         : 'border-[#E5E7EB] opacity-70'
                     }`}
@@ -886,7 +1065,7 @@ export default function NewOrderFlow({
                       </View>
                       <Text
                         className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                          available
+                          selectable
                             ? 'bg-green-50 text-green-700'
                             : status === 'Occupied'
                             ? 'bg-orange-50 text-orange-700'
@@ -904,9 +1083,24 @@ export default function NewOrderFlow({
                         {table.no_of_seats} seats
                       </Text>
                     ) : null}
-                    {available ? (
+                    <Text
+                      numberOfLines={1}
+                      className="mt-1 text-[10px] text-[#64748B]"
+                    >
+                      {serverAssignment}
+                    </Text>
+                    {reservationSummary ? (
+                      <Text className="mt-1 text-[10px] text-[#6B7280]">
+                        {reservationSummary}
+                      </Text>
+                    ) : null}
+                    {selectable ? (
                       <Text className="mt-2 text-xs font-semibold text-[#116C0B]">
                         Tap to select
+                      </Text>
+                    ) : status === 'Reserved' ? (
+                      <Text className="mt-2 text-xs font-semibold text-[#B45309]">
+                        Reserved now
                       </Text>
                     ) : null}
                   </Pressable>
@@ -973,11 +1167,9 @@ export default function NewOrderFlow({
                 value={deliveryAddress}
               />
             ) : null}
-            {!hasCustomerDetails ? (
+            {isDelivery && !hasDeliveryDetails ? (
               <Text className="text-[11px] text-[#6B7280]">
-                {isDelivery
-                  ? 'Name, valid phone number, and delivery address are required.'
-                  : 'Name and valid phone number are required.'}
+                Name, valid phone number, and delivery address are required.
               </Text>
             ) : null}
           </View>

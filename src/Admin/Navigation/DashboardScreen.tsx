@@ -69,6 +69,10 @@ import NewOrderFlow from '../Tabs/NewOrderFlow';
 import OrderTypeSheet from '../Tabs/OrderTypeSheet';
 import Items from '../Tabs/Items';
 import InventoryScreen from '../Tabs/Inventory';
+import {
+  canSelectTableForNewOrder,
+  getTableStatus,
+} from '../Tabs/tableAvailability';
 import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
 import CuisineScreen, { type CuisineRecord } from '../Screens/Cuisine';
@@ -597,10 +601,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   };
 
   const openTable = (table: AdminTableRecord) => {
-    const status = (table.status?.trim() || 'Available').toLowerCase();
-    if (status === 'available') {
+    if (canSelectTableForNewOrder(table)) {
       startTableOrder(table);
-    } else if (['occupied', 'busy', 'seated'].includes(status)) {
+    } else if (getTableStatus(table) === 'Occupied') {
       setActiveBillTable(table);
       setExistingBillContext(null);
       setInitialOrderTable(null);

@@ -17,12 +17,28 @@ import colors from '../../theme/colors';
 import { DetailsModal, PrinterIcon } from '../../components/popups';
 import api from '../../../api';
 import type { BillCompletionDetails } from './Bills';
+import {
+  canSelectTableForNewOrder,
+  getReservationSummary,
+  getTableStatus,
+  isReservationActive,
+  readActiveBillTables,
+  tableHasActiveBill,
+} from './tableAvailability';
+import type { ActiveBillTableReference } from './tableAvailability';
 
 type TableRecord = {
   id?: string | number;
   table_id?: string | number;
   table_number?: string | number;
   status?: string;
+  reservation_is_active?: unknown;
+  next_reservation_status?: unknown;
+  next_reservation_date?: unknown;
+  next_reservation_start_time?: unknown;
+  next_reservation_end_time?: unknown;
+  next_reservation_customer_name?: unknown;
+  next_reservation_guests?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -50,6 +66,13 @@ function readTables(payload: unknown, depth = 0): TableRecord[] {
           ? table.table_number
           : undefined,
       status: typeof table.status === 'string' ? table.status : undefined,
+      reservation_is_active: table.reservation_is_active,
+      next_reservation_status: table.next_reservation_status,
+      next_reservation_date: table.next_reservation_date,
+      next_reservation_start_time: table.next_reservation_start_time,
+      next_reservation_end_time: table.next_reservation_end_time,
+      next_reservation_customer_name: table.next_reservation_customer_name,
+      next_reservation_guests: table.next_reservation_guests,
     }));
   }
   if (!isRecord(payload)) {
@@ -64,6 +87,10 @@ function readTables(payload: unknown, depth = 0): TableRecord[] {
     }
   }
   return [];
+}
+
+function getTableKey(table: TableRecord) {
+  return String(table.table_id ?? table.id ?? table.table_number ?? '');
 }
 
 function getErrorMessage(
@@ -108,7 +135,8 @@ function BillPreview({
   onBack,
 }: BillPreviewProps) {
   const [tables, setTables] = useState<TableRecord[]>([]);
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [activeBills, setActiveBills] = useState<ActiveBillTableReference[]>([]);
+  const [selectedTableKey, setSelectedTableKey] = useState<string | null>(null);
   const [isLoadingTables, setIsLoadingTables] = useState(true);
   const [tablesError, setTablesError] = useState('');
   const [tablesRetry, setTablesRetry] = useState(0);
@@ -131,31 +159,33 @@ function BillPreview({
   const sgst = taxableAmount * 0.025;
   const grandTotal = taxableAmount + cgst + sgst;
   const availableTableRecords = tables
-    .filter(table => !table.status || table.status.trim().toLowerCase() === 'available')
+    .filter(table =>
+      canSelectTableForNewOrder(
+        table,
+        tableHasActiveBill(table, activeBills),
+      ),
+    )
     .filter(table => String(table.table_number ?? '').trim())
     .filter(
       (table, index, available) =>
         available.findIndex(
-          candidate =>
-            String(candidate.table_number ?? '').trim() ===
-            String(table.table_number ?? '').trim(),
+          candidate => getTableKey(candidate) === getTableKey(table),
         ) === index,
     );
-  const availableTables = availableTableRecords.map(table =>
-    String(table.table_number).trim(),
-  );
   const selectedTableRecord =
     availableTableRecords.find(
-      table => String(table.table_number).trim() === selectedTable,
+      table => getTableKey(table) === selectedTableKey,
     ) ?? null;
+  const selectedTable = selectedTableRecord
+    ? String(selectedTableRecord.table_number).trim()
+    : null;
   const canConfirm =
     !hasUnpricedItems &&
     items.length > 0 &&
     (orderType !== 'Dine In' ||
       (!isLoadingTables &&
         !tablesError &&
-        selectedTable !== null &&
-        availableTables.includes(selectedTable)));
+        selectedTableRecord !== null));
   const canSendToKitchen =
     canConfirm &&
     orderType === 'Dine In' &&
@@ -215,10 +245,77 @@ function BillPreview({
 
     setIsSendingToKitchen(true);
     try {
+      const selectedTableId =
+        selectedTableRecord.table_id ?? selectedTableRecord.id;
       const tableIdentifier =
-        selectedTableRecord.table_id ??
-        selectedTableRecord.id ??
-        selectedTableRecord.table_number;
+        selectedTableId ?? selectedTableRecord.table_number;
+      const latestTablesResponse = await api.get('/server-tables', {
+        params: { _refresh: Date.now() },
+        headers: {
+          'Cache-Control': 'no-cache, no-store',
+          Pragma: 'no-cache',
+        },
+      });
+      if (
+        isRecord(latestTablesResponse.data) &&
+        latestTablesResponse.data.success === false
+      ) {
+        throw new Error(
+          typeof latestTablesResponse.data.message === 'string'
+            ? latestTablesResponse.data.message
+            : 'Unable to verify the latest table status.',
+        );
+      }
+      const latestTables = readTables(latestTablesResponse.data);
+      const activeBillsResponse = await api.get('/table-bills', {
+        params: { status: 'Active', _refresh: Date.now() },
+        headers: {
+          'Cache-Control': 'no-cache, no-store',
+          Pragma: 'no-cache',
+        },
+      });
+      if (
+        isRecord(activeBillsResponse.data) &&
+        activeBillsResponse.data.success === false
+      ) {
+        throw new Error(
+          typeof activeBillsResponse.data.message === 'string'
+            ? activeBillsResponse.data.message
+            : 'Unable to verify active table bills.',
+        );
+      }
+      const latestActiveBills = readActiveBillTables(
+        activeBillsResponse.data,
+      );
+      const latestTable = latestTables.find(table => {
+        const latestIdentifier = table.table_id ?? table.id;
+        if (selectedTableId !== undefined && selectedTableId !== null) {
+          return (
+            latestIdentifier !== undefined &&
+            String(latestIdentifier) === String(selectedTableId)
+          );
+        }
+        return String(table.table_number) === String(selectedTable);
+      });
+      if (!latestTable) {
+        throw new Error(
+          'The selected table could not be verified. Refresh tables and try again.',
+        );
+      }
+      if (
+        !canSelectTableForNewOrder(
+          latestTable,
+          tableHasActiveBill(latestTable, latestActiveBills),
+        )
+      ) {
+        throw new Error(
+          tableHasActiveBill(latestTable, latestActiveBills)
+            ? `Table ${selectedTable} already has an active bill. Open it from Table Management to add items.`
+            : isReservationActive(latestTable)
+            ? `Table ${selectedTable} is currently reserved. Choose another table.`
+            : `Table ${selectedTable} is no longer available. Choose another table.`,
+        );
+      }
       const cleanTableId =
         tableIdentifier !== undefined &&
         Number.isFinite(Number(tableIdentifier))
@@ -282,24 +379,53 @@ function BillPreview({
 
       try {
         let response;
+        let billsResponse;
         try {
-          response = await api.get('/server-tables', config);
+          [response, billsResponse] = await Promise.all([
+            api.get('/server-tables', config),
+            api.get('/table-bills', {
+              ...config,
+              params: { status: 'Active' },
+            }),
+          ]);
         } catch (error) {
           if (
             isRecord(error) &&
             Number(error.status) === 304 &&
             !controller.signal.aborted
           ) {
-            response = await api.get('/server-tables', {
-              ...config,
-              params: { _refresh: Date.now() },
-            });
+            [response, billsResponse] = await Promise.all([
+              api.get('/server-tables', {
+                ...config,
+                params: { _refresh: Date.now() },
+              }),
+              api.get('/table-bills', {
+                ...config,
+                params: { status: 'Active', _refresh: Date.now() },
+              }),
+            ]);
           } else {
             throw error;
           }
         }
         if (active) {
+          if (
+            (isRecord(response.data) && response.data.success === false) ||
+            (isRecord(billsResponse.data) &&
+              billsResponse.data.success === false)
+          ) {
+            const failedResponse =
+              isRecord(response.data) && response.data.success === false
+                ? response.data
+                : billsResponse.data;
+            throw new Error(
+              typeof failedResponse.message === 'string'
+                ? failedResponse.message
+                : 'Unable to load tables and active bills.',
+            );
+          }
           setTables(readTables(response.data));
+          setActiveBills(readActiveBillTables(billsResponse.data));
         }
       } catch (error) {
         if (active && !controller.signal.aborted) {
@@ -394,21 +520,25 @@ function BillPreview({
                       <Text className="text-xs font-semibold text-[#116C0B]">Retry</Text>
                     </Pressable>
                   </View>
-                ) : availableTables.length ? (
+                ) : availableTableRecords.length ? (
                   <View className="flex-row flex-wrap gap-2">
-                    {availableTables.map(tableNumber => {
-                      const isSelected = selectedTable === tableNumber;
+                    {availableTableRecords.map(table => {
+                      const tableNumber = String(table.table_number).trim();
+                      const tableKey = getTableKey(table);
+                      const isSelected = selectedTableKey === tableKey;
+                      const status = getTableStatus(table);
+                      const reservationSummary = getReservationSummary(table);
                       return (
                         <Pressable
                           accessibilityLabel={`Select table ${tableNumber}`}
                           accessibilityRole="button"
                           accessibilityState={{ selected: isSelected }}
-                          key={tableNumber}
+                          key={tableKey}
                           onPress={() => {
-                            setSelectedTable(tableNumber);
+                            setSelectedTableKey(tableKey);
                             setIsKitchenOrderSent(false);
                           }}
-                          className="rounded-lg border px-3 py-2"
+                          className="max-w-full rounded-lg border px-3 py-2"
                           style={{
                             backgroundColor: isSelected
                               ? colors.primary
@@ -419,6 +549,7 @@ function BillPreview({
                           }}
                         >
                           <Text
+                            numberOfLines={1}
                             className="text-xs font-semibold"
                             style={{
                               color: isSelected
@@ -426,8 +557,16 @@ function BillPreview({
                                 : colors.textPrimary,
                             }}
                           >
-                            Table {tableNumber}
+                            Table {tableNumber} · {status}
                           </Text>
+                          {reservationSummary ? (
+                            <Text
+                              numberOfLines={2}
+                              className="mt-1 text-[10px] text-[#6B7280]"
+                            >
+                              {reservationSummary}
+                            </Text>
+                          ) : null}
                         </Pressable>
                       );
                     })}
@@ -439,7 +578,7 @@ function BillPreview({
                 )}
                 {!isLoadingTables &&
                 !tablesError &&
-                availableTables.length > 0 &&
+                availableTableRecords.length > 0 &&
                 !selectedTable ? (
                   <Text className="text-xs text-[#6B7280]">
                     Choose a table to enable bill completion.

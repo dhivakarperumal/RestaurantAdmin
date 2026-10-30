@@ -233,12 +233,12 @@ function findTable(
   return (
     rows.find(row => {
       const rowId = row.table_id ?? row.id;
+      if (tableId !== undefined && tableId !== null) {
+        return rowId !== undefined && String(rowId) === String(tableId);
+      }
       return (
-        (tableId !== undefined &&
-          tableId !== null &&
-          String(rowId) === String(tableId)) ||
-        (table.table_number !== undefined &&
-          String(row.table_number) === String(table.table_number))
+        table.table_number !== undefined &&
+        String(row.table_number) === String(table.table_number)
       );
     }) ?? null
   );
