@@ -293,7 +293,7 @@ function ChefEventOrdersScreen() {
           label="Start cooking"
           disabled={isUpdating}
           onPress={() => void updateStatus(order, 'Preparing')}
-          className="bg-blue-600"
+          className="bg-[#116C0B]"
         />
       ) : null}
       {order.status === 'Preparing' ? (
@@ -491,9 +491,9 @@ function ChefEventOrdersScreen() {
         <Text className="text-[22px] font-extrabold text-[#012711]">
           Event Catering Orders
         </Text>
-        <Text className="mt-1 text-xs leading-5 text-[#6B7280]">
+        {/* <Text className="mt-1 text-xs leading-5 text-[#6B7280]">
           Confirmed bulk orders for kitchen preparation and portion tracking.
-        </Text>
+        </Text> */}
       </View>
 
       <ChefStatCards
@@ -689,7 +689,7 @@ function ChefEventOrdersScreen() {
                 <Pressable
                   disabled={updatingId === orderId(selectedOrder)}
                   onPress={() => void updateStatus(selectedOrder, 'Preparing')}
-                  className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-blue-600 active:bg-blue-700"
+                  className="min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#116C0B] active:bg-[#0e5809]"
                 >
                   <Text className="text-sm font-bold text-white">Start Preparing</Text>
                 </Pressable>
