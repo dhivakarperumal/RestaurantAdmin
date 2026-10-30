@@ -12,14 +12,36 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
-import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
-import { BaseModal, CustomAlert as Alert } from '../../components/popups';
+import { MenuIcon, PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
+import { BaseModal, FilterIcon, CustomAlert as Alert } from '../../components/popups';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
+import {
+  readActiveBillTables,
+  canSelectTableForNewOrder,
+  getReservationSummary,
+  getServerAssignmentLabel,
+  getAssignedServerName,
+  getTableStatus,
+  isReservationActive,
+  tableHasActiveBill,
+} from './tableAvailability';
+import {
+  createOrderRequestKey,
+  getKitchenOrderTypeFields,
+  getOrderRequestKeyHeaders,
+  getOrderRequestKeyPayload,
+  getOrderSubmissionError,
+  hasValidTableId,
+  isValidOrderRequestKey,
+  resolveApiOrderType,
+} from './orderSubmission';
+import { isFoodAvailable } from './foodAvailability';
 import type {
   AdminTableRecord,
   ExistingBillContext,
   NewOrderType,
 } from '../Navigation/DashboardTypes';
+import type { ActiveBillTableReference } from './tableAvailability';
 
 type RecordValue = Record<string, unknown>;
 
@@ -62,8 +84,21 @@ type CartLine = {
   customizations: Record<string, string[]>;
 };
 
+type TableStatusFilter = 'All' | 'Available' | 'Occupied' | 'Reserved';
+type FoodTypeFilter = 'All' | 'Veg' | 'Non Veg';
+type FoodOfferFilter = 'All' | 'Offers';
+
 type TableRecord = AdminTableRecord & {
   no_of_seats?: number | string;
+  reservation_is_active?: unknown;
+  next_reservation_status?: unknown;
+  next_reservation_date?: unknown;
+  next_reservation_start_time?: unknown;
+  next_reservation_end_time?: unknown;
+  next_reservation_customer_name?: unknown;
+  next_reservation_guests?: unknown;
+  assigned_to?: unknown;
+  waiter_id?: unknown;
 };
 
 function isRecord(value: unknown): value is RecordValue {
@@ -126,6 +161,34 @@ function readTables(payload: unknown): TableRecord[] {
         ? row.no_of_seats
         : undefined,
     status: typeof row.status === 'string' ? row.status : undefined,
+    reservation_is_active: row.reservation_is_active,
+    next_reservation_status: row.next_reservation_status,
+    next_reservation_date: row.next_reservation_date,
+    next_reservation_start_time: row.next_reservation_start_time,
+    next_reservation_end_time: row.next_reservation_end_time,
+    next_reservation_customer_name: row.next_reservation_customer_name,
+    next_reservation_guests: row.next_reservation_guests,
+    assigned_server_id:
+      row.assigned_server_id ??
+      row.assigned_employee_id ??
+      row.server_id ??
+      row.employee_id ??
+      row.waiter_id ??
+      row.assigned_to,
+    assigned_server_name:
+      row.assigned_server_name ??
+      row.server_name ??
+      row.assigned_employee_name ??
+      row.employee_name,
+    assigned_employee_name: row.assigned_employee_name,
+    server_name: row.server_name,
+    employee_name: row.employee_name,
+    assigned_server: row.assigned_server,
+    assigned_employee: row.assigned_employee,
+    server: row.server,
+    employee: row.employee,
+    assigned_to: row.assigned_to,
+    waiter_id: row.waiter_id,
   }));
 }
 
@@ -174,6 +237,24 @@ function flag(value: unknown, fallback = true) {
     if (/^(true|1|yes|active)$/i.test(value.trim())) return true;
   }
   return fallback;
+}
+
+function getFoodType(food: MenuFood): Exclude<FoodTypeFilter, 'All'> | null {
+  const value = text(food.raw.food_type ?? food.raw.foodType).toLowerCase();
+  if (/^(non[\s_-]*veg|non[\s_-]*vegetarian)$/.test(value)) {
+    return 'Non Veg';
+  }
+  if (/^(veg|vegetarian)$/.test(value)) {
+    return 'Veg';
+  }
+  return null;
+}
+
+function getFoodOfferDiscount(food: MenuFood): number | null {
+  const discount = Number(food.raw.discount);
+  return Number.isFinite(discount) && discount > 0 && discount <= 100
+    ? discount
+    : null;
 }
 
 function readFoods(payload: unknown): MenuFood[] {
@@ -246,12 +327,11 @@ function getErrorMessage(error: unknown, fallback: string) {
     : fallback;
 }
 
-function tableStatus(table: TableRecord) {
-  const status = text(table.status, 'Available').toLowerCase();
-  if (status.includes('reserv')) return 'Reserved';
-  if (status.includes('occup')) return 'Occupied';
-  if (status.includes('avail')) return 'Available';
-  return text(table.status, 'Available');
+function tableStatus(
+  table: TableRecord,
+  hasActiveBill = false,
+) {
+  return getTableStatus(table, hasActiveBill);
 }
 
 function containsActiveBill(payload: unknown): boolean {
@@ -317,17 +397,32 @@ export default function NewOrderFlow({
   orderType,
   initialTable,
   existingBill,
+  onOpenActiveBill,
+  onAddItemsToActiveBill,
+  onOpenTableMerge,
   onBack,
   onOrderSubmitted,
 }: {
   orderType: NewOrderType;
   initialTable?: AdminTableRecord;
   existingBill?: ExistingBillContext;
+  onOpenActiveBill: (table: AdminTableRecord) => void;
+  onAddItemsToActiveBill: (
+    table: AdminTableRecord,
+    context: ExistingBillContext,
+  ) => void;
+  onOpenTableMerge: (table: AdminTableRecord) => void;
   onBack: () => void;
   onOrderSubmitted: () => void;
 }) {
   const { width } = useWindowDimensions();
   const [tables, setTables] = useState<TableRecord[]>([]);
+  const [tableSearch, setTableSearch] = useState('');
+  const [tableStatusFilter, setTableStatusFilter] =
+    useState<TableStatusFilter>('Available');
+  const [activeBillTables, setActiveBillTables] = useState<
+    ActiveBillTableReference[]
+  >([]);
   const [selectedTable, setSelectedTable] = useState<TableRecord | null>(
     initialTable ?? null,
   );
@@ -335,11 +430,25 @@ export default function NewOrderFlow({
     orderType === 'DINE_IN',
   );
   const [tablesError, setTablesError] = useState('');
+  const [addingItemsTableId, setAddingItemsTableId] = useState<string | null>(
+    null,
+  );
   const [foods, setFoods] = useState<MenuFood[]>([]);
   const [isLoadingFoods, setIsLoadingFoods] = useState(true);
   const [foodsError, setFoodsError] = useState('');
   const [retry, setRetry] = useState(0);
   const [search, setSearch] = useState('');
+  const [foodTypeFilter, setFoodTypeFilter] =
+    useState<FoodTypeFilter>('All');
+  const [foodOfferFilter, setFoodOfferFilter] =
+    useState<FoodOfferFilter>('All');
+  const [foodCategoryFilter, setFoodCategoryFilter] = useState('All');
+  const [minimumFoodPrice, setMinimumFoodPrice] = useState('');
+  const [maximumFoodPrice, setMaximumFoodPrice] = useState('');
+  const [minimumFoodRating, setMinimumFoodRating] = useState<number | null>(
+    null,
+  );
+  const [isFoodFilterOpen, setIsFoodFilterOpen] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -355,13 +464,62 @@ export default function NewOrderFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const submissionLock = useRef(false);
-  const isDineIn = orderType === 'DINE_IN';
-  const isDelivery = orderType === 'HOME_DELIVERY';
+  const orderRequestKeyRef = useRef<{ signature: string; key: string } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (initialTable) {
+      setSelectedTable(initialTable);
+    }
+  }, [initialTable]);
+
+  const resolvedOrderType = resolveApiOrderType(orderType, selectedTable);
+  const isDineIn = resolvedOrderType === 'dine_in';
+  const isDelivery = resolvedOrderType === 'home_delivery';
   const orderLabel = isDineIn
     ? 'Dine-In / Table'
     : isDelivery
     ? 'Home Delivery'
     : 'Pick Up';
+  const tableStatusCounts = useMemo(() => {
+    const counts: Record<TableStatusFilter, number> = {
+      All: tables.length,
+      Available: 0,
+      Occupied: 0,
+      Reserved: 0,
+    };
+    tables.forEach(table => {
+      const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+      const status = tableStatus(table, hasActiveBill);
+      if (status === 'Available' || status === 'Occupied' || status === 'Reserved') {
+        counts[status] += 1;
+      }
+    });
+    return counts;
+  }, [activeBillTables, tables]);
+  const filteredTables = useMemo(
+    () => {
+      const query = tableSearch.trim().toLowerCase();
+      return tables.filter(table => {
+        const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+        const status = tableStatus(table, hasActiveBill);
+        const matchesStatus =
+          tableStatusFilter === 'All' || status === tableStatusFilter;
+        const searchableText = [
+          table.table_number,
+          table.no_of_seats,
+          status,
+          getServerAssignmentLabel(table),
+          getReservationSummary(table),
+        ]
+          .filter(value => value !== undefined && value !== null)
+          .join(' ')
+          .toLowerCase();
+        return matchesStatus && (!query || searchableText.includes(query));
+      });
+    },
+    [activeBillTables, tableSearch, tableStatusFilter, tables],
+  );
   const horizontalPadding = width >= 768 ? 24 : 16;
   const cardGap = 12;
   const cardWidth =
@@ -374,24 +532,85 @@ export default function NewOrderFlow({
           : isDelivery
           ? 'delivery_available'
           : 'takeaway_available';
-        const status = text(food.raw.status, 'Active').toLowerCase();
-        return (
-          status !== 'inactive' &&
-          status !== 'deleted' &&
-          flag(food.raw.is_available) &&
-          flag(food.raw.is_menu_visible) &&
-          flag(food.raw[availabilityKey])
-        );
+        return isFoodAvailable(food.raw, availabilityKey);
       }),
     [foods, isDelivery, isDineIn],
   );
+  const foodCategories = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          availableFoods
+            .map(food => food.category.trim())
+            .filter(Boolean)
+            .map(category => [category.toLowerCase(), category]),
+        ).values(),
+      ).sort((left, right) => left.localeCompare(right)),
+    [availableFoods],
+  );
+  const activeFoodFilterCount =
+    Number(foodOfferFilter !== 'All') +
+    Number(foodCategoryFilter !== 'All') +
+    Number(minimumFoodRating !== null) +
+    Number(Boolean(minimumFoodPrice.trim() || maximumFoodPrice.trim()));
   const visibleFoods = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const minPriceText = minimumFoodPrice.replace(/,/g, '').trim();
+    const maxPriceText = maximumFoodPrice.replace(/,/g, '').trim();
+    const minimumPrice = minPriceText ? Number(minPriceText) : null;
+    const maximumPrice = maxPriceText ? Number(maxPriceText) : null;
+    const hasValidMinimum =
+      minimumPrice !== null && Number.isFinite(minimumPrice) && minimumPrice >= 0;
+    const hasValidMaximum =
+      maximumPrice !== null && Number.isFinite(maximumPrice) && maximumPrice >= 0;
     return availableFoods.filter(
-      food =>
-        !query || `${food.name} ${food.category}`.toLowerCase().includes(query),
+      food => {
+        const matchesSearch =
+          !query || `${food.name} ${food.category}`.toLowerCase().includes(query);
+        const matchesFoodType =
+          foodTypeFilter === 'All' || getFoodType(food) === foodTypeFilter;
+        const matchesOffer =
+          foodOfferFilter === 'All' || getFoodOfferDiscount(food) !== null;
+        const matchesCategory =
+          foodCategoryFilter === 'All' ||
+          food.category.toLowerCase() === foodCategoryFilter.toLowerCase();
+        const matchesMinimumPrice =
+          !hasValidMinimum ||
+          (food.price !== null && food.price >= minimumPrice);
+        const matchesMaximumPrice =
+          !hasValidMaximum ||
+          (food.price !== null && food.price <= maximumPrice);
+        const ratingValue = Number(
+          food.raw.rating ??
+            food.raw.average_rating ??
+            food.raw.avg_rating ??
+            food.raw.food_rating,
+        );
+        const hasRating = Number.isFinite(ratingValue);
+        const matchesRating =
+          minimumFoodRating === null ||
+          (hasRating && ratingValue >= minimumFoodRating);
+        return (
+          matchesSearch &&
+          matchesFoodType &&
+          matchesOffer &&
+          matchesCategory &&
+          matchesMinimumPrice &&
+          matchesMaximumPrice &&
+          matchesRating
+        );
+      },
     );
-  }, [availableFoods, search]);
+  }, [
+    availableFoods,
+    foodCategoryFilter,
+    foodOfferFilter,
+    minimumFoodRating,
+    foodTypeFilter,
+    maximumFoodPrice,
+    minimumFoodPrice,
+    search,
+  ]);
   const subtotal = cart.reduce(
     (sum, line) => sum + getLinePrice(line) * line.quantity,
     0,
@@ -406,16 +625,20 @@ export default function NewOrderFlow({
   const tax = cgst + sgst;
   const total = taxableAmount + tax;
   const phoneDigits = customerPhone.replace(/\D/g, '');
-  const hasCustomerDetails =
+  const hasDeliveryDetails =
     customerName.trim().length > 0 &&
     phoneDigits.length >= 7 &&
     phoneDigits.length <= 15 &&
-    (!isDelivery || deliveryAddress.trim().length > 0);
+    deliveryAddress.trim().length > 0;
   const canSubmit =
     cart.length > 0 &&
     !cart.some(line => !line.food.id || line.food.price === null) &&
-    (!isDineIn || selectedTable !== null) &&
-    (isDineIn || hasCustomerDetails) &&
+    getOrderSubmissionError({
+      orderType,
+      itemCount: cart.length,
+      table: selectedTable,
+      hasDeliveryDetails,
+    }) === null &&
     !isSubmitting &&
     !hasSubmitted;
 
@@ -453,16 +676,42 @@ export default function NewOrderFlow({
   useEffect(() => {
     if (!isDineIn) {
       setIsLoadingTables(false);
+      setActiveBillTables([]);
       return;
     }
     const controller = new AbortController();
     let active = true;
     setIsLoadingTables(true);
     setTablesError('');
-    api
-      .get('/server-tables', { signal: controller.signal })
-      .then(response => {
-        if (active) setTables(readTables(response.data));
+    Promise.all([
+      api.get('/server-tables', { signal: controller.signal }),
+      api.get('/table-bills', {
+        params: { status: 'Active' },
+        signal: controller.signal,
+      }),
+    ])
+      .then(([tablesResponse, billsResponse]) => {
+        if (active) {
+          if (
+            (isRecord(tablesResponse.data) &&
+              tablesResponse.data.success === false) ||
+            (isRecord(billsResponse.data) &&
+              billsResponse.data.success === false)
+          ) {
+            const failedResponse =
+              isRecord(tablesResponse.data) &&
+              tablesResponse.data.success === false
+                ? tablesResponse.data
+                : billsResponse.data;
+            throw new Error(
+              typeof failedResponse.message === 'string'
+                ? failedResponse.message
+                : 'Unable to load tables and active bills.',
+            );
+          }
+          setTables(readTables(tablesResponse.data));
+          setActiveBillTables(readActiveBillTables(billsResponse.data));
+        }
       })
       .catch(error => {
         if (active && !controller.signal.aborted) {
@@ -481,7 +730,18 @@ export default function NewOrderFlow({
   }, [isDineIn, retry]);
 
   const chooseTable = async (table: TableRecord) => {
-    if (tableStatus(table) !== 'Available') {
+    const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+    if (getTableStatus(table, hasActiveBill) === 'Occupied') {
+      onOpenActiveBill(table);
+      return;
+    }
+    if (!canSelectTableForNewOrder(table, hasActiveBill)) {
+      if (isReservationActive(table)) {
+        Alert.alert(
+          'Table reserved',
+          `Table ${text(table.table_number)} is currently reserved.`,
+        );
+      }
       return;
     }
     const identifier = table.table_id ?? table.id;
@@ -494,18 +754,25 @@ export default function NewOrderFlow({
         `/table-bills/active/${encodeURIComponent(String(identifier))}`,
       );
       const payload = response.data;
+      if (isRecord(payload) && payload.success === false) {
+        throw new Error(
+          typeof payload.message === 'string'
+            ? payload.message
+            : 'Unable to verify whether this table has an active bill.',
+        );
+      }
       const bill =
         isRecord(payload) && isRecord(payload.bill)
           ? payload.bill
           : isRecord(payload) && isRecord(payload.data)
           ? payload.data
           : payload;
-      const hasActiveBill =
+      const activeBillFound =
         isRecord(bill) &&
         (bill.bill_id !== undefined ||
           bill.id !== undefined ||
           (Array.isArray(bill.rounds) && bill.rounds.length > 0));
-      if (hasActiveBill) {
+      if (activeBillFound) {
         Alert.alert(
           'Table already has an active bill',
           `Table ${text(
@@ -525,6 +792,46 @@ export default function NewOrderFlow({
         'Unable to verify table',
         getErrorMessage(error, 'Please refresh tables and try again.'),
       );
+    }
+  };
+
+  const addItemsToActiveBill = async (table: TableRecord) => {
+    const tableId = table.table_id ?? table.id;
+    if (tableId === undefined || tableId === null || !String(tableId).trim()) {
+      Alert.alert('Cannot add items', 'This table is missing its ID.');
+      return;
+    }
+
+    setAddingItemsTableId(String(tableId));
+    try {
+      const response = await api.get(
+        `/table-bills/active/${encodeURIComponent(String(tableId))}`,
+      );
+      if (isRecord(response.data) && response.data.success === false) {
+        throw new Error(
+          typeof response.data.message === 'string'
+            ? response.data.message
+            : 'Unable to load this table’s active bill.',
+        );
+      }
+      const billId = readActiveBillId(response.data);
+      if (!billId) {
+        throw new Error(
+          'No active bill was found for this table. Refresh the table list and try again.',
+        );
+      }
+      onAddItemsToActiveBill(table, {
+        billId,
+        tableId: String(tableId),
+        tableNumber: text(table.table_number, '—'),
+      });
+    } catch (error) {
+      Alert.alert(
+        'Unable to add items',
+        getErrorMessage(error, 'Could not load the active bill. Try again.'),
+      );
+    } finally {
+      setAddingItemsTableId(null);
     }
   };
 
@@ -613,12 +920,57 @@ export default function NewOrderFlow({
   };
 
   const sendOrder = async () => {
-    if (!canSubmit || submissionLock.current) return;
+    if (submissionLock.current || isSubmitting) return;
+    const validationError = getOrderSubmissionError({
+      orderType,
+      itemCount: cart.length,
+      table: selectedTable,
+      hasDeliveryDetails,
+    });
+    if (validationError) {
+      Alert.alert(
+        validationError.startsWith('Choose ')
+          ? 'Unable to send order'
+          : 'Order details required',
+        validationError,
+      );
+      return;
+    }
+    const apiOrderType = resolveApiOrderType(orderType, selectedTable);
+    if (!apiOrderType) {
+      Alert.alert(
+        'Unable to send order',
+        'Choose dine-in, home delivery, or pickup.',
+      );
+      return;
+    }
+    if (
+      cart.some(
+        line =>
+          !line.food.id ||
+          line.food.price === null ||
+          !Number.isFinite(line.quantity) ||
+          line.quantity <= 0,
+      )
+    ) {
+      Alert.alert(
+        'Unable to send order',
+        'Check that every food item has a valid ID, price, and quantity.',
+      );
+      return;
+    }
     submissionLock.current = true;
     setIsSubmitting(true);
+    const requestKeyDiagnostic = {
+      endpoint: '/kitchen-orders',
+      bodyField: 'order_request_key',
+      keyPresent: false,
+      keyValid: false,
+      payloadFields: [] as string[],
+    };
     try {
       const payload: Record<string, unknown> = {
-        order_type: orderType,
+        ...getKitchenOrderTypeFields(apiOrderType),
         items: cart.map(line => ({
           food_id:
             Number.isFinite(Number(line.food.id)) && line.food.id.trim()
@@ -654,14 +1006,21 @@ export default function NewOrderFlow({
 
       if (isDineIn && selectedTable) {
         const tableId = selectedTable.table_id ?? selectedTable.id;
-        if (
-          tableId === undefined ||
-          tableId === null ||
-          !String(tableId).trim()
-        ) {
-          throw new Error('The selected table does not have a valid table ID.');
+        if (!hasValidTableId(selectedTable)) {
+          throw new Error('Select a valid table before sending this order.');
         }
-        const latestTables = readTables((await api.get('/server-tables')).data);
+        const latestTablesResponse = await api.get('/server-tables');
+        if (
+          isRecord(latestTablesResponse.data) &&
+          latestTablesResponse.data.success === false
+        ) {
+          throw new Error(
+            typeof latestTablesResponse.data.message === 'string'
+              ? latestTablesResponse.data.message
+              : 'Unable to verify the latest table status.',
+          );
+        }
+        const latestTables = readTables(latestTablesResponse.data);
         const latestTable = latestTables.find(
           table => String(table.table_id ?? table.id) === String(tableId),
         );
@@ -678,16 +1037,19 @@ export default function NewOrderFlow({
               'The selected table does not match the active bill.',
             );
           }
-          if (tableStatus(latestTable) !== 'Occupied') {
-            throw new Error(
-              `Table ${text(
-                selectedTable.table_number,
-              )} is no longer occupied. Refresh the bill and try again.`,
-            );
-          }
           const activeBillResponse = await api.get(
             `/table-bills/active/${encodeURIComponent(String(tableId))}`,
           );
+          if (
+            isRecord(activeBillResponse.data) &&
+            activeBillResponse.data.success === false
+          ) {
+            throw new Error(
+              typeof activeBillResponse.data.message === 'string'
+                ? activeBillResponse.data.message
+                : 'Unable to verify the active bill.',
+            );
+          }
           if (
             readActiveBillId(activeBillResponse.data) !== existingBill.billId
           ) {
@@ -701,17 +1063,32 @@ export default function NewOrderFlow({
               ? Number(existingBill.billId)
               : existingBill.billId;
         } else {
-          if (tableStatus(latestTable) !== 'Available') {
+          if (!canSelectTableForNewOrder(latestTable)) {
+            const reason = isReservationActive(latestTable)
+              ? 'is currently reserved'
+              : tableStatus(latestTable) === 'Occupied'
+                ? 'already has an active bill'
+                : 'is no longer available';
             throw new Error(
               `Table ${text(
                 selectedTable.table_number,
-              )} is no longer available. Refresh tables and choose another table.`,
+              )} ${reason}. Refresh tables and choose another table.`,
             );
           }
           try {
             const activeBillResponse = await api.get(
               `/table-bills/active/${encodeURIComponent(String(tableId))}`,
             );
+            if (
+              isRecord(activeBillResponse.data) &&
+              activeBillResponse.data.success === false
+            ) {
+              throw new Error(
+                typeof activeBillResponse.data.message === 'string'
+                  ? activeBillResponse.data.message
+                  : 'Unable to verify the active bill.',
+              );
+            }
             if (containsActiveBill(activeBillResponse.data)) {
               throw new Error(
                 `Table ${text(
@@ -731,15 +1108,67 @@ export default function NewOrderFlow({
             : tableId;
         payload.table_number =
           existingBill?.tableNumber ?? selectedTable.table_number;
+        const assignedServerId =
+          selectedTable.assigned_server_id ??
+          selectedTable.assigned_employee_id ??
+          selectedTable.server_id ??
+          selectedTable.employee_id ??
+          selectedTable.waiter_id;
+        if (
+          (typeof assignedServerId === 'string' ||
+            typeof assignedServerId === 'number') &&
+          String(assignedServerId).trim()
+        ) {
+          const cleanServerId =
+            Number.isFinite(Number(assignedServerId)) &&
+            String(assignedServerId).trim()
+              ? Number(assignedServerId)
+              : assignedServerId;
+          payload.server_id = cleanServerId;
+          payload.assigned_server_id = cleanServerId;
+          payload.employee_id = cleanServerId;
+        }
+        const assignedServerName = getAssignedServerName(selectedTable);
+        if (assignedServerName) {
+          payload.server_name = assignedServerName;
+          payload.assigned_server_name = assignedServerName;
+        }
       } else {
-        payload.customer_name = customerName.trim();
-        payload.customer_phone = customerPhone.trim();
+        if (customerName.trim()) {
+          payload.customer_name = customerName.trim();
+        }
+        if (customerPhone.trim()) {
+          payload.customer_phone = customerPhone.trim();
+        }
         if (isDelivery) {
           payload.delivery_address = deliveryAddress.trim();
         }
       }
 
-      const response = await api.post('/kitchen-orders', payload);
+      const requestSignature = JSON.stringify(payload);
+      if (orderRequestKeyRef.current?.signature !== requestSignature) {
+        orderRequestKeyRef.current = {
+          signature: requestSignature,
+          key: createOrderRequestKey(),
+        };
+      }
+      const requestKey = orderRequestKeyRef.current.key;
+      requestKeyDiagnostic.keyPresent = Boolean(requestKey);
+      requestKeyDiagnostic.keyValid = isValidOrderRequestKey(requestKey);
+      Object.assign(payload, getOrderRequestKeyPayload(requestKey));
+      requestKeyDiagnostic.payloadFields = Object.keys(payload);
+      if (!isValidOrderRequestKey(requestKey)) {
+        console.error('KOT submission has an invalid order request key.', {
+          ...requestKeyDiagnostic,
+        });
+        throw new Error(
+          'Unable to create a valid order request key. Please try again.',
+        );
+      }
+
+      const response = await api.post('/kitchen-orders', payload, {
+        headers: getOrderRequestKeyHeaders(requestKey),
+      });
       if (isRecord(response.data) && response.data.success === false) {
         throw new Error(
           typeof response.data.message === 'string'
@@ -751,11 +1180,7 @@ export default function NewOrderFlow({
 
       if (isDineIn && selectedTable && !existingBill) {
         const tableId = selectedTable.table_id ?? selectedTable.id;
-        if (
-          tableId === undefined ||
-          tableId === null ||
-          !String(tableId).trim()
-        ) {
+        if (!hasValidTableId(selectedTable)) {
           throw new Error('The selected table does not have a valid table ID.');
         }
         try {
@@ -800,9 +1225,19 @@ export default function NewOrderFlow({
         ],
       );
     } catch (error) {
+      orderRequestKeyRef.current = null;
+      const errorMessage = getErrorMessage(
+        error,
+        'Please check the connection and try again.',
+      );
+      if (/order[_ ]request[_ ]key/i.test(errorMessage)) {
+        console.error('KOT API rejected the order request key.', {
+          ...requestKeyDiagnostic,
+        });
+      }
       Alert.alert(
         'Unable to send order',
-        getErrorMessage(error, 'Please check the connection and try again.'),
+        errorMessage,
       );
     } finally {
       submissionLock.current = false;
@@ -816,7 +1251,7 @@ export default function NewOrderFlow({
         <MoreInnerHeader
           title="Choose a Table"
           destination="Select Order Type"
-          subtitle="Only available tables can start a new order."
+          subtitle="Tables with an active reservation cannot be selected."
           onBack={onBack}
         />
         <ScrollView
@@ -853,64 +1288,224 @@ export default function NewOrderFlow({
               </Pressable>
             </View>
           ) : tables.length ? (
-            <View className="flex-row flex-wrap" style={{ gap: 12 }}>
-              {tables.map((table, index) => {
-                const status = tableStatus(table);
-                const available = status === 'Available';
-                return (
-                  <Pressable
-                    accessibilityLabel={`Table ${text(
-                      table.table_number,
-                      String(index + 1),
-                    )}, ${status}${
-                      available ? ', available for selection' : ''
-                    }`}
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: !available }}
-                    disabled={!available}
-                    key={String(
-                      table.table_id ?? table.id ?? table.table_number ?? index,
-                    )}
-                    onPress={() => void chooseTable(table)}
-                    className={`rounded-2xl border bg-white p-4 ${
-                      available
-                        ? 'border-[#DCE8D8]'
-                        : 'border-[#E5E7EB] opacity-70'
-                    }`}
-                    style={{ width: cardWidth }}
-                  >
-                    <View className="flex-row items-center justify-between gap-2">
-                      <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F0F7EE]">
-                        <MenuIcon color={colors.primary} size={21} />
-                      </View>
+            <View>
+              <View className="mb-4 min-h-11 flex-row items-center rounded-xl border border-[#D1D5DB] bg-white px-3">
+                <SearchIcon color="#9CA3AF" size={17} />
+                <TextInput
+                  accessibilityLabel="Search tables"
+                  className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+                  onChangeText={setTableSearch}
+                  placeholder="Search by table, seats, server, or status"
+                  placeholderTextColor={colors.textSecondary}
+                  returnKeyType="search"
+                  value={tableSearch}
+                />
+              </View>
+              <View className="mb-4 flex-row flex-wrap gap-2">
+                {(
+                  ['All', 'Available', 'Occupied', 'Reserved'] as const
+                ).map(filter => {
+                  const isSelected = tableStatusFilter === filter;
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      key={filter}
+                      onPress={() => setTableStatusFilter(filter)}
+                      className={`flex-row items-center gap-1.5 rounded-full border px-3 py-2 ${
+                        isSelected
+                          ? 'border-[#116C0B] bg-[#116C0B]'
+                          : 'border-[#D1D5DB] bg-white'
+                      }`}
+                    >
                       <Text
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                          available
-                            ? 'bg-green-50 text-green-700'
-                            : status === 'Occupied'
-                            ? 'bg-orange-50 text-orange-700'
-                            : 'bg-indigo-50 text-indigo-700'
+                        className={`text-xs font-semibold ${
+                          isSelected ? 'text-white' : 'text-[#374151]'
                         }`}
                       >
-                        {status}
+                        {filter}
                       </Text>
-                    </View>
-                    <Text className="mt-3 text-base font-bold text-[#012711]">
-                      Table {text(table.table_number, String(index + 1))}
-                    </Text>
-                    {table.no_of_seats ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">
-                        {table.no_of_seats} seats
+                      <Text
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-white' : 'text-[#6B7280]'
+                        }`}
+                      >
+                        {tableStatusCounts[filter]}
                       </Text>
-                    ) : null}
-                    {available ? (
-                      <Text className="mt-2 text-xs font-semibold text-[#116C0B]">
-                        Tap to select
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {filteredTables.length ? (
+                <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+                  {filteredTables.map((table, index) => {
+                    const hasActiveBill = tableHasActiveBill(
+                      table,
+                      activeBillTables,
+                    );
+                    const status = tableStatus(table, hasActiveBill);
+                    const selectable = canSelectTableForNewOrder(
+                      table,
+                      hasActiveBill,
+                    );
+                    const canOpenBill = status === 'Occupied';
+                    const canOpenCard = selectable || canOpenBill;
+                    const reservationSummary = getReservationSummary(table);
+                    const serverAssignment = getServerAssignmentLabel(table);
+                    const tableDetails = (
+                      <>
+                        <Text className="text-base font-bold text-[#012711]">
+                          Table {text(table.table_number, String(index + 1))}
+                        </Text>
+                        {table.no_of_seats ? (
+                          <Text className="mt-1 text-xs text-[#6B7280]">
+                            {table.no_of_seats} seats
+                          </Text>
+                        ) : null}
+                        <Text
+                          numberOfLines={1}
+                          className="mt-1 text-[10px] text-[#64748B]"
+                        >
+                          {serverAssignment}
+                        </Text>
+                        {reservationSummary ? (
+                          <Text className="mt-1 text-[10px] text-[#6B7280]">
+                            {reservationSummary}
+                          </Text>
+                        ) : null}
+                        {!selectable && status === 'Reserved' ? (
+                          <Text className="mt-2 text-xs font-semibold text-[#B45309]">
+                            Reserved now
+                          </Text>
+                        ) : null}
+                      </>
+                    );
+
+                    return (
+                      <View
+                        key={String(
+                          table.table_id ??
+                            table.id ??
+                            table.table_number ??
+                            index,
+                        )}
+                        className={`rounded-2xl border bg-white p-4 ${
+                          canOpenCard
+                            ? 'border-[#DCE8D8]'
+                            : 'border-[#E5E7EB] opacity-70'
+                        }`}
+                        style={{ width: cardWidth }}
+                      >
+                        <View className="flex-row items-center justify-between gap-2">
+                          <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F0F7EE]">
+                            <MenuIcon color={colors.primary} size={21} />
+                          </View>
+                          <Text
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                              selectable
+                                ? 'bg-green-50 text-green-700'
+                                : status === 'Occupied'
+                                  ? 'bg-orange-50 text-orange-700'
+                                  : 'bg-indigo-50 text-indigo-700'
+                            }`}
+                          >
+                            {status}
+                          </Text>
+                        </View>
+                        <View className="mt-3">{tableDetails}</View>
+                        {selectable ? (
+                          <Pressable
+                            accessibilityLabel={`Select items for table ${text(
+                              table.table_number,
+                              String(index + 1),
+                            )}`}
+                            accessibilityRole="button"
+                            onPress={() => void chooseTable(table)}
+                            className="mt-3 min-h-10 items-center justify-center rounded-xl bg-[#064E3B]"
+                          >
+                            <Text className="text-xs font-bold text-white">
+                              Select Items
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                        {canOpenBill ? (
+                          <>
+                            <View className="mt-3 flex-row gap-2">
+                              <Pressable
+                                accessibilityLabel={`View bill for table ${text(
+                                  table.table_number,
+                                  String(index + 1),
+                                )}`}
+                                accessibilityRole="button"
+                                disabled={addingItemsTableId !== null}
+                                onPress={() => void chooseTable(table)}
+                                className="min-h-10 flex-1 items-center justify-center rounded-xl border border-[#064E3B] bg-white"
+                              >
+                                <Text className="text-xs font-bold text-[#064E3B]">
+                                  View Bill
+                                </Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityLabel={`Add items to bill for table ${text(
+                                  table.table_number,
+                                  String(index + 1),
+                                )}`}
+                                accessibilityRole="button"
+                                accessibilityState={{
+                                  disabled: addingItemsTableId !== null,
+                                }}
+                                disabled={addingItemsTableId !== null}
+                                onPress={() => void addItemsToActiveBill(table)}
+                                className={`min-h-10 flex-1 items-center justify-center rounded-xl bg-[#064E3B] ${
+                                  addingItemsTableId ===
+                                  String(table.table_id ?? table.id)
+                                    ? 'opacity-70'
+                                    : ''
+                                }`}
+                              >
+                                <Text className="text-xs font-bold text-white">
+                                  {addingItemsTableId ===
+                                  String(table.table_id ?? table.id)
+                                    ? 'Loading...'
+                                    : 'Add Items'}
+                                </Text>
+                              </Pressable>
+                            </View>
+                            {hasActiveBill ? (
+                              <Pressable
+                                accessibilityLabel={`Merge bill for table ${text(
+                                  table.table_number,
+                                  String(index + 1),
+                                )}`}
+                                accessibilityRole="button"
+                                onPress={() => onOpenTableMerge(table)}
+                                className="mt-2 min-h-9 items-center justify-center rounded-xl border border-[#D1D5DB] bg-[#F8FAFC]"
+                              >
+                                <Text className="text-xs font-semibold text-[#475569]">
+                                  Merge Bills
+                                </Text>
+                              </Pressable>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                  <Text className="text-base font-bold text-[#012711]">
+                    {tableSearch.trim()
+                      ? 'No matching tables'
+                      : `No ${tableStatusFilter.toLowerCase()} tables`}
+                  </Text>
+                  <Text className="mt-2 text-center text-sm text-[#6B7280]">
+                    {tableSearch.trim()
+                      ? 'Try another table number, server, status, or search term.'
+                      : 'Choose another filter to see tables.'}
+                  </Text>
+                </View>
+              )}
             </View>
           ) : (
             <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
@@ -928,14 +1523,24 @@ export default function NewOrderFlow({
   }
 
   return (
-    <SafeAreaView edges={['bottom']} className="flex-1 bg-[#F9FAFB]">
-      <View className="flex-1">
+    <SafeAreaView edges={[]} className="flex-1 bg-[#EAF5EE]">
+      <View className="flex-1 bg-[#F9FAFB]">
         <MoreInnerHeader
           title={orderLabel}
           destination={isDineIn ? 'Table selection' : 'Dashboard'}
           subtitle={
             isDineIn
-              ? `Table ${text(selectedTable?.table_number)}`
+              ? [
+                  `Table ${text(selectedTable?.table_number)}`,
+                  selectedTable?.no_of_seats
+                    ? `${selectedTable.no_of_seats} seats`
+                    : null,
+                  selectedTable
+                    ? getServerAssignmentLabel(selectedTable)
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
               : 'New order'
           }
           onBack={isDineIn ? () => setSelectedTable(null) : onBack}
@@ -951,6 +1556,7 @@ export default function NewOrderFlow({
                 className="min-h-11 flex-1 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#111827]"
                 onChangeText={setCustomerName}
                 placeholder="Customer name"
+                placeholderTextColor="#64748B"
                 value={customerName}
               />
               <TextInput
@@ -959,6 +1565,7 @@ export default function NewOrderFlow({
                 keyboardType="phone-pad"
                 onChangeText={setCustomerPhone}
                 placeholder="Phone number"
+                placeholderTextColor="#64748B"
                 value={customerPhone}
               />
             </View>
@@ -969,33 +1576,76 @@ export default function NewOrderFlow({
                 multiline
                 onChangeText={setDeliveryAddress}
                 placeholder="Delivery address"
+                placeholderTextColor="#64748B"
                 value={deliveryAddress}
               />
             ) : null}
-            {!hasCustomerDetails ? (
+            {isDelivery && !hasDeliveryDetails ? (
               <Text className="text-[11px] text-[#6B7280]">
-                {isDelivery
-                  ? 'Name, valid phone number, and delivery address are required.'
-                  : 'Name and valid phone number are required.'}
+                Name, valid phone number, and delivery address are required.
               </Text>
             ) : null}
           </View>
         ) : null}
 
         <View className="flex-row items-center gap-2 px-4 py-3">
-          <TextInput
-            accessibilityLabel="Search menu"
-            className="min-h-11 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827]"
-            onChangeText={setSearch}
-            placeholder="Search foods or categories..."
-            placeholderTextColor="#6B7280"
-            value={search}
-          />
-          <View className="rounded-xl bg-[#F0F7EE] px-3 py-2.5">
-            <Text className="text-xs font-bold text-[#116C0B]">
-              {cart.reduce((count, line) => count + line.quantity, 0)} items
-            </Text>
+          <View className="min-h-14 flex-1 flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white pr-2">
+            <TextInput
+              accessibilityLabel="Search menu"
+              className="min-h-14 flex-1 px-4 text-sm text-[#111827]"
+              onChangeText={setSearch}
+              placeholder="Search foods or categories..."
+              placeholderTextColor="#6B7280"
+              value={search}
+            />
+            <Pressable
+              accessibilityLabel="Open food filters"
+              accessibilityRole="button"
+              accessibilityState={{ selected: activeFoodFilterCount > 0 }}
+              onPress={() => setIsFoodFilterOpen(true)}
+              className={`h-10 w-10 items-center justify-center rounded-xl ${
+                activeFoodFilterCount ? 'bg-[#F0F7EE]' : ''
+              }`}
+            >
+              <FilterIcon
+                color={activeFoodFilterCount ? '#116C0B' : '#475569'}
+                size={19}
+              />
+              {activeFoodFilterCount ? (
+                <View className="absolute -right-1 -top-1 min-h-4 min-w-4 items-center justify-center rounded-full bg-[#116C0B] px-1">
+                  <Text className="text-[9px] font-bold text-white">
+                    {activeFoodFilterCount}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
           </View>
+        </View>
+        <View className="flex-row flex-wrap gap-2 px-4 pb-3">
+          {(['All', 'Veg', 'Non Veg'] as const).map(filter => {
+            const selected = foodTypeFilter === filter;
+            return (
+              <Pressable
+                key={filter}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setFoodTypeFilter(filter)}
+                className={`min-h-9 items-center justify-center rounded-full border px-4 ${
+                  selected
+                    ? 'border-[#116C0B] bg-[#116C0B]'
+                    : 'border-[#D1D5DB] bg-white'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    selected ? 'text-white' : 'text-[#374151]'
+                  }`}
+                >
+                  {filter}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <ScrollView
@@ -1033,76 +1683,154 @@ export default function NewOrderFlow({
             </View>
           ) : visibleFoods.length ? (
             <View className="flex-row flex-wrap" style={{ gap: cardGap }}>
-              {visibleFoods.map(food => (
-                <View
-                  key={food.id}
-                  className="rounded-2xl border border-[#E5E7EB] bg-white p-3"
-                  style={{ width: cardWidth }}
-                >
-                  {food.image ? (
-                    <Image
-                      accessibilityLabel={`${food.name} image`}
-                      className="h-28 w-full rounded-xl bg-[#F3F4F6]"
-                      resizeMode="cover"
-                      source={{ uri: food.image }}
-                    />
-                  ) : (
-                    <View className="h-28 w-full items-center justify-center rounded-xl bg-[#F0F7EE]">
-                      <MenuIcon color={colors.primary} size={28} />
-                    </View>
-                  )}
-                  <Text
-                    numberOfLines={1}
-                    className="mt-2 text-sm font-bold text-[#012711]"
+              {visibleFoods.map(food => {
+                const foodLines = cart.filter(
+                  line => line.food.id === food.id,
+                );
+                const quantity = foodLines.reduce(
+                  (count, line) => count + line.quantity,
+                  0,
+                );
+                const lastLine = foodLines[foodLines.length - 1];
+                return (
+                  <View
+                    key={food.id}
+                    className="rounded-2xl border border-[#E5E7EB] bg-white p-3"
+                    style={{ width: cardWidth }}
                   >
-                    {food.name}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    className="mt-0.5 text-xs text-[#6B7280]"
-                  >
-                    {food.category}
-                  </Text>
-                  <View className="mt-3 flex-row items-center justify-between gap-2">
-                    <Text className="min-w-0 flex-1 text-sm font-extrabold text-[#012711]">
-                      {food.price === null
-                        ? 'Price unavailable'
-                        : formatCurrency(food.price)}
-                    </Text>
-                    <Pressable
-                      accessibilityLabel={`Add ${food.name} to order`}
-                      accessibilityRole="button"
-                      accessibilityState={{ disabled: food.price === null }}
-                      disabled={food.price === null}
-                      onPress={() => addFood(food)}
-                      className="h-9 w-9 items-center justify-center rounded-full bg-[#116C0B]"
+                    {food.image ? (
+                      <Image
+                        accessibilityLabel={`${food.name} image`}
+                        className="h-28 w-full rounded-xl bg-[#F3F4F6]"
+                        resizeMode="cover"
+                        source={{ uri: food.image }}
+                      />
+                    ) : (
+                      <View className="h-28 w-full items-center justify-center rounded-xl bg-[#F0F7EE]">
+                        <MenuIcon color={colors.primary} size={28} />
+                      </View>
+                    )}
+                    <Text
+                      numberOfLines={1}
+                      className="mt-2 text-sm font-bold text-[#012711]"
                     >
-                      <PlusIcon color="#FFFFFF" size={18} />
-                    </Pressable>
+                      {food.name}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="mt-0.5 text-xs text-[#6B7280]"
+                    >
+                      {food.category}
+                    </Text>
+                    {getFoodOfferDiscount(food) !== null ? (
+                      <View className="mt-2 self-start rounded-md bg-[#FFF1E8] px-2 py-1">
+                        <Text className="text-[10px] font-bold text-[#C2410C]">
+                          {getFoodOfferDiscount(food)}% OFF
+                        </Text>
+                      </View>
+                    ) : null}
+                    {quantity ? (
+                      <View className="mt-3 gap-2">
+                        <Text
+                          numberOfLines={1}
+                          className="text-sm font-extrabold text-[#012711]"
+                        >
+                          {food.price === null
+                            ? 'Price unavailable'
+                            : formatCurrency(food.price)}
+                        </Text>
+                        <View className="h-9 flex-row items-center self-end rounded-full border border-[#116C0B] bg-white">
+                          <Pressable
+                            accessibilityLabel={`Remove one ${food.name}`}
+                            accessibilityRole="button"
+                            onPress={() => {
+                              if (lastLine) changeQuantity(lastLine.key, -1);
+                            }}
+                            className="h-9 w-9 items-center justify-center rounded-full"
+                          >
+                            <Text className="text-lg font-bold text-[#116C0B]">
+                              −
+                            </Text>
+                          </Pressable>
+                          <Text
+                            accessibilityLabel={`${quantity} ${food.name} in order`}
+                            className="min-w-5 text-center text-sm font-bold text-[#012711]"
+                          >
+                            {quantity}
+                          </Text>
+                          <Pressable
+                            accessibilityLabel={`Add one ${food.name}`}
+                            accessibilityRole="button"
+                            accessibilityState={{ disabled: food.price === null }}
+                            disabled={food.price === null}
+                            onPress={() => addFood(food)}
+                            className="h-9 w-9 items-center justify-center rounded-full bg-[#116C0B]"
+                          >
+                            <PlusIcon color="#FFFFFF" size={16} />
+                          </Pressable>
+                        </View>
+                      </View>
+                    ) : (
+                      <View className="mt-3 flex-row items-center justify-between gap-2">
+                        <Text
+                          numberOfLines={1}
+                          className="min-w-0 flex-1 text-sm font-extrabold text-[#012711]"
+                        >
+                          {food.price === null
+                            ? 'Price unavailable'
+                            : formatCurrency(food.price)}
+                        </Text>
+                        <Pressable
+                          accessibilityLabel={`Add ${food.name} to order`}
+                          accessibilityRole="button"
+                          accessibilityState={{ disabled: food.price === null }}
+                          disabled={food.price === null}
+                          onPress={() => addFood(food)}
+                          className="h-9 w-9 items-center justify-center rounded-full bg-[#116C0B]"
+                        >
+                          <PlusIcon color="#FFFFFF" size={18} />
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ) : (
             <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <Text className="text-base font-bold text-[#012711]">
-                {search ? 'No foods match your search' : 'No foods available'}
+                {search
+                  ? 'No foods match your filters'
+                  : foodTypeFilter !== 'All'
+                    ? `No ${foodTypeFilter} foods available`
+                    : foodOfferFilter !== 'All'
+                      ? 'No foods currently have an offer'
+                    : foodCategoryFilter !== 'All'
+                      ? `No ${foodCategoryFilter} foods available`
+                    : 'No foods available'}
               </Text>
             </View>
           )}
 
         </ScrollView>
 
-        <View className="border-t border-[#E5E7EB] bg-white px-4 py-2">
-
-          <View className="flex-row gap-2">
+        <View className="border-t border-[#0B4D1A] bg-[#052E10] px-4 pb-5 pt-1">
+          <View className="flex-row items-center justify-between py-2">
+            <Text className="text-xs font-semibold text-white/80">
+              {cart.reduce((count, line) => count + line.quantity, 0)} items
+            </Text>
+            <Text className="text-sm font-extrabold text-white">
+              Total {formatCurrency(total)}
+            </Text>
+          </View>
+          <View className="flex-row gap-2 pb-0">
             <Pressable
               accessibilityLabel="Preview order bill"
               accessibilityRole="button"
               accessibilityState={{ disabled: cart.length === 0 }}
               disabled={cart.length === 0}
               onPress={() => setIsPreviewOpen(true)}
-              className={`h-12 flex-1 items-center justify-center rounded-xl border ${
+              className={`h-11 flex-1 items-center justify-center rounded-xl border ${
                 cart.length
                   ? 'border-[#116C0B] bg-white'
                   : 'border-[#D1D5DB] bg-[#F3F4F6]'
@@ -1113,7 +1841,7 @@ export default function NewOrderFlow({
                   cart.length ? 'text-[#116C0B]' : 'text-[#9CA3AF]'
                 }`}
               >
-                Preview ({formatCurrency(total)})
+                Bill Preview
               </Text>
             </Pressable>
             <Pressable
@@ -1122,20 +1850,198 @@ export default function NewOrderFlow({
               accessibilityState={{ disabled: !canSubmit }}
               disabled={!canSubmit}
               onPress={sendOrder}
-              className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl ${
-                canSubmit ? 'bg-[#0B4D1A]' : 'bg-[#9CA3AF]'
+              className={`h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border ${
+                canSubmit
+                  ? 'border-white bg-white'
+                  : 'border-[#9CA3AF] bg-[#9CA3AF]'
               }`}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator
+                  size="small"
+                  color={canSubmit ? '#052E10' : '#FFFFFF'}
+                />
               ) : null}
-              <Text className="text-sm font-bold text-white">
+              <Text
+                className={`text-sm font-bold ${
+                  canSubmit ? 'text-[#052E10]' : 'text-white'
+                }`}
+              >
                 {isSubmitting ? 'Sending...' : 'KOT'} ({formatCurrency(total)})
               </Text>
             </Pressable>
           </View>
         </View>
       </View>
+
+      <BaseModal
+        accessibilityLabel="Food filters"
+        visible={isFoodFilterOpen}
+        onClose={() => setIsFoodFilterOpen(false)}
+        title="Filter Foods"
+        subtitle="Choose food type and category"
+        variant="bottom-sheet"
+        scrollable
+        footer={
+          <View className="w-full flex-row gap-3">
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setFoodTypeFilter('All');
+                setFoodOfferFilter('All');
+                setFoodCategoryFilter('All');
+                setMinimumFoodPrice('');
+                setMaximumFoodPrice('');
+                setMinimumFoodRating(null);
+              }}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#D1D5DB] bg-white"
+            >
+              <Text className="text-sm font-semibold text-[#475569]">
+                Reset
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setIsFoodFilterOpen(false)}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
+            >
+              <Text className="text-sm font-bold text-white">
+                Show {visibleFoods.length} foods
+              </Text>
+            </Pressable>
+          </View>
+        }
+      >
+        <View className="gap-5 p-4">
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">Offers</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(['All', 'Offers'] as const).map(filter => {
+                const selected = foodOfferFilter === filter;
+                return (
+                  <Pressable
+                    key={filter}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setFoodOfferFilter(filter)}
+                    className={`min-h-10 items-center justify-center rounded-full border px-4 ${
+                      selected
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#D1D5DB] bg-white'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        selected ? 'text-white' : 'text-[#374151]'
+                      }`}
+                    >
+                      {filter === 'All' ? 'All foods' : 'Offers only'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">Category</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {['All', ...foodCategories].map(category => {
+                const selected =
+                  foodCategoryFilter.toLowerCase() === category.toLowerCase();
+                return (
+                  <Pressable
+                    key={category}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setFoodCategoryFilter(category)}
+                    className={`min-h-10 items-center justify-center rounded-full border px-4 ${
+                      selected
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#D1D5DB] bg-white'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        selected ? 'text-white' : 'text-[#374151]'
+                      }`}
+                    >
+                      {category}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">Rating</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {[
+                { label: 'All ratings', value: null },
+                { label: '5★', value: 5 },
+                { label: '4★ & up', value: 4 },
+                { label: '3★ & up', value: 3 },
+                { label: '2★ & up', value: 2 },
+                { label: '1★ & up', value: 1 },
+              ].map(option => {
+                const selected = minimumFoodRating === option.value;
+                return (
+                  <Pressable
+                    key={option.label}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setMinimumFoodRating(option.value)}
+                    className={`min-h-10 items-center justify-center rounded-full border px-4 ${
+                      selected
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#D1D5DB] bg-white'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        selected ? 'text-white' : 'text-[#374151]'
+                      }`}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">
+              Price range
+            </Text>
+            <View className="flex-row items-center gap-3">
+              <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#D1D5DB] bg-white px-3">
+                <Text className="mr-2 text-sm text-[#64748B]">₹</Text>
+                <TextInput
+                  accessibilityLabel="Minimum food price"
+                  className="flex-1 py-2 text-sm text-[#111827]"
+                  keyboardType="decimal-pad"
+                  onChangeText={setMinimumFoodPrice}
+                  placeholder="Min price"
+                  placeholderTextColor="#64748B"
+                  value={minimumFoodPrice}
+                />
+              </View>
+              <Text className="text-sm text-[#64748B]">to</Text>
+              <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#D1D5DB] bg-white px-3">
+                <Text className="mr-2 text-sm text-[#64748B]">₹</Text>
+                <TextInput
+                  accessibilityLabel="Maximum food price"
+                  className="flex-1 py-2 text-sm text-[#111827]"
+                  keyboardType="decimal-pad"
+                  onChangeText={setMaximumFoodPrice}
+                  placeholder="Max price"
+                  placeholderTextColor="#64748B"
+                  value={maximumFoodPrice}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </BaseModal>
 
       <BaseModal
         accessibilityLabel="Order bill preview"

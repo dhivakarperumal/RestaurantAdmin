@@ -17,6 +17,27 @@ export type AdminTableRecord = {
   table_id?: string | number;
   table_number?: string | number;
   status?: string;
+  reservation_is_active?: unknown;
+  next_reservation_status?: unknown;
+  next_reservation_date?: unknown;
+  next_reservation_start_time?: unknown;
+  next_reservation_end_time?: unknown;
+  next_reservation_customer_name?: unknown;
+  next_reservation_guests?: unknown;
+  assigned_server_id?: unknown;
+  assigned_server_name?: unknown;
+  assigned_employee_id?: unknown;
+  assigned_employee_name?: unknown;
+  server_id?: unknown;
+  server_name?: unknown;
+  employee_id?: unknown;
+  employee_name?: unknown;
+  assigned_server?: unknown;
+  assigned_employee?: unknown;
+  server?: unknown;
+  employee?: unknown;
+  assigned_to?: unknown;
+  waiter_id?: unknown;
 };
 
 export type ExistingBillContext = {

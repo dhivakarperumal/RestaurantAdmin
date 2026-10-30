@@ -13,6 +13,7 @@ import api, { API_BASE_URL } from '../../../api';
 import { PlusIcon, ProductIcon } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import BillPreview, { type BillPreviewItem } from './BillPreview';
+import { isFoodAvailable } from './foodAvailability';
 
 export type BillFood = {
   id: string;
@@ -317,7 +318,11 @@ function Bills({
       try {
         const response = await api.get('/foods', { signal: controller.signal });
         if (isActive) {
-          setFoods(readFoods(response.data).map(toBillFood));
+          setFoods(
+            readFoods(response.data)
+              .filter(isFoodAvailable)
+              .map(toBillFood),
+          );
         }
       } catch (loadError) {
         if (isActive && !controller.signal.aborted) {

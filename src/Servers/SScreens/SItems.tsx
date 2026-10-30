@@ -12,6 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { API_BASE_URL } from '../../../api';
+import { isFoodAvailable } from '../../Admin/Tabs/foodAvailability';
+import { createOrderRequestKey, getOrderRequestKeyHeaders, getOrderRequestKeyPayload } from '../../Admin/Tabs/orderSubmission';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
 import {
   BaseModal,
@@ -535,13 +537,13 @@ export default function ServerItems({
     setError('');
 
     const [foodResult, billResult] = await Promise.allSettled([
-      api.get('/foods', { params: { include_unavailable: true } }),
+      api.get('/foods'),
       tableId ? api.get(`/table-bills/active/${tableId}`) : Promise.reject(),
     ]);
 
     if (foodResult.status === 'fulfilled') {
       const rows = readRows(foodResult.value.data, ['data', 'foods', 'items']);
-      setFoods(rows);
+      setFoods(rows.filter(isFoodAvailable));
     } else {
       setError('Unable to load food menu. Please pull down to refresh.');
     }
@@ -746,30 +748,38 @@ export default function ServerItems({
               : assignedServerId
             : undefined;
 
-        return await api.post('/kitchen-orders', {
-          table_id: cleanTId,
-          table_number: tableLabel,
-          items,
-          total_amount: total,
-          status: 'pending',
-          notes: orderNotes.trim() || undefined,
-          ...(billData.bill_id || billData.id
-            ? { bill_id: billData.bill_id ?? billData.id }
-            : {}),
-          ...(cleanSId !== undefined
-            ? {
-                server_id: cleanSId,
-                assigned_server_id: cleanSId,
-                employee_id: cleanSId,
-              }
-            : {}),
-          ...(effectiveServerName
-            ? {
-                server_name: effectiveServerName,
-                assigned_server_name: effectiveServerName,
-              }
-            : {}),
-        });
+        const orderRequestKey = createOrderRequestKey();
+        return await api.post(
+          '/kitchen-orders',
+          {
+            table_id: cleanTId,
+            table_number: tableLabel,
+            items,
+            total_amount: total,
+            status: 'pending',
+            notes: orderNotes.trim() || undefined,
+            ...getOrderRequestKeyPayload(orderRequestKey),
+            ...(billData.bill_id || billData.id
+              ? { bill_id: billData.bill_id ?? billData.id }
+              : {}),
+            ...(cleanSId !== undefined
+              ? {
+                  server_id: cleanSId,
+                  assigned_server_id: cleanSId,
+                  employee_id: cleanSId,
+                }
+              : {}),
+            ...(effectiveServerName
+              ? {
+                  server_name: effectiveServerName,
+                  assigned_server_name: effectiveServerName,
+                }
+              : {}),
+          },
+          {
+            headers: getOrderRequestKeyHeaders(orderRequestKey),
+          },
+        );
       };
 
       const kitchenResponse = await postKitchenOrder();

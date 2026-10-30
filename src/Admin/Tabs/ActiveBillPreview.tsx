@@ -233,12 +233,12 @@ function findTable(
   return (
     rows.find(row => {
       const rowId = row.table_id ?? row.id;
+      if (tableId !== undefined && tableId !== null) {
+        return rowId !== undefined && String(rowId) === String(tableId);
+      }
       return (
-        (tableId !== undefined &&
-          tableId !== null &&
-          String(rowId) === String(tableId)) ||
-        (table.table_number !== undefined &&
-          String(row.table_number) === String(table.table_number))
+        table.table_number !== undefined &&
+        String(row.table_number) === String(table.table_number)
       );
     }) ?? null
   );
@@ -489,8 +489,11 @@ export default function ActiveBillPreview({
     });
   };
 
-  return (
-    <SafeAreaView edges={['bottom']} className="flex-1 bg-[#F9FAFB]">
+  const preview = (
+    <SafeAreaView
+      edges={['bottom']}
+      className="flex-1 w-full bg-[#F9FAFB]"
+    >
       <MoreInnerHeader
         title="Bill Preview"
         destination="Tables"
@@ -748,4 +751,6 @@ export default function ActiveBillPreview({
       )}
     </SafeAreaView>
   );
+
+  return preview;
 }

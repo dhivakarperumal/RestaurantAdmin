@@ -1,12 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from 'react';
 import {
   ActivityIndicator,
   BackHandler,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -32,7 +39,14 @@ import {
   ReceiptIcon,
   SearchIcon,
 } from './NavigationIcons';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import MoreInnerHeader from './MoreInnerHeader';
 import { BottomNavigation, type AppTab } from './Bottombar';
@@ -69,6 +83,10 @@ import NewOrderFlow from '../Tabs/NewOrderFlow';
 import OrderTypeSheet from '../Tabs/OrderTypeSheet';
 import Items from '../Tabs/Items';
 import InventoryScreen from '../Tabs/Inventory';
+import {
+  canSelectTableForNewOrder,
+  getTableStatus,
+} from '../Tabs/tableAvailability';
 import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
 import CuisineScreen, { type CuisineRecord } from '../Screens/Cuisine';
@@ -82,6 +100,7 @@ import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
 import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen';
 import TablesScreen from '../Screens/Tables';
+import TableMergeScreen from '../Screens/TableMergeScreen';
 import ActiveBillPreview from '../Tabs/ActiveBillPreview';
 import CustomersScreen from '../Screens/Customers';
 import MorePage, { type MoreFeature } from '../Tabs/More';
@@ -249,6 +268,11 @@ const moreFeatures: MoreFeature[] = [
     icon: MenuIcon,
   },
   {
+    title: 'Merge Table Bills',
+    subtitle: 'Combine active bills from multiple tables',
+    icon: ReceiptIcon,
+  },
+  {
     title: 'Printer Setup',
     subtitle: 'Configure receipt and kitchen printers',
     icon: ReceiptIcon,
@@ -314,6 +338,15 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     useState<AdminTableRecord | null>(null);
   const [activeBillTable, setActiveBillTable] =
     useState<AdminTableRecord | null>(null);
+  const [mergePrimaryTableId, setMergePrimaryTableId] = useState<string | null>(
+    null,
+  );
+  const [returnToTableChooserAfterMerge, setReturnToTableChooserAfterMerge] =
+    useState(false);
+  const [
+    returnToTableChooserAfterBillPreview,
+    setReturnToTableChooserAfterBillPreview,
+  ] = useState(false);
   const [existingBillContext, setExistingBillContext] =
     useState<ExistingBillContext | null>(null);
   const [itemsAddRequest, setItemsAddRequest] =
@@ -566,6 +599,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const startNewOrder = (orderType: NewOrderType) => {
     setActiveBillTable(null);
+    setReturnToTableChooserAfterBillPreview(false);
     setExistingBillContext(null);
     setInitialOrderTable(null);
     setNewOrderType(orderType);
@@ -582,6 +616,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
 
   const startTableOrder = (table: AdminTableRecord) => {
     setActiveBillTable(null);
+    setReturnToTableChooserAfterBillPreview(false);
     setExistingBillContext(null);
     setInitialOrderTable(table);
     setNewOrderType('DINE_IN');
@@ -597,10 +632,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   };
 
   const openTable = (table: AdminTableRecord) => {
-    const status = (table.status?.trim() || 'Available').toLowerCase();
-    if (status === 'available') {
+    if (canSelectTableForNewOrder(table)) {
       startTableOrder(table);
-    } else if (['occupied', 'busy', 'seated'].includes(status)) {
+    } else if (getTableStatus(table) === 'Occupied') {
+      setReturnToTableChooserAfterBillPreview(
+        activeTab === 'add' && newOrderType === 'DINE_IN',
+      );
       setActiveBillTable(table);
       setExistingBillContext(null);
       setInitialOrderTable(null);
@@ -619,6 +656,53 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setInitialOrderTable(activeBillTable);
     setNewOrderType('DINE_IN');
     setActiveTab('add');
+    setSelectedFeature(null);
+    setIsBillPreviewOpen(false);
+  };
+
+  const openTableMerge = (table: AdminTableRecord) => {
+    const tableId = table.table_id ?? table.id;
+    setReturnToTableChooserAfterMerge(
+      activeTab === 'add' && newOrderType === 'DINE_IN',
+    );
+    setMergePrimaryTableId(
+      tableId === undefined || tableId === null ? null : String(tableId),
+    );
+    setActiveBillTable(null);
+    setExistingBillContext(null);
+    setInitialOrderTable(null);
+    setNewOrderType(null);
+    setSelectedAction(null);
+    setSelectedFeature('Merge Table Bills');
+    setActiveTab('more');
+    setIsBillPreviewOpen(false);
+    setIsSidebarOpen(false);
+  };
+
+  const closeTableMerge = () => {
+    setMergePrimaryTableId(null);
+    if (returnToTableChooserAfterMerge) {
+      setReturnToTableChooserAfterMerge(false);
+      setNewOrderType('DINE_IN');
+      setSelectedFeature(null);
+      setActiveTab('add');
+    } else {
+      setSelectedFeature(null);
+    }
+  };
+
+  const addItemsToTableBill = (
+    table: AdminTableRecord,
+    context: ExistingBillContext,
+  ) => {
+    setReturnToTableChooserAfterBillPreview(true);
+    setActiveBillTable(table);
+    setExistingBillContext(context);
+    setInitialOrderTable(table);
+    setNewOrderType('DINE_IN');
+    setActiveTab('add');
+    setSelectedFeature(null);
+    setSelectedAction(null);
     setIsBillPreviewOpen(false);
   };
 
@@ -626,6 +710,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setExistingBillContext(null);
     setInitialOrderTable(null);
     setNewOrderType(null);
+    setSelectedFeature(null);
     setActiveTab('more');
     setIsBillPreviewOpen(true);
     setDashboardRefresh(count => count + 1);
@@ -635,9 +720,17 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setActiveBillTable(null);
     setExistingBillContext(null);
     setInitialOrderTable(null);
-    setNewOrderType(null);
-    setSelectedFeature('Tables');
-    setActiveTab('more');
+    if (returnToTableChooserAfterBillPreview) {
+      setNewOrderType('DINE_IN');
+      setSelectedFeature(null);
+      setActiveTab('add');
+      setReturnToTableChooserAfterBillPreview(false);
+    } else {
+      setNewOrderType(null);
+      setMergePrimaryTableId(null);
+      setSelectedFeature('Tables');
+      setActiveTab('more');
+    }
     setIsBillPreviewOpen(false);
     setDashboardRefresh(count => count + 1);
   };
@@ -647,6 +740,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       setExistingBillContext(null);
       setInitialOrderTable(null);
       setNewOrderType(null);
+      setSelectedFeature(null);
       setActiveTab('more');
       setIsBillPreviewOpen(true);
       return;
@@ -681,9 +775,22 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const navigateFromSidebar = (tab: AppTab) => {
     if (tab === 'more') {
       navigateToMoreFeature(null);
+      if (isWide) {
+        setIsSidebarOpen(true);
+      }
       return;
     }
     navigateToTab(tab);
+    if (isWide) {
+      setIsSidebarOpen(true);
+    }
+  };
+
+  const navigateFeatureFromSidebar = (feature: string) => {
+    navigateToMoreFeature(feature);
+    if (isWide) {
+      setIsSidebarOpen(true);
+    }
   };
 
   const handleItemsInnerPageVisibilityChange = (isVisible: boolean) => {
@@ -931,8 +1038,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           return true;
         }
         if (isBillPreviewOpen) {
-          setIsBillPreviewOpen(false);
-          setActiveTab('home');
+          returnToTables();
           return true;
         }
         // 5. Non-home tab → go to home
@@ -961,6 +1067,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     isBillPreviewOpen,
     selectedFeature,
     activeTab,
+    returnToTables,
   ]);
 
   return (
@@ -1027,10 +1134,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       {isWide && isSidebarOpen ? (
         <View className="flex-1 flex-row">
           <Sidebar
+            activeTab={activeTab}
+            selectedFeature={selectedFeature}
             onClose={() => setIsSidebarOpen(false)}
             onNavigate={navigateFromSidebar}
             features={moreFeatures}
-            onSelectFeature={navigateToMoreFeature}
+            onSelectFeature={navigateFeatureFromSidebar}
             onLogout={() => setIsLogoutConfirmOpen(true)}
           />
           <View className="flex-1">
@@ -1073,6 +1182,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onNewOrderSubmitted={finishNewOrder}
               onSelectTable={openTable}
               onAddItemsToExistingBill={addItemsToExistingBill}
+              onAddItemsToTableBill={addItemsToTableBill}
+              onOpenTableMerge={openTableMerge}
+              mergePrimaryTableId={mergePrimaryTableId}
+              onCloseTableMerge={closeTableMerge}
               onActiveBillCompleted={returnToTables}
               onBackToTables={returnToTables}
               onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -1144,6 +1257,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onNewOrderSubmitted={finishNewOrder}
             onSelectTable={openTable}
             onAddItemsToExistingBill={addItemsToExistingBill}
+            onAddItemsToTableBill={addItemsToTableBill}
+            onOpenTableMerge={openTableMerge}
+            mergePrimaryTableId={mergePrimaryTableId}
+            onCloseTableMerge={closeTableMerge}
             onActiveBillCompleted={returnToTables}
             onBackToTables={returnToTables}
             onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -1195,10 +1312,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           >
             <Sidebar
               fullWidth
+              activeTab={activeTab}
+              selectedFeature={selectedFeature}
               onClose={() => setIsSidebarOpen(false)}
               onNavigate={navigateFromSidebar}
               features={moreFeatures}
-              onSelectFeature={navigateToMoreFeature}
+              onSelectFeature={navigateFeatureFromSidebar}
               onLogout={() => setIsLogoutConfirmOpen(true)}
             />
           </View>
@@ -1675,6 +1794,10 @@ function MainContent({
   onNewOrderSubmitted,
   onSelectTable,
   onAddItemsToExistingBill,
+  onAddItemsToTableBill,
+  onOpenTableMerge,
+  mergePrimaryTableId,
+  onCloseTableMerge,
   onActiveBillCompleted,
   onBackToTables,
   onRemoveFoodFromBilling,
@@ -1731,6 +1854,13 @@ function MainContent({
   onNewOrderSubmitted: () => void;
   onSelectTable: (table: AdminTableRecord) => void;
   onAddItemsToExistingBill: (context: ExistingBillContext) => void;
+  onAddItemsToTableBill: (
+    table: AdminTableRecord,
+    context: ExistingBillContext,
+  ) => void;
+  onOpenTableMerge: (table: AdminTableRecord) => void;
+  mergePrimaryTableId: string | null;
+  onCloseTableMerge: () => void;
   onActiveBillCompleted: () => void;
   onBackToTables: () => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
@@ -1797,6 +1927,15 @@ function MainContent({
           onSelectTable={onSelectTable}
           showBackButton={false}
           userId={userId}
+        />
+      );
+    }
+    if (selectedFeature === 'Merge Table Bills') {
+      return (
+        <TableMergeScreen
+          primaryTableId={mergePrimaryTableId ?? undefined}
+          onBack={onCloseTableMerge}
+          onMerged={onRefreshDashboard}
         />
       );
     }
@@ -1982,6 +2121,9 @@ function MainContent({
           orderType={newOrderType}
           initialTable={initialOrderTable ?? undefined}
           existingBill={existingBillContext ?? undefined}
+          onOpenActiveBill={onSelectTable}
+          onAddItemsToActiveBill={onAddItemsToTableBill}
+          onOpenTableMerge={onOpenTableMerge}
           onBack={onCloseNewOrder}
           onOrderSubmitted={onNewOrderSubmitted}
         />
@@ -2401,18 +2543,105 @@ function HomePage({
       }
       contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6"
     >
-      <View className="flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5">
-        <View className="mr-3 h-10 w-1 rounded-full bg-[#116C0B]" />
-        <View className="flex-1">
-          <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-            OVERVIEW
-          </Text>
-          <Text className="mt-0.5 text-xl font-bold text-[#012711]">
+      {/* Premium Dashboard Overview Banner */}
+      <View
+        className="relative overflow-hidden rounded-3xl border border-[#0F5A21] px-5 py-5 sm:px-6 sm:py-6"
+        style={{
+          backgroundColor: '#063814',
+          elevation: 6,
+          shadowColor: '#02480B',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.25,
+          shadowRadius: 14,
+        }}
+      >
+        {/* Decorative background glow & gradient lines */}
+        <Svg
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+          width="100%"
+          height="100%"
+          preserveAspectRatio="none"
+        >
+          <Defs>
+            <LinearGradient id="overviewBannerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#052E10" stopOpacity="1" />
+              <Stop offset="45%" stopColor="#0B4D1A" stopOpacity="1" />
+              <Stop offset="100%" stopColor="#126E22" stopOpacity="1" />
+            </LinearGradient>
+            <LinearGradient id="overviewGlowRight" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#81C238" stopOpacity="0.35" />
+              <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+            </LinearGradient>
+            <LinearGradient id="overviewGlowLeft" x1="100%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor="#22C55E" stopOpacity="0.22" />
+              <Stop offset="100%" stopColor="#22C55E" stopOpacity="0" />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#overviewBannerGrad)" />
+          <Circle cx="90%" cy="25%" r="140" fill="url(#overviewGlowRight)" />
+          <Circle cx="12%" cy="90%" r="100" fill="url(#overviewGlowLeft)" />
+          <Path
+            d="M-20 40 Q 140 10, 300 50 T 620 30 T 940 55"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.08)"
+            strokeWidth="2"
+          />
+          <Path
+            d="M-40 85 Q 180 60, 380 90 T 780 75 T 1100 95"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.05)"
+            strokeWidth="1.5"
+          />
+        </Svg>
+
+        <View className="min-w-0 flex-1">
+          <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-400/20 px-2.5 py-1">
+              <View className="h-2 w-2 rounded-full bg-[#4ADE80]" />
+              <Text className="text-[10px] font-black uppercase tracking-widest text-emerald-200">
+                Dashboard Overview
+              </Text>
+            </View>
+            {pendingOrderCount > 0 ? (
+              <View className="rounded-full border border-amber-300/30 bg-amber-400/20 px-2.5 py-1">
+                <Text className="text-[10px] font-extrabold uppercase tracking-wider text-amber-200">
+                  {pendingOrderCount} Live Order{pendingOrderCount > 1 ? 's' : ''}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <Text
+            numberOfLines={1}
+            className="mt-2 text-2xl font-black tracking-tight text-white sm:text-[26px]"
+          >
             {greeting}, {userName}
           </Text>
-          <Text className="mt-0.5 text-xs leading-[18px] text-[#6B7280]">
-            Here’s your restaurant at a glance.
+
+          <Text className="mt-1 text-xs font-medium leading-5 text-emerald-100/85 sm:text-sm">
+            Here’s your restaurant performance at a glance.
           </Text>
+
+          <View className="mt-3.5 flex-row flex-wrap items-center gap-2 sm:gap-3">
+            <View className="flex-row items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-3 py-1.5">
+              <Text className="text-[11px] font-medium text-emerald-100/75">
+                Today's Sales:
+              </Text>
+              <Text className="text-[12px] font-extrabold text-white">
+                {formatCurrency(todayRevenue)}
+              </Text>
+            </View>
+
+            <View className="flex-row items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-3 py-1.5">
+              <Text className="text-[11px] font-medium text-emerald-100/75">
+                Today's Orders:
+              </Text>
+              <Text className="text-[12px] font-extrabold text-white">
+                {todayOrderCount}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -3987,8 +4216,67 @@ function EntryForm({
   );
 }
 
+function SidebarNavItem({
+  icon: Icon,
+  label,
+  isActive,
+  onPress,
+}: {
+  icon: ComponentType<{ color: string; size?: number }>;
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isActive }}
+      onPress={onPress}
+      className="my-0.5 w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
+      style={({ pressed }) => ({
+        backgroundColor: isActive
+          ? pressed
+            ? '#E2F1E4'
+            : '#EBF6EC'
+          : pressed
+          ? '#F3F4F6'
+          : 'transparent',
+        borderColor: isActive ? '#BBE2B3' : 'transparent',
+        borderWidth: 1,
+      })}
+    >
+      <View
+        style={{
+          alignItems: 'center',
+          backgroundColor: isActive ? colors.primary : '#F0F7EE',
+          borderRadius: 12,
+          height: 38,
+          justifyContent: 'center',
+          width: 38,
+        }}
+      >
+        <Icon color={isActive ? '#FFFFFF' : colors.primary} size={19} />
+      </View>
+      <Text
+        numberOfLines={1}
+        style={{
+          color: isActive ? colors.primaryDark : '#1F2937',
+          flex: 1,
+          fontSize: 14,
+          fontWeight: isActive ? '700' : '500',
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function Sidebar({
   fullWidth = false,
+  activeTab,
+  selectedFeature,
   onClose,
   onNavigate,
   features,
@@ -3996,21 +4284,46 @@ function Sidebar({
   onLogout,
 }: {
   fullWidth?: boolean;
+  activeTab: AppTab;
+  selectedFeature?: string | null;
   onClose: () => void;
   onNavigate: (tab: AppTab) => void;
   features: MoreFeature[];
   onSelectFeature: (feature: string) => void;
   onLogout?: () => void;
 }) {
-  const [isMoreExpanded, setIsMoreExpanded] = useState(false);
+  const isFeatureActive = (featureTitle: string): boolean => {
+    if (activeTab !== 'more') return false;
+    if (selectedFeature === featureTitle) return true;
+    if (featureTitle === 'Categories' && selectedFeature === 'AddCategory') {
+      return true;
+    }
+    if (featureTitle === 'Cuisines' && selectedFeature === 'AddCuisine') {
+      return true;
+    }
+    if (
+      featureTitle === 'Staff & Employees' &&
+      (selectedFeature === 'Employee Management' ||
+        selectedFeature === 'Staff & Employees')
+    ) {
+      return true;
+    }
+    if (
+      featureTitle === 'Orders Management' &&
+      (selectedFeature === 'Orders Management' || selectedFeature === 'Orders')
+    ) {
+      return true;
+    }
+    return false;
+  };
 
   return (
     <View
       className={`${
-        fullWidth ? 'w-full' : 'w-64'
+        fullWidth ? 'w-full' : 'w-64 md:w-72'
       } flex-1 border-r border-[#E5E7EB] bg-white px-4 py-5`}
     >
-      <View className="mb-5 flex-row items-center justify-between gap-3">
+      <View className="mb-4 flex-row items-center justify-between gap-3">
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
           <Image
             accessibilityLabel="Buy Food logo"
@@ -4033,81 +4346,76 @@ function Sidebar({
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="pb-5"
+        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="mb-3 px-3 py-2 text-xs font-bold tracking-[1.5px] text-[#6B7280]">
+        <Text
+          style={{
+            color: '#6B7280',
+            fontSize: 11,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+            marginBottom: 8,
+            paddingHorizontal: 12,
+            paddingTop: 4,
+          }}
+        >
           WORKSPACE
         </Text>
-        <TabButtonLarge
+        <SidebarNavItem
           icon={HomeIcon}
           label="Home"
+          isActive={activeTab === 'home' && !selectedFeature}
           onPress={() => onNavigate('home')}
         />
-        <TabButtonLarge
-          icon={ReceiptIcon}
-          label="Billing"
-          onPress={() => onNavigate('billing')}
-        />
-        <TabButtonLarge
+        <SidebarNavItem
           icon={ProductIcon}
           label="Items"
+          isActive={activeTab === 'items' && !selectedFeature}
           onPress={() => onNavigate('items')}
         />
-        <TabButtonLarge
+        <SidebarNavItem
           icon={OrdersIcon}
           label="Orders"
+          isActive={activeTab === 'orders' && !selectedFeature}
           onPress={() => onNavigate('orders')}
         />
-        <Pressable
-          accessibilityLabel="More"
-          accessibilityRole="button"
-          accessibilityState={{ expanded: isMoreExpanded }}
-          onPress={() => setIsMoreExpanded(expanded => !expanded)}
-          className="w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
-          style={({ pressed }) => ({
-            backgroundColor: pressed ? '#EFF6FF' : colors.surface,
-          })}
+
+        <View
+          style={{
+            backgroundColor: '#E5E7EB',
+            height: 1,
+            marginHorizontal: 4,
+            marginVertical: 12,
+          }}
+        />
+
+        <Text
+          style={{
+            color: '#6B7280',
+            fontSize: 11,
+            fontWeight: '700',
+            letterSpacing: 1.5,
+            marginBottom: 8,
+            paddingHorizontal: 12,
+            paddingTop: 4,
+          }}
         >
-          <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F7EE]">
-            <MoreIcon color={colors.primary} size={21} />
-          </View>
-          <Text className="flex-1 text-base font-semibold text-[#012711]">
-            More
-          </Text>
-          <Text className="px-2 text-sm text-[#6B7280]">
-            {isMoreExpanded ? '⌃' : '⌄'}
-          </Text>
-        </Pressable>
-        {isMoreExpanded ? (
-          <View className="ml-4 mt-1 gap-1 border-l border-[#E5E7EB] pl-2">
-            {features.map(feature => {
-              const Icon = feature.icon;
-              return (
-                <Pressable
-                  accessibilityLabel={`Open ${feature.title}`}
-                  accessibilityRole="button"
-                  key={feature.title}
-                  onPress={() => onSelectFeature(feature.title)}
-                  className="min-h-12 w-full flex-row items-center gap-3 rounded-xl px-3 py-2"
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? '#F3F7FF' : colors.surface,
-                  })}
-                >
-                  <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0F7EE]">
-                    <Icon color={colors.primary} size={17} />
-                  </View>
-                  <Text className="flex-1 text-sm font-medium text-[#012711]">
-                    {feature.title}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
+          MANAGEMENT
+        </Text>
+        {features.map(feature => (
+          <SidebarNavItem
+            key={feature.title}
+            icon={feature.icon}
+            label={feature.title}
+            isActive={isFeatureActive(feature.title)}
+            onPress={() => onSelectFeature(feature.title)}
+          />
+        ))}
 
         {onLogout ? (
-          <View className="mt-5 border-t border-[#E5E7EB] pt-4">
+          <View className="mt-4 border-t border-[#E5E7EB] pt-4">
             <Pressable
               accessibilityLabel="Sign out of account"
               accessibilityRole="button"
@@ -4115,12 +4423,15 @@ function Sidebar({
                 onClose();
                 onLogout();
               }}
-              className="w-full flex-row items-center gap-3 rounded-xl bg-[#FEF2F2] px-3 py-3 active:bg-[#FEE2E2]"
+              className="min-h-[48px] w-full flex-row items-center justify-center gap-2.5 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 active:bg-[#FEE2E2]"
+              style={{
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+              }}
             >
-              <View className="h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-xs">
-                <LogOutIcon color="#DC2626" size={18} />
-              </View>
-              <Text className="flex-1 text-sm font-bold text-[#DC2626]">
+              <LogOutIcon color="#DC2626" size={18} />
+              <Text className="text-sm font-bold text-[#DC2626]">
                 Sign Out
               </Text>
             </Pressable>
@@ -4128,35 +4439,6 @@ function Sidebar({
         ) : null}
       </ScrollView>
     </View>
-  );
-}
-
-function TabButtonLarge({
-  icon: Icon,
-  label,
-  onPress,
-}: {
-  icon: typeof HomeIcon;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      onPress={onPress}
-      className="w-full flex-row items-center gap-3 rounded-xl px-3 py-2.5"
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? '#EFF6FF' : colors.surface,
-      })}
-    >
-      <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F7EE]">
-        <Icon color={colors.primary} size={21} />
-      </View>
-      <Text className="flex-1 text-base font-semibold text-[#012711]">
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 
