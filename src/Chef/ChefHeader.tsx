@@ -4,6 +4,7 @@ import {
   ImageBackground,
   Pressable,
   StyleSheet,
+  StatusBar,
   Text,
   View,
 } from 'react-native';
@@ -52,18 +53,19 @@ function ChefHeader({
   const email = user?.email?.trim() || 'Chef workspace';
 
   return (
-    <SafeAreaView
-      edges={['top']}
-      className="relative z-20 bg-[#F9FAFB]"
+    <ImageBackground
+      accessibilityLabel="Chef workspace header background"
+      className="relative z-20 w-full"
+      imageStyle={styles.backgroundImage}
+      resizeMode="cover"
+      source={require('../images/chefheader.png')}
       style={styles.header}
     >
-      <ImageBackground
-        accessibilityLabel="Chef workspace header background"
-        className="mx-3 my-1 overflow-hidden rounded-xl border border-white/15"
-        imageStyle={styles.backgroundImage}
-        resizeMode="cover"
-        source={require('../images/chefheader.png')}
+      <SafeAreaView
+        edges={['top']}
+        className="bg-transparent"
       >
+        <StatusBar barStyle="light-content" />
         <View className="min-h-[78px] flex-row items-center justify-between px-3 py-2">
           <View className="mr-2 flex-1 flex-row items-center">
             <View className="mr-2.5 h-[46px] w-[46px] items-center justify-center rounded-xl border border-[#E8D19A] bg-white">
@@ -189,7 +191,7 @@ function ChefHeader({
             </Pressable>
           </View>
         ) : null}
-      </ImageBackground>
+      </SafeAreaView>
 
       <ConfirmDialog
         visible={isLogoutConfirmOpen}
@@ -204,7 +206,7 @@ function ChefHeader({
           onLogout();
         }}
       />
-    </SafeAreaView>
+    </ImageBackground>
   );
 }
 
