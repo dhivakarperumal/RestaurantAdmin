@@ -596,27 +596,19 @@ function Cuisine({
                   <View
                     className={
                       isWide
-                        ? 'h-[94px] justify-between p-3.5'
-                        : 'h-[78px] justify-between p-2.5'
+                        ? 'h-[112px] justify-between p-3.5'
+                        : 'h-[100px] justify-between p-2.5'
                     }
                   >
                     <View>
                       <Text
-                        className={
-                          isWide
-                            ? 'text-sm font-bold text-[#1F2937]'
-                            : 'text-[10px] font-bold text-[#1F2937]'
-                        }
+                        className="text-sm font-bold text-[#012711]"
                         numberOfLines={1}
                       >
                         {name}
                       </Text>
                       <Text
-                        className={
-                          isWide
-                            ? 'mt-0.5 text-[10px] text-[#94A3B8]'
-                            : 'mt-0.5 text-[9px] text-[#94A3B8]'
-                        }
+                        className="mt-1 text-xs leading-[17px] text-[#6B7280]"
                         numberOfLines={1}
                       >
                         {cuisine.description?.trim() || 'No description'}
