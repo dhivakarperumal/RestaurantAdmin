@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import colors from '../theme/colors';
-import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from './AuthIcons';
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from './AuthIcons';
 
 export type LoginValues = {
   identifier: string;
@@ -20,10 +20,9 @@ export type LoginValues = {
 type LoginPageProps = {
   notice?: string;
   onLogin?: (values: LoginValues) => Promise<void>;
-  onShowRegister: () => void;
 };
 
-function LoginPage({ notice, onLogin, onShowRegister }: LoginPageProps) {
+function LoginPage({ notice, onLogin }: LoginPageProps) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -299,63 +298,6 @@ function LoginPage({ notice, onLogin, onShowRegister }: LoginPageProps) {
           </View>
         </Pressable>
 
-        <View
-          style={{
-            alignItems: 'center',
-            flexDirection: 'row',
-            gap: 14,
-            marginVertical: 20,
-          }}
-        >
-          <View style={{ backgroundColor: '#D3D0C8', flex: 1, height: 1 }} />
-          <Text style={{ color: '#858991', fontSize: 12, fontWeight: '700' }}>
-            OR
-          </Text>
-          <View style={{ backgroundColor: '#D3D0C8', flex: 1, height: 1 }} />
-        </View>
-
-        <Pressable
-          accessibilityLabel="Register now"
-          accessibilityRole="button"
-          onPress={onShowRegister}
-          style={{
-            alignItems: 'center',
-            backgroundColor: '#F0F5E9',
-            borderRadius: 21,
-            flexDirection: 'row',
-            minHeight: 82,
-            paddingHorizontal: 16,
-          }}
-        >
-          <View
-            style={{
-              alignItems: 'center',
-              backgroundColor: '#E0EDD7',
-              borderRadius: 32,
-              height: 56,
-              justifyContent: 'center',
-              marginRight: 14,
-              width: 56,
-            }}
-          >
-            <UserIcon color="#064E3B" size={27} />
-          </View>
-          <View>
-            <Text style={{ color: '#747A80', fontSize: 13 }}>
-              Don&apos;t have an account?
-            </Text>
-            <Text
-              style={{
-                color: '#064E3B',
-                fontSize: 16,
-                fontWeight: '800',
-                marginTop: 3,
-              }}
-            >
-              Register Now →
-            </Text>
-          </View>
-        </Pressable>
       </View>
     </View>
   );

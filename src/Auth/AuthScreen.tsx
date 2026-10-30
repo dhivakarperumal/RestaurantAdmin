@@ -1,27 +1,19 @@
-import { useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
-import colors from '../theme/colors';
 import LoginPage, { type LoginValues } from './LoginPage';
-import RegisterPage, { type RegisterValues } from './RegisterPage';
 
 type AuthScreenProps = {
   onLogin?: (values: LoginValues) => Promise<void>;
-  onRegister?: (values: RegisterValues) => Promise<void>;
 };
 
-function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
-  const [page, setPage] = useState<'login' | 'register'>('login');
-  const [registrationNotice, setRegistrationNotice] = useState('');
+function AuthScreen({ onLogin }: AuthScreenProps) {
 
   return (
     <SafeAreaView
@@ -64,58 +56,7 @@ function AuthScreen({ onLogin, onRegister }: AuthScreenProps) {
           }}
           keyboardShouldPersistTaps="handled"
         >
-          {page === 'login' ? (
-            <LoginPage
-              notice={registrationNotice}
-              onLogin={onLogin}
-              onShowRegister={() => {
-                setRegistrationNotice('');
-                setPage('register');
-              }}
-            />
-          ) : (
-            <View style={{ alignSelf: 'center', width: '100%' }}>
-              <View style={{ alignItems: 'center', marginBottom: 24 }}>
-                <Image
-                  accessibilityLabel="Buy Food logo"
-                  resizeMode="contain"
-                  source={require('../images/buy-food-logo.png')}
-                  style={{ height: 110, marginBottom: 10, width: 110 }}
-                />
-                <Text
-                  style={{
-                    color: colors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: '800',
-                  }}
-                >
-                  Restaurant Admin
-                </Text>
-                <Text
-                  style={{
-                    color: colors.textSecondary,
-                    fontSize: 13,
-                    marginTop: 4,
-                  }}
-                >
-                  Manage your restaurant from anywhere
-                </Text>
-              </View>
-              <RegisterPage
-                onRegister={
-                  onRegister
-                    ? async values => {
-                        await onRegister(values);
-                        setRegistrationNotice(
-                          'Account created successfully. Please log in to continue.',
-                        );
-                      }
-                    : undefined
-                }
-                onShowLogin={() => setPage('login')}
-              />
-            </View>
-          )}
+          <LoginPage onLogin={onLogin} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
