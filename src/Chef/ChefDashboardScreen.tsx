@@ -779,7 +779,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             value: orderCounts.active,
             detail: 'Open kitchen orders',
             color: '#08794A',
-            pale: '#E8F8EF',
             border: '#C8EED8',
             icon: 'orders',
           },
@@ -788,7 +787,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             value: orderCounts.pending,
             detail: 'Waiting to start',
             color: '#BC7200',
-            pale: '#FFF5DE',
             border: '#FFE7AC',
             icon: 'pending',
           },
@@ -797,7 +795,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             value: orderCounts.preparing,
             detail: 'In progress',
             color: '#D34444',
-            pale: '#FFF0F0',
             border: '#FFDADA',
             icon: 'preparing',
           },
@@ -806,21 +803,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             value: orderCounts.ready,
             detail: 'Plated and hot',
             color: '#1672C4',
-            pale: '#EDF7FF',
             border: '#D1EAFF',
             icon: 'ready',
           },
         ].map(stat => (
           <View
             key={stat.label}
-            className="relative mb-0 min-h-[112px] w-[48%] flex-grow overflow-hidden rounded-[21px] border p-3.5"
-            style={{ backgroundColor: stat.pale, borderColor: stat.border }}
+            className="relative mb-0 min-h-[112px] w-[48%] flex-grow overflow-hidden rounded-[21px] border border-[#E5E7EB] bg-white p-3.5"
           >
-            <View
-              pointerEvents="none"
-              className="absolute -bottom-6 -right-6 h-20 w-20 rounded-full opacity-50"
-              style={{ backgroundColor: stat.border }}
-            />
             <View className="relative flex-row items-start justify-between gap-2">
               <View
                 className="h-10 w-10 items-center justify-center rounded-full"
