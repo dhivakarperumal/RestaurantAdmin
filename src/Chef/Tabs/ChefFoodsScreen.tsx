@@ -9,6 +9,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import {
+  CalendarIcon,
+  ClockIcon,
+  EyeIcon,
+} from '../../components/popups/LucideIcons';
 import api, { API_BASE_URL } from '../../../api';
 import {
   CustomersIcon,
@@ -28,6 +33,7 @@ export type ChefFood = {
   food_id?: string | number;
   food_name?: string;
   category_name?: string;
+  food_type?: string;
   meal_type?: string;
   available_time?: string;
   preparation_time?: number | string;
@@ -178,15 +184,15 @@ function FoodSkeletonCard({ viewMode }: { viewMode: ViewMode }) {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       className={`mb-3 rounded-2xl border border-slate-200 bg-white p-4 ${
-        viewMode === 'grid' ? 'w-full' : 'w-full flex-row items-center'
+        viewMode === 'grid' ? 'w-full flex-row items-stretch' : 'w-full flex-row items-center'
       }`}
     >
       <View
         className={`rounded-xl bg-slate-100 ${
-          viewMode === 'grid' ? 'mb-3 h-48 w-full' : 'mr-3 h-16 w-16'
+          viewMode === 'grid' ? 'mr-3 h-44 w-[40%]' : 'mr-3 h-16 w-16'
         }`}
       />
-      <View className={viewMode === 'grid' ? '' : 'min-w-0 flex-1'}>
+      <View className="min-w-0 flex-1">
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1 gap-2">
             <View className="h-4 w-2/3 rounded-md bg-slate-100" />
@@ -450,24 +456,113 @@ function ChefFoodsScreen({
     return (
       <View
         key={String(key)}
-        className="mb-3 w-full rounded-2xl border border-slate-200 bg-white p-4"
+        className="mb-4 w-full rounded-3xl border border-slate-200 bg-white p-3 shadow-sm"
       >
-        <FoodImage
-          className="mb-3 h-48 w-full"
-          food={food}
-          imageFailed={imageErrors.has(key)}
-          onImageError={() =>
-            setImageErrors(current => new Set(current).add(key))
-          }
-        />
-        <View>
-          <View className="flex-row items-start justify-between gap-2">
-            <View className="min-w-0 flex-1">
-              <Text className="text-sm font-bold text-slate-900">
-                {food.food_name || 'Unnamed food'}
+        <View className="flex-row gap-3">
+          <View className="relative w-[40%] shrink-0">
+            <FoodImage
+              className="h-44 w-full rounded-2xl"
+              food={food}
+              imageFailed={imageErrors.has(key)}
+              onImageError={() =>
+                setImageErrors(current => new Set(current).add(key))
+              }
+            />
+            <View
+              className={`absolute bottom-2 left-2 rounded-full px-2.5 py-1 ${
+                String(food.status || 'Active').toLowerCase() === 'active'
+                  ? 'bg-emerald-800'
+                  : 'bg-slate-700'
+              }`}
+            >
+              <Text className="text-[9px] font-extrabold uppercase text-white">
+                {food.status || 'Active'}
               </Text>
-              <Text className="mt-1 text-xs text-slate-500">
+            </View>
+          </View>
+
+          <View className="min-w-0 flex-1 py-1">
+            <View className="flex-row items-start justify-between gap-1">
+              <Text
+                numberOfLines={1}
+                className="flex-1 text-[10px] font-bold uppercase tracking-wide text-slate-500"
+              >
                 {food.category_name || 'Uncategorized'}
+              </Text>
+              <View
+                className={`rounded-full px-2 py-1 ${
+                  isFoodVisible(food) ? 'bg-green-100' : 'bg-slate-100'
+                }`}
+              >
+                <Text
+                  className={`text-[9px] font-bold ${
+                    isFoodVisible(food) ? 'text-green-800' : 'text-slate-600'
+                  }`}
+                >
+                  {isFoodVisible(food) ? 'Shown' : 'Hidden'}
+                </Text>
+              </View>
+            </View>
+            <Text
+              numberOfLines={2}
+              className="mt-2 text-sm font-extrabold leading-5 text-slate-900"
+            >
+              {food.food_name || 'Unnamed food'}
+            </Text>
+            <Text
+              numberOfLines={1}
+              className="mt-1 text-xl font-extrabold text-amber-700"
+            >
+              ₹{Number(food.final_price || 0).toFixed(2)}
+            </Text>
+            <Text numberOfLines={1} className="mt-1 text-[10px] text-slate-500">
+              ID {food.food_id ? `#${food.food_id}` : '—'}
+              {food.food_type ? ` · ${food.food_type}` : ''}
+            </Text>
+          </View>
+        </View>
+
+        <View className="my-3 h-px bg-slate-200" />
+
+        <View className="flex-row items-center">
+          <View className="flex-1 flex-row items-center gap-2 pr-2">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-amber-50">
+              <ClockIcon color="#A66A0B" size={18} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[10px] text-slate-500">Preparation</Text>
+              <Text numberOfLines={1} className="mt-0.5 text-[11px] font-bold text-slate-900">
+                {food.preparation_time ? `${food.preparation_time} minutes` : 'Not set'}
+              </Text>
+            </View>
+          </View>
+          <View className="mx-1 h-10 w-px bg-slate-200" />
+          <View className="flex-1 flex-row items-center gap-2 pl-2">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
+              <CalendarIcon color="#15803D" size={18} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[10px] text-slate-500">Available time</Text>
+              <Text numberOfLines={2} className="mt-0.5 text-[11px] font-bold text-slate-900">
+                {food.available_time || food.meal_type || 'Not set'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="my-3 h-px bg-slate-200" />
+
+        <View className="flex-row items-center">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2 pr-2">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
+              <EyeIcon color="#15803D" size={19} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text numberOfLines={1} className="text-[11px] font-bold text-slate-900">
+                Menu visibility
+              </Text>
+              <Text numberOfLines={1} className="text-[9px] text-slate-500">
+                {isFoodVisible(food) ? 'Visible to customers' : 'Hidden from customers'}
               </Text>
             </View>
             <VisibilitySwitch
@@ -477,80 +572,62 @@ function ChefFoodsScreen({
               value={isFoodVisible(food)}
             />
           </View>
-          <View className="mt-3 flex-row flex-wrap items-center gap-2">
-            <Text
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                availability.available
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-slate-100 text-slate-700'
-              }`}
-            >
-              {availability.label}
-            </Text>
-            <Text
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                String(food.status || 'Active').toLowerCase() === 'active'
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-slate-100 text-slate-700'
-              }`}
-            >
-              {food.status || 'Active'}
-            </Text>
-            <Text
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                isFoodVisible(food)
-                  ? 'bg-green-50 text-green-800'
-                  : 'bg-slate-100 text-slate-700'
-              }`}
-            >
-              {isFoodVisible(food) ? 'Shown' : 'Hidden'}
-            </Text>
-          </View>
-          <View className="mt-3 flex-row flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-3">
-            <Text className="w-full text-xs font-semibold text-slate-700">
-              Available time: {food.available_time || food.meal_type || 'Not set'}
-            </Text>
-            <Text className="text-xs text-slate-600">
-              Preparation: {food.preparation_time ? `${food.preparation_time} min` : '—'}
-            </Text>
-            <Text className="text-xs font-semibold text-slate-800">
-              Price: ₹{Number(food.final_price || 0).toFixed(2)}
-            </Text>
-          </View>
-          <View className="mt-3 flex-row items-center justify-between gap-2">
+
+          <View className="mx-1 h-11 w-px bg-slate-200" />
+
+          <View className="min-w-0 flex-1 flex-row items-center gap-2 pl-2">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
+              <Text className="text-base">♨</Text>
+            </View>
             <View className="min-w-0 flex-1">
-              <Text className="text-[10px] font-semibold text-slate-600">
+              <Text numberOfLines={1} className="text-[11px] font-bold text-slate-900">
                 Available now
               </Text>
-              <Switch
-                accessibilityLabel={`Mark ${food.food_name || 'food'} ${
-                  availability.available ? 'unavailable' : 'available'
-                }`}
-                disabled={isAvailabilityUpdating || isBulkUpdating}
-                onValueChange={() => toggleFoodAvailability(food)}
-                thumbColor="#FFFFFF"
-                trackColor={{ false: '#CBD5E1', true: '#15803D' }}
-                value={availability.available}
-              />
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isAvailabilityUpdating || isBulkUpdating}
-              onPress={() => setAvailabilityFood(food)}
-              className="max-w-[65%] rounded-lg border border-slate-300 bg-white px-2.5 py-2 disabled:opacity-50"
-            >
-              <Text numberOfLines={1} className="text-[10px] font-semibold text-slate-700">
-                Change time
+              <Text numberOfLines={1} className="text-[9px] text-slate-500">
+                Kitchen availability
               </Text>
-            </Pressable>
+            </View>
+            <Switch
+              accessibilityLabel={`Mark ${food.food_name || 'food'} ${
+                availability.available ? 'unavailable' : 'available'
+              }`}
+              disabled={isAvailabilityUpdating || isBulkUpdating}
+              onValueChange={() => toggleFoodAvailability(food)}
+              thumbColor="#FFFFFF"
+              trackColor={{ false: '#CBD5E1', true: '#15803D' }}
+              value={availability.available}
+            />
           </View>
-          {isUpdating ? (
-            <Text className="mt-2 text-[11px] text-slate-500">Saving visibility…</Text>
-          ) : null}
-          {isAvailabilityUpdating ? (
-            <Text className="mt-2 text-[11px] text-slate-500">Saving availability…</Text>
-          ) : null}
         </View>
+
+        <View className="mt-3 flex-row items-center justify-between">
+          <Pressable
+            accessibilityRole="button"
+            disabled={isAvailabilityUpdating || isBulkUpdating}
+            onPress={() => setAvailabilityFood(food)}
+            className="flex-row items-center py-2 disabled:opacity-50"
+          >
+            <Text className="text-xs font-semibold text-green-800">
+              Manage availability
+            </Text>
+            <Text className="ml-1 text-base font-semibold text-green-800">›</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={isAvailabilityUpdating || isBulkUpdating}
+            onPress={() => setAvailabilityFood(food)}
+            className="flex-row items-center rounded-full border border-amber-200 bg-amber-50 px-4 py-2.5 disabled:opacity-50"
+          >
+            <Text className="text-xs font-bold text-amber-800">Change time</Text>
+            <Text className="ml-2 text-sm font-bold text-amber-800">→</Text>
+          </Pressable>
+        </View>
+        {isUpdating ? (
+          <Text className="mt-2 text-[11px] text-slate-500">Saving visibility…</Text>
+        ) : null}
+        {isAvailabilityUpdating ? (
+          <Text className="mt-2 text-[11px] text-slate-500">Saving availability…</Text>
+        ) : null}
       </View>
     );
   };
@@ -674,14 +751,8 @@ function ChefFoodsScreen({
       <View className="mb-4 border-b border-slate-200 pb-4">
         <View className="flex-row items-start justify-between gap-2">
           <View className="flex-1">
-            <Text className="text-xs font-semibold uppercase tracking-[1.5px] text-slate-500">
-              Chef workspace
-            </Text>
             <Text className="mt-1 text-2xl font-extrabold text-slate-900">
               All Foods
-            </Text>
-            <Text className="mt-1 text-sm text-slate-600">
-              See when each food is scheduled and manage its availability.
             </Text>
           </View>
           <Pressable
@@ -693,9 +764,9 @@ function ChefFoodsScreen({
             <Text className="text-xs font-bold text-white">Visibility</Text>
           </Pressable>
         </View>
-        <Text className="mt-3 text-xs text-slate-600">
+        {/* <Text className="mt-3 text-xs text-slate-600">
           {foods.length} {foods.length === 1 ? 'food' : 'foods'}
-        </Text>
+        </Text> */}
       </View>
 
       <ChefStatCards
