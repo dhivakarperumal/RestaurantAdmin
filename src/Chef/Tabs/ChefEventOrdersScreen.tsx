@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CustomersIcon,
   OrdersIcon,
@@ -16,6 +16,10 @@ import {
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
 import { DetailsModal } from '../../components/popups';
+import {
+  getEventDishImageUrl,
+  getFoodImageUrl,
+} from '../eventOrderImages';
 import ChefListControls from './ChefListControls';
 import ChefStatCards from './ChefStatCards';
 
@@ -110,39 +114,57 @@ function orderId(order: EventOrder) {
   return text(order.id ?? order.event_order_number, '');
 }
 
-const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+function DishThumbnail({ item }: { item: Record<string, unknown> }) {
+  const [imageUri, setImageUri] = useState(() =>
+    getEventDishImageUrl(item, API_BASE_URL),
+  );
+  const imageLookupAttempted = useRef(false);
+  const foodId = text(item.food_id ?? item.foodId, '');
 
-function getDishImage(item: Record<string, unknown>) {
-  let image: unknown =
-    item.food_images ??
-    item.food_image ??
-    item.product_image ??
-    item.image_url ??
-    item.image;
-  if (Array.isArray(image)) {
-    image = image[0];
-  }
-  if (typeof image !== 'string' || !image.trim()) {
-    return null;
-  }
-  let imagePath = image.trim();
-  if (imagePath.startsWith('[')) {
+  const fetchCurrentFoodImage = useCallback(async () => {
+    if (imageLookupAttempted.current || !foodId) return;
+    imageLookupAttempted.current = true;
     try {
-      const parsed: unknown = JSON.parse(imagePath);
-      imagePath = Array.isArray(parsed) && typeof parsed[0] === 'string'
-        ? parsed[0]
-        : imagePath;
-    } catch {
-      return null;
+      const response = await api.get(
+        `/foods/${encodeURIComponent(foodId)}`,
+      );
+      const food = isRecord(response.data) && isRecord(response.data.data)
+        ? response.data.data
+        : null;
+      const fallbackImage = food
+        ? getFoodImageUrl(food, API_BASE_URL)
+        : null;
+      if (fallbackImage && fallbackImage !== imageUri) {
+        setImageUri(fallbackImage);
+      }
+    } catch (imageError) {
+      console.warn('Could not load the current image for an event dish:', imageError);
     }
-  }
-  if (!imagePath) {
-    return null;
-  }
-  if (/^(https?:|data:|blob:)/i.test(imagePath)) {
-    return imagePath;
-  }
-  return `${backendBaseUrl}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
+  }, [foodId, imageUri]);
+
+  useEffect(() => {
+    if (!imageUri) {
+      void fetchCurrentFoodImage();
+    }
+  }, [fetchCurrentFoodImage, imageUri]);
+
+  return (
+    <View className="h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#EAF4E7]">
+      {!imageUri ? <Text className="text-lg">🍽️</Text> : null}
+      {imageUri ? (
+        <Image
+          accessibilityLabel={text(item.product_name ?? item.food_name, 'Dish image')}
+          source={{ uri: imageUri }}
+          resizeMode="cover"
+          onError={() => {
+            setImageUri(null);
+            void fetchCurrentFoodImage();
+          }}
+          className="absolute h-full w-full"
+        />
+      ) : null}
+    </View>
+  );
 }
 
 function OrderStatus({
@@ -433,7 +455,6 @@ function ChefEventOrdersScreen() {
             </View>
             {items.length ? (
               items.map((item, index) => {
-                const image = getDishImage(item);
                 return (
                   <View
                     key={`${id}-dish-${text(item.id, String(index))}`}
@@ -441,17 +462,7 @@ function ChefEventOrdersScreen() {
                       index < items.length - 1 ? 'border-b border-[#E8EFEA]' : ''
                     }`}
                   >
-                    <View className="h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F1F5F2]">
-                      <Text className="text-lg">🍽️</Text>
-                      {image ? (
-                        <Image
-                          accessibilityLabel={text(item.product_name, 'Dish image')}
-                          source={{ uri: image }}
-                          resizeMode="cover"
-                          className="absolute h-full w-full"
-                        />
-                      ) : null}
-                    </View>
+                    <DishThumbnail item={item} />
                     <Text
                       numberOfLines={2}
                       className="min-w-0 flex-1 text-xs text-[#1F2937]"
