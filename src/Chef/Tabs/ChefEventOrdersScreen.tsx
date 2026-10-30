@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CustomersIcon,
   MenuIcon,
@@ -7,24 +7,20 @@ import {
 } from '../../Admin/Navigation/NavigationIcons';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import api, { API_BASE_URL } from '../../../api';
+import api from '../../../api';
 import colors from '../../theme/colors';
 import {
   CalendarIcon,
   ClockIcon,
   DetailsModal,
 } from '../../components/popups';
-import {
-  getEventDishImageUrl,
-  getFoodImageUrl,
-} from '../eventOrderImages';
+import ChefDishThumbnail from './ChefDishThumbnail';
 import ChefListControls from './ChefListControls';
 import ChefStatCards from './ChefStatCards';
 
@@ -117,68 +113,6 @@ function dateUrgency(value: unknown) {
 
 function orderId(order: EventOrder) {
   return text(order.id ?? order.event_order_number, '');
-}
-
-function DishThumbnail({
-  item,
-  size = 44,
-}: {
-  item: Record<string, unknown>;
-  size?: number;
-}) {
-  const [imageUri, setImageUri] = useState(() =>
-    getEventDishImageUrl(item, API_BASE_URL),
-  );
-  const imageLookupAttempted = useRef(false);
-  const foodId = text(item.food_id ?? item.foodId, '');
-
-  const fetchCurrentFoodImage = useCallback(async () => {
-    if (imageLookupAttempted.current || !foodId) return;
-    imageLookupAttempted.current = true;
-    try {
-      const response = await api.get(
-        `/foods/${encodeURIComponent(foodId)}`,
-      );
-      const food = isRecord(response.data) && isRecord(response.data.data)
-        ? response.data.data
-        : null;
-      const fallbackImage = food
-        ? getFoodImageUrl(food, API_BASE_URL)
-        : null;
-      if (fallbackImage && fallbackImage !== imageUri) {
-        setImageUri(fallbackImage);
-      }
-    } catch (imageError) {
-      console.warn('Could not load the current image for an event dish:', imageError);
-    }
-  }, [foodId, imageUri]);
-
-  useEffect(() => {
-    if (!imageUri) {
-      void fetchCurrentFoodImage();
-    }
-  }, [fetchCurrentFoodImage, imageUri]);
-
-  return (
-    <View
-      className="shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#EAF4E7]"
-      style={{ height: size, width: size }}
-    >
-      {!imageUri ? <Text style={{ fontSize: Math.max(12, size * 0.4) }}>🍽️</Text> : null}
-      {imageUri ? (
-        <Image
-          accessibilityLabel={text(item.product_name ?? item.food_name, 'Dish image')}
-          source={{ uri: imageUri }}
-          resizeMode="cover"
-          onError={() => {
-            setImageUri(null);
-            void fetchCurrentFoodImage();
-          }}
-          className="absolute h-full w-full"
-        />
-      ) : null}
-    </View>
-  );
 }
 
 function OrderStatus({
@@ -592,7 +526,7 @@ function ChefEventOrdersScreen() {
                       index < items.length - 1 ? 'border-b border-[#E8EFEA]' : ''
                     }`}
                   >
-                    <DishThumbnail item={item} />
+                    <ChefDishThumbnail item={item} />
                     <Text
                       numberOfLines={2}
                       className="min-w-0 flex-1 text-xs text-[#1F2937]"
@@ -737,7 +671,7 @@ function ChefEventOrdersScreen() {
           </View>
           {items.length ? (
             <View className="flex-row items-center gap-2">
-              <DishThumbnail item={items[0]} size={34} />
+              <ChefDishThumbnail item={items[0]} size={34} />
               <Text numberOfLines={1} className="min-w-0 flex-1 text-[10px] text-[#1F2937]">
                 {text(items[0].product_name ?? items[0].food_name, 'Menu item')}
               </Text>
@@ -1168,7 +1102,7 @@ function ChefEventOrdersScreen() {
                   key={`${orderId(foodListOrder)}-all-dish-${text(item.id, String(index))}`}
                   className="flex-row items-center gap-3 rounded-2xl border border-[#E8EFEA] bg-[#FCFDFC] p-3"
                 >
-                  <DishThumbnail item={item} />
+                  <ChefDishThumbnail item={item} />
                   <View className="min-w-0 flex-1">
                     <Text className="text-xs font-bold text-[#1F2937]">
                       {text(item.product_name ?? item.food_name, 'Menu item')}

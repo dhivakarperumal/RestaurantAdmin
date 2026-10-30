@@ -19,6 +19,7 @@ import {
   DetailsModal,
   FormModal,
 } from '../../components/popups';
+import ChefDishThumbnail from './ChefDishThumbnail';
 import ChefListControls from './ChefListControls';
 import ChefStatCards from './ChefStatCards';
 
@@ -186,6 +187,63 @@ function orderIdentity(order: OrderRecord, isKitchen: boolean) {
       ? order.order_id ?? order.id
       : order.order_number ?? order.id,
     '',
+  );
+}
+
+function OrderSkeletonCard({ viewMode }: { viewMode: 'grid' | 'table' }) {
+  if (viewMode === 'table') {
+    return (
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        className="mb-2 min-h-[88px] w-[1460px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-2"
+      >
+        {[50, 250, 345, 160, 185, 110, 140, 220].map((width, index) => (
+          <View key={index} className="gap-2 px-2" style={{ width }}>
+            <View className="h-3 w-3/4 rounded-md bg-slate-100" />
+            {index === 2 ? (
+              <View className="flex-row items-center gap-2">
+                <View className="h-9 w-9 rounded-xl bg-slate-100" />
+                <View className="h-3 w-24 rounded-md bg-slate-100" />
+              </View>
+            ) : null}
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      className="w-full overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white"
+    >
+      <View className="gap-3 p-3.5">
+        <View className="flex-row items-start justify-between">
+          <View className="gap-2">
+            <View className="h-3 w-24 rounded-md bg-slate-100" />
+            <View className="h-5 w-40 rounded-md bg-slate-100" />
+            <View className="h-3 w-32 rounded-md bg-slate-100" />
+          </View>
+          <View className="h-7 w-20 rounded-full bg-slate-100" />
+        </View>
+        <View className="gap-2 rounded-2xl bg-[#F7FAF8] p-3">
+          {[0, 1, 2].map(index => (
+            <View key={index} className="flex-row items-center gap-2.5">
+              <View className="h-11 w-11 rounded-xl bg-slate-100" />
+              <View className="flex-1 gap-2">
+                <View className="h-3 w-2/3 rounded-md bg-slate-100" />
+                <View className="h-2.5 w-1/3 rounded-md bg-slate-100" />
+              </View>
+              <View className="h-3 w-8 rounded-md bg-slate-100" />
+            </View>
+          ))}
+        </View>
+        <View className="h-10 rounded-xl bg-slate-50" />
+      </View>
+      <View className="h-[62px] border-t border-[#E5E7EB] bg-white" />
+    </View>
   );
 }
 
@@ -578,6 +636,191 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
             },
           ];
 
+  const renderOrderActions = (order: OrderRecord, isTable = false) => {
+    const id = orderIdentity(order, isKitchen);
+    const currentStatus = orderStatus(order, isKitchen);
+    const nextStatus = isKitchen
+      ? nextKitchenStatus(currentStatus)
+      : nextCustomerStatus(order);
+    const isUpdating = updatingId === id;
+    const actionWidth = isTable ? 'w-[170px]' : 'flex-1';
+
+    return (
+      <View className="flex-row flex-wrap items-center gap-2">
+          {page === 'delivery' &&
+          !isKitchen &&
+          !order.assigned_delivery_partner_id &&
+          !isTerminal(order) ? (
+            <ActionButton
+              label="Assign partner"
+              disabled={isUpdating}
+              onPress={() => startAssignment(order)}
+              className={actionWidth}
+              style={{ backgroundColor: colors.primary }}
+            />
+          ) : null}
+          {nextStatus &&
+          !isTerminal(order) &&
+          !(page === 'delivery' && nextStatus === 'assigned') ? (
+            <ActionButton
+              label={actionLabel(nextStatus)}
+              disabled={isUpdating}
+              onPress={() => {
+                if (nextStatus === 'assigned') {
+                  startAssignment(order);
+                } else {
+                  updateOrder(order, nextStatus);
+                }
+              }}
+              className={actionWidth}
+              style={{ backgroundColor: isKitchen ? '#116C0B' : '#123B2D' }}
+            />
+          ) : null}
+          {isUpdating ? <ActivityIndicator color="#116C0B" size="small" /> : null}
+          {!nextStatus && isTerminal(order) ? (
+            <Text className="px-2 text-[10px] font-bold text-[#64748B]">
+              Order complete
+            </Text>
+          ) : null}
+      </View>
+    );
+  };
+
+  const renderOrderCard = (order: OrderRecord, index: number) => {
+    const items = Array.isArray(order.items) ? order.items : [];
+    const id = orderIdentity(order, isKitchen);
+    const currentStatus = orderStatus(order, isKitchen);
+    const totalAmount = isKitchen
+      ? items.reduce(
+            (total, item) =>
+              total +
+              Number(item.unit_price || 0) * Number(item.quantity || 1),
+            0,
+          )
+      : Number(order.total_amount || 0);
+
+    return (
+      <View
+          key={`${isKitchen ? 'kitchen' : 'customer'}-${id || index}`}
+          className="w-full overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white shadow-sm"
+      >
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setSelectedOrder(order)}
+            className="gap-3 p-3.5"
+          >
+            <View className="flex-row items-start justify-between gap-2">
+              <View className="min-w-0 flex-1">
+                <Text className="text-xs font-extrabold uppercase tracking-wide text-[#14764A]">
+                  {isKitchen ? formatKotNumber(order) : `ORDER #${text(order.order_number)}`}
+                </Text>
+                <Text className="mt-1 text-base font-extrabold text-[#111827]">
+                  {isKitchen
+                    ? `Table ${text(order.table_number)}`
+                    : text(order.customer_name, 'Customer order')}
+                </Text>
+                <Text className="mt-1 text-[11px] text-[#64748B]">
+                  {isKitchen
+                    ? `${text(order.bill_number, 'No bill')} · Round ${text(order.round_number, '1')}`
+                    : text(order.customer_phone, 'No phone number')}
+                </Text>
+              </View>
+              <View className="items-end gap-1.5">
+                <Text
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusColor(currentStatus).className}`}
+                  style={statusColor(currentStatus).style}
+                >
+                  {isKitchen ? currentStatus : statusLabel(currentStatus)}
+                </Text>
+                <Text className="text-[10px] text-[#64748B]">
+                  {formatTime(order.created_at)}
+                </Text>
+              </View>
+            </View>
+
+            <View className="overflow-hidden rounded-2xl border border-[#E8EFEA] bg-[#FCFDFC] px-3">
+              <View className="h-10 flex-row items-center justify-between border-b border-[#E8EFEA]">
+                <Text className="text-[10px] font-extrabold uppercase tracking-wide text-[#1F2937]">
+                  Dishes · {items.length}
+                </Text>
+                <Text className="text-sm font-bold text-[#64748B]">›</Text>
+              </View>
+              {items.length ? (
+                items.slice(0, 3).map((item, itemIndex) => (
+                  <View
+                    key={`${id}-item-${itemIndex}`}
+                    className={`min-h-[58px] flex-row items-center gap-2.5 py-1.5 ${
+                      itemIndex < Math.min(items.length, 3) - 1
+                        ? 'border-b border-[#E8EFEA]'
+                        : ''
+                    }`}
+                  >
+                    <ChefDishThumbnail item={item} />
+                    <Text
+                      numberOfLines={2}
+                      className="min-w-0 flex-1 text-xs text-[#1F2937]"
+                    >
+                      {text(item.food_name ?? item.product_name, 'Menu item')}
+                    </Text>
+                    <Text className="text-xs font-extrabold text-[#17633D]">
+                      × {text(item.quantity, '1')}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="py-4 text-xs text-[#64748B]">
+                  No dish details
+                </Text>
+              )}
+              {items.length > 3 ? (
+                <Text className="border-t border-[#E8EFEA] py-2 text-[10px] font-semibold text-[#64748B]">
+                  +{items.length - 3} more dishes
+                </Text>
+              ) : null}
+            </View>
+
+            <View className="flex-row items-center justify-between rounded-xl bg-[#F7FAF8] px-3 py-2.5">
+              <View className="flex-1 pr-2">
+                <Text className="text-[9px] font-bold uppercase tracking-wide text-[#84918B]">
+                  {isKitchen ? 'Order details' : 'Order type'}
+                </Text>
+                <Text numberOfLines={1} className="mt-1 text-[11px] font-semibold text-[#475569]">
+                  {isKitchen
+                    ? `Round ${text(order.round_number, '1')} · ${formatTime(order.created_at)}`
+                    : text(order.order_type) === 'home_delivery'
+                      ? 'Home delivery'
+                      : text(order.order_type, 'Pickup')}
+                </Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-[9px] font-bold uppercase tracking-wide text-[#84918B]">
+                  Total
+                </Text>
+                <Text className="mt-1 text-sm font-extrabold text-[#123B2D]">
+                  ₹{totalAmount.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+
+          <View className="flex-row flex-wrap items-center gap-2 border-t border-[#E5E7EB] bg-white p-3">
+            {renderOrderActions(order)}
+          </View>
+      </View>
+    );
+  };
+
+  const tableColumns = [
+    { label: 'No.', width: 50 },
+    { label: isKitchen ? 'KOT / Table' : 'Order / Customer', width: 250 },
+    { label: 'Dishes', width: 345 },
+    { label: isKitchen ? 'Bill / Round' : 'Order type', width: 160 },
+    { label: 'Date & time', width: 185 },
+    { label: 'Total', width: 110 },
+    { label: 'Status', width: 140 },
+    { label: 'Actions', width: 220 },
+  ];
+
   return (
     <View className="gap-4 pb-6">
       <View>
@@ -699,150 +942,157 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
       ) : null}
 
       {loading ? (
-        <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white py-10">
-          <ActivityIndicator color="#116C0B" />
-          <Text className="mt-3 text-xs text-[#6B7280]">Loading orders...</Text>
-        </View>
+        allOrdersViewMode === 'table' ? (
+          <View className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-2">
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View className="w-[1460px]">
+                <View className="mb-2 h-10 w-[1460px] flex-row items-center rounded-xl border border-[#E5E7EB] bg-white px-3">
+                  {tableColumns.map(column => (
+                    <View
+                      key={column.label}
+                      className="px-2"
+                      style={{ width: column.width }}
+                    >
+                      <View className="h-2.5 w-3/4 rounded-md bg-slate-200" />
+                    </View>
+                  ))}
+                </View>
+                {[0, 1, 2, 3].map(index => (
+                  <OrderSkeletonCard key={index} viewMode="table" />
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        ) : (
+          <View className="gap-3">
+            {[0, 1, 2].map(index => (
+              <OrderSkeletonCard key={index} viewMode="grid" />
+            ))}
+          </View>
+        )
       ) : visibleOrders.length ? (
-        <View
-          className={
-            usesListControls && allOrdersViewMode === 'grid'
-              ? 'flex-row flex-wrap justify-between gap-y-3'
-              : 'gap-3'
-          }
-        >
-          {visibleOrders.map((order, index) => {
-            const items = Array.isArray(order.items) ? order.items : [];
-            const id = orderIdentity(order, isKitchen);
-            const currentStatus = orderStatus(order, isKitchen);
-            const nextStatus = isKitchen
-              ? nextKitchenStatus(currentStatus)
-              : nextCustomerStatus(order);
-            const isUpdating = updatingId === id;
-            const totalAmount = isKitchen
-              ? items.reduce(
-                  (total, item) =>
-                    total +
-                    Number(item.unit_price || 0) * Number(item.quantity || 1),
-                  0,
-                )
-              : Number(order.total_amount || 0);
+        allOrdersViewMode === 'table' ? (
+          <View className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-2">
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View className="w-[1460px]">
+                <View className="mb-2 h-10 w-[1460px] flex-row items-center rounded-xl border border-[#E5E7EB] bg-white px-3">
+                  {tableColumns.map(column => (
+                    <Text
+                      key={column.label}
+                      className="px-2 text-[9px] font-bold uppercase tracking-wide text-[#64748B]"
+                      style={{ width: column.width }}
+                    >
+                      {column.label}
+                    </Text>
+                  ))}
+                </View>
+                {visibleOrders.map((order, index) => {
+                  const items = Array.isArray(order.items) ? order.items : [];
+                  const id = orderIdentity(order, isKitchen);
+                  const currentStatus = orderStatus(order, isKitchen);
+                  const totalAmount = isKitchen
+                    ? items.reduce(
+                        (total, item) =>
+                          total +
+                          Number(item.unit_price || 0) *
+                            Number(item.quantity || 1),
+                        0,
+                      )
+                    : Number(order.total_amount || 0);
+                  const mainItem = items[0];
 
-            return (
-              <View
-                key={`${isKitchen ? 'kitchen' : 'customer'}-${id || index}`}
-                className={`overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white ${
-                  usesListControls && allOrdersViewMode === 'grid'
-                    ? 'w-[48%]'
-                    : 'w-full'
-                }`}
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setSelectedOrder(order)}
-                  className="gap-3 p-4"
-                >
-                  <View className="flex-row items-start justify-between gap-2">
-                    <View className="flex-1">
-                      <Text className="text-[11px] font-extrabold text-[#123B2D]">
-                        {isKitchen
-                          ? formatKotNumber(order)
-                          : `#${text(order.order_number)}`}
+                  return (
+                    <View
+                      key={`${isKitchen ? 'kitchen' : 'customer'}-${id || index}`}
+                      className="mb-2 min-h-[88px] w-[1460px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-2 shadow-sm"
+                    >
+                      <Text className="w-[50px] px-2 text-xs font-bold text-[#64748B]">
+                        {index + 1}
                       </Text>
-                      <Text className="mt-1 text-sm font-bold text-[#111827]">
-                        {isKitchen
-                          ? `Table ${text(order.table_number)}`
-                          : text(order.customer_name, 'Customer order')}
-                      </Text>
-                      <Text className="mt-1 text-[10px] text-[#6B7280]">
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setSelectedOrder(order)}
+                        className="w-[250px] px-2"
+                      >
+                        <Text className="text-[10px] font-extrabold text-[#14764A]">
+                          {isKitchen
+                            ? formatKotNumber(order)
+                            : `#${text(order.order_number)}`}
+                        </Text>
+                        <Text numberOfLines={1} className="mt-1 text-xs font-bold text-[#1F2937]">
+                          {isKitchen
+                            ? `Table ${text(order.table_number)}`
+                            : text(order.customer_name, 'Customer order')}
+                        </Text>
+                        {!isKitchen ? (
+                          <Text numberOfLines={1} className="mt-1 text-[10px] text-[#64748B]">
+                            {text(order.customer_phone, 'No phone number')}
+                          </Text>
+                        ) : null}
+                      </Pressable>
+                      <View className="w-[345px] flex-row items-center gap-2 px-2">
+                        {mainItem ? (
+                          <ChefDishThumbnail item={mainItem} size={40} />
+                        ) : (
+                          <View className="h-10 w-10 rounded-xl bg-[#EAF4E7]" />
+                        )}
+                        <View className="min-w-0 flex-1">
+                          <Text numberOfLines={1} className="text-xs font-semibold text-[#1F2937]">
+                            {mainItem
+                              ? text(mainItem.food_name ?? mainItem.product_name, 'Menu item')
+                              : 'No dish details'}
+                          </Text>
+                          <Text numberOfLines={1} className="mt-1 text-[10px] text-[#64748B]">
+                            {items.length > 1
+                              ? `+${items.length - 1} more dishes`
+                              : mainItem
+                                ? `${text(mainItem.quantity, '1')} item`
+                                : 'No items listed'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View className="w-[160px] px-2">
+                        <Text numberOfLines={1} className="text-[10px] font-semibold text-[#475569]">
+                          {isKitchen
+                            ? `Bill ${text(order.bill_number, '—')}`
+                            : text(order.order_type) === 'home_delivery'
+                              ? 'Home delivery'
+                              : text(order.order_type, 'Pickup')}
+                        </Text>
+                        {isKitchen ? (
+                          <Text className="mt-1 text-[10px] text-[#64748B]">
+                            Round {text(order.round_number, '1')}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text className="w-[185px] px-2 text-[10px] text-[#475569]">
                         {formatTime(order.created_at)}
                       </Text>
-                    </View>
-                    <Text
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                        statusColor(currentStatus).className
-                      }`}
-                      style={statusColor(currentStatus).style}
-                    >
-                      {isKitchen ? currentStatus : statusLabel(currentStatus)}
-                    </Text>
-                  </View>
-
-                  <View className="rounded-xl bg-[#F9FAFB] p-3">
-                    {items.length ? (
-                      items.slice(0, 4).map((item, itemIndex) => (
+                      <Text className="w-[110px] px-2 text-xs font-extrabold text-[#123B2D]">
+                        ₹{totalAmount.toFixed(2)}
+                      </Text>
+                      <View className="w-[140px] px-2">
                         <Text
-                          key={`${id}-item-${itemIndex}`}
-                          numberOfLines={1}
-                          className="py-1 text-[11px] leading-4 text-[#374151]"
+                          className={`self-start rounded-full px-2.5 py-1 text-[10px] font-bold ${statusColor(currentStatus).className}`}
+                          style={statusColor(currentStatus).style}
                         >
-                          <Text className="font-bold text-[#116C0B]">
-                            {text(item.quantity, '1')}×{' '}
-                          </Text>
-                          {text(item.food_name ?? item.product_name, 'Menu item')}
+                          {isKitchen ? currentStatus : statusLabel(currentStatus)}
                         </Text>
-                      ))
-                    ) : (
-                      <Text className="text-[11px] text-[#6B7280]">
-                        No items listed
-                      </Text>
-                    )}
-                    {items.length > 4 ? (
-                      <Text className="mt-1 text-[10px] text-[#6B7280]">
-                        +{items.length - 4} more items
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <View className="flex-row flex-wrap justify-between gap-2">
-                    <Text className="text-[10px] text-[#6B7280]">
-                      {isKitchen
-                        ? `${text(order.bill_number, 'No bill')} · Round ${text(order.round_number, '1')}`
-                        : `${text(order.order_type) === 'home_delivery' ? 'Home delivery' : text(order.order_type, 'Pickup')} · ${text(order.customer_phone)}`}
-                    </Text>
-                    <Text className="text-[11px] font-extrabold text-[#123B2D]">
-                      ₹{totalAmount.toFixed(2)}
-                    </Text>
-                  </View>
-                </Pressable>
-
-                <View className="flex-row flex-wrap items-center justify-between gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] p-3">
-                  {page === 'delivery' &&
-                  !isKitchen &&
-                  !order.assigned_delivery_partner_id &&
-                  !isTerminal(order) ? (
-                    <ActionButton
-                      label="Assign delivery partner"
-                      disabled={isUpdating}
-                      onPress={() => startAssignment(order)}
-                      className=""
-                      style={{ backgroundColor: colors.primary }}
-                    />
-                  ) : null}
-                  {nextStatus &&
-                  !isTerminal(order) &&
-                  !(page === 'delivery' && nextStatus === 'assigned') ? (
-                    <ActionButton
-                      label={actionLabel(nextStatus)}
-                      disabled={isUpdating}
-                      onPress={() => {
-                        if (nextStatus === 'assigned') {
-                          startAssignment(order);
-                        } else {
-                          updateOrder(order, nextStatus);
-                        }
-                      }}
-                      className={isKitchen ? 'bg-[#116C0B]' : 'bg-[#123B2D]'}
-                    />
-                  ) : null}
-                  {isUpdating ? (
-                    <ActivityIndicator color="#116C0B" size="small" />
-                  ) : null}
-                </View>
+                      </View>
+                      <View className="w-[220px] px-2">
+                        {renderOrderActions(order, true)}
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
-            );
-          })}
-        </View>
+            </ScrollView>
+          </View>
+        ) : (
+          <View className="gap-3">
+            {visibleOrders.map(renderOrderCard)}
+          </View>
+        )
       ) : (
         <View className="items-center rounded-2xl border border-dashed border-[#D1D5DB] bg-white px-5 py-10">
           <Text className="text-center text-sm font-bold text-[#374151]">
