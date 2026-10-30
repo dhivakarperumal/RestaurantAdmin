@@ -315,6 +315,7 @@ function ChefEventOrdersScreen() {
   const [sortBy, setSortBy] = useState<'date' | 'guests'>('date');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [selectedOrder, setSelectedOrder] = useState<EventOrder | null>(null);
+  const [foodListOrder, setFoodListOrder] = useState<EventOrder | null>(null);
   const [kitchenNotes, setKitchenNotes] = useState('');
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [updatingId, setUpdatingId] = useState('');
@@ -712,27 +713,29 @@ function ChefEventOrdersScreen() {
             Dishes · {items.length}
           </Text>
           {items.length ? (
-            items.slice(0, 2).map((item, dishIndex) => (
-              <View
-                key={`${id}-table-dish-${text(item.id, String(dishIndex))}`}
-                className="mb-1 flex-row items-center gap-2"
-              >
-                <DishThumbnail item={item} />
-                <Text numberOfLines={1} className="min-w-0 flex-1 text-[10px] text-[#1F2937]">
-                  {text(item.product_name ?? item.food_name, 'Menu item')}
-                </Text>
-                <Text className="text-[10px] font-extrabold text-[#17633D]">
-                  ×{text(item.quantity, '1')}
-                </Text>
-              </View>
-            ))
+            <View className="flex-row items-center gap-2">
+              <DishThumbnail item={items[0]} />
+              <Text numberOfLines={1} className="min-w-0 flex-1 text-[10px] text-[#1F2937]">
+                {text(items[0].product_name ?? items[0].food_name, 'Menu item')}
+              </Text>
+              <Text className="text-[10px] font-extrabold text-[#17633D]">
+                ×{text(items[0].quantity, '1')}
+              </Text>
+            </View>
           ) : (
             <Text className="py-1 text-[10px] text-[#64748B]">No dish details</Text>
           )}
-          {items.length > 2 ? (
-            <Text className="text-[9px] font-semibold text-[#64748B]">
-              +{items.length - 2} more
-            </Text>
+          {items.length > 1 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`View all ${items.length} foods for order ${text(order.event_order_number)}`}
+              onPress={() => setFoodListOrder(order)}
+              className="mt-2 min-h-9 flex-row items-center justify-center rounded-lg border-t border-[#E8EFEA] bg-white px-2"
+            >
+              <Text className="text-[10px] font-extrabold text-[#14764A]">
+                View all foods · {items.length}
+              </Text>
+            </Pressable>
           ) : null}
         </View>
         <View className="w-[230px] gap-1 px-2">
@@ -1140,6 +1143,48 @@ function ChefEventOrdersScreen() {
                 value={kitchenNotes}
               />
             </View>
+          </View>
+        </DetailsModal>
+      ) : null}
+
+      {foodListOrder ? (
+        <DetailsModal
+          visible={foodListOrder !== null}
+          onClose={() => setFoodListOrder(null)}
+          title="All foods"
+          subtitle={`Order #${text(foodListOrder.event_order_number)} · ${text(foodListOrder.event_type, 'Catering event')}`}
+          badge={{
+            label: `${Array.isArray(foodListOrder.items) ? foodListOrder.items.length : 0} dishes`,
+            bg: '#F0FDF4',
+            text: '#116C0B',
+            border: '#DCFCE7',
+          }}
+          maxWidth={520}
+        >
+          <View className="gap-2">
+            {(Array.isArray(foodListOrder.items) ? foodListOrder.items : []).map(
+              (item, index) => (
+                <View
+                  key={`${orderId(foodListOrder)}-all-dish-${text(item.id, String(index))}`}
+                  className="flex-row items-center gap-3 rounded-2xl border border-[#E8EFEA] bg-[#FCFDFC] p-3"
+                >
+                  <DishThumbnail item={item} />
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-xs font-bold text-[#1F2937]">
+                      {text(item.product_name ?? item.food_name, 'Menu item')}
+                    </Text>
+                    <Text className="mt-1 text-[10px] text-[#64748B]">
+                      {text(item.category_name, '')}
+                      {item.portion_size ? ` · ${text(item.portion_size)}` : ''}
+                      {item.notes ? ` · ${text(item.notes)}` : ''}
+                    </Text>
+                  </View>
+                  <Text className="text-xs font-extrabold text-[#17633D]">
+                    × {text(item.quantity, '1')}
+                  </Text>
+                </View>
+              ),
+            )}
           </View>
         </DetailsModal>
       ) : null}
