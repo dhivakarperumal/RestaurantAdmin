@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
+import { ChartIcon, OrdersIcon, ReceiptIcon } from '../Admin/Navigation/NavigationIcons';
 import { FormModal } from '../components/popups';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
 import ChefHeader from './ChefHeader';
@@ -437,20 +438,26 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const orderStatusData = useMemo(() => {
     const statuses = [
       { name: 'Pending', color: '#D4A843', value: 0 },
-      { name: 'Preparing', color: '#3B82F6', value: 0 },
-      { name: 'Ready to Serve', color: '#22C55E', value: 0 },
-      { name: 'Served', color: '#64748B', value: 0 },
+      { name: 'Preparing', color: '#D34444', value: 0 },
+      { name: 'Ready to Serve', color: '#1672C4', value: 0 },
+      { name: 'Completed', color: '#31A95B', value: 0 },
       { name: 'Cancelled', color: '#F43F5E', value: 0 },
-      { name: 'Other', color: '#8B5CF6', value: 0 },
     ];
     orders.forEach(order => {
       const status = text(order.status, 'Pending').trim().toLowerCase();
+      const normalizedStatus = status === 'served' ? 'completed' : status;
       const match = statuses.find(
-        item => item.name.toLowerCase() === status,
+        item => item.name.toLowerCase() === normalizedStatus,
       );
-      (match ?? statuses[statuses.length - 1]).value += 1;
+      if (match) {
+        match.value += 1;
+      }
     });
-    return statuses.filter(status => status.value > 0);
+    return statuses.filter(
+      status =>
+        status.name !== 'Cancelled' ||
+        status.value > 0,
+    );
   }, [orders]);
 
   const upcomingEventOrders = useMemo(
@@ -767,43 +774,127 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         className="flex-row flex-wrap gap-2.5"
       >
         {[
-          { label: 'Active Orders', value: orderCounts.active, detail: 'Open kitchen orders' },
-          { label: 'Pending', value: orderCounts.pending, detail: 'Waiting to start' },
-          { label: 'Preparing', value: orderCounts.preparing, detail: 'In progress' },
-          { label: 'Ready to Serve', value: orderCounts.ready, detail: 'Plated and hot' },
+          {
+            label: 'Active Orders',
+            value: orderCounts.active,
+            detail: 'Open kitchen orders',
+            color: '#08794A',
+            pale: '#E8F8EF',
+            border: '#C8EED8',
+            icon: 'orders',
+          },
+          {
+            label: 'Pending',
+            value: orderCounts.pending,
+            detail: 'Waiting to start',
+            color: '#BC7200',
+            pale: '#FFF5DE',
+            border: '#FFE7AC',
+            icon: 'pending',
+          },
+          {
+            label: 'Preparing',
+            value: orderCounts.preparing,
+            detail: 'In progress',
+            color: '#D34444',
+            pale: '#FFF0F0',
+            border: '#FFDADA',
+            icon: 'preparing',
+          },
+          {
+            label: 'Ready to Serve',
+            value: orderCounts.ready,
+            detail: 'Plated and hot',
+            color: '#1672C4',
+            pale: '#EDF7FF',
+            border: '#D1EAFF',
+            icon: 'ready',
+          },
         ].map(stat => (
-          <Card key={stat.label} className="mb-0 w-[48%] flex-grow">
-            <Text className="text-[11px] font-bold uppercase tracking-wide text-[#6B7280]">
+          <View
+            key={stat.label}
+            className="relative mb-0 min-h-[112px] w-[48%] flex-grow overflow-hidden rounded-[21px] border p-3.5"
+            style={{ backgroundColor: stat.pale, borderColor: stat.border }}
+          >
+            <View
+              pointerEvents="none"
+              className="absolute -bottom-6 -right-6 h-20 w-20 rounded-full opacity-50"
+              style={{ backgroundColor: stat.border }}
+            />
+            <View className="relative flex-row items-start justify-between gap-2">
+              <View
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: stat.border }}
+              >
+                {stat.icon === 'orders' ? (
+                  <OrdersIcon color={stat.color} size={22} />
+                ) : stat.icon === 'ready' ? (
+                  <ReceiptIcon color={stat.color} size={22} />
+                ) : (
+                  <Text className="text-[20px] font-extrabold" style={{ color: stat.color }}>
+                    {stat.icon === 'pending' ? '◷' : '♨'}
+                  </Text>
+                )}
+              </View>
+              <View
+                className="h-7 w-7 items-center justify-center rounded-full"
+                style={{ backgroundColor: stat.border }}
+              >
+                <Text className="text-base font-bold" style={{ color: stat.color }}>
+                  ›
+                </Text>
+              </View>
+            </View>
+            <Text className="mt-2 text-[10px] font-extrabold uppercase tracking-wide text-[#52615A]">
               {stat.label}
             </Text>
-            <Text className="mt-2 text-[26px] font-extrabold text-[#012711]">
-              {isLoading ? '…' : stat.value}
-            </Text>
-            <Text className="mt-1 text-[11px] text-[#6B7280]">
-              {stat.detail}
-            </Text>
-          </Card>
+            <View className="mt-0.5 flex-row items-end justify-between gap-1">
+              <Text className="text-[26px] font-extrabold leading-8 text-[#123B2D]">
+                {isLoading ? '…' : stat.value}
+              </Text>
+              <Text numberOfLines={1} className="mb-1 flex-1 text-right text-[9px] text-[#66756D]">
+                {stat.detail}
+              </Text>
+            </View>
+          </View>
         ))}
       </View>
 
-      <View className="mt-6">
-        <Text className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
-          At a glance
-        </Text>
-        <Text className="mt-1 text-lg font-bold text-[#012711]">
-          Kitchen analytics
-        </Text>
+      <View className="mt-6 mb-3 flex-row items-end justify-between">
+        <View>
+          <Text className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#6B7280]">
+            At a glance
+          </Text>
+          <Text className="mt-1 text-[21px] font-extrabold text-[#123B2D]">
+            Kitchen analytics
+          </Text>
+        </View>
       </View>
 
-      <Card>
-        <Text className="text-sm font-bold text-[#012711]">
-          Order activity
-        </Text>
-        <Text className="mt-1 text-xs text-[#6B7280]">
-          Kitchen orders received over the last 7 days
-        </Text>
+      <View className="mb-3 rounded-[22px] border border-[#E5EDE7] bg-white p-4">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-1 flex-row items-center gap-2.5">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E8F5EC]">
+              <ChartIcon color="#14764A" size={22} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-extrabold text-[#123B2D]">
+                Order activity
+              </Text>
+              <Text numberOfLines={1} className="mt-0.5 text-[10px] text-[#6B7280]">
+                Kitchen orders received over the last 7 days
+              </Text>
+            </View>
+          </View>
+          <View className="rounded-xl bg-[#EFF7F0] px-3 py-2">
+            <Text className="text-[9px] font-semibold text-[#52715E]">Total</Text>
+            <Text className="text-right text-lg font-extrabold text-[#123B2D]">
+              {dailyOrders.reduce((total, day) => total + day.orders, 0)}
+            </Text>
+          </View>
+        </View>
         {orders.length ? (
-          <View className="mt-5 h-36 flex-row items-end justify-between gap-2">
+          <View className="mt-5 h-36 flex-row items-end justify-between gap-2 border-b border-[#E9EEF0]">
             {dailyOrders.map(day => {
               const maxOrders = Math.max(1, ...dailyOrders.map(item => item.orders));
               const height = day.orders
@@ -815,11 +906,13 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                   accessibilityLabel={`${day.day}: ${day.orders} orders`}
                   className="flex-1 items-center justify-end"
                 >
-                  <Text className="mb-1 text-[10px] font-semibold text-[#475569]">
+                  <Text className="mb-1 text-[10px] font-bold text-[#475569]">
                     {day.orders}
                   </Text>
                   <View
-                    className="w-full rounded-t-md bg-[#FF5A00]"
+                    className={`w-full rounded-t-lg ${
+                      day.orders > 0 ? 'bg-[#31A95B]' : 'bg-[#E8EEF0]'
+                    }`}
                     style={{ height: `${height}%` }}
                   />
                   <Text className="mt-1.5 text-[10px] text-[#64748B]">
@@ -834,34 +927,56 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             No order activity yet.
           </Text>
         )}
-      </Card>
+      </View>
 
-      <Card>
-        <Text className="text-sm font-bold text-[#012711]">
-          Order status mix
-        </Text>
-        <Text className="mt-1 text-xs text-[#6B7280]">
-          Current status of kitchen orders
-        </Text>
-        {orderStatusData.length ? (
-          <View className="mt-4 gap-3">
+      <View className="mb-3 rounded-[22px] border border-[#E5EDE7] bg-white p-4">
+        <View className="mb-4 flex-row items-center gap-2.5">
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E8F5EC]">
+            <Text className="text-[20px] font-extrabold text-[#14764A]">◔</Text>
+          </View>
+          <View>
+            <Text className="text-sm font-extrabold text-[#123B2D]">
+              Order status mix
+            </Text>
+            <Text className="mt-0.5 text-[10px] text-[#6B7280]">
+              Current status of kitchen orders
+            </Text>
+          </View>
+        </View>
+        {orders.length ? (
+          <View className="gap-3.5">
             {orderStatusData.map(status => (
-              <View key={status.name}>
-                <View className="mb-1 flex-row justify-between">
-                  <Text className="text-xs text-[#475569]">{status.name}</Text>
-                  <Text className="text-xs font-bold text-[#012711]">
-                    {status.value}
-                  </Text>
-                </View>
-                <View className="h-2 overflow-hidden rounded-full bg-[#F1F5F9]">
+              <View key={status.name} className="flex-row items-center gap-2">
+                <View
+                  className="h-8 w-8 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `${status.color}20` }}
+                >
                   <View
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${(status.value / Math.max(1, orders.length)) * 100}%`,
-                      backgroundColor: status.color,
-                    }}
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: status.color }}
                   />
                 </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="mb-1 text-[11px] font-semibold text-[#36443D]">
+                    {status.name}
+                  </Text>
+                  <View className="h-2 overflow-hidden rounded-full bg-[#EFF2F4]">
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${(status.value / Math.max(1, orders.length)) * 100}%`,
+                        backgroundColor: status.color,
+                      }}
+                    />
+                  </View>
+                </View>
+                <Text className="w-6 text-right text-xs font-extrabold text-[#123B2D]">
+                  {status.value}
+                </Text>
+                <View className="h-5 w-px bg-[#D9E0E2]" />
+                <Text className="w-9 text-right text-[10px] font-semibold text-[#68766D]">
+                  {Math.round((status.value / Math.max(1, orders.length)) * 100)}%
+                </Text>
               </View>
             ))}
           </View>
@@ -870,7 +985,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             Status distribution will appear when orders arrive.
           </Text>
         )}
-      </Card>
+      </View>
 
       <Card>
         <Text className="text-sm font-bold text-[#012711]">
