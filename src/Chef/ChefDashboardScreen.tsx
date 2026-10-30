@@ -1091,6 +1091,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         <ChefHeader
           activeTitle={pageTitles[activeTab]}
           onLogout={onLogout}
+          onOpenSettings={() => navigateToChefTab('more')}
           user={user}
         />
       )}
