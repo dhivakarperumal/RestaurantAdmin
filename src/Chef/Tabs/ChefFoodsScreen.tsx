@@ -807,7 +807,7 @@ function ChefFoodsScreen({
       ) : null}
 
       <View
-        className="mb-3 gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
+        className="mb-3 mt-3 gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
         style={{
           position: 'relative',
           zIndex: openFilter ? 20 : 0,
