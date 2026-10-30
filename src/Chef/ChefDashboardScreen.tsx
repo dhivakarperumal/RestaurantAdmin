@@ -693,7 +693,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   };
 
   const isMoreInnerPage =
-    activeTab === 'more' && selectedMorePage !== null;
+    activeTab === 'more' &&
+    selectedMorePage !== null &&
+    selectedMorePage !== 'profile';
   const isOrderInnerPage =
     activeTab === 'orders' && selectedOrderPage !== null;
   const isInnerPage = isMoreInnerPage || isOrderInnerPage;
@@ -1552,7 +1554,11 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         />
       ) : (
         <ChefHeader
-          activeTitle={pageTitles[activeTab]}
+          activeTitle={
+            activeTab === 'more' && selectedMorePage === 'profile'
+              ? 'Profile'
+              : pageTitles[activeTab]
+          }
           onLogout={onLogout}
           onOpenProfile={() => {
             setActiveTab('more');
