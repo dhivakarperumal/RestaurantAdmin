@@ -7,7 +7,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../../api';
 import colors from '../../theme/colors';
 import {
@@ -15,6 +14,7 @@ import {
   DetailsModal,
   FormModal,
 } from '../../components/popups';
+import ChefListControls from './ChefListControls';
 
 export type ChefOrderPage =
   | 'kitchen'
@@ -184,7 +184,6 @@ function orderIdentity(order: OrderRecord, isKitchen: boolean) {
 }
 
 function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
-  const insets = useSafeAreaInsets();
   const isKitchen = page === 'kitchen' || page === 'dining';
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [partners, setPartners] = useState<DeliveryPartner[]>([]);
@@ -193,6 +192,9 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortLatest, setSortLatest] = useState(true);
+  const [allOrdersViewMode, setAllOrdersViewMode] = useState<'grid' | 'table'>(
+    'grid',
+  );
   const [updatingId, setUpdatingId] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [assignmentOrder, setAssignmentOrder] = useState<OrderRecord | null>(null);
@@ -459,58 +461,97 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
         </View>
       ) : null}
 
-      <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
-        <ScrollView
-          contentContainerClassName="gap-2 pr-2"
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {filters.map(filter => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: statusFilter === filter }}
-              key={filter}
-              onPress={() => setStatusFilter(filter)}
-              className={`rounded-xl px-3 py-2 ${
-                statusFilter === filter ? 'bg-[#123B2D]' : 'bg-slate-100'
-              }`}
-            >
-              <Text
-                className={`text-[10px] font-bold ${
-                  statusFilter === filter ? 'text-white' : 'text-[#4B5563]'
+      {page === 'all' ? (
+        <ChefListControls
+          filters={[
+            {
+              label: 'Status',
+              value: statusFilter,
+              options: customerStatuses.map(filter => ({
+                value: filter,
+                label:
+                  filter === 'All'
+                    ? 'All statuses'
+                    : `${statusLabel(filter)}${
+                        counts[filter] ? ` (${counts[filter]})` : ''
+                      }`,
+              })),
+              onChange: setStatusFilter,
+            },
+          ]}
+          onSearchChange={setSearch}
+          onViewModeChange={setAllOrdersViewMode}
+          placeholder="Search order, customer, phone, or dish..."
+          search={search}
+          searchLabel="Search all orders"
+          sort={{
+            value: sortLatest ? 'latest' : 'oldest',
+            options: [
+              { value: 'latest', label: 'Latest first' },
+              { value: 'oldest', label: 'Oldest first' },
+            ],
+            onChange: value => {
+              if (value === 'latest' || value === 'oldest') {
+                setSortLatest(value === 'latest');
+              }
+            },
+          }}
+          viewMode={allOrdersViewMode}
+        />
+      ) : (
+        <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
+          <ScrollView
+            contentContainerClassName="gap-2 pr-2"
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
+            {filters.map(filter => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: statusFilter === filter }}
+                key={filter}
+                onPress={() => setStatusFilter(filter)}
+                className={`rounded-xl px-3 py-2 ${
+                  statusFilter === filter ? 'bg-[#123B2D]' : 'bg-slate-100'
                 }`}
               >
-                {filter === 'All' ? 'All statuses' : statusLabel(filter)}
-                {filter !== 'All' && counts[filter]
-                  ? ` (${counts[filter]})`
-                  : ''}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+                <Text
+                  className={`text-[10px] font-bold ${
+                    statusFilter === filter ? 'text-white' : 'text-[#4B5563]'
+                  }`}
+                >
+                  {filter === 'All' ? 'All statuses' : statusLabel(filter)}
+                  {filter !== 'All' && counts[filter]
+                    ? ` (${counts[filter]})`
+                    : ''}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
 
-        <TextInput
-          accessibilityLabel="Search orders"
-          className="min-h-11 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#012711]"
-          onChangeText={setSearch}
-          placeholder={
-            isKitchen
-              ? 'Search KOT, table, bill, or dish'
-              : 'Search order, customer, phone, or dish'
-          }
-          placeholderTextColor="#9CA3AF"
-          value={search}
-        />
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setSortLatest(current => !current)}
-          className="self-start rounded-lg bg-[#F0F7EE] px-3 py-2"
-        >
-          <Text className="text-[10px] font-semibold text-[#116C0B]">
-            Sort: {sortLatest ? 'Latest first' : 'Oldest first'}
-          </Text>
-        </Pressable>
-      </View>
+          <TextInput
+            accessibilityLabel="Search orders"
+            className="min-h-11 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#012711]"
+            onChangeText={setSearch}
+            placeholder={
+              isKitchen
+                ? 'Search KOT, table, bill, or dish'
+                : 'Search order, customer, phone, or dish'
+            }
+            placeholderTextColor="#9CA3AF"
+            value={search}
+          />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setSortLatest(current => !current)}
+            className="self-start rounded-lg bg-[#F0F7EE] px-3 py-2"
+          >
+            <Text className="text-[10px] font-semibold text-[#116C0B]">
+              Sort: {sortLatest ? 'Latest first' : 'Oldest first'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {error ? (
         <View className="rounded-xl border border-red-200 bg-red-50 p-3">
@@ -533,7 +574,13 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
           <Text className="mt-3 text-xs text-[#6B7280]">Loading orders...</Text>
         </View>
       ) : visibleOrders.length ? (
-        <View className="gap-3">
+        <View
+          className={
+            page === 'all' && allOrdersViewMode === 'grid'
+              ? 'flex-row flex-wrap justify-between gap-y-3'
+              : 'gap-3'
+          }
+        >
           {visibleOrders.map((order, index) => {
             const items = Array.isArray(order.items) ? order.items : [];
             const id = orderIdentity(order, isKitchen);
@@ -554,7 +601,11 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
             return (
               <View
                 key={`${isKitchen ? 'kitchen' : 'customer'}-${id || index}`}
-                className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+                className={`overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white ${
+                  page === 'all' && allOrdersViewMode === 'grid'
+                    ? 'w-[48%]'
+                    : 'w-full'
+                }`}
               >
                 <Pressable
                   accessibilityRole="button"
