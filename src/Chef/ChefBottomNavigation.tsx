@@ -18,10 +18,6 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 12,
   },
-  activeTab: {
-    backgroundColor: '#FFF9EC',
-    borderRadius: 22,
-  },
   activeIcon: {
     backgroundColor: '#07513A',
     borderRadius: 17,
@@ -114,7 +110,6 @@ function ChefBottomNavigation({
           >
             <View
               className="min-h-[72px] min-w-[72px] items-center justify-center px-1.5 py-1"
-              style={selected ? styles.activeTab : undefined}
             >
               <View
                 className="h-[46px] w-[46px] items-center justify-center"
