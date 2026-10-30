@@ -564,14 +564,38 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
   const renderDashboard = () => (
     <>
-      <View className="mb-4 flex-row items-end justify-between gap-3">
-        <View className="flex-1">
-          <PageHeading
-            title={`Welcome${chefName ? `, ${chefName}` : ''}`}
-            subtitle="Your kitchen workspace overview."
-          />
+      <View className="relative mb-4 overflow-hidden rounded-[22px] border border-[#DCE9DF] bg-white px-4 py-4">
+        <View
+          pointerEvents="none"
+          className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-[#ECF6EE]"
+        />
+        <View className="relative">
+          <View className="mb-2 flex-row items-center justify-between gap-3">
+            <View className="flex-row items-center rounded-full bg-[#EFF7F0] px-2.5 py-1">
+              <View className="mr-1.5 h-1.5 w-1.5 rounded-full bg-[#16834A]" />
+              <Text className="text-[9px] font-extrabold uppercase tracking-[1.1px] text-[#28704B]">
+                Chef workspace
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={isLoading}
+              onPress={() => setRefreshCount(count => count + 1)}
+              className="rounded-xl border border-[#D8E4DB] bg-white px-3 py-2"
+            >
+              <Text className="text-[10px] font-bold text-[#123B2D]">
+                {isLoading ? 'Refreshing…' : 'Refresh'}
+              </Text>
+            </Pressable>
+          </View>
+          <Text className="text-[25px] font-extrabold leading-[31px] text-[#123B2D]">
+            Welcome, {chefName}
+          </Text>
+          <Text className="mt-1 text-[13px] text-[#68766D]">
+            Your kitchen, at a glance.
+          </Text>
           {dashboardUpdatedAt ? (
-            <Text className="-mt-2 text-[11px] text-[#6B7280]">
+            <Text className="mt-2 text-[10px] font-medium text-[#89948D]">
               Updated{' '}
               {dashboardUpdatedAt.toLocaleTimeString([], {
                 hour: '2-digit',
