@@ -1,15 +1,24 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import colors from '../theme/colors';
 import {
   CustomersIcon,
-  DashboardIcon,
+  HomeIcon,
   MenuIcon,
   MoreIcon,
   OrdersIcon,
   ReceiptIcon,
 } from '../Admin/Navigation/NavigationIcons';
+
+const styles = StyleSheet.create({
+  container: {
+    shadowColor: '#0B3D2E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 12,
+  },
+});
 
 export type ChefTab =
   | 'dashboard'
@@ -29,7 +38,7 @@ const tabs: ChefTabItem[] = [
   {
     key: 'dashboard',
     label: 'Dashboard',
-    icon: color => <DashboardIcon color={color} size={20} />,
+    icon: color => <HomeIcon color={color} size={23} />,
   },
   {
     key: 'foods',
@@ -39,22 +48,22 @@ const tabs: ChefTabItem[] = [
   {
     key: 'orders',
     label: 'Orders',
-    icon: color => <OrdersIcon color={color} size={20} />,
+    icon: color => <OrdersIcon color={color} size={23} />,
   },
   {
     key: 'event-orders',
     label: 'Event Orders',
-    icon: color => <ReceiptIcon color={color} size={20} />,
+    icon: color => <ReceiptIcon color={color} size={23} />,
   },
   {
     key: 'attendance',
     label: 'Attendance',
-    icon: color => <CustomersIcon color={color} size={20} />,
+    icon: color => <CustomersIcon color={color} size={23} />,
   },
   {
     key: 'more',
     label: 'More',
-    icon: color => <MoreIcon color={color} size={20} />,
+    icon: color => <MoreIcon color={color} size={23} />,
   },
 ];
 
@@ -70,15 +79,22 @@ function ChefBottomNavigation({
   return (
     <View
       accessibilityRole="tablist"
-      className="flex-row items-center border-t border-[#E5E7EB] bg-white px-0.5 pt-1 shadow-lg"
-      style={{
-        minHeight: 62 + insets.bottom,
-        paddingBottom: Math.max(insets.bottom, 5),
-      }}
+      className="mx-3 mb-2 flex-row items-center rounded-[28px] border border-white bg-white px-1.5 pt-2 shadow-2xl"
+      style={[
+        styles.container,
+        {
+          minHeight: 84 + Math.max(insets.bottom, 6),
+          paddingBottom: Math.max(insets.bottom, 6),
+        },
+      ]}
     >
+      <View
+        pointerEvents="none"
+        className="absolute left-1/2 top-1.5 h-[4px] w-[48px] -translate-x-1/2 rounded-full bg-[#D9DEDC]"
+      />
       {tabs.map(tab => {
         const selected = activeTab === tab.key;
-        const iconColor = selected ? colors.primary : colors.textSecondary;
+        const iconColor = selected ? '#F3D889' : '#59645F';
         return (
           <Pressable
             accessibilityLabel={tab.label}
@@ -86,21 +102,30 @@ function ChefBottomNavigation({
             accessibilityState={{ selected }}
             key={tab.key}
             onPress={() => onTabPress(tab.key)}
-            className={`min-h-[52px] flex-1 items-center justify-center rounded-xl px-px ${
-              selected ? 'bg-[#F0F7EE]' : 'bg-transparent'
-            }`}
+            className="min-h-[70px] flex-1 items-center justify-center px-px"
           >
-            {tab.icon(iconColor)}
+            <View
+              className={`h-[48px] w-[48px] items-center justify-center rounded-[17px] ${
+                selected ? 'bg-[#07513A]' : 'bg-transparent'
+              }`}
+            >
+              {tab.icon(iconColor)}
+            </View>
             <Text
               numberOfLines={1}
-              className={`mt-[3px] text-[9px] ${
+              className={`mt-1 text-[9px] ${
                 selected
-                  ? 'font-bold text-[#116C0B]'
-                  : 'font-medium text-[#6B7280]'
+                  ? 'font-extrabold text-[#07513A]'
+                  : 'font-medium text-[#59645F]'
               }`}
             >
               {tab.label}
             </Text>
+            <View
+              className={`mt-1.5 h-[4px] rounded-full ${
+                selected ? 'w-[38px] bg-[#D4A843]' : 'w-[7px] bg-[#DEE3E0]'
+              }`}
+            />
           </Pressable>
         );
       })}
