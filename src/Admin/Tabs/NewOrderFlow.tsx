@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon, SearchIcon } from '../Navigation/NavigationIcons';
-import { BaseModal } from '../../components/popups';
+import { BaseModal, FilterIcon } from '../../components/popups';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 import {
   readActiveBillTables,
@@ -86,6 +86,7 @@ type CartLine = {
 };
 
 type TableStatusFilter = 'All' | 'Available' | 'Occupied' | 'Reserved';
+type FoodTypeFilter = 'All' | 'Veg' | 'Non Veg';
 
 type TableRecord = AdminTableRecord & {
   no_of_seats?: number | string;
@@ -236,6 +237,17 @@ function flag(value: unknown, fallback = true) {
     if (/^(true|1|yes|active)$/i.test(value.trim())) return true;
   }
   return fallback;
+}
+
+function getFoodType(food: MenuFood): Exclude<FoodTypeFilter, 'All'> | null {
+  const value = text(food.raw.food_type ?? food.raw.foodType).toLowerCase();
+  if (/^(non[\s_-]*veg|non[\s_-]*vegetarian)$/.test(value)) {
+    return 'Non Veg';
+  }
+  if (/^(veg|vegetarian)$/.test(value)) {
+    return 'Veg';
+  }
+  return null;
 }
 
 function readFoods(payload: unknown): MenuFood[] {
@@ -417,6 +429,15 @@ export default function NewOrderFlow({
   const [foodsError, setFoodsError] = useState('');
   const [retry, setRetry] = useState(0);
   const [search, setSearch] = useState('');
+  const [foodTypeFilter, setFoodTypeFilter] =
+    useState<FoodTypeFilter>('All');
+  const [foodCategoryFilter, setFoodCategoryFilter] = useState('All');
+  const [minimumFoodPrice, setMinimumFoodPrice] = useState('');
+  const [maximumFoodPrice, setMaximumFoodPrice] = useState('');
+  const [minimumFoodRating, setMinimumFoodRating] = useState<number | null>(
+    null,
+  );
+  const [isFoodFilterOpen, setIsFoodFilterOpen] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -504,13 +525,77 @@ export default function NewOrderFlow({
       }),
     [foods, isDelivery, isDineIn],
   );
+  const foodCategories = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          availableFoods
+            .map(food => food.category.trim())
+            .filter(Boolean)
+            .map(category => [category.toLowerCase(), category]),
+        ).values(),
+      ).sort((left, right) => left.localeCompare(right)),
+    [availableFoods],
+  );
+  const activeFoodFilterCount =
+    Number(foodTypeFilter !== 'All') +
+    Number(foodCategoryFilter !== 'All') +
+    Number(minimumFoodRating !== null) +
+    Number(Boolean(minimumFoodPrice.trim() || maximumFoodPrice.trim()));
   const visibleFoods = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const minPriceText = minimumFoodPrice.replace(/,/g, '').trim();
+    const maxPriceText = maximumFoodPrice.replace(/,/g, '').trim();
+    const minimumPrice = minPriceText ? Number(minPriceText) : null;
+    const maximumPrice = maxPriceText ? Number(maxPriceText) : null;
+    const hasValidMinimum =
+      minimumPrice !== null && Number.isFinite(minimumPrice) && minimumPrice >= 0;
+    const hasValidMaximum =
+      maximumPrice !== null && Number.isFinite(maximumPrice) && maximumPrice >= 0;
     return availableFoods.filter(
-      food =>
-        !query || `${food.name} ${food.category}`.toLowerCase().includes(query),
+      food => {
+        const matchesSearch =
+          !query || `${food.name} ${food.category}`.toLowerCase().includes(query);
+        const matchesFoodType =
+          foodTypeFilter === 'All' || getFoodType(food) === foodTypeFilter;
+        const matchesCategory =
+          foodCategoryFilter === 'All' ||
+          food.category.toLowerCase() === foodCategoryFilter.toLowerCase();
+        const matchesMinimumPrice =
+          !hasValidMinimum ||
+          (food.price !== null && food.price >= minimumPrice);
+        const matchesMaximumPrice =
+          !hasValidMaximum ||
+          (food.price !== null && food.price <= maximumPrice);
+        const ratingValue = Number(
+          food.raw.rating ??
+            food.raw.average_rating ??
+            food.raw.avg_rating ??
+            food.raw.food_rating,
+        );
+        const hasRating = Number.isFinite(ratingValue);
+        const matchesRating =
+          minimumFoodRating === null ||
+          (hasRating && ratingValue >= minimumFoodRating);
+        return (
+          matchesSearch &&
+          matchesFoodType &&
+          matchesCategory &&
+          matchesMinimumPrice &&
+          matchesMaximumPrice &&
+          matchesRating
+        );
+      },
     );
-  }, [availableFoods, search]);
+  }, [
+    availableFoods,
+    foodCategoryFilter,
+    minimumFoodRating,
+    foodTypeFilter,
+    maximumFoodPrice,
+    minimumFoodPrice,
+    search,
+  ]);
   const subtotal = cart.reduce(
     (sum, line) => sum + getLinePrice(line) * line.quantity,
     0,
@@ -1409,8 +1494,8 @@ export default function NewOrderFlow({
   }
 
   return (
-    <SafeAreaView edges={['bottom']} className="flex-1 bg-[#F9FAFB]">
-      <View className="flex-1">
+    <SafeAreaView edges={['bottom']} className="flex-1 bg-[#EAF5EE]">
+      <View className="flex-1 bg-[#F9FAFB]">
         <MoreInnerHeader
           title={orderLabel}
           destination={isDineIn ? 'Table selection' : 'Dashboard'}
@@ -1432,6 +1517,7 @@ export default function NewOrderFlow({
                 className="min-h-11 flex-1 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#111827]"
                 onChangeText={setCustomerName}
                 placeholder="Customer name"
+                placeholderTextColor="#64748B"
                 value={customerName}
               />
               <TextInput
@@ -1440,6 +1526,7 @@ export default function NewOrderFlow({
                 keyboardType="phone-pad"
                 onChangeText={setCustomerPhone}
                 placeholder="Phone number"
+                placeholderTextColor="#64748B"
                 value={customerPhone}
               />
             </View>
@@ -1450,6 +1537,7 @@ export default function NewOrderFlow({
                 multiline
                 onChangeText={setDeliveryAddress}
                 placeholder="Delivery address"
+                placeholderTextColor="#64748B"
                 value={deliveryAddress}
               />
             ) : null}
@@ -1470,6 +1558,29 @@ export default function NewOrderFlow({
             placeholderTextColor="#6B7280"
             value={search}
           />
+          <Pressable
+            accessibilityLabel="Open food filters"
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeFoodFilterCount > 0 }}
+            onPress={() => setIsFoodFilterOpen(true)}
+            className={`h-11 w-11 items-center justify-center rounded-xl border ${
+              activeFoodFilterCount
+                ? 'border-[#116C0B] bg-[#F0F7EE]'
+                : 'border-[#E5E7EB] bg-white'
+            }`}
+          >
+            <FilterIcon
+              color={activeFoodFilterCount ? '#116C0B' : '#475569'}
+              size={19}
+            />
+            {activeFoodFilterCount ? (
+              <View className="absolute -right-1 -top-1 min-h-4 min-w-4 items-center justify-center rounded-full bg-[#116C0B] px-1">
+                <Text className="text-[9px] font-bold text-white">
+                  {activeFoodFilterCount}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
           <View className="rounded-xl bg-[#F0F7EE] px-3 py-2.5">
             <Text className="text-xs font-bold text-[#116C0B]">
               {cart.reduce((count, line) => count + line.quantity, 0)} items
@@ -1565,23 +1676,36 @@ export default function NewOrderFlow({
           ) : (
             <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
               <Text className="text-base font-bold text-[#012711]">
-                {search ? 'No foods match your search' : 'No foods available'}
+                {search
+                  ? 'No foods match your filters'
+                  : foodTypeFilter !== 'All'
+                    ? `No ${foodTypeFilter} foods available`
+                    : foodCategoryFilter !== 'All'
+                      ? `No ${foodCategoryFilter} foods available`
+                    : 'No foods available'}
               </Text>
             </View>
           )}
 
         </ScrollView>
 
-        <View className="border-t border-[#E5E7EB] bg-white px-4 py-2">
-
-          <View className="flex-row gap-2">
+        <View className="border-t border-[#D7E5D6] bg-[#EAF5EE] px-4 pb-0 pb-1">
+          <View className="flex-row items-center justify-between py-2">
+            <Text className="text-xs font-semibold text-[#475569]">
+              {cart.reduce((count, line) => count + line.quantity, 0)} items
+            </Text>
+            <Text className="text-sm font-extrabold text-[#012711]">
+              Total {formatCurrency(total)}
+            </Text>
+          </View>
+          <View className="flex-row gap-2 pb-4">
             <Pressable
               accessibilityLabel="Preview order bill"
               accessibilityRole="button"
               accessibilityState={{ disabled: cart.length === 0 }}
               disabled={cart.length === 0}
               onPress={() => setIsPreviewOpen(true)}
-              className={`h-12 flex-1 items-center justify-center rounded-xl border ${
+              className={`h-11 flex-1 items-center justify-center rounded-xl border ${
                 cart.length
                   ? 'border-[#116C0B] bg-white'
                   : 'border-[#D1D5DB] bg-[#F3F4F6]'
@@ -1601,7 +1725,7 @@ export default function NewOrderFlow({
               accessibilityState={{ disabled: !canSubmit }}
               disabled={!canSubmit}
               onPress={sendOrder}
-              className={`h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl ${
+              className={`h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl ${
                 canSubmit ? 'bg-[#0B4D1A]' : 'bg-[#9CA3AF]'
               }`}
             >
@@ -1615,6 +1739,174 @@ export default function NewOrderFlow({
           </View>
         </View>
       </View>
+
+      <BaseModal
+        accessibilityLabel="Food filters"
+        visible={isFoodFilterOpen}
+        onClose={() => setIsFoodFilterOpen(false)}
+        title="Filter Foods"
+        subtitle="Choose food type and category"
+        variant="bottom-sheet"
+        scrollable
+        footer={
+          <View className="w-full flex-row gap-3">
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setFoodTypeFilter('All');
+                setFoodCategoryFilter('All');
+                setMinimumFoodPrice('');
+                setMaximumFoodPrice('');
+                setMinimumFoodRating(null);
+              }}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#D1D5DB] bg-white"
+            >
+              <Text className="text-sm font-semibold text-[#475569]">
+                Reset
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setIsFoodFilterOpen(false)}
+              className="min-h-12 flex-1 items-center justify-center rounded-xl bg-[#116C0B]"
+            >
+              <Text className="text-sm font-bold text-white">
+                Show {visibleFoods.length} foods
+              </Text>
+            </Pressable>
+          </View>
+        }
+      >
+        <View className="gap-5 p-4">
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">Food type</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(['All', 'Veg', 'Non Veg'] as const).map(filter => {
+                const selected = foodTypeFilter === filter;
+                return (
+                  <Pressable
+                    key={filter}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setFoodTypeFilter(filter)}
+                    className={`min-h-10 items-center justify-center rounded-full border px-4 ${
+                      selected
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#D1D5DB] bg-white'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        selected ? 'text-white' : 'text-[#374151]'
+                      }`}
+                    >
+                      {filter}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">Category</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {['All', ...foodCategories].map(category => {
+                const selected =
+                  foodCategoryFilter.toLowerCase() === category.toLowerCase();
+                return (
+                  <Pressable
+                    key={category}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setFoodCategoryFilter(category)}
+                    className={`min-h-10 items-center justify-center rounded-full border px-4 ${
+                      selected
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#D1D5DB] bg-white'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        selected ? 'text-white' : 'text-[#374151]'
+                      }`}
+                    >
+                      {category}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">Rating</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {[
+                { label: 'All ratings', value: null },
+                { label: '5★', value: 5 },
+                { label: '4★ & up', value: 4 },
+                { label: '3★ & up', value: 3 },
+                { label: '2★ & up', value: 2 },
+                { label: '1★ & up', value: 1 },
+              ].map(option => {
+                const selected = minimumFoodRating === option.value;
+                return (
+                  <Pressable
+                    key={option.label}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setMinimumFoodRating(option.value)}
+                    className={`min-h-10 items-center justify-center rounded-full border px-4 ${
+                      selected
+                        ? 'border-[#116C0B] bg-[#116C0B]'
+                        : 'border-[#D1D5DB] bg-white'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        selected ? 'text-white' : 'text-[#374151]'
+                      }`}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View className="gap-2">
+            <Text className="text-sm font-bold text-[#012711]">
+              Price range
+            </Text>
+            <View className="flex-row items-center gap-3">
+              <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#D1D5DB] bg-white px-3">
+                <Text className="mr-2 text-sm text-[#64748B]">₹</Text>
+                <TextInput
+                  accessibilityLabel="Minimum food price"
+                  className="flex-1 py-2 text-sm text-[#111827]"
+                  keyboardType="decimal-pad"
+                  onChangeText={setMinimumFoodPrice}
+                  placeholder="Min price"
+                  placeholderTextColor="#64748B"
+                  value={minimumFoodPrice}
+                />
+              </View>
+              <Text className="text-sm text-[#64748B]">to</Text>
+              <View className="min-h-11 flex-1 flex-row items-center rounded-xl border border-[#D1D5DB] bg-white px-3">
+                <Text className="mr-2 text-sm text-[#64748B]">₹</Text>
+                <TextInput
+                  accessibilityLabel="Maximum food price"
+                  className="flex-1 py-2 text-sm text-[#111827]"
+                  keyboardType="decimal-pad"
+                  onChangeText={setMaximumFoodPrice}
+                  placeholder="Max price"
+                  placeholderTextColor="#64748B"
+                  value={maximumFoodPrice}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </BaseModal>
 
       <BaseModal
         accessibilityLabel="Order bill preview"

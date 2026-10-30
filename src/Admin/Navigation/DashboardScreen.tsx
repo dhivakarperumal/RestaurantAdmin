@@ -13,6 +13,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -38,7 +39,14 @@ import {
   ReceiptIcon,
   SearchIcon,
 } from './NavigationIcons';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import TopHeader, { type HeaderUser } from './TopHeader';
 import MoreInnerHeader from './MoreInnerHeader';
 import { BottomNavigation, type AppTab } from './Bottombar';
@@ -2484,18 +2492,105 @@ function HomePage({
       }
       contentContainerClassName="mx-auto w-full max-w-[1440px] px-5 pb-6 pt-6"
     >
-      <View className="flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5">
-        <View className="mr-3 h-10 w-1 rounded-full bg-[#116C0B]" />
-        <View className="flex-1">
-          <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-            OVERVIEW
-          </Text>
-          <Text className="mt-0.5 text-xl font-bold text-[#012711]">
+      {/* Premium Dashboard Overview Banner */}
+      <View
+        className="relative overflow-hidden rounded-3xl border border-[#0F5A21] px-5 py-5 sm:px-6 sm:py-6"
+        style={{
+          backgroundColor: '#063814',
+          elevation: 6,
+          shadowColor: '#02480B',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.25,
+          shadowRadius: 14,
+        }}
+      >
+        {/* Decorative background glow & gradient lines */}
+        <Svg
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+          width="100%"
+          height="100%"
+          preserveAspectRatio="none"
+        >
+          <Defs>
+            <LinearGradient id="overviewBannerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#052E10" stopOpacity="1" />
+              <Stop offset="45%" stopColor="#0B4D1A" stopOpacity="1" />
+              <Stop offset="100%" stopColor="#126E22" stopOpacity="1" />
+            </LinearGradient>
+            <LinearGradient id="overviewGlowRight" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#81C238" stopOpacity="0.35" />
+              <Stop offset="100%" stopColor="#81C238" stopOpacity="0" />
+            </LinearGradient>
+            <LinearGradient id="overviewGlowLeft" x1="100%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor="#22C55E" stopOpacity="0.22" />
+              <Stop offset="100%" stopColor="#22C55E" stopOpacity="0" />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#overviewBannerGrad)" />
+          <Circle cx="90%" cy="25%" r="140" fill="url(#overviewGlowRight)" />
+          <Circle cx="12%" cy="90%" r="100" fill="url(#overviewGlowLeft)" />
+          <Path
+            d="M-20 40 Q 140 10, 300 50 T 620 30 T 940 55"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.08)"
+            strokeWidth="2"
+          />
+          <Path
+            d="M-40 85 Q 180 60, 380 90 T 780 75 T 1100 95"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.05)"
+            strokeWidth="1.5"
+          />
+        </Svg>
+
+        <View className="min-w-0 flex-1">
+          <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-400/20 px-2.5 py-1">
+              <View className="h-2 w-2 rounded-full bg-[#4ADE80]" />
+              <Text className="text-[10px] font-black uppercase tracking-widest text-emerald-200">
+                Dashboard Overview
+              </Text>
+            </View>
+            {pendingOrderCount > 0 ? (
+              <View className="rounded-full border border-amber-300/30 bg-amber-400/20 px-2.5 py-1">
+                <Text className="text-[10px] font-extrabold uppercase tracking-wider text-amber-200">
+                  {pendingOrderCount} Live Order{pendingOrderCount > 1 ? 's' : ''}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <Text
+            numberOfLines={1}
+            className="mt-2 text-2xl font-black tracking-tight text-white sm:text-[26px]"
+          >
             {greeting}, {userName}
           </Text>
-          <Text className="mt-0.5 text-xs leading-[18px] text-[#6B7280]">
-            Here’s your restaurant at a glance.
+
+          <Text className="mt-1 text-xs font-medium leading-5 text-emerald-100/85 sm:text-sm">
+            Here’s your restaurant performance at a glance.
           </Text>
+
+          <View className="mt-3.5 flex-row flex-wrap items-center gap-2 sm:gap-3">
+            <View className="flex-row items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-3 py-1.5">
+              <Text className="text-[11px] font-medium text-emerald-100/75">
+                Today's Sales:
+              </Text>
+              <Text className="text-[12px] font-extrabold text-white">
+                {formatCurrency(todayRevenue)}
+              </Text>
+            </View>
+
+            <View className="flex-row items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-3 py-1.5">
+              <Text className="text-[11px] font-medium text-emerald-100/75">
+                Today's Orders:
+              </Text>
+              <Text className="text-[12px] font-extrabold text-white">
+                {todayOrderCount}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
 
