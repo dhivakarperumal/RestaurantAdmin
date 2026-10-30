@@ -598,7 +598,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-[#D9F2E0] opacity-70"
         />
         <View className="relative flex-row items-center gap-2.5">
-          <View className="h-[78px] w-[58px] shrink-0 items-center justify-center">
+          <View className="h-[96px] w-[104px] shrink-0 items-center justify-center">
             <Image
               accessibilityLabel="Chef"
               resizeMode="contain"
@@ -688,7 +688,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-[#FCE9B9] opacity-60"
           />
           <View className="relative flex-row items-center gap-2.5">
-            <View className="h-[65px] w-[58px] shrink-0 items-center justify-center">
+            <View className="h-[82px] w-[104px] shrink-0 items-center justify-center">
               <Image
                 accessibilityLabel="Event calendar and cake"
                 resizeMode="contain"
