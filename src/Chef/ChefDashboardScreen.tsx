@@ -13,7 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
-import { ChartIcon, OrdersIcon, ReceiptIcon } from '../Admin/Navigation/NavigationIcons';
+import {
+  ChartIcon,
+  MenuIcon,
+  OrdersIcon,
+  ReceiptIcon,
+} from '../Admin/Navigation/NavigationIcons';
 import { FormModal } from '../components/popups';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
 import ChefHeader from './ChefHeader';
@@ -1027,42 +1032,88 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         )}
       </Card>
 
-      <Card>
-        <Text className="text-sm font-bold text-[#012711]">
-          Most-ordered dishes
-        </Text>
-        <Text className="mt-1 text-xs text-[#6B7280]">
-          Top 5 dishes by quantity across kitchen orders
-        </Text>
+      <View className="mb-3 rounded-[22px] border border-[#E5EDE7] bg-white p-4">
+        <View className="mb-4 flex-row items-center justify-between gap-2">
+          <View className="flex-1 flex-row items-center gap-2.5">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E8F5EC]">
+              <MenuIcon color="#14764A" size={21} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-extrabold text-[#123B2D]">
+                Most-ordered dishes
+              </Text>
+              <Text className="mt-0.5 text-[10px] text-[#6B7280]">
+                Top dishes from today’s orders
+              </Text>
+            </View>
+          </View>
+          <View className="rounded-full bg-[#F0F7F1] px-2.5 py-1.5">
+            <Text className="text-[9px] font-bold text-[#28704B]">
+              {topDishes.length} {topDishes.length === 1 ? 'dish' : 'dishes'}
+            </Text>
+          </View>
+        </View>
         {topDishes.length ? (
-          <View className="mt-4 gap-3">
-            {topDishes.map(dish => (
-              <View key={dish.name}>
-                <View className="mb-1 flex-row justify-between gap-3">
-                  <Text numberOfLines={1} className="flex-1 text-xs text-[#475569]">
-                    {dish.name}
-                  </Text>
-                  <Text className="text-xs font-bold text-[#012711]">
-                    {dish.quantity}
-                  </Text>
+          <View className="gap-2">
+            {topDishes.map((dish, index) => {
+              const isTopDish = index === 0;
+              const barColor = isTopDish ? '#16834A' : '#53B878';
+              return (
+                <View
+                  key={dish.name}
+                  className={`rounded-2xl border px-3 py-2.5 ${
+                    isTopDish
+                      ? 'border-[#CFE9D7] bg-[#F5FBF6]'
+                      : 'border-[#EDF1EE] bg-[#FCFDFC]'
+                  }`}
+                >
+                  <View className="flex-row items-center gap-2.5">
+                    <View
+                      className={`h-8 w-8 items-center justify-center rounded-xl ${
+                        isTopDish ? 'bg-[#DDF2E3]' : 'bg-[#F0F4F1]'
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs font-extrabold ${
+                          isTopDish ? 'text-[#14764A]' : 'text-[#68766D]'
+                        }`}
+                      >
+                        {String(index + 1).padStart(2, '0')}
+                      </Text>
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <View className="mb-1.5 flex-row items-center justify-between gap-2">
+                        <Text
+                          numberOfLines={1}
+                          className="flex-1 text-[11px] font-bold text-[#33443A]"
+                        >
+                          {dish.name}
+                        </Text>
+                        <Text className="text-[10px] font-extrabold text-[#123B2D]">
+                          {dish.quantity} ordered
+                        </Text>
+                      </View>
+                      <View className="h-2 overflow-hidden rounded-full bg-[#E9EFEB]">
+                        <View
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(dish.quantity / topDishes[0].quantity) * 100}%`,
+                            backgroundColor: barColor,
+                          }}
+                        />
+                      </View>
+                    </View>
+                  </View>
                 </View>
-                <View className="h-2 overflow-hidden rounded-full bg-[#F1F5F9]">
-                  <View
-                    className="h-full rounded-full bg-[#FF5A00]"
-                    style={{
-                      width: `${(dish.quantity / topDishes[0].quantity) * 100}%`,
-                    }}
-                  />
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         ) : (
-          <Text className="py-8 text-center text-xs text-[#6B7280]">
-            Dish quantities will appear when orders arrive.
+          <Text className="py-7 text-center text-xs text-[#6B7280]">
+            No dishes have been ordered today yet.
           </Text>
         )}
-      </Card>
+      </View>
 
       <View className="mb-3 rounded-[22px] border border-[#E5EDE7] bg-white p-4">
         <View className="mb-3 flex-row items-center justify-between gap-2">
