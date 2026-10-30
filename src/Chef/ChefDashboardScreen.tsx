@@ -627,33 +627,33 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                   ? `Worked ${formatTime(attendance?.check_in)} – ${formatTime(attendance?.check_out)}`
                   : 'Clock in to start your shift'}
             </Text>
+            <View className="mt-2 gap-1.5">
+              <View className="rounded-xl border border-[#D9EDE0] bg-white/80 px-2.5 py-1.5">
+                <Text className="text-[8px] font-semibold text-[#52715E]">
+                  Today’s working time
+                </Text>
+                <Text className="mt-0.5 text-[10px] font-extrabold text-[#164D35]">
+                  {formatDuration(attendanceSeconds)}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isAttendanceBusy}
+                onPress={updateAttendance}
+                className="items-center rounded-xl bg-[#08623F] px-2.5 py-2.5"
+              >
+                <Text numberOfLines={1} className="text-[10px] font-extrabold text-white">
+                  {isAttendanceBusy
+                    ? 'Please wait'
+                    : attendanceIsWorking
+                      ? 'Clock Out'
+                      : attendance?.check_in && attendance?.check_out
+                        ? 'Resume Shift'
+                        : 'Clock In'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-        <View className="relative mt-2.5 flex-row items-center gap-2">
-          <View className="flex-1 rounded-xl border border-[#D9EDE0] bg-white/80 px-3 py-2">
-            <Text className="text-[9px] font-semibold text-[#52715E]">
-              Today’s working time
-            </Text>
-            <Text className="mt-0.5 text-[11px] font-extrabold text-[#164D35]">
-              {formatDuration(attendanceSeconds)}
-            </Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            disabled={isAttendanceBusy}
-            onPress={updateAttendance}
-            className="min-w-[112px] items-center rounded-xl bg-[#08623F] px-3 py-3"
-          >
-            <Text numberOfLines={1} className="text-[10px] font-extrabold text-white">
-              {isAttendanceBusy
-                ? 'Please wait'
-                : attendanceIsWorking
-                  ? 'Clock Out'
-                  : attendance?.check_in && attendance?.check_out
-                    ? 'Resume Shift'
-                    : 'Clock In'}
-            </Text>
-          </Pressable>
         </View>
         <View className="relative mt-2.5 flex-row items-center justify-between border-t border-[#DCEFE2] pt-2">
           <Text numberOfLines={1} className="flex-1 text-[9px] text-[#617668]">
@@ -708,18 +708,17 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 {'  ·  '}
                 {formatShortDate(upcomingEventOrders[0].event_date)}
               </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigateToChefTab('event-orders')}
+                className="mt-2 items-center rounded-xl bg-[#8A4B14] px-2.5 py-2"
+              >
+                <Text className="text-[9px] font-extrabold text-white">
+                  View Event Orders  ›
+                </Text>
+              </Pressable>
             </View>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigateToChefTab('event-orders')}
-            className="mt-2.5 min-h-10 flex-row items-center justify-center rounded-xl bg-[#8A4B14] px-3 py-2.5"
-          >
-            <Text className="text-[10px] font-extrabold text-white">
-              View Event Orders
-            </Text>
-            <Text className="ml-1.5 text-sm leading-4 text-white">›</Text>
-          </Pressable>
         </View>
       ) : null}
 
