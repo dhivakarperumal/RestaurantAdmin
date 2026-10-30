@@ -1550,6 +1550,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       <ChefAttendanceScreen
         attendance={attendance}
         history={attendanceHistory}
+        isLoading={isLoading}
         isBusy={isAttendanceBusy}
         onClockAction={updateAttendance}
         shiftInfo={shiftInfo}

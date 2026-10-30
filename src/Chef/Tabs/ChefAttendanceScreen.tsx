@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import {
   CustomersIcon,
   ReceiptIcon,
 } from '../../Admin/Navigation/NavigationIcons';
+import { CalendarIcon, ClockIcon } from '../../components/popups';
 import colors from '../../theme/colors';
 import ChefListControls from './ChefListControls';
 import ChefStatCards from './ChefStatCards';
@@ -16,6 +17,7 @@ type ChefAttendanceScreenProps = {
   attendance: AttendanceRecord | null;
   history: AttendanceRecord[];
   shiftInfo: AttendanceRecord | null;
+  isLoading: boolean;
   isBusy: boolean;
   onClockAction: () => void;
 };
@@ -76,22 +78,84 @@ function dateKey(record: AttendanceRecord) {
   return valueOf(record.date ?? record.attendance_date).slice(0, 10);
 }
 
-function dateLabel(value: string) {
+function dateParts(value: string) {
   const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime())
-    ? value || 'Previous shift'
-    : date.toLocaleDateString([], {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+  if (Number.isNaN(date.getTime())) {
+    return { weekday: '—', day: value || '—', monthYear: '' };
+  }
+  return {
+    weekday: date.toLocaleDateString([], { weekday: 'short' }).toUpperCase(),
+    day: String(date.getDate()),
+    monthYear: date
+      .toLocaleDateString([], { month: 'short', year: 'numeric' })
+      .toUpperCase(),
+  };
+}
+
+function AttendanceHistorySkeleton({ tableView }: { tableView: boolean }) {
+  const renderRow = (index: number) => (
+    <View
+      key={index}
+      className={`flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white p-2 ${
+        tableView ? 'mb-2 h-[76px] w-[550px]' : 'mb-2 min-h-[76px] w-full'
+      }`}
+    >
+      <View className="h-[58px] w-[54px] rounded-lg bg-slate-100" />
+      <View className={tableView ? 'w-[145px] gap-2 px-2' : 'w-[82px] gap-2'}>
+        <View className="h-5 w-16 rounded-full bg-slate-100" />
+        <View className="h-3 w-20 rounded-md bg-slate-100" />
+        <View className="h-3 w-16 rounded-md bg-slate-100" />
+      </View>
+      <View
+        className={`gap-2 border-l border-[#E5E7EB] pl-2 ${
+          tableView ? 'w-[215px]' : 'min-w-0 flex-1'
+        }`}
+      >
+        <View className="h-3 w-20 rounded-md bg-slate-100" />
+        <View className="h-3 w-20 rounded-md bg-slate-100" />
+      </View>
+      <View
+        className={`items-center justify-center gap-2 rounded-lg bg-[#F0F8F1] ${
+          tableView ? 'h-[58px] w-[90px]' : 'h-[58px] w-[68px]'
+        }`}
+      >
+        <View className="h-4 w-12 rounded-md bg-slate-100" />
+        <View className="h-2 w-14 rounded-md bg-slate-100" />
+      </View>
+    </View>
+  );
+
+  if (!tableView) {
+    return (
+      <View accessibilityLabel="Loading attendance history">
+        {[0, 1, 2, 3].map(renderRow)}
+      </View>
+    );
+  }
+
+  return (
+    <View accessibilityLabel="Loading attendance history">
+      <ScrollView horizontal showsHorizontalScrollIndicator>
+        <View className="w-[550px]">
+          <View className="mb-2 h-9 w-[550px] flex-row items-center rounded-lg border border-[#E5E7EB] bg-white px-2">
+            {[75, 145, 215, 90].map((width, index) => (
+              <View key={index} className="px-2" style={{ width }}>
+                <View className="h-2.5 w-3/4 rounded-md bg-slate-200" />
+              </View>
+            ))}
+          </View>
+          {[0, 1, 2, 3, 4].map(renderRow)}
+        </View>
+      </ScrollView>
+    </View>
+  );
 }
 
 function ChefAttendanceScreen({
   attendance,
   history,
   shiftInfo,
+  isLoading,
   isBusy,
   onClockAction,
 }: ChefAttendanceScreenProps) {
@@ -190,6 +254,136 @@ function ChefAttendanceScreen({
 
   const scheduledStart = shiftInfo?.start_time ?? attendance?.start_time;
   const scheduledEnd = shiftInfo?.end_time ?? attendance?.end_time;
+
+  const renderHistoryRow = (
+    record: AttendanceRecord,
+    index: number,
+    tableView: boolean,
+  ) => {
+    const recordIsWorking = Boolean(record.check_in && !record.check_out);
+    const date = dateKey(record);
+    const parts = dateParts(date);
+    const status = recordIsWorking
+      ? 'Working'
+      : record.status === 'Late'
+        ? 'Late'
+        : record.check_in && record.check_out
+          ? 'Completed'
+          : valueOf(record.status, 'Present');
+    const statusClass =
+      status === 'Working'
+        ? 'bg-emerald-100 text-emerald-800'
+        : status === 'Late'
+          ? 'bg-rose-100 text-rose-800'
+          : status === 'Present'
+            ? 'bg-emerald-100 text-emerald-800'
+            : 'bg-slate-100 text-slate-700';
+    const duration = formatDuration(
+      recordIsWorking && date === today
+        ? liveSeconds
+        : durationInSeconds(record),
+    );
+
+    return (
+      <View
+        key={valueOf(record.id ?? record.attendance_id, `${date}-${index}`)}
+        className={`${
+          tableView
+            ? 'mb-2 h-[76px] w-[550px] flex-row items-center rounded-xl border border-[#E5E7EB] bg-white'
+            : 'mb-2 min-h-[76px] w-full flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white p-2'
+        }`}
+      >
+        <View className={tableView ? 'w-[75px] items-center px-2' : 'w-[54px] shrink-0'}>
+          <View className="h-[58px] w-full items-center justify-center rounded-lg bg-[#F7FAFC]">
+            <Text className="text-[8px] font-bold text-[#64748B]">
+              {parts.weekday}
+            </Text>
+            <Text className="text-xl font-extrabold leading-6 text-[#1F2937]">
+              {parts.day}
+            </Text>
+            <Text className="text-[7px] font-semibold text-[#64748B]">
+              {parts.monthYear}
+            </Text>
+            {date === today ? (
+              <Text className="mt-0.5 rounded-full bg-emerald-100 px-1.5 text-[7px] font-bold text-emerald-800">
+                Today
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View
+          className={`justify-center ${
+            tableView ? 'w-[145px] px-2' : 'w-[82px] shrink-0'
+          }`}
+        >
+          <Text
+            numberOfLines={1}
+            className={`self-start rounded-full px-2 py-1 text-[8px] font-extrabold ${statusClass}`}
+          >
+            {status}
+          </Text>
+          <Text className="mt-1 text-[8px] text-[#64748B]">Shift Time</Text>
+          <Text numberOfLines={1} className="text-[9px] font-semibold text-[#334155]">
+            {record.start_time
+              ? `${formatShiftTime(record.start_time)} – ${formatShiftTime(record.end_time)}`
+              : '—'}
+          </Text>
+          {record.notes ? (
+            <Text numberOfLines={1} className="mt-0.5 text-[7px] text-[#64748B]">
+              {valueOf(record.notes)}
+            </Text>
+          ) : null}
+        </View>
+
+        <View
+          className={`justify-center border-l border-[#E5E7EB] pl-2 ${
+            tableView ? 'w-[215px] px-2' : 'min-w-0 flex-1'
+          }`}
+        >
+          <View className="flex-row items-center gap-1.5">
+            <ClockIcon color="#16804A" size={12} />
+            <View className="min-w-0 flex-1">
+              <Text className="text-[8px] text-[#64748B]">Check in</Text>
+              <Text numberOfLines={1} className="text-[9px] font-semibold text-[#334155]">
+                {formatTime(record.check_in)}
+              </Text>
+            </View>
+          </View>
+          <View className="mt-1 flex-row items-center gap-1.5">
+            <ClockIcon color="#D97706" size={12} />
+            <View className="min-w-0 flex-1">
+              <Text className="text-[8px] text-[#64748B]">Check out</Text>
+              <Text numberOfLines={1} className="text-[9px] font-semibold text-[#334155]">
+                {recordIsWorking ? '—' : formatTime(record.check_out)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View
+          className={`items-center justify-center rounded-lg bg-[#F0F8F1] ${
+            tableView
+              ? 'mx-2 h-[58px] w-[90px]'
+              : 'h-[58px] w-[68px] shrink-0'
+          }`}
+        >
+          <View className="flex-row items-center gap-1">
+            <ClockIcon
+              color={recordIsWorking ? '#16804A' : '#64748B'}
+              size={13}
+            />
+            <Text className="text-[10px] font-extrabold text-[#17633D]">
+              {duration}
+            </Text>
+          </View>
+          <Text className="mt-1 text-[7px] font-semibold text-[#64748B]">
+            {recordIsWorking ? 'Working time' : 'Total time'}
+          </Text>
+        </View>
+      </View>
+    );
+  };
 
   useEffect(() => {
     if (!attendance?.check_in || attendance.check_out) {
@@ -365,7 +559,9 @@ function ChefAttendanceScreen({
             My Attendance History
           </Text>
           <Text className="mt-1 text-xs text-[#6B7280]">
-            Showing {filteredHistory.length} of {history.length} shifts
+            {isLoading
+              ? 'Loading attendance history...'
+              : `Showing ${filteredHistory.length} of ${history.length} shifts`}
           </Text>
         </View>
 
@@ -416,114 +612,62 @@ function ChefAttendanceScreen({
           viewMode={viewMode}
         />
 
-        <View
-          className={`mt-3 ${
-            viewMode === 'grid'
-              ? 'flex-row flex-wrap justify-between gap-y-3'
-              : 'gap-3'
-          }`}
-        >
-          {filteredHistory.length ? (
-            filteredHistory.map((record, index) => {
-              const recordIsWorking = Boolean(
-                record.check_in && !record.check_out,
-              );
-              const date = dateKey(record);
-              return (
-                <View
-                  key={valueOf(
-                    record.id ?? record.attendance_id,
-                    `${date}-${index}`,
+        {isLoading ? (
+          <View className="mt-3">
+            <AttendanceHistorySkeleton tableView={viewMode === 'table'} />
+          </View>
+        ) : filteredHistory.length ? (
+          viewMode === 'table' ? (
+            <View className="mt-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-2">
+              <ScrollView horizontal showsHorizontalScrollIndicator>
+                <View className="w-[550px]">
+                  <View className="mb-2 h-9 w-[550px] flex-row items-center rounded-lg border border-[#E5E7EB] bg-white">
+                    <View className="w-[75px] flex-row items-center justify-center gap-1">
+                      <CalendarIcon color="#64748B" size={12} />
+                      <Text className="text-[8px] font-bold uppercase text-[#64748B]">
+                        Date
+                      </Text>
+                    </View>
+                    <Text className="w-[145px] px-2 text-[8px] font-bold uppercase text-[#64748B]">
+                      Status / Shift
+                    </Text>
+                    <Text className="w-[215px] px-2 text-[8px] font-bold uppercase text-[#64748B]">
+                      Clock times
+                    </Text>
+                    <Text className="w-[90px] text-center text-[8px] font-bold uppercase text-[#64748B]">
+                      Total
+                    </Text>
+                  </View>
+                  {filteredHistory.map((record, index) =>
+                    renderHistoryRow(record, index, true),
                   )}
-                  className={`rounded-2xl border border-[#E5E7EB] bg-white p-4 ${
-                    viewMode === 'grid' ? 'w-[48%]' : 'w-full'
-                  }`}
-                >
-                  <View className="flex-row flex-wrap items-center justify-between gap-2">
-                    <View className="flex-row flex-wrap items-center gap-2">
-                      <Text className="text-sm font-bold text-[#012711]">
-                        {dateLabel(date)}
-                      </Text>
-                      {date === today ? (
-                        <Text className="rounded-full bg-emerald-100 px-2 py-1 text-[9px] font-bold text-emerald-800">
-                          TODAY
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Text
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                        recordIsWorking
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : record.status === 'Late'
-                            ? ''
-                            : 'bg-[#F3F4F6] text-[#4B5563]'
-                      }`}
-                      style={
-                        record.status === 'Late'
-                          ? {
-                              backgroundColor: colors.surfaceSecondary,
-                              color: colors.primary,
-                            }
-                          : undefined
-                      }
-                    >
-                      {recordIsWorking
-                        ? 'ACTIVE DUTY'
-                        : valueOf(record.status, 'Present').toUpperCase()}
-                    </Text>
-                  </View>
-                  {record.start_time ? (
-                    <Text className="mt-2 text-[11px] text-[#6B7280]">
-                      Scheduled: {formatShiftTime(record.start_time)} – {formatShiftTime(record.end_time)}
-                    </Text>
-                  ) : null}
-                  <View className="mt-3 flex-row justify-between gap-2">
-                    <View className="flex-1 rounded-lg bg-[#F9FAFB] p-2.5">
-                      <Text className="text-[10px] text-[#6B7280]">Clock in</Text>
-                      <Text className="mt-1 text-xs font-bold text-[#012711]">
-                        {formatTime(record.check_in)}
-                      </Text>
-                    </View>
-                    <View className="flex-1 rounded-lg bg-[#F9FAFB] p-2.5">
-                      <Text className="text-[10px] text-[#6B7280]">Clock out</Text>
-                      <Text className="mt-1 text-xs font-bold text-[#012711]">
-                        {recordIsWorking ? 'On duty' : formatTime(record.check_out)}
-                      </Text>
-                    </View>
-                    <View className="flex-1 rounded-lg bg-[#F9FAFB] p-2.5">
-                      <Text className="text-[10px] text-[#6B7280]">Duration</Text>
-                      <Text className="mt-1 text-xs font-bold text-[#012711]">
-                        {formatDuration(
-                          recordIsWorking && date === today
-                            ? liveSeconds
-                            : durationInSeconds(record),
-                        )}
-                      </Text>
-                    </View>
-                  </View>
-                  {record.notes ? (
-                    <Text className="mt-3 text-xs leading-5 text-[#6B7280]">
-                      {valueOf(record.notes)}
-                    </Text>
-                  ) : null}
                 </View>
-              );
-            })
-          ) : (
-            <View className="items-center rounded-2xl border border-dashed border-[#D1D5DB] bg-white px-5 py-8">
-              <Text className="text-sm font-semibold text-[#374151]">
-                {history.length
-                  ? 'No attendance records match these filters.'
-                  : 'No attendance history yet.'}
-              </Text>
-              <Text className="mt-1 text-center text-xs leading-5 text-[#6B7280]">
-                {history.length
-                  ? 'Try another search or filter.'
-                  : 'Clock in today to create your first attendance record.'}
-              </Text>
+              </ScrollView>
             </View>
-          )}
-        </View>
+          ) : (
+            <View
+              accessibilityLabel="Attendance history"
+              className="mt-3"
+            >
+              {filteredHistory.map((record, index) =>
+                renderHistoryRow(record, index, false),
+              )}
+            </View>
+          )
+        ) : (
+          <View className="mt-3 items-center rounded-2xl border border-dashed border-[#D1D5DB] bg-white px-5 py-8">
+            <Text className="text-sm font-semibold text-[#374151]">
+              {history.length
+                ? 'No attendance records match these filters.'
+                : 'No attendance history yet.'}
+            </Text>
+            <Text className="mt-1 text-center text-xs leading-5 text-[#6B7280]">
+              {history.length
+                ? 'Try another search or filter.'
+                : 'Clock in today to create your first attendance record.'}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
