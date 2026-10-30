@@ -647,10 +647,7 @@ export default function NewOrderFlow({
     setIsLoadingFoods(true);
     setFoodsError('');
     api
-      .get('/foods', {
-        params: { include_unavailable: false },
-        signal: controller.signal,
-      })
+      .get('/foods', { signal: controller.signal })
       .then(response => {
         if (active) {
           setFoods(readFoods(response.data));
@@ -1835,14 +1832,23 @@ export default function NewOrderFlow({
               accessibilityState={{ disabled: !canSubmit }}
               disabled={!canSubmit}
               onPress={sendOrder}
-              className={`h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl ${
-                canSubmit ? 'bg-[#052E10]' : 'bg-[#9CA3AF]'
+              className={`h-11 flex-1 flex-row items-center justify-center gap-2 rounded-xl border ${
+                canSubmit
+                  ? 'border-white bg-white'
+                  : 'border-[#9CA3AF] bg-[#9CA3AF]'
               }`}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#b09216" />
+                <ActivityIndicator
+                  size="small"
+                  color={canSubmit ? '#052E10' : '#FFFFFF'}
+                />
               ) : null}
-              <Text className="text-sm font-bold text-white">
+              <Text
+                className={`text-sm font-bold ${
+                  canSubmit ? 'text-[#052E10]' : 'text-white'
+                }`}
+              >
                 {isSubmitting ? 'Sending...' : 'KOT'} ({formatCurrency(total)})
               </Text>
             </Pressable>
