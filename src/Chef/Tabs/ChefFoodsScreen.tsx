@@ -9,8 +9,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
+import { SearchIcon } from '../../Admin/Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import { BaseModal } from '../../components/popups';
 
@@ -39,7 +39,8 @@ type ChefFoodsScreenProps = {
   onFoodVisibilityChange: (foodId: string | number, visible: boolean) => void;
 };
 
-type ViewMode = 'list' | 'card';
+type ViewMode = 'grid' | 'table';
+type FoodStatusFilter = 'all' | 'active' | 'inactive';
 
 const pageSize = 10;
 const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
@@ -181,15 +182,15 @@ function FoodSkeletonCard({ viewMode }: { viewMode: ViewMode }) {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       className={`mb-3 rounded-2xl border border-slate-200 bg-white p-4 ${
-        viewMode === 'card' ? 'w-full' : 'flex-row items-center'
+        viewMode === 'grid' ? 'w-[48%]' : 'w-full flex-row items-center'
       }`}
     >
       <View
         className={`rounded-xl bg-slate-100 ${
-          viewMode === 'card' ? 'mb-3 h-40 w-full' : 'mr-3 h-16 w-16'
+          viewMode === 'grid' ? 'mb-3 h-32 w-full' : 'mr-3 h-16 w-16'
         }`}
       />
-      <View className={viewMode === 'card' ? '' : 'min-w-0 flex-1'}>
+      <View className={viewMode === 'grid' ? '' : 'min-w-0 flex-1'}>
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1 gap-2">
             <View className="h-4 w-2/3 rounded-md bg-slate-100" />
@@ -218,10 +219,13 @@ function ChefFoodsScreen({
   onRefresh,
   onFoodVisibilityChange,
 }: ChefFoodsScreenProps) {
-  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [statusFilter, setStatusFilter] = useState<FoodStatusFilter>('all');
+  const [openFilter, setOpenFilter] = useState<'category' | 'status' | null>(
+    null,
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [page, setPage] = useState(1);
   const [updatingFoodId, setUpdatingFoodId] = useState<string | number | null>(null);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
@@ -253,12 +257,16 @@ function ChefFoodsScreen({
     return foods.filter(food => {
       const matchesCategory =
         categoryFilter === 'all' || food.category_name === categoryFilter;
+      const isActive = String(food.status || 'Active').toLowerCase() === 'active';
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' ? isActive : !isActive);
       const matchesSearch = [food.food_name, food.category_name].some(value =>
         String(value || '').toLowerCase().includes(query),
       );
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesStatus && matchesSearch;
     });
-  }, [categoryFilter, foods, search]);
+  }, [categoryFilter, foods, search, statusFilter]);
 
   const filteredVisibilityFoods = useMemo(() => {
     const query = visibilitySearch.trim().toLowerCase();
@@ -357,18 +365,18 @@ function ChefFoodsScreen({
       <View
         key={String(key)}
         className={`mb-3 rounded-2xl border border-slate-200 bg-white p-4 ${
-          viewMode === 'card' ? 'w-full' : 'flex-row items-center'
+          viewMode === 'grid' ? 'w-[48%]' : 'w-full flex-row items-center'
         }`}
       >
         <FoodImage
-          className={viewMode === 'card' ? 'mb-3 h-40 w-full' : 'mr-3 h-16 w-16'}
+          className={viewMode === 'grid' ? 'mb-3 h-32 w-full' : 'mr-3 h-16 w-16'}
           food={food}
           imageFailed={imageErrors.has(key)}
           onImageError={() =>
             setImageErrors(current => new Set(current).add(key))
           }
         />
-        <View className={viewMode === 'card' ? '' : 'min-w-0 flex-1'}>
+        <View className={viewMode === 'grid' ? '' : 'min-w-0 flex-1'}>
           <View className="flex-row items-start justify-between gap-2">
             <View className="min-w-0 flex-1">
               <Text className="text-sm font-bold text-slate-900">
@@ -487,71 +495,107 @@ function ChefFoodsScreen({
         ))}
       </View>
 
-      <View className="mb-3 rounded-xl border border-slate-200 bg-white p-3">
-        <TextInput
-          accessibilityLabel="Search foods or categories"
-          className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"
-          onChangeText={value => {
-            setSearch(value);
-            setPage(1);
-          }}
-          placeholder="Search foods or categories"
-          value={search}
-        />
-        {categories.length ? (
-          <ScrollView
-            className="mt-3"
-            contentContainerClassName="gap-2"
-            horizontal
-            showsHorizontalScrollIndicator={false}
+      <View
+        className="mb-3 gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
+        style={{
+          position: 'relative',
+          zIndex: openFilter ? 20 : 0,
+          elevation: openFilter ? 20 : 0,
+        }}
+      >
+        <View className="min-h-11 flex-row items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3">
+          <SearchIcon color="#9CA3AF" size={17} />
+          <TextInput
+            accessibilityLabel="Search foods or categories"
+            className="ml-2 flex-1 py-2 text-sm text-[#012711]"
+            onChangeText={value => {
+              setSearch(value);
+              setPage(1);
+            }}
+            placeholder="Search foods by name or category..."
+            placeholderTextColor={colors.textSecondary}
+            value={search}
+          />
+        </View>
+        <View className="flex-row items-end gap-2">
+          <View
+            className="flex-1 flex-row gap-2"
+            style={{
+              position: 'relative',
+              zIndex: openFilter ? 30 : 0,
+              elevation: openFilter ? 30 : 0,
+            }}
           >
-            {['all', ...categories].map(category => {
-              const selected = categoryFilter === category;
+            <FoodFilterDropdown
+              label="Status"
+              onOpen={() =>
+                setOpenFilter(current =>
+                  current === 'status' ? null : 'status',
+                )
+              }
+              onSelect={value => {
+                setStatusFilter(value);
+                setPage(1);
+                setOpenFilter(null);
+              }}
+              open={openFilter === 'status'}
+              options={[
+                { value: 'all', label: 'All statuses' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+              selected={statusFilter}
+            />
+            <FoodFilterDropdown
+              label="Category"
+              onOpen={() =>
+                setOpenFilter(current =>
+                  current === 'category' ? null : 'category',
+                )
+              }
+              onSelect={value => {
+                setCategoryFilter(value);
+                setPage(1);
+                setOpenFilter(null);
+              }}
+              open={openFilter === 'category'}
+              options={[
+                { value: 'all', label: 'All categories' },
+                ...categories.map(category => ({
+                  value: category,
+                  label: category,
+                })),
+              ]}
+              selected={categoryFilter}
+            />
+          </View>
+          <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
+            {(['grid', 'table'] as const).map(mode => {
+              const selected = viewMode === mode;
               return (
                 <Pressable
+                  accessibilityLabel={`Show foods as ${
+                    mode === 'grid' ? 'grid' : 'table'
+                  }`}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
-                  key={category}
-                  onPress={() => {
-                    setCategoryFilter(category);
-                    setPage(1);
-                  }}
-                  className={`rounded-full px-3 py-2 ${
-                    selected ? 'bg-emerald-800' : 'bg-slate-100'
+                  key={mode}
+                  onPress={() => setViewMode(mode)}
+                  className={`h-9 w-9 items-center justify-center rounded-md ${
+                    selected ? 'bg-[#116C0B]' : 'bg-[#F3F4F6]'
                   }`}
                 >
                   <Text
-                    className={`text-xs font-semibold ${
-                      selected ? 'text-white' : 'text-slate-700'
+                    className={`text-base font-bold ${
+                      selected ? 'text-white' : 'text-[#64748B]'
                     }`}
                   >
-                    {category === 'all' ? 'All categories' : category}
+                    {mode === 'grid' ? '▦' : '☷'}
                   </Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
-        ) : null}
-        <View className="mt-3 flex-row self-start rounded-lg border border-slate-200 p-1">
-          {(['list', 'card'] as const).map(mode => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: viewMode === mode }}
-              key={mode}
-              onPress={() => setViewMode(mode)}
-              className={`rounded-md px-3 py-2 ${
-                viewMode === mode ? 'bg-emerald-800' : 'bg-white'
-              }`}
-            >
-              <Text
-                className={`text-xs font-semibold ${
-                  viewMode === mode ? 'text-white' : 'text-slate-600'
-                }`}
-              >
-                {mode === 'list' ? 'List' : 'Cards'}
-              </Text>
-            </Pressable>
-          ))}
+          </View>
         </View>
       </View>
 
@@ -571,13 +615,22 @@ function ChefFoodsScreen({
       ) : null}
 
       {isLoading ? (
-        <View accessibilityLabel="Loading foods" className="gap-0">
+        <View
+          accessibilityLabel="Loading foods"
+          className={viewMode === 'grid' ? 'flex-row flex-wrap justify-between' : ''}
+        >
           {[0, 1, 2, 3].map(index => (
             <FoodSkeletonCard key={index} viewMode={viewMode} />
           ))}
         </View>
       ) : filteredFoods.length ? (
-        visibleFoods.map(renderFoodCard)
+        <View
+          className={
+            viewMode === 'grid' ? 'flex-row flex-wrap justify-between' : ''
+          }
+        >
+          {visibleFoods.map(renderFoodCard)}
+        </View>
       ) : (
         <View className="rounded-xl border border-slate-200 bg-white px-4 py-10">
           <Text className="text-center text-sm text-slate-500">
@@ -712,6 +765,81 @@ function ChefFoodsScreen({
           </ScrollView>
         </View>
       </BaseModal>
+    </View>
+  );
+}
+
+function FoodFilterDropdown<Value extends string>({
+  label,
+  options,
+  selected,
+  open,
+  onOpen,
+  onSelect,
+}: {
+  label: string;
+  options: { value: Value; label: string }[];
+  selected: Value;
+  open: boolean;
+  onOpen: () => void;
+  onSelect: (value: Value) => void;
+}) {
+  const selectedLabel =
+    options.find(option => option.value === selected)?.label ??
+    options[0]?.label ??
+    '';
+
+  return (
+    <View
+      className="min-w-0 flex-1"
+      style={{
+        position: 'relative',
+        zIndex: open ? 40 : 0,
+        elevation: open ? 40 : 0,
+      }}
+    >
+      <Text className="mb-1 text-[10px] font-bold text-[#475569]">{label}</Text>
+      <Pressable
+        accessibilityLabel={`${label}: ${selectedLabel}`}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={onOpen}
+        className="min-h-10 flex-row items-center justify-between rounded-lg border border-[#CBD5E1] bg-white px-2.5"
+      >
+        <Text className="flex-1 text-xs text-[#334155]" numberOfLines={1}>
+          {selectedLabel}
+        </Text>
+        <Text className="ml-1 text-xs text-[#64748B]">{open ? '⌃' : '⌄'}</Text>
+      </Pressable>
+      {open ? (
+        <View
+          className="absolute left-0 right-0 top-[62px] overflow-hidden rounded-lg border border-[#E2E8F0] bg-white shadow-lg"
+          style={{ zIndex: 50, elevation: 50 }}
+        >
+          {options.map(option => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: option.value === selected }}
+              key={option.value}
+              onPress={() => onSelect(option.value)}
+              className={`min-h-10 justify-center border-b border-[#F1F5F9] px-3 ${
+                option.value === selected ? 'bg-[#F0FDF4]' : ''
+              }`}
+            >
+              <Text
+                numberOfLines={1}
+                className={`text-xs ${
+                  option.value === selected
+                    ? 'font-bold text-[#116C0B]'
+                    : 'text-[#334155]'
+                }`}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
