@@ -587,16 +587,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               </Text>
             ) : null}
           </View>
-          <Pressable
-            accessibilityRole="button"
-            disabled={isLoading}
-            onPress={() => setRefreshCount(count => count + 1)}
-            className="mt-5 rounded-xl border border-[#D8E4DB] bg-white px-3 py-2.5"
-          >
-            <Text className="text-[10px] font-bold text-[#123B2D]">
-              {isLoading ? 'Refreshing…' : 'Refresh'}
-            </Text>
-          </Pressable>
+        
         </View>
       </View>
 
