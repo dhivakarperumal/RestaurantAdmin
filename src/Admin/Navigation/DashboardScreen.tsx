@@ -2074,6 +2074,7 @@ function MainContent({
           orderType={newOrderType}
           initialTable={initialOrderTable ?? undefined}
           existingBill={existingBillContext ?? undefined}
+          onOpenActiveBill={onSelectTable}
           onBack={onCloseNewOrder}
           onOrderSubmitted={onNewOrderSubmitted}
         />
@@ -4315,36 +4316,21 @@ function Sidebar({
                 alignItems: 'center',
                 backgroundColor: pressed ? '#FEE2E2' : '#FEF2F2',
                 borderColor: '#FECACA',
-                borderRadius: 14,
+                borderRadius: 12,
                 borderWidth: 1,
                 flexDirection: 'row',
-                gap: 12,
-                paddingHorizontal: 12,
-                paddingVertical: 12,
+                gap: 8,
+                justifyContent: 'center',
+                minHeight: 44,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
                 width: '100%',
               })}
             >
-              <View
-                style={{
-                  alignItems: 'center',
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: 10,
-                  elevation: 1,
-                  height: 36,
-                  justifyContent: 'center',
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 2,
-                  width: 36,
-                }}
-              >
-                <LogOutIcon color="#DC2626" size={18} />
-              </View>
+              <LogOutIcon color="#DC2626" size={18} />
               <Text
                 style={{
                   color: '#DC2626',
-                  flex: 1,
                   fontSize: 14,
                   fontWeight: '700',
                 }}

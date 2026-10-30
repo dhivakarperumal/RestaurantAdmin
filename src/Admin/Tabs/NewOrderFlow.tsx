@@ -378,12 +378,14 @@ export default function NewOrderFlow({
   orderType,
   initialTable,
   existingBill,
+  onOpenActiveBill,
   onBack,
   onOrderSubmitted,
 }: {
   orderType: NewOrderType;
   initialTable?: AdminTableRecord;
   existingBill?: ExistingBillContext;
+  onOpenActiveBill: (table: AdminTableRecord) => void;
   onBack: () => void;
   onOrderSubmitted: () => void;
 }) {
@@ -604,16 +606,11 @@ export default function NewOrderFlow({
 
   const chooseTable = async (table: TableRecord) => {
     const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+    if (getTableStatus(table, hasActiveBill) === 'Occupied') {
+      onOpenActiveBill(table);
+      return;
+    }
     if (!canSelectTableForNewOrder(table, hasActiveBill)) {
-      if (hasActiveBill) {
-        Alert.alert(
-          'Table already has an active bill',
-          `Table ${text(
-            table.table_number,
-          )} already has a bill. Open it from Table Management to add items.`,
-        );
-        return;
-      }
       if (isReservationActive(table)) {
         Alert.alert(
           'Table reserved',
@@ -1174,50 +1171,13 @@ export default function NewOrderFlow({
                       table,
                       hasActiveBill,
                     );
+                    const canOpenBill = status === 'Occupied';
+                    const canOpenCard = selectable || canOpenBill;
                     const reservationSummary = getReservationSummary(table);
                     const serverAssignment = getServerAssignmentLabel(table);
-                    return (
-                      <Pressable
-                        accessibilityLabel={`Table ${text(
-                          table.table_number,
-                          String(index + 1),
-                        )}, ${status}${
-                          selectable ? ', available for selection' : ''
-                        }`}
-                        accessibilityRole="button"
-                        accessibilityState={{ disabled: !selectable }}
-                        disabled={!selectable}
-                        key={String(
-                          table.table_id ??
-                            table.id ??
-                            table.table_number ??
-                            index,
-                        )}
-                        onPress={() => void chooseTable(table)}
-                        className={`rounded-2xl border bg-white p-4 ${
-                          selectable
-                            ? 'border-[#DCE8D8]'
-                            : 'border-[#E5E7EB] opacity-70'
-                        }`}
-                        style={{ width: cardWidth }}
-                      >
-                        <View className="flex-row items-center justify-between gap-2">
-                          <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F0F7EE]">
-                            <MenuIcon color={colors.primary} size={21} />
-                          </View>
-                          <Text
-                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                              selectable
-                                ? 'bg-green-50 text-green-700'
-                                : status === 'Occupied'
-                                ? 'bg-orange-50 text-orange-700'
-                                : 'bg-indigo-50 text-indigo-700'
-                            }`}
-                          >
-                            {status}
-                          </Text>
-                        </View>
-                        <Text className="mt-3 text-base font-bold text-[#012711]">
+                    const tableDetails = (
+                      <>
+                        <Text className="text-base font-bold text-[#012711]">
                           Table {text(table.table_number, String(index + 1))}
                         </Text>
                         {table.no_of_seats ? (
@@ -1245,7 +1205,71 @@ export default function NewOrderFlow({
                             Reserved now
                           </Text>
                         ) : null}
-                      </Pressable>
+                      </>
+                    );
+
+                    return (
+                      <View
+                        key={String(
+                          table.table_id ??
+                            table.id ??
+                            table.table_number ??
+                            index,
+                        )}
+                        className={`rounded-2xl border bg-white p-4 ${
+                          canOpenCard
+                            ? 'border-[#DCE8D8]'
+                            : 'border-[#E5E7EB] opacity-70'
+                        }`}
+                        style={{ width: cardWidth }}
+                      >
+                        <View className="flex-row items-center justify-between gap-2">
+                          <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F0F7EE]">
+                            <MenuIcon color={colors.primary} size={21} />
+                          </View>
+                          <Text
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                              selectable
+                                ? 'bg-green-50 text-green-700'
+                                : status === 'Occupied'
+                                  ? 'bg-orange-50 text-orange-700'
+                                  : 'bg-indigo-50 text-indigo-700'
+                            }`}
+                          >
+                            {status}
+                          </Text>
+                        </View>
+                        {canOpenBill ? (
+                          <Pressable
+                            accessibilityLabel={`View bill for table ${text(
+                              table.table_number,
+                              String(index + 1),
+                            )}`}
+                            accessibilityRole="button"
+                            onPress={() => void chooseTable(table)}
+                            className="mt-3 min-h-10 items-center justify-center rounded-xl bg-[#064E3B]"
+                          >
+                            <Text className="text-xs font-bold text-white">
+                              View Bill
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                        {selectable ? (
+                          <Pressable
+                            accessibilityLabel={`Table ${text(
+                              table.table_number,
+                              String(index + 1),
+                            )}, ${status}, available for selection`}
+                            accessibilityRole="button"
+                            onPress={() => void chooseTable(table)}
+                            className="mt-3"
+                          >
+                            {tableDetails}
+                          </Pressable>
+                        ) : (
+                          <View className="mt-3">{tableDetails}</View>
+                        )}
+                      </View>
                     );
                   })}
                 </View>
