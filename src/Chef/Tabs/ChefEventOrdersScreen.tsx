@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CustomersIcon,
+  MenuIcon,
   OrdersIcon,
   ReceiptIcon,
 } from '../../Admin/Navigation/NavigationIcons';
@@ -15,7 +16,11 @@ import {
 } from 'react-native';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
-import { DetailsModal } from '../../components/popups';
+import {
+  CalendarIcon,
+  ClockIcon,
+  DetailsModal,
+} from '../../components/popups';
 import {
   getEventDishImageUrl,
   getFoodImageUrl,
@@ -194,6 +199,101 @@ function OrderStatus({
     >
       {status}
     </Text>
+  );
+}
+
+function EventOrderSkeletonCard({
+  viewMode,
+}: {
+  viewMode: 'grid' | 'table';
+}) {
+  if (viewMode === 'table') {
+    return (
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        className="min-h-[72px] w-[1120px] flex-row items-center border-b border-[#EEF2F4] bg-white px-3 py-2"
+      >
+        <View className="w-[52px] items-center px-1">
+          <View className="h-3 w-5 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[165px] gap-2 px-2">
+          <View className="h-3 w-20 rounded-md bg-slate-100" />
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[165px] gap-2 px-2">
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+          <View className="h-3 w-16 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[105px] gap-2 px-2">
+          <View className="h-3 w-14 rounded-md bg-slate-100" />
+          <View className="h-3 w-16 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[210px] gap-2 px-2">
+          <View className="h-3 w-20 rounded-md bg-slate-100" />
+          <View className="h-3 w-32 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[155px] gap-2 px-2">
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+          <View className="h-3 w-20 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[105px] px-2">
+          <View className="h-6 w-16 rounded-full bg-slate-100" />
+        </View>
+        <View className="w-[160px] px-2">
+          <View className="h-8 w-24 rounded-xl bg-slate-100" />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      className="mb-3 w-full overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white p-3.5"
+    >
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1 gap-2">
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+          <View className="h-5 w-2/3 rounded-md bg-slate-100" />
+          <View className="h-3 w-1/2 rounded-md bg-slate-100" />
+        </View>
+        <View className="items-end gap-2">
+          <View className="h-6 w-20 rounded-full bg-slate-100" />
+          <View className="h-5 w-16 rounded-full bg-slate-100" />
+        </View>
+      </View>
+      <View className="mt-3 flex-row rounded-2xl bg-[#F7FAF8] p-3">
+        <View className="flex-1 gap-2">
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+          <View className="h-3 w-28 rounded-md bg-slate-100" />
+          <View className="h-3 w-16 rounded-md bg-slate-100" />
+        </View>
+        <View className="mx-3 h-12 w-px bg-[#DDE5E0]" />
+        <View className="flex-1 gap-2">
+          <View className="h-3 w-20 rounded-md bg-slate-100" />
+          <View className="h-3 w-16 rounded-md bg-slate-100" />
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+        </View>
+      </View>
+      <View className="mt-3 gap-3 rounded-2xl border border-[#E8EFEA] bg-[#FCFDFC] p-3">
+        <View className="h-3 w-24 rounded-md bg-slate-100" />
+        {[0, 1].map(index => (
+          <View key={index} className="flex-row items-center gap-3">
+            <View className="h-12 w-12 rounded-xl bg-slate-100" />
+            <View className="flex-1 gap-2">
+              <View className="h-3 w-2/3 rounded-md bg-slate-100" />
+              <View className="h-3 w-1/3 rounded-md bg-slate-100" />
+            </View>
+          </View>
+        ))}
+      </View>
+      <View className="mt-3 flex-row gap-2">
+        <View className="h-11 flex-1 rounded-2xl bg-slate-100" />
+        <View className="h-11 flex-1 rounded-2xl bg-slate-100" />
+      </View>
+    </View>
   );
 }
 
@@ -422,24 +522,36 @@ function ChefEventOrdersScreen() {
               <Text className="text-[9px] font-bold uppercase tracking-wide text-[#84918B]">
                 Event date & time
               </Text>
-              <Text className="mt-1 text-xs font-extrabold text-[#1F2937]">
-                {formatDate(order.event_date)}
-              </Text>
-              <Text className="mt-0.5 text-[11px] text-[#64748B]">
-                {formatTime(order.event_time)}
-              </Text>
+              <View className="mt-1.5 flex-row items-center gap-1.5">
+                <CalendarIcon color="#14764A" size={14} />
+                <Text className="text-xs font-extrabold text-[#1F2937]">
+                  {formatDate(order.event_date)}
+                </Text>
+              </View>
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <ClockIcon color="#14764A" size={14} />
+                <Text className="text-[11px] text-[#64748B]">
+                  {formatTime(order.event_time)}
+                </Text>
+              </View>
             </View>
             <View className="mx-3 h-12 w-px bg-[#DDE5E0]" />
             <View className="min-w-0 flex-1">
               <Text className="text-[9px] font-bold uppercase tracking-wide text-[#84918B]">
                 Guests & diet
               </Text>
-              <Text className="mt-1 text-xs font-extrabold text-[#123B2D]">
-                {text(order.guest_count, '0')} guests
-              </Text>
-              <Text className="mt-0.5 text-[11px] text-[#64748B]">
-                {text(order.dietary_preference, 'Mixed')}
-              </Text>
+              <View className="mt-1.5 flex-row items-center gap-1.5">
+                <CustomersIcon color="#14764A" size={14} />
+                <Text className="text-xs font-extrabold text-[#123B2D]">
+                  {text(order.guest_count, '0')} guests
+                </Text>
+              </View>
+              <View className="mt-1 flex-row items-center gap-1.5">
+                <MenuIcon color="#14764A" size={14} />
+                <Text className="text-[11px] text-[#64748B]">
+                  {text(order.dietary_preference, 'Mixed')}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -554,23 +666,35 @@ function ChefEventOrdersScreen() {
           </Text>
         </View>
         <View className="w-[165px] px-2">
-          <Text numberOfLines={2} className="text-[11px] font-semibold text-[#1F2937]">
-            {formatDate(order.event_date)}
-          </Text>
-          <Text className="mt-1 text-[10px] text-[#64748B]">
-            {formatTime(order.event_time)}
-          </Text>
+          <View className="flex-row items-center gap-1">
+            <CalendarIcon color="#14764A" size={12} />
+            <Text numberOfLines={2} className="flex-1 text-[11px] font-semibold text-[#1F2937]">
+              {formatDate(order.event_date)}
+            </Text>
+          </View>
+          <View className="mt-1 flex-row items-center gap-1">
+            <ClockIcon color="#14764A" size={12} />
+            <Text className="text-[10px] text-[#64748B]">
+              {formatTime(order.event_time)}
+            </Text>
+          </View>
           <Text className="mt-1 text-[9px] font-bold text-[#9A6200]">
             {dateUrgency(order.event_date)}
           </Text>
         </View>
         <View className="w-[105px] px-2">
-          <Text className="text-[11px] font-bold text-[#123B2D]">
-            {text(order.guest_count, '0')} guests
-          </Text>
-          <Text numberOfLines={1} className="mt-1 text-[10px] text-[#64748B]">
-            {text(order.dietary_preference, 'Mixed')}
-          </Text>
+          <View className="flex-row items-center gap-1">
+            <CustomersIcon color="#14764A" size={12} />
+            <Text className="text-[11px] font-bold text-[#123B2D]">
+              {text(order.guest_count, '0')} guests
+            </Text>
+          </View>
+          <View className="mt-1 flex-row items-center gap-1">
+            <MenuIcon color="#14764A" size={12} />
+            <Text numberOfLines={1} className="flex-1 text-[10px] text-[#64748B]">
+              {text(order.dietary_preference, 'Mixed')}
+            </Text>
+          </View>
         </View>
         <View className="w-[210px] px-2">
           <Text className="text-[10px] font-bold text-[#475569]">
@@ -721,11 +845,38 @@ function ChefEventOrdersScreen() {
       ) : null}
 
       {isLoading ? (
-        <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white py-10">
-          <ActivityIndicator color="#116C0B" />
-          <Text className="mt-3 text-xs font-medium text-[#6B7280]">
-            Loading confirmed event orders...
-          </Text>
+        <View
+          accessibilityLabel="Loading event orders"
+          className={viewMode === 'grid' ? 'gap-3' : ''}
+        >
+          {viewMode === 'table' ? (
+            <View className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+              <ScrollView horizontal showsHorizontalScrollIndicator>
+                <View className="w-[1120px]">
+                  <View className="h-10 w-[1120px] flex-row items-center border-b border-[#E5E7EB] bg-[#F8FAFC] px-3">
+                    {[52, 165, 165, 105, 210, 155, 105, 160].map(
+                      (width, index) => (
+                        <View
+                          key={index}
+                          className="px-2"
+                          style={{ width }}
+                        >
+                          <View className="h-2.5 w-3/4 rounded-md bg-slate-200" />
+                        </View>
+                      ),
+                    )}
+                  </View>
+                  {[0, 1, 2, 3].map(index => (
+                    <EventOrderSkeletonCard key={index} viewMode="table" />
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          ) : (
+            [0, 1, 2, 3].map(index => (
+              <EventOrderSkeletonCard key={index} viewMode="grid" />
+            ))
+          )}
         </View>
       ) : filteredOrders.length ? (
         viewMode === 'grid' ? (
