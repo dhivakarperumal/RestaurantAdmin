@@ -740,17 +740,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               Here's what's happening in your kitchen today.
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            disabled={isLoading}
-            onPress={() => setRefreshCount(count => count + 1)}
-            className="h-11 flex-row items-center justify-center rounded-full border border-[#CFE0D4] bg-white px-3.5"
-          >
-            <Text className="mr-1.5 text-base font-bold text-[#14764A]">↻</Text>
-            <Text className="text-[11px] font-bold text-[#123B2D]">
-              {isLoading ? 'Refreshing...' : 'Refresh'}
-            </Text>
-          </Pressable>
         </View>
         <View className="mt-3 flex-row items-center">
           <View className="h-[3px] w-9 rounded-full bg-[#D4A843]" />
