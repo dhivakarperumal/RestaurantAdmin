@@ -119,7 +119,13 @@ function orderId(order: EventOrder) {
   return text(order.id ?? order.event_order_number, '');
 }
 
-function DishThumbnail({ item }: { item: Record<string, unknown> }) {
+function DishThumbnail({
+  item,
+  size = 44,
+}: {
+  item: Record<string, unknown>;
+  size?: number;
+}) {
   const [imageUri, setImageUri] = useState(() =>
     getEventDishImageUrl(item, API_BASE_URL),
   );
@@ -154,8 +160,11 @@ function DishThumbnail({ item }: { item: Record<string, unknown> }) {
   }, [fetchCurrentFoodImage, imageUri]);
 
   return (
-    <View className="h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#EAF4E7]">
-      {!imageUri ? <Text className="text-lg">🍽️</Text> : null}
+    <View
+      className="shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#EAF4E7]"
+      style={{ height: size, width: size }}
+    >
+      {!imageUri ? <Text style={{ fontSize: Math.max(12, size * 0.4) }}>🍽️</Text> : null}
       {imageUri ? (
         <Image
           accessibilityLabel={text(item.product_name ?? item.food_name, 'Dish image')}
@@ -212,7 +221,7 @@ function EventOrderSkeletonCard({
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        className="mb-2 min-h-[112px] w-[1418px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm"
+        className="mb-2 min-h-[88px] w-[1418px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-2 shadow-sm"
       >
         <View className="w-[48px] items-center px-1">
           <View className="h-7 w-7 rounded-full bg-slate-100" />
@@ -232,13 +241,13 @@ function EventOrderSkeletonCard({
           <View className="h-3 w-20 rounded-md bg-slate-100" />
         </View>
         <View className="w-[270px] gap-2 px-2">
-          <View className="flex-row items-center gap-2">
-            <View className="h-9 w-9 rounded-lg bg-slate-100" />
-            <View className="h-3 w-32 rounded-md bg-slate-100" />
+          <View className="flex-row items-center justify-between">
+            <View className="h-3 w-20 rounded-md bg-slate-100" />
+            <View className="h-6 w-24 rounded-lg bg-slate-100" />
           </View>
           <View className="flex-row items-center gap-2">
-            <View className="h-9 w-9 rounded-lg bg-slate-100" />
-            <View className="h-3 w-24 rounded-md bg-slate-100" />
+            <View className="h-8 w-8 rounded-lg bg-slate-100" />
+            <View className="h-3 w-32 rounded-md bg-slate-100" />
           </View>
         </View>
         <View className="w-[230px] gap-2 px-2">
@@ -659,7 +668,7 @@ function ChefEventOrdersScreen() {
     return (
       <View
         key={id}
-        className="mb-2 min-h-[112px] w-[1418px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm"
+        className="mb-2 min-h-[88px] w-[1418px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-2 shadow-sm"
       >
         <View className="w-[48px] items-center px-1">
           <Text className="h-7 w-7 rounded-full bg-[#EAF4E7] pt-1.5 text-center text-[10px] font-extrabold text-[#14764A]">
@@ -708,13 +717,27 @@ function ChefEventOrdersScreen() {
             </Text>
           </View>
         </View>
-        <View className="w-[270px] rounded-xl border border-[#E8EFEA] bg-[#FCFDFC] px-2.5 py-2">
-          <Text className="mb-1.5 text-[9px] font-extrabold uppercase text-[#1F2937]">
-            Dishes · {items.length}
-          </Text>
+        <View className="w-[270px] rounded-xl border border-[#E8EFEA] bg-[#FCFDFC] px-2.5 py-1.5">
+          <View className="mb-1 flex-row items-center justify-between gap-1">
+            <Text className="text-[9px] font-extrabold uppercase text-[#1F2937]">
+              Dishes · {items.length}
+            </Text>
+            {items.length > 1 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`View all ${items.length} foods for order ${text(order.event_order_number)}`}
+                onPress={() => setFoodListOrder(order)}
+                className="min-h-7 justify-center rounded-md bg-[#EAF4E7] px-2"
+              >
+                <Text className="text-[9px] font-extrabold text-[#14764A]">
+                  View all foods
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           {items.length ? (
             <View className="flex-row items-center gap-2">
-              <DishThumbnail item={items[0]} />
+              <DishThumbnail item={items[0]} size={34} />
               <Text numberOfLines={1} className="min-w-0 flex-1 text-[10px] text-[#1F2937]">
                 {text(items[0].product_name ?? items[0].food_name, 'Menu item')}
               </Text>
@@ -725,29 +748,17 @@ function ChefEventOrdersScreen() {
           ) : (
             <Text className="py-1 text-[10px] text-[#64748B]">No dish details</Text>
           )}
-          {items.length > 1 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`View all ${items.length} foods for order ${text(order.event_order_number)}`}
-              onPress={() => setFoodListOrder(order)}
-              className="mt-2 min-h-9 flex-row items-center justify-center rounded-lg border-t border-[#E8EFEA] bg-white px-2"
-            >
-              <Text className="text-[10px] font-extrabold text-[#14764A]">
-                View all foods · {items.length}
-              </Text>
-            </Pressable>
-          ) : null}
         </View>
         <View className="w-[230px] gap-1 px-2">
-          <Text numberOfLines={2} className="text-[10px] leading-4 text-[#475569]">
+          <Text numberOfLines={1} className="text-[10px] leading-4 text-[#475569]">
             Venue: {text(order.venue_address, 'Not specified')}
           </Text>
           {order.special_requests ? (
-            <View className="rounded-lg border border-rose-100 bg-rose-50 px-2 py-1.5">
+            <View className="rounded-lg border border-rose-100 bg-rose-50 px-2 py-1">
               <Text className="text-[8px] font-bold uppercase text-rose-700">
                 Customer notes
               </Text>
-              <Text numberOfLines={2} className="mt-0.5 text-[9px] leading-3 text-rose-900">
+              <Text numberOfLines={1} className="mt-0.5 text-[9px] leading-3 text-rose-900">
                 {text(order.special_requests)}
               </Text>
             </View>
@@ -958,17 +969,6 @@ function ChefEventOrdersScreen() {
           </Text>
         </View>
       )}
-
-      <Pressable
-        accessibilityRole="button"
-        disabled={isLoading}
-        onPress={() => setRefreshVersion(current => current + 1)}
-        className="items-center rounded-xl border border-[#E5E7EB] bg-white py-3"
-      >
-        <Text className="text-xs font-bold text-[#123B2D]">
-          {isLoading ? 'Refreshing...' : 'Refresh orders'}
-        </Text>
-      </Pressable>
 
       {selectedOrder ? (
         <DetailsModal

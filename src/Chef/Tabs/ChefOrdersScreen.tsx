@@ -854,17 +854,6 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
         </View>
       )}
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={loading}
-        onPress={() => setRefreshVersion(current => current + 1)}
-        className="items-center rounded-xl border border-[#E5E7EB] bg-white py-3"
-      >
-        <Text className="text-xs font-bold text-[#123B2D]">
-          {loading ? 'Refreshing...' : 'Refresh orders'}
-        </Text>
-      </Pressable>
-
       {assignmentOrder ? (
         <FormModal
           visible={assignmentOrder !== null}
