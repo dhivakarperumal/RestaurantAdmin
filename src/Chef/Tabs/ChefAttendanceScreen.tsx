@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import {
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+  CustomersIcon,
+  ReceiptIcon,
+} from '../../Admin/Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import ChefListControls from './ChefListControls';
+import ChefStatCards from './ChefStatCards';
 
 type AttendanceRecord = Record<string, unknown>;
 type StatusFilter = 'All' | 'Present' | 'Late' | 'Working' | 'Completed';
@@ -85,22 +86,6 @@ function dateLabel(value: string) {
         day: 'numeric',
         year: 'numeric',
       });
-}
-
-function MetricCard({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <View className="min-h-[104px] w-[48%] justify-between rounded-2xl border border-[#E5E7EB] bg-white p-4">
-      <Text className="text-[10px] font-bold uppercase tracking-[0.8px] text-[#6B7280]">
-        {label}
-      </Text>
-      <View>
-        <Text className="text-[23px] font-extrabold text-[#012711]">
-          {value}
-        </Text>
-        <Text className="mt-1 text-[10px] text-[#9CA3AF]">{hint}</Text>
-      </View>
-    </View>
-  );
 }
 
 function ChefAttendanceScreen({
@@ -333,33 +318,46 @@ function ChefAttendanceScreen({
         </Pressable>
       </View>
 
-      <View className="flex-row flex-wrap justify-between gap-y-3">
-        <MetricCard
-          label="Days present"
-          value={String(daysPresent)}
-          hint="Recorded shifts"
-        />
-        <MetricCard
-          label="Total hours"
-          value={`${(totalSeconds / 3600).toFixed(1)} hrs`}
-          hint="Logged on duty"
-        />
-        <MetricCard
-          label="Average shift"
-          value={`${averageHours} hrs`}
-          hint="Per recorded shift"
-        />
-        <MetricCard
-          label="On-time rate"
-          value={`${onTimeRate}%`}
-          hint="Attendance punctuality"
-        />
-        <MetricCard
-          label="Late arrivals"
-          value={String(lateCount)}
-          hint="Past scheduled shift"
-        />
-      </View>
+      <ChefStatCards
+        stats={[
+          {
+            label: 'Days present',
+            value: daysPresent,
+            hint: 'Recorded shifts',
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Total hours',
+            value: `${(totalSeconds / 3600).toFixed(1)} hrs`,
+            hint: 'Logged on duty',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Average shift',
+            value: `${averageHours} hrs`,
+            hint: 'Per recorded shift',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'On-time rate',
+            value: `${onTimeRate}%`,
+            hint: 'Attendance punctuality',
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Late arrivals',
+            value: lateCount,
+            hint: 'Past scheduled shift',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Shift status',
+            value: isWorking ? 'Active' : isCompleted ? 'Done' : 'Not started',
+            hint: todayLabel,
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+          },
+        ]}
+      />
 
       <View>
         <View className="mb-3">

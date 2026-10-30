@@ -6,8 +6,14 @@ import {
   View,
 } from 'react-native';
 import api from '../../../api';
+import {
+  CustomersIcon,
+  ProductIcon,
+  ReceiptIcon,
+} from '../../Admin/Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import ChefListControls from './ChefListControls';
+import ChefStatCards from './ChefStatCards';
 
 type StockProduct = Record<string, unknown> & {
   id?: string | number;
@@ -168,34 +174,35 @@ function ChefStockDetailsScreen({
         </Pressable>
       </View>
 
-      <View className="flex-row flex-wrap gap-2">
-        {[
-          { title: 'Stock Items', value: products.length, usesBrandColor: true, color: '' },
-          { title: 'Categories', value: categoryCount, usesBrandColor: false, color: 'bg-emerald-50' },
-          { title: 'Low Stock', value: lowStockCount, usesBrandColor: true, color: '' },
-          { title: 'Out of Stock', value: outOfStockCount, usesBrandColor: false, color: 'bg-rose-50' },
-        ].map(stat => (
-          <View
-            key={stat.title}
-            className={`min-h-[90px] w-[48%] flex-grow rounded-2xl border p-3 ${
-              stat.usesBrandColor ? '' : stat.color
-            }`}
-            style={{
-              borderColor: colors.border,
-              ...(stat.usesBrandColor
-                ? { backgroundColor: colors.surfaceSecondary }
-                : {}),
-            }}
-          >
-            <Text className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-              {stat.title}
-            </Text>
-            <Text className="mt-2 text-2xl font-extrabold text-[#123B2D]">
-              {loading ? '…' : formatNumber(stat.value)}
-            </Text>
-          </View>
-        ))}
-      </View>
+      <ChefStatCards
+        isLoading={loading}
+        stats={[
+          {
+            label: 'Stock items',
+            value: formatNumber(products.length),
+            hint: 'Tracked products',
+            icon: <ProductIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Categories',
+            value: formatNumber(categoryCount),
+            hint: 'Stock categories',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Low stock',
+            value: formatNumber(lowStockCount),
+            hint: 'At or below reorder level',
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Out of stock',
+            value: formatNumber(outOfStockCount),
+            hint: 'Needs replenishment',
+            icon: <ProductIcon color="#F6D36A" size={22} />,
+          },
+        ]}
+      />
 
       <ChefListControls
         filters={[

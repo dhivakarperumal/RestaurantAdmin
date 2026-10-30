@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  CustomersIcon,
+  OrdersIcon,
+  ReceiptIcon,
+} from '../../Admin/Navigation/NavigationIcons';
+import {
   ActivityIndicator,
   Pressable,
   Text,
@@ -10,6 +15,7 @@ import api from '../../../api';
 import colors from '../../theme/colors';
 import { DetailsModal } from '../../components/popups';
 import ChefListControls from './ChefListControls';
+import ChefStatCards from './ChefStatCards';
 
 type EventOrder = Record<string, unknown> & {
   id?: string | number;
@@ -283,37 +289,55 @@ function ChefEventOrdersScreen() {
         </Text>
       </View>
 
-      <View className="flex-row flex-wrap justify-between gap-y-2.5">
-        {[
-          { label: 'Confirmed', value: counts.confirmed, filter: 'Confirmed' as const },
-          { label: 'Preparing', value: counts.preparing, filter: 'Preparing' as const },
-          { label: 'Ready', value: counts.ready, filter: 'Ready' as const },
-          { label: 'Completed', value: counts.completed, filter: 'Completed' as const },
-        ].map(stat => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: activeFilter === stat.filter }}
-            key={stat.label}
-            onPress={() =>
+      <ChefStatCards
+        isLoading={isLoading}
+        stats={[
+          {
+            label: 'Confirmed',
+            value: counts.confirmed,
+            hint: 'Awaiting preparation',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+            onPress: () =>
               setActiveFilter(current =>
-                current === stat.filter ? 'All Confirmed' : stat.filter,
-              )
-            }
-            className={`w-[48%] rounded-2xl border bg-white p-3.5 ${
-              activeFilter === stat.filter
-                ? 'border-[#116C0B] bg-[#F0F7EE]'
-                : 'border-[#E5E7EB]'
-            }`}
-          >
-            <Text className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-              {stat.label}
-            </Text>
-            <Text className="mt-2 text-2xl font-extrabold text-[#012711]">
-              {isLoading ? '…' : stat.value}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+                current === 'Confirmed' ? 'All Confirmed' : 'Confirmed',
+              ),
+            isSelected: activeFilter === 'Confirmed',
+          },
+          {
+            label: 'Preparing',
+            value: counts.preparing,
+            hint: 'In the kitchen',
+            icon: <OrdersIcon color="#F6D36A" size={22} />,
+            onPress: () =>
+              setActiveFilter(current =>
+                current === 'Preparing' ? 'All Confirmed' : 'Preparing',
+              ),
+            isSelected: activeFilter === 'Preparing',
+          },
+          {
+            label: 'Ready',
+            value: counts.ready,
+            hint: 'Ready to serve',
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+            onPress: () =>
+              setActiveFilter(current =>
+                current === 'Ready' ? 'All Confirmed' : 'Ready',
+              ),
+            isSelected: activeFilter === 'Ready',
+          },
+          {
+            label: 'Completed',
+            value: counts.completed,
+            hint: 'Fulfilled events',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+            onPress: () =>
+              setActiveFilter(current =>
+                current === 'Completed' ? 'All Confirmed' : 'Completed',
+              ),
+            isSelected: activeFilter === 'Completed',
+          },
+        ]}
+      />
 
       <ChefListControls
         filters={[

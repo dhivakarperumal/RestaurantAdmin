@@ -8,6 +8,11 @@ import {
   View,
 } from 'react-native';
 import api from '../../../api';
+import {
+  CustomersIcon,
+  OrdersIcon,
+  ReceiptIcon,
+} from '../../Admin/Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import {
   CheckIcon,
@@ -15,6 +20,7 @@ import {
   FormModal,
 } from '../../components/popups';
 import ChefListControls from './ChefListControls';
+import ChefStatCards from './ChefStatCards';
 
 export type ChefOrderPage =
   | 'kitchen'
@@ -425,6 +431,152 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
     ['served', 'cancelled', 'delivered', 'completed'].includes(
       orderStatus(order, isKitchen).toLowerCase(),
     );
+  const countStatuses = (...statuses: string[]) =>
+    orders.filter(order =>
+      statuses.includes(orderStatus(order, isKitchen).toLowerCase()),
+    ).length;
+  const itemCount = orders.reduce(
+    (total, order) =>
+      total +
+      (Array.isArray(order.items)
+        ? order.items.reduce(
+            (itemTotal, item) =>
+              itemTotal + (Number(item.quantity) > 0 ? Number(item.quantity) : 1),
+            0,
+          )
+        : 0),
+    0,
+  );
+  const customerCount = new Set(
+    orders
+      .map(order => text(order.customer_name, '').trim())
+      .filter(Boolean),
+  ).size;
+  const orderValue = orders.reduce(
+    (total, order) =>
+      total +
+      (isKitchen
+        ? (Array.isArray(order.items) ? order.items : []).reduce(
+            (sum, item) =>
+              sum + Number(item.unit_price || 0) * Number(item.quantity || 1),
+            0,
+          )
+        : Number(order.total_amount || 0)),
+    0,
+  );
+  const orderStats = isKitchen
+    ? [
+        {
+          label: 'Active orders',
+          value: orders.filter(order => !isTerminal(order)).length,
+          hint: 'Open kitchen orders',
+          icon: <OrdersIcon color="#F6D36A" size={22} />,
+        },
+        {
+          label: 'Pending',
+          value: countStatuses('pending'),
+          hint: 'Waiting to start',
+          icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          onPress: () => setStatusFilter(current => current === 'Pending' ? 'All' : 'Pending'),
+          isSelected: statusFilter === 'Pending',
+        },
+        {
+          label: 'Preparing',
+          value: countStatuses('preparing'),
+          hint: 'In progress',
+          icon: <OrdersIcon color="#F6D36A" size={22} />,
+          onPress: () => setStatusFilter(current => current === 'Preparing' ? 'All' : 'Preparing'),
+          isSelected: statusFilter === 'Preparing',
+        },
+        {
+          label: 'Ready to serve',
+          value: countStatuses('ready to serve'),
+          hint: 'Plated and hot',
+          icon: <CustomersIcon color="#F6D36A" size={22} />,
+          onPress: () => setStatusFilter(current => current === 'Ready to Serve' ? 'All' : 'Ready to Serve'),
+          isSelected: statusFilter === 'Ready to Serve',
+        },
+      ]
+    : page === 'cancelled'
+      ? [
+          {
+            label: 'Cancelled orders',
+            value: orders.length,
+            hint: 'Cancelled by customers',
+            icon: <OrdersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Items',
+            value: itemCount,
+            hint: 'Items in cancelled orders',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Customers',
+            value: customerCount,
+            hint: 'Customers affected',
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Order value',
+            value: `₹${orderValue.toFixed(0)}`,
+            hint: 'Total cancelled value',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+        ]
+      : page === 'new'
+        ? [
+            {
+              label: 'New orders',
+              value: orders.length,
+              hint: 'Waiting for kitchen',
+              icon: <OrdersIcon color="#F6D36A" size={22} />,
+            },
+            {
+              label: 'Items',
+              value: itemCount,
+              hint: 'Items to prepare',
+              icon: <ReceiptIcon color="#F6D36A" size={22} />,
+            },
+            {
+              label: 'Customers',
+              value: customerCount,
+              hint: 'Unique customers',
+              icon: <CustomersIcon color="#F6D36A" size={22} />,
+            },
+            {
+              label: 'Order value',
+              value: `₹${orderValue.toFixed(0)}`,
+              hint: 'Total new order value',
+              icon: <ReceiptIcon color="#F6D36A" size={22} />,
+            },
+          ]
+        : [
+            {
+              label: 'Total orders',
+              value: orders.length,
+              hint: 'Orders in this view',
+              icon: <OrdersIcon color="#F6D36A" size={22} />,
+            },
+            {
+              label: 'New',
+              value: countStatuses('placed'),
+              hint: 'Waiting to start',
+              icon: <ReceiptIcon color="#F6D36A" size={22} />,
+            },
+            {
+              label: 'In progress',
+              value: countStatuses('preparing', 'accepted', 'assigned', 'out_for_delivery'),
+              hint: 'Being prepared or delivered',
+              icon: <CustomersIcon color="#F6D36A" size={22} />,
+            },
+            {
+              label: 'Completed',
+              value: countStatuses('served', 'delivered', 'completed', 'picked_up'),
+              hint: 'Successfully fulfilled',
+              icon: <ReceiptIcon color="#F6D36A" size={22} />,
+            },
+          ];
 
   return (
     <View className="gap-4 pb-6">
@@ -437,39 +589,7 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
         </Text>
       </View>
 
-      {isKitchen ? (
-        <View className="flex-row flex-wrap justify-between gap-y-2.5">
-          {[
-            { label: 'Pending', value: counts.Pending || 0 },
-            { label: 'Preparing', value: counts.Preparing || 0 },
-            { label: 'Ready to serve', value: counts['Ready to Serve'] || 0 },
-            { label: 'Served', value: counts.Served || 0 },
-          ].map(stat => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: statusFilter === stat.label }}
-              key={stat.label}
-              onPress={() =>
-                setStatusFilter(current =>
-                  current === stat.label ? 'All' : stat.label,
-                )
-              }
-              className={`w-[48%] rounded-2xl border p-3.5 ${
-                statusFilter === stat.label
-                  ? 'border-[#116C0B] bg-[#F0F7EE]'
-                  : 'border-[#E5E7EB] bg-white'
-              }`}
-            >
-              <Text className="text-[10px] font-bold uppercase text-[#6B7280]">
-                {stat.label}
-              </Text>
-              <Text className="mt-2 text-2xl font-extrabold text-[#012711]">
-                {loading ? '…' : stat.value}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      <ChefStatCards isLoading={loading} stats={orderStats} />
 
       {usesListControls ? (
         <ChefListControls

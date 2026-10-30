@@ -10,9 +10,15 @@ import {
   View,
 } from 'react-native';
 import api, { API_BASE_URL } from '../../../api';
-import { SearchIcon } from '../../Admin/Navigation/NavigationIcons';
+import {
+  CustomersIcon,
+  MenuIcon,
+  OrdersIcon,
+  SearchIcon,
+} from '../../Admin/Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import { BaseModal } from '../../components/popups';
+import ChefStatCards from './ChefStatCards';
 
 export type ChefFood = {
   food_id?: string | number;
@@ -467,33 +473,35 @@ function ChefFoodsScreen({
         </Text>
       </View>
 
-      <View className="mb-4 flex-row flex-wrap gap-2">
-        {[
-          { label: 'Total dishes', value: foods.length, usesBrandColor: true, color: '' },
-          { label: 'Active', value: activeCount, usesBrandColor: false, color: 'bg-emerald-50' },
-          { label: 'Menu visible', value: visibleCount, usesBrandColor: false, color: 'bg-blue-50' },
-          { label: 'Hidden', value: foods.length - visibleCount, usesBrandColor: false, color: 'bg-pink-50' },
-        ].map(stat => (
-          <View
-            key={stat.label}
-            className={`min-w-[46%] flex-1 rounded-xl border border-slate-200 p-3 ${
-              stat.usesBrandColor ? '' : stat.color
-            }`}
-            style={
-              stat.usesBrandColor
-                ? { backgroundColor: colors.surfaceSecondary }
-                : undefined
-            }
-          >
-            <Text className="text-[11px] font-medium text-slate-600">
-              {stat.label}
-            </Text>
-            <Text className="mt-1 text-xl font-extrabold text-slate-900">
-              {isLoading ? '…' : stat.value}
-            </Text>
-          </View>
-        ))}
-      </View>
+      <ChefStatCards
+        isLoading={isLoading}
+        stats={[
+          {
+            label: 'Total dishes',
+            value: foods.length,
+            hint: 'Menu items',
+            icon: <MenuIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Active',
+            value: activeCount,
+            hint: 'Available menu items',
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Menu visible',
+            value: visibleCount,
+            hint: 'Shown to customers',
+            icon: <OrdersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Hidden',
+            value: foods.length - visibleCount,
+            hint: 'Not shown to customers',
+            icon: <MenuIcon color="#F6D36A" size={22} />,
+          },
+        ]}
+      />
 
       <View
         className="mb-3 gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"

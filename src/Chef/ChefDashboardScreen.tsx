@@ -16,6 +16,7 @@ import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
 import {
   ChartIcon,
+  CustomersIcon,
   MenuIcon,
   OrdersIcon,
   ReceiptIcon,
@@ -31,6 +32,7 @@ import ChefMoreScreen from './Tabs/ChefMoreScreen';
 import ChefOrdersMenuScreen from './Tabs/ChefOrdersMenuScreen';
 import ChefOrdersScreen, { type ChefOrderPage } from './Tabs/ChefOrdersScreen';
 import ChefProfileScreen from './Tabs/ChefProfileScreen';
+import ChefStatCards from './Tabs/ChefStatCards';
 import ChefStockDetailsScreen from './Tabs/ChefStockDetailsScreen';
 
 type ChefDashboardScreenProps = {
@@ -1364,6 +1366,41 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           </Text>
         </Pressable>
       </View>
+      <ChefStatCards
+        isLoading={isLoading}
+        stats={[
+          {
+            label: 'Total requests',
+            value: requests.length,
+            hint: 'Kitchen supply requests',
+            icon: <OrdersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Pending',
+            value: requests.filter(
+              request => text(request.status, 'Pending').toLowerCase() === 'pending',
+            ).length,
+            hint: 'Awaiting review',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Approved',
+            value: requests.filter(
+              request => text(request.status, '').toLowerCase() === 'approved',
+            ).length,
+            hint: 'Approved for fulfillment',
+            icon: <CustomersIcon color="#F6D36A" size={22} />,
+          },
+          {
+            label: 'Rejected',
+            value: requests.filter(
+              request => text(request.status, '').toLowerCase() === 'rejected',
+            ).length,
+            hint: 'Not approved',
+            icon: <ReceiptIcon color="#F6D36A" size={22} />,
+          },
+        ]}
+      />
       <ChefListControls
         filters={[
           {
