@@ -1406,45 +1406,47 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           },
         ]}
       />
-      <ChefListControls
-        filters={[
-          {
-            label: 'Status',
-            value: inventoryStatusFilter,
+      <View className="mt-4">
+        <ChefListControls
+          filters={[
+            {
+              label: 'Status',
+              value: inventoryStatusFilter,
+              options: [
+                { value: 'all', label: 'All statuses' },
+                ...inventoryStatuses.map(status => ({
+                  value: status.toLowerCase(),
+                  label: status,
+                })),
+              ],
+              onChange: setInventoryStatusFilter,
+            },
+          ]}
+          onSearchChange={setInventorySearch}
+          onViewModeChange={setInventoryViewMode}
+          placeholder="Search request, requester, or product..."
+          search={inventorySearch}
+          searchLabel="Search inventory requests"
+          sort={{
+            value: inventorySort,
             options: [
-              { value: 'all', label: 'All statuses' },
-              ...inventoryStatuses.map(status => ({
-                value: status.toLowerCase(),
-                label: status,
-              })),
+              { value: 'latest', label: 'Latest' },
+              { value: 'oldest', label: 'Oldest' },
+              { value: 'name', label: 'Product name A-Z' },
             ],
-            onChange: setInventoryStatusFilter,
-          },
-        ]}
-        onSearchChange={setInventorySearch}
-        onViewModeChange={setInventoryViewMode}
-        placeholder="Search request, requester, or product..."
-        search={inventorySearch}
-        searchLabel="Search inventory requests"
-        sort={{
-          value: inventorySort,
-          options: [
-            { value: 'latest', label: 'Latest' },
-            { value: 'oldest', label: 'Oldest' },
-            { value: 'name', label: 'Product name A-Z' },
-          ],
-          onChange: value => {
-            if (
-              value === 'latest' ||
-              value === 'oldest' ||
-              value === 'name'
-            ) {
-              setInventorySort(value);
-            }
-          },
-        }}
-        viewMode={inventoryViewMode}
-      />
+            onChange: value => {
+              if (
+                value === 'latest' ||
+                value === 'oldest' ||
+                value === 'name'
+              ) {
+                setInventorySort(value);
+              }
+            },
+          }}
+          viewMode={inventoryViewMode}
+        />
+      </View>
       {filteredRequests.length ? (
         inventoryViewMode === 'table' ? (
           <View className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">

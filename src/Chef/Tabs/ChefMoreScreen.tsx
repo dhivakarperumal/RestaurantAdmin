@@ -48,17 +48,17 @@ function MenuRow({
 function ChefMoreScreen({ onSelectPage }: ChefMoreScreenProps) {
   return (
     <View className="mx-auto w-full max-w-[1100px] px-1 pb-7 pt-2">
-      <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
+      {/* <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
         KITCHEN TOOLS
-      </Text>
+      </Text> */}
       <Text className="mt-1 text-2xl font-bold text-[#012711]">More</Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+      <Text className="mt-1 mb-2 text-sm leading-[21px] text-[#6B7280]">
         Open other tools for your kitchen workspace.
       </Text>
 
-      <Text className="mb-2 mt-5 text-xs font-bold uppercase tracking-[1px] text-[#6B7280]">
+      {/* <Text className="mb-2 mt-5 text-xs font-bold uppercase tracking-[1px] text-[#6B7280]">
         Inventory
-      </Text>
+      </Text> */}
       <View className="gap-2">
         <MenuRow
           title="Inventory Requests"
