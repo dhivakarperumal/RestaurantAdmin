@@ -650,6 +650,20 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsBillPreviewOpen(false);
   };
 
+  const addItemsToTableBill = (
+    table: AdminTableRecord,
+    context: ExistingBillContext,
+  ) => {
+    setActiveBillTable(table);
+    setExistingBillContext(context);
+    setInitialOrderTable(table);
+    setNewOrderType('DINE_IN');
+    setActiveTab('add');
+    setSelectedFeature(null);
+    setSelectedAction(null);
+    setIsBillPreviewOpen(false);
+  };
+
   const addItemsToHistoryBill = (entry: BillHistoryEntry) => {
     const table: AdminTableRecord = {
       id: entry.tableId,
@@ -1134,6 +1148,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onNewOrderSubmitted={finishNewOrder}
               onSelectTable={openTable}
               onAddItemsToExistingBill={addItemsToExistingBill}
+              onAddItemsToTableBill={addItemsToTableBill}
               onActiveBillCompleted={returnToTables}
               onBackToTables={returnToTables}
               onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -1207,6 +1222,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onNewOrderSubmitted={finishNewOrder}
             onSelectTable={openTable}
             onAddItemsToExistingBill={addItemsToExistingBill}
+            onAddItemsToTableBill={addItemsToTableBill}
             onActiveBillCompleted={returnToTables}
             onBackToTables={returnToTables}
             onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -1742,6 +1758,7 @@ function MainContent({
   onNewOrderSubmitted,
   onSelectTable,
   onAddItemsToExistingBill,
+  onAddItemsToTableBill,
   onActiveBillCompleted,
   onBackToTables,
   onRemoveFoodFromBilling,
@@ -1800,6 +1817,10 @@ function MainContent({
   onNewOrderSubmitted: () => void;
   onSelectTable: (table: AdminTableRecord) => void;
   onAddItemsToExistingBill: (context: ExistingBillContext) => void;
+  onAddItemsToTableBill: (
+    table: AdminTableRecord,
+    context: ExistingBillContext,
+  ) => void;
   onActiveBillCompleted: () => void;
   onBackToTables: () => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
@@ -2075,6 +2096,7 @@ function MainContent({
           initialTable={initialOrderTable ?? undefined}
           existingBill={existingBillContext ?? undefined}
           onOpenActiveBill={onSelectTable}
+          onAddItemsToActiveBill={onAddItemsToTableBill}
           onBack={onCloseNewOrder}
           onOrderSubmitted={onNewOrderSubmitted}
         />

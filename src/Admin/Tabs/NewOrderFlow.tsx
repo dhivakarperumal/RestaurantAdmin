@@ -379,6 +379,7 @@ export default function NewOrderFlow({
   initialTable,
   existingBill,
   onOpenActiveBill,
+  onAddItemsToActiveBill,
   onBack,
   onOrderSubmitted,
 }: {
@@ -386,6 +387,10 @@ export default function NewOrderFlow({
   initialTable?: AdminTableRecord;
   existingBill?: ExistingBillContext;
   onOpenActiveBill: (table: AdminTableRecord) => void;
+  onAddItemsToActiveBill: (
+    table: AdminTableRecord,
+    context: ExistingBillContext,
+  ) => void;
   onBack: () => void;
   onOrderSubmitted: () => void;
 }) {
@@ -403,6 +408,9 @@ export default function NewOrderFlow({
     orderType === 'DINE_IN',
   );
   const [tablesError, setTablesError] = useState('');
+  const [addingItemsTableId, setAddingItemsTableId] = useState<string | null>(
+    null,
+  );
   const [foods, setFoods] = useState<MenuFood[]>([]);
   const [isLoadingFoods, setIsLoadingFoods] = useState(true);
   const [foodsError, setFoodsError] = useState('');
@@ -426,6 +434,12 @@ export default function NewOrderFlow({
   const orderRequestKeyRef = useRef<{ signature: string; key: string } | null>(
     null,
   );
+  useEffect(() => {
+    if (initialTable) {
+      setSelectedTable(initialTable);
+    }
+  }, [initialTable]);
+
   const resolvedOrderType = resolveApiOrderType(orderType, selectedTable);
   const isDineIn = resolvedOrderType === 'dine_in';
   const isDelivery = resolvedOrderType === 'home_delivery';
@@ -667,6 +681,46 @@ export default function NewOrderFlow({
         'Unable to verify table',
         getErrorMessage(error, 'Please refresh tables and try again.'),
       );
+    }
+  };
+
+  const addItemsToActiveBill = async (table: TableRecord) => {
+    const tableId = table.table_id ?? table.id;
+    if (tableId === undefined || tableId === null || !String(tableId).trim()) {
+      Alert.alert('Cannot add items', 'This table is missing its ID.');
+      return;
+    }
+
+    setAddingItemsTableId(String(tableId));
+    try {
+      const response = await api.get(
+        `/table-bills/active/${encodeURIComponent(String(tableId))}`,
+      );
+      if (isRecord(response.data) && response.data.success === false) {
+        throw new Error(
+          typeof response.data.message === 'string'
+            ? response.data.message
+            : 'Unable to load this table’s active bill.',
+        );
+      }
+      const billId = readActiveBillId(response.data);
+      if (!billId) {
+        throw new Error(
+          'No active bill was found for this table. Refresh the table list and try again.',
+        );
+      }
+      onAddItemsToActiveBill(table, {
+        billId,
+        tableId: String(tableId),
+        tableNumber: text(table.table_number, '—'),
+      });
+    } catch (error) {
+      Alert.alert(
+        'Unable to add items',
+        getErrorMessage(error, 'Could not load the active bill. Try again.'),
+      );
+    } finally {
+      setAddingItemsTableId(null);
     }
   };
 
@@ -1196,11 +1250,7 @@ export default function NewOrderFlow({
                             {reservationSummary}
                           </Text>
                         ) : null}
-                        {selectable ? (
-                          <Text className="mt-2 text-xs font-semibold text-[#116C0B]">
-                            Tap to select
-                          </Text>
-                        ) : status === 'Reserved' ? (
+                        {!selectable && status === 'Reserved' ? (
                           <Text className="mt-2 text-xs font-semibold text-[#B45309]">
                             Reserved now
                           </Text>
@@ -1239,9 +1289,10 @@ export default function NewOrderFlow({
                             {status}
                           </Text>
                         </View>
-                        {canOpenBill ? (
+                        <View className="mt-3">{tableDetails}</View>
+                        {selectable ? (
                           <Pressable
-                            accessibilityLabel={`View bill for table ${text(
+                            accessibilityLabel={`Select items for table ${text(
                               table.table_number,
                               String(index + 1),
                             )}`}
@@ -1250,25 +1301,53 @@ export default function NewOrderFlow({
                             className="mt-3 min-h-10 items-center justify-center rounded-xl bg-[#064E3B]"
                           >
                             <Text className="text-xs font-bold text-white">
-                              View Bill
+                              Select Items
                             </Text>
                           </Pressable>
                         ) : null}
-                        {selectable ? (
-                          <Pressable
-                            accessibilityLabel={`Table ${text(
-                              table.table_number,
-                              String(index + 1),
-                            )}, ${status}, available for selection`}
-                            accessibilityRole="button"
-                            onPress={() => void chooseTable(table)}
-                            className="mt-3"
-                          >
-                            {tableDetails}
-                          </Pressable>
-                        ) : (
-                          <View className="mt-3">{tableDetails}</View>
-                        )}
+                        {canOpenBill ? (
+                          <View className="mt-3 flex-row gap-2">
+                            <Pressable
+                              accessibilityLabel={`View bill for table ${text(
+                                table.table_number,
+                                String(index + 1),
+                              )}`}
+                              accessibilityRole="button"
+                              disabled={addingItemsTableId !== null}
+                              onPress={() => void chooseTable(table)}
+                              className="min-h-10 flex-1 items-center justify-center rounded-xl border border-[#064E3B] bg-white"
+                            >
+                              <Text className="text-xs font-bold text-[#064E3B]">
+                                View Bill
+                              </Text>
+                            </Pressable>
+                            <Pressable
+                              accessibilityLabel={`Add items to bill for table ${text(
+                                table.table_number,
+                                String(index + 1),
+                              )}`}
+                              accessibilityRole="button"
+                              accessibilityState={{
+                                disabled: addingItemsTableId !== null,
+                              }}
+                              disabled={addingItemsTableId !== null}
+                              onPress={() => void addItemsToActiveBill(table)}
+                              className={`min-h-10 flex-1 items-center justify-center rounded-xl bg-[#064E3B] ${
+                                addingItemsTableId ===
+                                String(table.table_id ?? table.id)
+                                  ? 'opacity-70'
+                                  : ''
+                              }`}
+                            >
+                              <Text className="text-xs font-bold text-white">
+                                {addingItemsTableId ===
+                                String(table.table_id ?? table.id)
+                                  ? 'Loading...'
+                                  : 'Add Items'}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
                       </View>
                     );
                   })}
