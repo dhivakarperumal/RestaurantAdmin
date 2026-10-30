@@ -24,11 +24,9 @@ import {
   isLoggedIn,
   loginWithIdentifier,
   logoutUser,
-  registerUser,
 } from './api';
 import AuthScreen from './src/Auth/AuthScreen';
 import type { LoginValues } from './src/Auth/LoginPage';
-import type { RegisterValues } from './src/Auth/RegisterPage';
 import colors from './src/theme/colors';
 import DashboardScreen from './src/Admin/Navigation/DashboardScreen';
 import ChefDashboardScreen from './src/Chef/ChefDashboardScreen';
@@ -119,10 +117,6 @@ function AppContent() {
     setUser(result.user ?? storedUser ?? null);
   };
 
-  const handleRegister = async (values: RegisterValues) => {
-    await registerUser(values);
-  };
-
   const handleLogout = async () => {
     await logoutUser();
     setUser(null);
@@ -178,7 +172,7 @@ function AppContent() {
   }
 
   if (!user) {
-    return <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
+    return <AuthScreen onLogin={handleLogin} />;
   }
 
   const role = getUserRole(user);

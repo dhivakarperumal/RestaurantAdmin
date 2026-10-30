@@ -172,28 +172,10 @@ function ReservationsScreen({ onBack }: { onBack: () => void }) {
       contentContainerClassName="mx-auto w-full max-w-[1100px] gap-4 px-5 pb-7 pt-5"
       keyboardShouldPersistTaps="handled"
     >
-      <View className="mb-4">
-        <Pressable
-          accessibilityLabel="Back to More"
-          onPress={onBack}
-          className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2"
-        >
-          <Text
-            className="text-sm font-semibold"
-            style={{ color: colors.primary }}
-          >
-            ‹ More
-          </Text>
-        </Pressable>
-      </View>
-
-      <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-        TABLE BOOKING
-      </Text>
       <Text className="mt-[5px] text-2xl font-bold text-[#012711]">
         Reservations
       </Text>
-      <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
+      <Text className="text-sm leading-[21px] text-[#6B7280]">
         Review guest requests, confirm table bookings, and manage the dining
         flow.
       </Text>

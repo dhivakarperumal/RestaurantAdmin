@@ -6,19 +6,37 @@ import {
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePrinterSettings } from './hooks/usePrinterSettings';
-import type { ConnectionType, PrinterModel, PaperSize } from './hooks/usePrinterSettings';
+import type {
+  ConnectionType,
+  PrinterModel,
+  PaperSize,
+} from './hooks/usePrinterSettings';
 import { PrinterToggle } from './components/PrinterToggle';
 import { PrinterSelect } from './components/PrinterSelect';
 import { UsbPanel } from './panels/UsbPanel';
 import { NetworkPanel } from './panels/NetworkPanel';
 import { BluetoothPanel } from './panels/BluetoothPanel';
-import { ArrowLeftIcon, PrinterIcon, SaveIcon } from './components/PrinterIcons';
+import {
+  ArrowLeftIcon,
+  PrinterIcon,
+  SaveIcon,
+} from './components/PrinterIcons';
 
-const PRINTER_MODELS: PrinterModel[] = ['EPSON TM-T82', 'TVS RP 3150', 'Generic POS Printer'];
-const CONNECTION_TYPES: ConnectionType[] = ['USB', 'LAN / Network', 'Bluetooth', 'Wi-Fi'];
+const PRINTER_MODELS: PrinterModel[] = [
+  'EPSON TM-T82',
+  'TVS RP 3150',
+  'Generic POS Printer',
+];
+const CONNECTION_TYPES: ConnectionType[] = [
+  'USB',
+  'LAN / Network',
+  'Bluetooth',
+  'Wi-Fi',
+];
 const PAPER_SIZES: PaperSize[] = ['58mm', '80mm', 'A4'];
 
 type PrinterSetupScreenProps = {
@@ -30,7 +48,9 @@ export default function PrinterSetupScreen({
   onBack,
   showHeader = true,
 }: PrinterSetupScreenProps) {
-  const { settings, setSettings, loading, saving, fetchError, save } = usePrinterSettings();
+  const { settings, setSettings, loading, saving, save } = usePrinterSettings();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 720;
 
   const update = useCallback(
     <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
@@ -44,7 +64,10 @@ export default function PrinterSetupScreen({
     if (success) {
       Alert.alert('Saved', 'Printer settings saved successfully.');
     } else {
-      Alert.alert('Error', 'Failed to save printer settings. Please try again.');
+      Alert.alert(
+        'Error',
+        'Failed to save printer settings. Please try again.',
+      );
     }
   };
 
@@ -54,8 +77,15 @@ export default function PrinterSetupScreen({
         edges={showHeader ? ['top', 'bottom'] : []}
         className="flex-1 items-center justify-center bg-[#F8FAFC]"
       >
-        <ActivityIndicator size="large" color="#116C0B" />
-        <Text className="mt-3 text-sm text-[#6B7280]">Loading printer settings...</Text>
+        <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF5EE]">
+          <ActivityIndicator size="large" color="#116C0B" />
+        </View>
+        <Text className="mt-4 text-base font-bold text-[#0F172A]">
+          Loading printer settings
+        </Text>
+        <Text className="mt-1 text-sm text-[#64748B]">
+          Fetching your saved configuration...
+        </Text>
       </SafeAreaView>
     );
   }
@@ -79,129 +109,238 @@ export default function PrinterSetupScreen({
           <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF]">
             <PrinterIcon size={20} color="#116C0B" />
           </View>
-          <View>
-            <Text className="text-base font-bold text-[#0F172A]">Printer Setup</Text>
-            <Text className="text-[11px] text-[#6B7280]">Configure receipt and kitchen printers</Text>
+          <View className="flex-1">
+            <Text className="text-base font-bold text-[#0F172A]">
+              Printer Setup
+            </Text>
+            <Text className="mt-0.5 text-[11px] text-[#6B7280]">
+              Configure receipt and kitchen printers
+            </Text>
           </View>
         </View>
       ) : null}
 
-      {/* ── Body ── */}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pb-6 pt-5"
+        contentContainerStyle={{
+          alignSelf: 'center',
+          gap: 16,
+          maxWidth: 920,
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          paddingBottom: 28,
+          width: '100%',
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* API fetch error banner — only shown for unexpected errors, not missing endpoints */}
-        {fetchError ? null : null}
+        <View className="rounded-3xl border border-[#DDEBE0] bg-white p-5">
+          <View className="mb-5">
+            <Text className="text-[10px] font-extrabold uppercase tracking-[2px] text-[#15803D]">
+              Device preferences
+            </Text>
+            <Text className="mt-2 text-2xl font-extrabold text-[#102A1A]">
+              Printer setup
+            </Text>
+            <Text className="mt-1 text-sm leading-5 text-[#64748B]">
+              Set up how receipts and kitchen orders are printed at your
+              restaurant.
+            </Text>
+          </View>
+          <View
+            className={isWide ? 'flex-row gap-4' : 'gap-0'}
+            style={isWide ? { zIndex: 2 } : undefined}
+          >
+            <PrinterSelect
+              label="Printer model"
+              options={PRINTER_MODELS}
+              value={settings.printerModel}
+              onChange={v => update('printerModel', v)}
+            />
+            <PrinterSelect
+              label="Connection type"
+              options={CONNECTION_TYPES}
+              value={settings.connectionType}
+              onChange={v => update('connectionType', v)}
+            />
+          </View>
 
-        {/* ── Section: Printer Model & Connection ── */}
-        <Text className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">
-          Printer Configuration
-        </Text>
+          {settings.connectionType === 'USB' ? <UsbPanel /> : null}
 
-        <PrinterSelect
-          label="Printer Model"
-          options={PRINTER_MODELS}
-          value={settings.printerModel}
-          onChange={v => update('printerModel', v)}
-        />
+          {settings.connectionType === 'LAN / Network' ||
+          settings.connectionType === 'Wi-Fi' ? (
+            <NetworkPanel
+              type={settings.connectionType}
+              ip={settings.ip}
+              port={settings.port}
+              onChangeIp={v => update('ip', v)}
+              onChangePort={v => update('port', v)}
+            />
+          ) : null}
 
-        <PrinterSelect
-          label="Connection Type"
-          options={CONNECTION_TYPES}
-          value={settings.connectionType}
-          onChange={v => update('connectionType', v)}
-        />
-
-        {/* ── Dynamic connection panel ── */}
-        {settings.connectionType === 'USB' && <UsbPanel />}
-
-        {(settings.connectionType === 'LAN / Network' || settings.connectionType === 'Wi-Fi') && (
-          <NetworkPanel
-            type={settings.connectionType}
-            ip={settings.ip}
-            port={settings.port}
-            onChangeIp={v => update('ip', v)}
-            onChangePort={v => update('port', v)}
-          />
-        )}
-
-        {settings.connectionType === 'Bluetooth' && (
-          <BluetoothPanel
-            pairedDevices={settings.pairedDevices}
-            onPairedDevicesChange={devices => update('pairedDevices', devices)}
-          />
-        )}
-
-        {/* ── Section: Paper & Copies ── */}
-        <View className="mt-6">
-          <Text className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">
-            Paper Settings
-          </Text>
-          <PrinterSelect
-            label="Paper Size"
-            options={PAPER_SIZES}
-            value={settings.paperSize}
-            onChange={v => update('paperSize', v)}
-          />
-          <PrinterSelect
-            label="Print Copies"
-            options={['1', '2', '3']}
-            value={settings.printCopies}
-            onChange={v => update('printCopies', v)}
-          />
+          {settings.connectionType === 'Bluetooth' ? (
+            <BluetoothPanel
+              pairedDevices={settings.pairedDevices}
+              onPairedDevicesChange={devices =>
+                update('pairedDevices', devices)
+              }
+            />
+          ) : null}
         </View>
 
-        {/* ── Section: Print Options (Toggles) ── */}
-        <View className="mt-4">
-          <Text className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">
-            Print Options
-          </Text>
-          <View className="rounded-2xl border border-[#E2E8F0] bg-white px-4 py-1">
-            <PrinterToggle label="Auto-print Receipt" value={settings.autoPrint} onChange={v => update('autoPrint', v)} />
-            <PrinterToggle label="Cash Drawer Trigger" value={settings.cashDrawer} onChange={v => update('cashDrawer', v)} />
-            <PrinterToggle label="Kitchen Order Printer" value={settings.kitchenPrinter} onChange={v => update('kitchenPrinter', v)} />
-            <PrinterToggle label="Barcode Printing" value={settings.barcodePrinting} onChange={v => update('barcodePrinting', v)} />
-            <PrinterToggle label="QR Code Printing" value={settings.qrPrinting} onChange={v => update('qrPrinting', v)} />
-            <PrinterToggle label="Print Logo" value={settings.printLogo} onChange={v => update('printLogo', v)} />
-            <PrinterToggle label="Print Header" value={settings.printHeader} onChange={v => update('printHeader', v)} />
-            <PrinterToggle label="Print Footer" value={settings.printFooter} onChange={v => update('printFooter', v)} />
+        <View className="rounded-3xl border border-[#E2E8F0] bg-white p-5">
+          <SectionHeading
+            title="Paper & copies"
+            subtitle="Choose the receipt format and number of printouts."
+          />
+          <View className={isWide ? 'flex-row gap-4' : 'gap-0'}>
+            <PrinterSelect
+              label="Paper Size"
+              options={PAPER_SIZES}
+              value={settings.paperSize}
+              onChange={v => update('paperSize', v)}
+            />
+            <PrinterSelect
+              label="Print Copies"
+              options={['1', '2', '3']}
+              value={settings.printCopies}
+              onChange={v => update('printCopies', v)}
+            />
           </View>
         </View>
 
-        <View className="h-4" />
+        <View>
+          <SectionHeading
+            title="Print options"
+            subtitle="Fine-tune what appears on receipts and kitchen tickets."
+          />
+          <View className={isWide ? 'flex-row flex-wrap gap-4' : 'gap-4'}>
+            <View className="flex-1 basis-[300px] rounded-3xl border border-[#E2E8F0] bg-white px-4">
+              <Text className="pt-4 text-sm font-bold text-[#0F172A]">
+                Receipts & checkout
+              </Text>
+              <Text className="mt-1 pb-1 text-xs leading-5 text-[#64748B]">
+                Receipt automation and branding.
+              </Text>
+              <PrinterToggle
+                label="Auto-print receipt"
+                description="Print automatically after checkout."
+                value={settings.autoPrint}
+                onChange={v => update('autoPrint', v)}
+              />
+              <PrinterToggle
+                label="Cash drawer trigger"
+                description="Open the cash drawer after payment."
+                value={settings.cashDrawer}
+                onChange={v => update('cashDrawer', v)}
+              />
+              <PrinterToggle
+                label="Print logo"
+                description="Include your restaurant logo."
+                value={settings.printLogo}
+                onChange={v => update('printLogo', v)}
+              />
+              <PrinterToggle
+                label="Print header"
+                description="Show the receipt header."
+                value={settings.printHeader}
+                onChange={v => update('printHeader', v)}
+              />
+              <PrinterToggle
+                label="Print footer"
+                description="Show the receipt footer."
+                value={settings.printFooter}
+                onChange={v => update('printFooter', v)}
+                isLast
+              />
+            </View>
+
+            <View className="flex-1 basis-[300px] rounded-3xl border border-[#E2E8F0] bg-white px-4">
+              <Text className="pt-4 text-sm font-bold text-[#0F172A]">
+                Kitchen & labels
+              </Text>
+              <Text className="mt-1 pb-1 text-xs leading-5 text-[#64748B]">
+                Enable kitchen tickets and scannable codes.
+              </Text>
+              <PrinterToggle
+                label="Kitchen order printer"
+                description="Send incoming orders to the kitchen."
+                value={settings.kitchenPrinter}
+                onChange={v => update('kitchenPrinter', v)}
+              />
+              <PrinterToggle
+                label="Barcode printing"
+                description="Add barcodes to printed documents."
+                value={settings.barcodePrinting}
+                onChange={v => update('barcodePrinting', v)}
+              />
+              <PrinterToggle
+                label="QR code printing"
+                description="Add QR codes to printed documents."
+                value={settings.qrPrinting}
+                onChange={v => update('qrPrinting', v)}
+                isLast
+              />
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
-      {/* ── Footer action bar ── */}
-      <View className="flex-row gap-3 border-t border-[#E2E8F0] bg-white px-4 pb-4 pt-3">
-        <Pressable
-          onPress={onBack}
-          className="flex-1 items-center justify-center rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] py-3"
-          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-          accessibilityRole="button"
-          accessibilityLabel="Cancel"
+      <View className="border-t border-[#E2E8F0] bg-white px-5 pb-4 pt-3">
+        <View
+          className="flex-row gap-3"
+          style={{
+            alignSelf: 'center',
+            maxWidth: 880,
+            width: '100%',
+          }}
         >
-          <Text className="text-sm font-semibold text-[#64748B]">Cancel</Text>
-        </Pressable>
+          <Pressable
+            onPress={onBack}
+            className="min-h-12 flex-1 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 py-3"
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+          >
+            <Text className="text-sm font-bold text-[#475569]">Cancel</Text>
+          </Pressable>
 
-        <Pressable
-          onPress={handleSave}
-          disabled={saving}
-          className="flex-[2] flex-row items-center justify-center gap-2 rounded-xl bg-[#116C0B] py-3"
-          style={({ pressed }) => ({ opacity: saving || pressed ? 0.75 : 1 })}
-          accessibilityRole="button"
-          accessibilityLabel="Save printer settings"
-        >
-          {saving
-            ? <ActivityIndicator size="small" color="#FFFFFF" />
-            : <SaveIcon size={16} color="#FFFFFF" />}
-          <Text className="text-sm font-bold text-white">
-            {saving ? 'Saving...' : 'Save Settings'}
-          </Text>
-        </Pressable>
+          <Pressable
+            onPress={handleSave}
+            disabled={saving}
+            className="min-h-12 flex-[2] flex-row items-center justify-center gap-2 rounded-xl bg-[#116C0B] px-4 py-3"
+            style={({ pressed }) => ({
+              opacity: saving || pressed ? 0.75 : 1,
+            })}
+            accessibilityRole="button"
+            accessibilityLabel="Save printer settings"
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <SaveIcon size={16} color="#FFFFFF" />
+            )}
+            <Text className="text-sm font-bold text-white">
+              {saving ? 'Saving...' : 'Save Settings'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
+  );
+}
+
+function SectionHeading({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <View className="mb-4">
+      <Text className="text-base font-extrabold text-[#102A1A]">{title}</Text>
+      <Text className="mt-1 text-xs leading-5 text-[#64748B]">{subtitle}</Text>
+    </View>
   );
 }

@@ -12,15 +12,23 @@ import {
 } from 'react-native';
 import api, { API_BASE_URL } from '../../../api';
 import AdminStatCard from '../../components/AdminStatCard';
+import AdminManagementCard from '../../components/AdminManagementCard';
 import {
   PlusIcon,
   ProductIcon,
   SearchIcon,
 } from '../Navigation/NavigationIcons';
 import colors from '../../theme/colors';
-import { CheckCircle2Icon, ImageIcon } from '../../components/popups';
+import {
+  CheckCircle2Icon,
+  ConfirmDialog,
+  Edit3Icon,
+  ImageIcon,
+  Trash2Icon,
+} from '../../components/popups';
 
-type CuisineRecord = {
+export type CuisineRecord = {
+  id?: string | number;
   cuisine_id?: string | number;
   cuisine_name?: string;
   name?: string;
@@ -32,6 +40,7 @@ type CuisineRecord = {
 
 type CuisineProps = {
   onAddCuisine: () => void;
+  onEditCuisine: (cuisine: CuisineRecord) => void;
   onBack: () => void;
   showBackButton?: boolean;
 };
@@ -63,17 +72,24 @@ function readCuisines(payload: unknown): CuisineRecord[] {
   return [];
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(
+  error: unknown,
+  fallback = 'Unable to load cuisines. Please try again.',
+) {
   if (isRecord(error) && typeof error.message === 'string') {
     return error.message;
   }
-  return 'Unable to load cuisines. Please try again.';
+  return fallback;
 }
 
 function getCuisineName(cuisine: CuisineRecord) {
   return (
     cuisine.cuisine_name?.trim() || cuisine.name?.trim() || 'Unnamed cuisine'
   );
+}
+
+function getCuisineId(cuisine: CuisineRecord) {
+  return String(cuisine.cuisine_id ?? cuisine.id ?? '').trim();
 }
 
 function getImageUrl(image?: string | null) {
@@ -94,6 +110,7 @@ function isFeatured(value: CuisineRecord['featured']) {
 
 function Cuisine({
   onAddCuisine,
+  onEditCuisine,
   onBack,
   showBackButton = true,
 }: CuisineProps) {
@@ -104,7 +121,12 @@ function Cuisine({
   const [openFilter, setOpenFilter] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [cuisineToDelete, setCuisineToDelete] =
+    useState<CuisineRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
@@ -175,6 +197,33 @@ function Cuisine({
     );
   }, [cuisines, search, statusFilter]);
 
+  const deleteCuisine = async () => {
+    if (!cuisineToDelete) {
+      return;
+    }
+
+    const cuisineId = getCuisineId(cuisineToDelete);
+    if (!cuisineId) {
+      setDeleteError('This cuisine does not have an ID and cannot be deleted.');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete(`/cuisines/${encodeURIComponent(cuisineId)}`);
+      setCuisineToDelete(null);
+      setSuccessMessage('Cuisine deleted successfully.');
+      setRefreshKey(current => current + 1);
+    } catch (error) {
+      setDeleteError(
+        getErrorMessage(error, 'Unable to delete this cuisine.'),
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-[#F8FAF8]">
       <ScrollView
@@ -229,6 +278,15 @@ function Cuisine({
             </Pressable>
           ) : null}
         </View>
+
+        {successMessage ? (
+          <Text
+            accessibilityRole="alert"
+            className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D]"
+          >
+            {successMessage}
+          </Text>
+        ) : null}
 
         <View className="flex-row flex-wrap justify-between gap-y-3">
           <CuisineStat label="Total cuisines" value={cuisines.length} />
@@ -402,14 +460,18 @@ function Cuisine({
                 <Text className="w-24 text-[10px] font-bold uppercase text-[#64748B]">
                   Status
                 </Text>
+                <Text className="w-20 text-[10px] font-bold uppercase text-[#64748B]">
+                  Actions
+                </Text>
               </View>
               {filteredCuisines.map((cuisine, index) => {
                 const name = getCuisineName(cuisine);
                 const imageUrl = getImageUrl(cuisine.image);
                 const status = cuisine.status?.trim() || 'Active';
+                const cuisineId = getCuisineId(cuisine);
                 return (
                   <View
-                    key={String(cuisine.cuisine_id || `${name}-${index}`)}
+                    key={cuisineId || `${name}-${index}`}
                     className="min-h-[64px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2"
                   >
                     {imageUrl ? (
@@ -432,7 +494,7 @@ function Cuisine({
                         {name}
                       </Text>
                       <Text className="mt-1 text-[10px] text-[#64748B]">
-                        {cuisine.cuisine_id}
+                        {cuisineId}
                       </Text>
                     </View>
                     <View className="w-28">
@@ -448,94 +510,139 @@ function Cuisine({
                         active={status.toLowerCase() !== 'inactive'}
                       />
                     </View>
+                    <View className="w-20 flex-row gap-1">
+                      {cuisineId ? (
+                        <>
+                          <CuisineActionButton
+                            label={`Edit ${name}`}
+                            tone="edit"
+                            onPress={() => onEditCuisine(cuisine)}
+                          />
+                          <CuisineActionButton
+                            label={`Delete ${name}`}
+                            tone="delete"
+                            onPress={() => {
+                              setDeleteError('');
+                              setCuisineToDelete(cuisine);
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <Text className="text-[10px] text-[#64748B]">
+                          No ID
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 );
               })}
             </View>
           </ScrollView>
         ) : (
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row flex-wrap justify-between gap-y-3">
             {filteredCuisines.map((cuisine, index) => {
               const name = getCuisineName(cuisine);
               const imageUrl = getImageUrl(cuisine.image);
               const status = cuisine.status?.trim() || 'Active';
+              const cuisineId = getCuisineId(cuisine);
 
               return (
-                <View
-                  key={String(cuisine.cuisine_id || `${name}-${index}`)}
-                  className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
-                  style={{
-                    width: isWide ? '48%' : '47%',
-                    flexGrow: 0,
-                    flexShrink: 0,
-                  }}
+                <AdminManagementCard
+                  key={cuisineId || `${name}-${index}`}
+                  isWide={isWide}
                 >
-                  {imageUrl ? (
-                    <Image
-                      accessibilityLabel={`${name} cuisine image`}
-                      resizeMode="cover"
-                      source={{ uri: imageUrl }}
-                      className={
-                        isWide
-                          ? 'h-48 w-full bg-[#F3F4F6]'
-                          : 'h-28 w-full bg-[#F3F4F6]'
-                      }
-                    />
-                  ) : (
-                    <View
-                      className={
-                        isWide
-                          ? 'h-48 w-full items-center justify-center bg-[#F0F7EE]'
-                          : 'h-28 w-full items-center justify-center bg-[#F0F7EE]'
-                      }
-                    >
-                      <ProductIcon color={colors.primary} size={26} />
+                  <View className="relative">
+                    {imageUrl ? (
+                      <Image
+                        accessibilityLabel={`${name} cuisine image`}
+                        resizeMode="cover"
+                        source={{ uri: imageUrl }}
+                        className={
+                          isWide
+                            ? 'h-40 w-full bg-[#F3F4F6]'
+                            : 'h-32 w-full bg-[#F3F4F6]'
+                        }
+                      />
+                    ) : (
+                      <View
+                        className={
+                          isWide
+                            ? 'h-40 w-full items-center justify-center bg-[#F0F7EE]'
+                            : 'h-32 w-full items-center justify-center bg-[#F0F7EE]'
+                        }
+                      >
+                        <ProductIcon color={colors.primary} size={26} />
+                      </View>
+                    )}
+                    <View className="absolute left-1.5 top-1.5">
+                      <CuisineBadge
+                        label={status}
+                        active={status.toLowerCase() !== 'inactive'}
+                      />
                     </View>
-                  )}
-                  <View className="gap-2 p-3">
-                    <View className="flex-row flex-wrap items-center gap-2">
+                    <View
+                      accessibilityLabel={
+                        isFeatured(cuisine.featured)
+                          ? 'Featured cuisine'
+                          : 'Not featured'
+                      }
+                      className="absolute right-1.5 top-1.5 h-6 w-6 items-center justify-center rounded-full bg-black/50"
+                    >
+                      <Text className="text-xs text-white">
+                        {isFeatured(cuisine.featured) ? '★' : '☆'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    className={
+                      isWide
+                        ? 'h-[112px] justify-between p-3.5'
+                        : 'h-[100px] justify-between p-2.5'
+                    }
+                  >
+                    <View>
                       <Text
-                        className="min-w-0 flex-1 text-sm font-bold text-[#012711]"
+                        className="text-sm font-bold text-[#012711]"
                         numberOfLines={1}
                       >
                         {name}
                       </Text>
-                      {isFeatured(cuisine.featured) ? (
-                        <Text
-                          className="rounded-full px-2 py-1 text-[10px] font-semibold"
-                          style={{
-                            backgroundColor: colors.surfaceSecondary,
-                            color: colors.primary,
-                          }}
-                        >
-                          Featured
-                        </Text>
-                      ) : null}
-                    </View>
-                    {cuisine.cuisine_id ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">
-                        {cuisine.cuisine_id}
-                      </Text>
-                    ) : null}
-                    {cuisine.description ? (
                       <Text
-                        className="mt-1 text-xs leading-4 text-[#6B7280]"
-                        numberOfLines={2}
+                        className="mt-1 text-xs leading-[17px] text-[#6B7280]"
+                        numberOfLines={1}
                       >
-                        {cuisine.description}
+                        {cuisine.description?.trim() || 'No description'}
                       </Text>
-                    ) : null}
+                    </View>
+                    <View className="flex-row items-center justify-between">
+                      <Text
+                        className="rounded-md bg-[#EAF7EF] px-1.5 py-1 text-[9px] font-bold text-[#187443]"
+                        numberOfLines={1}
+                      >
+                        {cuisineId || 'No ID'}
+                      </Text>
+                      <View className="flex-row gap-1">
+                        {cuisineId ? (
+                          <>
+                            <CuisineActionButton
+                              label={`Edit ${name}`}
+                              tone="edit"
+                              onPress={() => onEditCuisine(cuisine)}
+                            />
+                            <CuisineActionButton
+                              label={`Delete ${name}`}
+                              tone="delete"
+                              onPress={() => {
+                                setDeleteError('');
+                                setCuisineToDelete(cuisine);
+                              }}
+                            />
+                          </>
+                        ) : null}
+                      </View>
+                    </View>
                   </View>
-                  <View className="flex-row justify-between border-t border-[#F1F5F9] pt-2">
-                    <CuisineBadge
-                      label={status}
-                      active={status.toLowerCase() !== 'inactive'}
-                    />
-                    {isFeatured(cuisine.featured) ? (
-                      <CuisineBadge label="Featured" active />
-                    ) : null}
-                  </View>
-                </View>
+                </AdminManagementCard>
               );
             })}
           </View>
@@ -557,6 +664,22 @@ function Cuisine({
           <PlusIcon color="#FFFFFF" size={26} />
         </Pressable>
       ) : null}
+      <ConfirmDialog
+        visible={cuisineToDelete !== null}
+        onClose={() => {
+          setCuisineToDelete(null);
+          setDeleteError('');
+        }}
+        onConfirm={() => void deleteCuisine()}
+        title="Delete cuisine?"
+        itemName={getCuisineName(cuisineToDelete || {})}
+        message="This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        isLoading={isDeleting}
+        errorMessage={deleteError}
+      />
     </View>
   );
 }
@@ -608,5 +731,35 @@ function CuisineBadge({ label, active }: { label: string; active: boolean }) {
         {label}
       </Text>
     </View>
+  );
+}
+
+function CuisineActionButton({
+  label,
+  onPress,
+  tone,
+}: {
+  label: string;
+  onPress: () => void;
+  tone: 'edit' | 'delete';
+}) {
+  const isEdit = tone === 'edit';
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      className="h-8 w-8 items-center justify-center rounded-lg border"
+      style={{
+        backgroundColor: isEdit ? '#F0FDF4' : '#FEF2F2',
+        borderColor: isEdit ? '#DCFCE7' : '#FECACA',
+      }}
+    >
+      {isEdit ? (
+        <Edit3Icon size={15} color="#15803D" />
+      ) : (
+        <Trash2Icon size={15} color="#DC2626" />
+      )}
+    </Pressable>
   );
 }
