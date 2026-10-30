@@ -105,27 +105,33 @@ function ChefBottomNavigation({
             className="min-h-[70px] flex-1 items-center justify-center px-px"
           >
             <View
-              className={`h-[48px] w-[48px] items-center justify-center rounded-[17px] ${
-                selected ? 'bg-[#07513A]' : 'bg-transparent'
+              className={`min-h-[72px] min-w-[72px] items-center justify-center rounded-[22px] px-1.5 py-1 ${
+                selected ? 'bg-[#FFF9EC]' : 'bg-transparent'
               }`}
             >
-              {tab.icon(iconColor)}
+              <View
+                className={`h-[46px] w-[46px] items-center justify-center rounded-[17px] ${
+                  selected ? 'bg-[#07513A]' : 'bg-transparent'
+                }`}
+              >
+                {tab.icon(iconColor)}
+              </View>
+              <Text
+                numberOfLines={1}
+                className={`mt-1 text-[9px] ${
+                  selected
+                    ? 'font-extrabold text-[#07513A]'
+                    : 'font-medium text-[#59645F]'
+                }`}
+              >
+                {tab.label}
+              </Text>
+              <View
+                className={`mt-1 h-[4px] rounded-full ${
+                  selected ? 'w-[38px] bg-[#D4A843]' : 'w-[7px] bg-[#DEE3E0]'
+                }`}
+              />
             </View>
-            <Text
-              numberOfLines={1}
-              className={`mt-1 text-[9px] ${
-                selected
-                  ? 'font-extrabold text-[#07513A]'
-                  : 'font-medium text-[#59645F]'
-              }`}
-            >
-              {tab.label}
-            </Text>
-            <View
-              className={`mt-1.5 h-[4px] rounded-full ${
-                selected ? 'w-[38px] bg-[#D4A843]' : 'w-[7px] bg-[#DEE3E0]'
-              }`}
-            />
           </Pressable>
         );
       })}
