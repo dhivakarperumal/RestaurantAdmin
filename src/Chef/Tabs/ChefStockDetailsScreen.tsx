@@ -2,13 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import api from '../../../api';
 import colors from '../../theme/colors';
+import ChefListControls from './ChefListControls';
 
 type StockProduct = Record<string, unknown> & {
   id?: string | number;
@@ -74,6 +73,7 @@ function ChefStockDetailsScreen({
   const [selectedStockLevel, setSelectedStockLevel] =
     useState<StockLevel>('All Stock');
   const [sortOrder, setSortOrder] = useState<SortOrder>('latest');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   const loadProducts = useCallback(async (signal?: AbortSignal) => {
     setError('');
@@ -197,65 +197,73 @@ function ChefStockDetailsScreen({
         ))}
       </View>
 
-      <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
-        <TextInput
-          accessibilityLabel="Search inventory stock"
-          className="min-h-11 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#012711]"
-          onChangeText={setSearch}
-          placeholder="Search by name, SKU, or barcode"
-          placeholderTextColor="#9CA3AF"
-          value={search}
-        />
-        <ScrollView
-          contentContainerClassName="gap-2 pr-2"
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {(['All Status', 'Active', 'Inactive'] as const).map(status => (
-            <FilterChip
-              key={status}
-              label={status}
-              selected={selectedStatus === status}
-              onPress={() => setSelectedStatus(status)}
-            />
-          ))}
-        </ScrollView>
-        <ScrollView
-          contentContainerClassName="gap-2 pr-2"
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {(['All Stock', 'In Stock', 'Low Stock', 'Out of Stock'] as const).map(
-            level => (
-              <FilterChip
-                key={level}
-                label={level}
-                selected={selectedStockLevel === level}
-                onPress={() => setSelectedStockLevel(level)}
-              />
-            ),
-          )}
-        </ScrollView>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() =>
-            setSortOrder(current => {
-              const orders: SortOrder[] = [
-                'latest',
-                'name',
-                'stock-low',
-                'stock-high',
-              ];
-              return orders[(orders.indexOf(current) + 1) % orders.length];
-            })
-          }
-          className="self-start rounded-lg bg-[#F0F7EE] px-3 py-2"
-        >
-          <Text className="text-[10px] font-semibold text-[#116C0B]">
-            Sort: {sortLabel(sortOrder)}
-          </Text>
-        </Pressable>
-      </View>
+      <ChefListControls
+        filters={[
+          {
+            label: 'Status',
+            value: selectedStatus,
+            options: [
+              { value: 'All Status', label: 'All statuses' },
+              { value: 'Active', label: 'Active' },
+              { value: 'Inactive', label: 'Inactive' },
+            ],
+            onChange: value => {
+              if (
+                value === 'All Status' ||
+                value === 'Active' ||
+                value === 'Inactive'
+              ) {
+                setSelectedStatus(value);
+              }
+            },
+          },
+          {
+            label: 'Stock level',
+            value: selectedStockLevel,
+            options: [
+              { value: 'All Stock', label: 'All stock levels' },
+              { value: 'In Stock', label: 'In stock' },
+              { value: 'Low Stock', label: 'Low stock' },
+              { value: 'Out of Stock', label: 'Out of stock' },
+            ],
+            onChange: value => {
+              if (
+                value === 'All Stock' ||
+                value === 'In Stock' ||
+                value === 'Low Stock' ||
+                value === 'Out of Stock'
+              ) {
+                setSelectedStockLevel(value);
+              }
+            },
+          },
+        ]}
+        onSearchChange={setSearch}
+        onViewModeChange={setViewMode}
+        placeholder="Search by name, SKU, or barcode..."
+        search={search}
+        searchLabel="Search inventory stock"
+        sort={{
+          value: sortOrder,
+          options: [
+            { value: 'latest', label: 'Latest' },
+            { value: 'name', label: 'Name A-Z' },
+            { value: 'stock-low', label: 'Lowest stock' },
+            { value: 'stock-high', label: 'Highest stock' },
+          ],
+          onChange: value => {
+            if (
+              value === 'latest' ||
+              value === 'name' ||
+              value === 'stock-low' ||
+              value === 'stock-high'
+            ) {
+              setSortOrder(value);
+            }
+          },
+        }}
+        viewMode={viewMode}
+      />
 
       {error ? (
         <View className="rounded-xl border border-red-200 bg-red-50 p-3">
@@ -280,13 +288,21 @@ function ChefStockDetailsScreen({
           </Text>
         </View>
       ) : filteredProducts.length ? (
-        <View className="gap-3">
+        <View
+          className={
+            viewMode === 'grid'
+              ? 'flex-row flex-wrap justify-between gap-y-3'
+              : 'gap-3'
+          }
+        >
           {filteredProducts.map((product, index) => {
             const level = stockLevel(product);
             return (
               <View
                 key={String(product.id ?? product.sku ?? index)}
-                className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                className={`gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 ${
+                  viewMode === 'grid' ? 'w-[48%]' : 'w-full'
+                }`}
               >
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="flex-1">
@@ -357,41 +373,6 @@ function ChefStockDetailsScreen({
       ) : null}
     </View>
   );
-}
-
-function FilterChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      className={`rounded-full border px-3 py-2 ${
-        selected ? 'border-[#116C0B] bg-[#116C0B]' : 'border-[#E5E7EB] bg-white'
-      }`}
-    >
-      <Text className={`text-[10px] font-semibold ${selected ? 'text-white' : 'text-[#4B5563]'}`}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function sortLabel(order: SortOrder) {
-  const labels: Record<SortOrder, string> = {
-    latest: 'Latest',
-    name: 'Name A–Z',
-    'stock-low': 'Stock low to high',
-    'stock-high': 'Stock high to low',
-  };
-  return labels[order];
 }
 
 function stockLevelClass(level: Exclude<StockLevel, 'All Stock'>) {

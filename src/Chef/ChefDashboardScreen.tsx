@@ -26,6 +26,7 @@ import ChefHeader from './ChefHeader';
 import ChefAttendanceScreen from './Tabs/ChefAttendanceScreen';
 import ChefEventOrdersScreen from './Tabs/ChefEventOrdersScreen';
 import ChefFoodsScreen, { type ChefFood } from './Tabs/ChefFoodsScreen';
+import ChefListControls from './Tabs/ChefListControls';
 import ChefMoreScreen from './Tabs/ChefMoreScreen';
 import ChefOrdersMenuScreen from './Tabs/ChefOrdersMenuScreen';
 import ChefOrdersScreen, { type ChefOrderPage } from './Tabs/ChefOrdersScreen';
@@ -77,6 +78,11 @@ function rowsFrom(payload: unknown, keys: string[] = []): DataRow[] {
     }
   }
   return [];
+}
+
+function firstRequestItem(request: DataRow) {
+  const items = Array.isArray(request.items) ? request.items : [];
+  return isRecord(items[0]) ? items[0] : null;
 }
 
 function errorMessage(error: unknown) {
@@ -224,6 +230,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const [orders, setOrders] = useState<DataRow[]>([]);
   const [eventOrders, setEventOrders] = useState<DataRow[]>([]);
   const [requests, setRequests] = useState<DataRow[]>([]);
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [inventoryStatusFilter, setInventoryStatusFilter] = useState('all');
+  const [inventorySort, setInventorySort] = useState<'latest' | 'oldest' | 'name'>(
+    'latest',
+  );
+  const [inventoryViewMode, setInventoryViewMode] = useState<'grid' | 'table'>(
+    'grid',
+  );
   const [inventoryProducts, setInventoryProducts] = useState<DataRow[]>([]);
   const [attendance, setAttendance] = useState<DataRow | null>(null);
   const [shiftInfo, setShiftInfo] = useState<DataRow | null>(null);
@@ -241,6 +255,47 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
   const chefName =
     user?.name?.trim() || user?.username?.trim() || 'Chef';
+
+  const inventoryStatuses = useMemo(
+    () =>
+      [...new Set(requests.map(request => text(request.status, 'Pending')))]
+        .sort((first, second) => first.localeCompare(second)),
+    [requests],
+  );
+  const filteredRequests = useMemo(() => {
+    const query = inventorySearch.trim().toLowerCase();
+    return requests
+      .filter(request => {
+        const firstItem = firstRequestItem(request);
+        const matchesStatus =
+          inventoryStatusFilter === 'all' ||
+          text(request.status, 'Pending').toLowerCase() ===
+            inventoryStatusFilter;
+        const matchesSearch = [
+          request.request_number,
+          request.requested_by,
+          request.department,
+          firstItem?.product_name,
+        ].some(value => text(value, '').toLowerCase().includes(query));
+        return matchesStatus && matchesSearch;
+      })
+      .sort((first, second) => {
+        if (inventorySort === 'name') {
+          return text(firstRequestItem(first)?.product_name, '').localeCompare(
+            text(firstRequestItem(second)?.product_name, ''),
+          );
+        }
+        const firstDate = new Date(
+          String(first.created_at ?? first.request_date ?? 0),
+        ).getTime();
+        const secondDate = new Date(
+          String(second.created_at ?? second.request_date ?? 0),
+        ).getTime();
+        return inventorySort === 'latest'
+          ? secondDate - firstDate
+          : firstDate - secondDate;
+      });
+  }, [inventorySearch, inventorySort, inventoryStatusFilter, requests]);
 
   useEffect(() => {
     let active = true;
@@ -1306,27 +1361,90 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           </Text>
         </Pressable>
       </View>
-      {requests.length ? (
-        requests.map((request, index) => {
-          const itemList = Array.isArray(request.items) ? request.items : [];
-          const firstItem = isRecord(itemList[0]) ? itemList[0] : null;
-          return (
-            <Card key={text(request.id ?? request.request_number, String(index))}>
-              <Text className="text-sm font-bold text-[#012711]">
-                {text(request.request_number, `Request ${index + 1}`)}
-              </Text>
-              <Text className="mt-1.5 text-xs text-[#6B7280]">
-                {firstItem ? text(firstItem.product_name, 'Kitchen supplies') : 'Kitchen supplies'}
-                {firstItem ? ` · ${text(firstItem.quantity)} ${text(firstItem.unit, '')}` : ''}
-              </Text>
-              <Text className="mt-2 text-xs font-bold text-[#116C0B]">
-                {text(request.status, 'Pending')}
-              </Text>
-            </Card>
-          );
-        })
+      <ChefListControls
+        filters={[
+          {
+            label: 'Status',
+            value: inventoryStatusFilter,
+            options: [
+              { value: 'all', label: 'All statuses' },
+              ...inventoryStatuses.map(status => ({
+                value: status.toLowerCase(),
+                label: status,
+              })),
+            ],
+            onChange: setInventoryStatusFilter,
+          },
+        ]}
+        onSearchChange={setInventorySearch}
+        onViewModeChange={setInventoryViewMode}
+        placeholder="Search request, requester, or product..."
+        search={inventorySearch}
+        searchLabel="Search inventory requests"
+        sort={{
+          value: inventorySort,
+          options: [
+            { value: 'latest', label: 'Latest' },
+            { value: 'oldest', label: 'Oldest' },
+            { value: 'name', label: 'Product name A-Z' },
+          ],
+          onChange: value => {
+            if (
+              value === 'latest' ||
+              value === 'oldest' ||
+              value === 'name'
+            ) {
+              setInventorySort(value);
+            }
+          },
+        }}
+        viewMode={inventoryViewMode}
+      />
+      {filteredRequests.length ? (
+        <View
+          className={`mt-3 ${
+            inventoryViewMode === 'grid'
+              ? 'flex-row flex-wrap justify-between gap-y-3'
+              : 'gap-3'
+          }`}
+        >
+          {filteredRequests.map((request, index) => {
+            const firstItem = firstRequestItem(request);
+            return (
+              <Card
+                key={text(request.id ?? request.request_number, String(index))}
+                className={
+                  inventoryViewMode === 'grid' ? 'w-[48%]' : 'w-full'
+                }
+              >
+                <Text className="text-sm font-bold text-[#012711]">
+                  {text(request.request_number, `Request ${index + 1}`)}
+                </Text>
+                <Text className="mt-1.5 text-xs text-[#6B7280]">
+                  {firstItem
+                    ? text(firstItem.product_name, 'Kitchen supplies')
+                    : 'Kitchen supplies'}
+                  {firstItem
+                    ? ` · ${text(firstItem.quantity)} ${text(firstItem.unit, '')}`
+                    : ''}
+                </Text>
+                <Text className="mt-2 text-xs font-bold text-[#116C0B]">
+                  {text(request.status, 'Pending')}
+                </Text>
+              </Card>
+            );
+          })}
+        </View>
       ) : (
-        <EmptyState message="You have no inventory requests yet." />
+        <View className="mt-3">
+          <EmptyState
+            message={
+              requests.length
+                ? 'No inventory requests match these filters.'
+                : 'You have no inventory requests yet.'
+            }
+          />
+        </View>
       )}
     </>
   );

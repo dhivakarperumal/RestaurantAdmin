@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import colors from '../../theme/colors';
+import ChefListControls from './ChefListControls';
 
 type AttendanceRecord = Record<string, unknown>;
 type StatusFilter = 'All' | 'Present' | 'Late' | 'Working' | 'Completed';
@@ -113,6 +113,7 @@ function ChefAttendanceScreen({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [monthFilter, setMonthFilter] = useState<MonthFilter>('All');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [liveSeconds, setLiveSeconds] = useState(() =>
     durationInSeconds(attendance ?? {}),
   );
@@ -370,65 +371,60 @@ function ChefAttendanceScreen({
           </Text>
         </View>
 
-        <TextInput
-          accessibilityLabel="Search attendance history"
-          className="min-h-11 rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#012711]"
-          onChangeText={setSearch}
-          placeholder="Search date, status, or note"
-          placeholderTextColor="#9CA3AF"
-          value={search}
+        <ChefListControls
+          filters={[
+            {
+              label: 'Status',
+              value: statusFilter,
+              options: [
+                { value: 'All', label: 'All statuses' },
+                { value: 'Present', label: 'Present' },
+                { value: 'Late', label: 'Late' },
+                { value: 'Working', label: 'Active duty' },
+                { value: 'Completed', label: 'Completed' },
+              ],
+              onChange: value => {
+                const next = [
+                  'All',
+                  'Present',
+                  'Late',
+                  'Working',
+                  'Completed',
+                ].find(option => option === value);
+                if (next) setStatusFilter(next as StatusFilter);
+              },
+            },
+            {
+              label: 'Month',
+              value: monthFilter,
+              options: [
+                { value: 'All', label: 'All months' },
+                { value: 'Current', label: 'Current month' },
+                { value: 'Previous', label: 'Previous month' },
+              ],
+              onChange: value => {
+                const next = ['All', 'Current', 'Previous'].find(
+                  option => option === value,
+                );
+                if (next) setMonthFilter(next as MonthFilter);
+              },
+            },
+          ]}
+          onSearchChange={setSearch}
+          onViewModeChange={setViewMode}
+          placeholder="Search date, status, or note..."
+          search={search}
+          searchLabel="Search attendance history"
+          viewMode={viewMode}
         />
 
-        <View className="mt-3 gap-3">
-          <View className="flex-row flex-wrap gap-2">
-            {(['All', 'Present', 'Late', 'Working', 'Completed'] as const).map(
-              filter => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: statusFilter === filter }}
-                  key={filter}
-                  onPress={() => setStatusFilter(filter)}
-                  className={`rounded-full border px-3 py-2 ${
-                    statusFilter === filter
-                      ? 'border-[#116C0B] bg-[#116C0B]'
-                      : 'border-[#E5E7EB] bg-white'
-                  }`}
-                >
-                  <Text
-                    className={`text-[11px] font-semibold ${
-                      statusFilter === filter ? 'text-white' : 'text-[#4B5563]'
-                    }`}
-                  >
-                    {filter === 'Working' ? 'Active duty' : filter === 'All' ? 'All statuses' : filter}
-                  </Text>
-                </Pressable>
-              ),
-            )}
-          </View>
-          <View className="flex-row gap-2">
-            {(['All', 'Current', 'Previous'] as const).map(filter => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: monthFilter === filter }}
-                key={filter}
-                onPress={() => setMonthFilter(filter)}
-                className={`rounded-lg px-3 py-2 ${
-                  monthFilter === filter ? 'bg-[#F0F7EE]' : 'bg-white'
-                }`}
-              >
-                <Text
-                  className={`text-[11px] font-semibold ${
-                    monthFilter === filter ? 'text-[#116C0B]' : 'text-[#6B7280]'
-                  }`}
-                >
-                  {filter === 'All' ? 'All months' : `${filter} month`}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <View className="mt-3 gap-3">
+        <View
+          className={`mt-3 ${
+            viewMode === 'grid'
+              ? 'flex-row flex-wrap justify-between gap-y-3'
+              : 'gap-3'
+          }`}
+        >
           {filteredHistory.length ? (
             filteredHistory.map((record, index) => {
               const recordIsWorking = Boolean(
@@ -441,7 +437,9 @@ function ChefAttendanceScreen({
                     record.id ?? record.attendance_id,
                     `${date}-${index}`,
                   )}
-                  className="rounded-2xl border border-[#E5E7EB] bg-white p-4"
+                  className={`rounded-2xl border border-[#E5E7EB] bg-white p-4 ${
+                    viewMode === 'grid' ? 'w-[48%]' : 'w-full'
+                  }`}
                 >
                   <View className="flex-row flex-wrap items-center justify-between gap-2">
                     <View className="flex-row flex-wrap items-center gap-2">

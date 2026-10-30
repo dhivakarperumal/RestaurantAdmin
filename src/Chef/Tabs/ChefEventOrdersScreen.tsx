@@ -2,15 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../../api';
 import colors from '../../theme/colors';
 import { DetailsModal } from '../../components/popups';
+import ChefListControls from './ChefListControls';
 
 type EventOrder = Record<string, unknown> & {
   id?: string | number;
@@ -24,14 +23,6 @@ type EventOrderFilter =
   | 'Preparing'
   | 'Ready'
   | 'Completed';
-
-const filters: EventOrderFilter[] = [
-  'All Confirmed',
-  'Confirmed',
-  'Preparing',
-  'Ready',
-  'Completed',
-];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -142,14 +133,14 @@ function OrderStatus({
 }
 
 function ChefEventOrdersScreen() {
-  const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<EventOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeFilter, setActiveFilter] =
     useState<EventOrderFilter>('All Confirmed');
   const [search, setSearch] = useState('');
-  const [sortByGuests, setSortByGuests] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'guests'>('date');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [selectedOrder, setSelectedOrder] = useState<EventOrder | null>(null);
   const [kitchenNotes, setKitchenNotes] = useState('');
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
@@ -212,7 +203,7 @@ function ChefEventOrdersScreen() {
         ].some(item => text(item, '').toLowerCase().includes(term));
       })
       .sort((left, right) => {
-        if (sortByGuests) {
+        if (sortBy === 'guests') {
           return Number(right.guest_count || 0) - Number(left.guest_count || 0);
         }
         return (
@@ -220,7 +211,7 @@ function ChefEventOrdersScreen() {
           new Date(String(right.event_date || 0)).getTime()
         );
       });
-  }, [activeFilter, orders, search, sortByGuests]);
+  }, [activeFilter, orders, search, sortBy]);
 
   const counts = useMemo(() => {
     return orders.reduce<{
@@ -324,50 +315,47 @@ function ChefEventOrdersScreen() {
         ))}
       </View>
 
-      <View className="gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
-        <ScrollView
-          contentContainerClassName="gap-2 pr-2"
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {filters.map(filter => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: activeFilter === filter }}
-              key={filter}
-              onPress={() => setActiveFilter(filter)}
-              className={`rounded-xl px-3 py-2 ${
-                activeFilter === filter ? 'bg-[#123B2D]' : 'bg-slate-100'
-              }`}
-            >
-              <Text
-                className={`text-[10px] font-bold ${
-                  activeFilter === filter ? 'text-white' : 'text-[#4B5563]'
-                }`}
-              >
-                {filter}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        <TextInput
-          accessibilityLabel="Search event orders"
-          className="min-h-11 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-sm text-[#012711]"
-          onChangeText={setSearch}
-          placeholder="Search order, customer, phone, or dish"
-          placeholderTextColor="#9CA3AF"
-          value={search}
-        />
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setSortByGuests(current => !current)}
-          className="self-start rounded-lg bg-[#F0F7EE] px-3 py-2"
-        >
-          <Text className="text-[10px] font-semibold text-[#116C0B]">
-            Sort: {sortByGuests ? 'Largest guest count' : 'Upcoming event date'}
-          </Text>
-        </Pressable>
-      </View>
+      <ChefListControls
+        filters={[
+          {
+            label: 'Status',
+            value: activeFilter,
+            options: [
+              { value: 'All Confirmed', label: 'All confirmed' },
+              { value: 'Confirmed', label: 'Confirmed' },
+              { value: 'Preparing', label: 'Preparing' },
+              { value: 'Ready', label: 'Ready' },
+              { value: 'Completed', label: 'Completed' },
+            ],
+            onChange: value => {
+              const next = [
+                'All Confirmed',
+                'Confirmed',
+                'Preparing',
+                'Ready',
+                'Completed',
+              ].find(option => option === value);
+              if (next) setActiveFilter(next as EventOrderFilter);
+            },
+          },
+        ]}
+        onSearchChange={setSearch}
+        onViewModeChange={setViewMode}
+        placeholder="Search order, customer, phone, or dish..."
+        search={search}
+        searchLabel="Search event orders"
+        sort={{
+          value: sortBy,
+          options: [
+            { value: 'date', label: 'Upcoming event date' },
+            { value: 'guests', label: 'Largest guest count' },
+          ],
+          onChange: value => {
+            if (value === 'date' || value === 'guests') setSortBy(value);
+          },
+        }}
+        viewMode={viewMode}
+      />
 
       {error ? (
         <View className="rounded-xl border border-red-200 bg-red-50 p-3">
@@ -392,7 +380,13 @@ function ChefEventOrdersScreen() {
           </Text>
         </View>
       ) : filteredOrders.length ? (
-        <View className="gap-3">
+        <View
+          className={
+            viewMode === 'grid'
+              ? 'flex-row flex-wrap justify-between gap-y-3'
+              : 'gap-3'
+          }
+        >
           {filteredOrders.map(order => {
             const items = Array.isArray(order.items) ? order.items : [];
             const id = orderId(order);
@@ -400,7 +394,9 @@ function ChefEventOrdersScreen() {
             return (
               <View
                 key={id}
-                className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+                className={`overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white ${
+                  viewMode === 'grid' ? 'w-[48%]' : 'w-full'
+                }`}
               >
                 <View className="gap-3 p-4">
                   <View className="flex-row items-start justify-between gap-2">
