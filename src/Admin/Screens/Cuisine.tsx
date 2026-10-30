@@ -596,8 +596,8 @@ function Cuisine({
                   <View
                     className={
                       isWide
-                        ? 'h-[94px] justify-between px-2.5 py-2'
-                        : 'h-[78px] justify-between px-1.5 py-1.5'
+                        ? 'h-[94px] justify-between p-3.5'
+                        : 'h-[78px] justify-between p-2.5'
                     }
                   >
                     <View>
