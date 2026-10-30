@@ -519,33 +519,29 @@ function ChefFoodsScreen({
               ID {food.food_id ? `#${food.food_id}` : '—'}
               {food.food_type ? ` · ${food.food_type}` : ''}
             </Text>
-          </View>
-        </View>
-
-        <View className="my-3 h-px bg-slate-200" />
-
-        <View className="flex-row items-center">
-          <View className="flex-1 flex-row items-center gap-2 pr-2">
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-amber-50">
-              <ClockIcon color="#A66A0B" size={18} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <Text className="text-[10px] text-slate-500">Preparation</Text>
-              <Text numberOfLines={1} className="mt-0.5 text-[11px] font-bold text-slate-900">
-                {food.preparation_time ? `${food.preparation_time} minutes` : 'Not set'}
-              </Text>
-            </View>
-          </View>
-          <View className="mx-1 h-10 w-px bg-slate-200" />
-          <View className="flex-1 flex-row items-center gap-2 pl-2">
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-green-50">
-              <CalendarIcon color="#15803D" size={18} />
-            </View>
-            <View className="min-w-0 flex-1">
-              <Text className="text-[10px] text-slate-500">Available time</Text>
-              <Text numberOfLines={2} className="mt-0.5 text-[11px] font-bold text-slate-900">
-                {food.available_time || food.meal_type || 'Not set'}
-              </Text>
+            <View className="mt-3 gap-2">
+              <View className="flex-row items-center gap-2">
+                <View className="h-7 w-7 items-center justify-center rounded-full bg-amber-50">
+                  <ClockIcon color="#A66A0B" size={15} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-[9px] text-slate-500">Preparation time</Text>
+                  <Text numberOfLines={1} className="text-[10px] font-bold text-slate-900">
+                    {food.preparation_time ? `${food.preparation_time} minutes` : 'Not set'}
+                  </Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <View className="h-7 w-7 items-center justify-center rounded-full bg-green-50">
+                  <CalendarIcon color="#15803D" size={15} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-[9px] text-slate-500">Available time</Text>
+                  <Text numberOfLines={2} className="text-[10px] font-bold text-slate-900">
+                    {food.available_time || food.meal_type || 'Not set'}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
