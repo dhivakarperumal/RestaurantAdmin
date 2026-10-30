@@ -1341,6 +1341,15 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           ),
         );
       }}
+      onFoodAvailabilityChange={(foodId, updates) => {
+        setFoods(current =>
+          current.map(food =>
+            food.food_id === foodId
+              ? { ...food, ...updates }
+              : food,
+          ),
+        );
+      }}
       onRefresh={() => setRefreshCount(count => count + 1)}
     />
   );

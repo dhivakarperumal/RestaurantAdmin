@@ -18,6 +18,10 @@ import {
 } from '../../Admin/Navigation/NavigationIcons';
 import colors from '../../theme/colors';
 import { BaseModal } from '../../components/popups';
+import {
+  getActiveMenu,
+  getFoodAvailability,
+} from '../foodAvailability';
 import ChefStatCards from './ChefStatCards';
 
 export type ChefFood = {
@@ -25,6 +29,7 @@ export type ChefFood = {
   food_name?: string;
   category_name?: string;
   meal_type?: string;
+  available_time?: string;
   preparation_time?: number | string;
   final_price?: number | string;
   status?: string;
@@ -32,7 +37,7 @@ export type ChefFood = {
   food_images?: unknown;
   image?: unknown;
   image_url?: unknown;
-  is_available?: boolean | number;
+  is_available?: boolean | number | string;
   is_effectively_available?: boolean;
   is_menu_visible?: boolean | number;
 };
@@ -43,6 +48,10 @@ type ChefFoodsScreenProps = {
   error: string;
   onRefresh: () => void;
   onFoodVisibilityChange: (foodId: string | number, visible: boolean) => void;
+  onFoodAvailabilityChange: (
+    foodId: string | number,
+    updates: Partial<ChefFood>,
+  ) => void;
 };
 
 type ViewMode = 'grid' | 'table';
@@ -50,6 +59,13 @@ type FoodStatusFilter = 'all' | 'active' | 'inactive';
 
 const pageSize = 10;
 const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+const AVAILABLE_TIME_PRESETS = [
+  { value: '6:00 AM - 11:00 AM', label: '6:00 AM - 11:00 AM · Breakfast', mealType: 'Breakfast' },
+  { value: '11:00 AM - 3:00 PM', label: '11:00 AM - 3:00 PM · Lunch', mealType: 'Lunch' },
+  { value: '3:00 PM - 6:00 PM', label: '3:00 PM - 6:00 PM · Evening Snacks', mealType: 'Evening Snacks' },
+  { value: '6:00 PM - 11:00 PM', label: '6:00 PM - 11:00 PM · Dinner', mealType: 'Dinner' },
+  { value: 'All Day', label: 'All Day', mealType: 'All Day' },
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -98,32 +114,6 @@ function getFoodImage(food: ChefFood) {
   }
   return {
     uri: `${backendBaseUrl}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`,
-  };
-}
-
-function getAvailability(food: ChefFood, now: Date) {
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  let activeMeal = 'Evening Snacks';
-  if (minutes >= 6 * 60 && minutes < 11 * 60) {
-    activeMeal = 'Breakfast';
-  } else if (minutes >= 11 * 60 && minutes < 15 * 60) {
-    activeMeal = 'Lunch';
-  } else if (minutes >= 18 * 60 && minutes < 23 * 60) {
-    activeMeal = 'Dinner';
-  }
-
-  const isScheduled = String(food.meal_type || '').trim().toLowerCase() === activeMeal.toLowerCase();
-  const isEnabled =
-    food.is_available !== false &&
-    food.is_available !== 0 &&
-    isFoodVisible(food) &&
-    String(food.status || 'Active').toLowerCase() === 'active' &&
-    Number(food.stock_quantity || 0) > 0;
-
-  const available = isScheduled && isEnabled;
-  return {
-    available,
-    label: available ? activeMeal : 'Unavailable',
   };
 }
 
@@ -224,6 +214,7 @@ function ChefFoodsScreen({
   error,
   onRefresh,
   onFoodVisibilityChange,
+  onFoodAvailabilityChange,
 }: ChefFoodsScreenProps) {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -234,6 +225,9 @@ function ChefFoodsScreen({
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [page, setPage] = useState(1);
   const [updatingFoodId, setUpdatingFoodId] = useState<string | number | null>(null);
+  const [updatingAvailabilityId, setUpdatingAvailabilityId] = useState<string | number | null>(null);
+  const [availabilityFood, setAvailabilityFood] = useState<ChefFood | null>(null);
+  const [availabilityError, setAvailabilityError] = useState('');
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
   const [visibilitySearch, setVisibilitySearch] = useState('');
@@ -267,7 +261,12 @@ function ChefFoodsScreen({
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' ? isActive : !isActive);
-      const matchesSearch = [food.food_name, food.category_name].some(value =>
+      const matchesSearch = [
+        food.food_name,
+        food.category_name,
+        food.meal_type,
+        food.available_time,
+      ].some(value =>
         String(value || '').toLowerCase().includes(query),
       );
       return matchesCategory && matchesStatus && matchesSearch;
@@ -288,10 +287,6 @@ function ChefFoodsScreen({
   const pageOffset = (currentPage - 1) * pageSize;
   const visibleFoods = filteredFoods.slice(pageOffset, pageOffset + pageSize);
   const allFoodsVisible = foods.length > 0 && foods.every(isFoodVisible);
-  const visibleCount = foods.filter(isFoodVisible).length;
-  const activeCount = foods.filter(
-    food => String(food.status || 'Active').toLowerCase() === 'active',
-  ).length;
 
   const changeVisibility = async (food: ChefFood, visible: boolean) => {
     if (typeof food.food_id !== 'string' && typeof food.food_id !== 'number') {
@@ -362,10 +357,95 @@ function ChefFoodsScreen({
     void changeVisibility(food, !isFoodVisible(food));
   };
 
+  const saveAvailability = async (
+    food: ChefFood,
+    updates: Partial<ChefFood>,
+  ) => {
+    if (typeof food.food_id !== 'string' && typeof food.food_id !== 'number') {
+      setAvailabilityError('This food has no valid ID and cannot be updated.');
+      return;
+    }
+    if (updatingAvailabilityId !== null) {
+      return;
+    }
+
+    const previousValues = {
+      is_available: food.is_available,
+      available_time: food.available_time,
+      meal_type: food.meal_type,
+      stock_quantity: food.stock_quantity,
+    };
+    const optimisticUpdates = {
+      ...updates,
+      ...(updates.is_available === true && Number(food.stock_quantity || 0) <= 0
+        ? { stock_quantity: 50 }
+        : {}),
+    };
+    setAvailabilityError('');
+    setUpdatingAvailabilityId(food.food_id);
+    onFoodAvailabilityChange(food.food_id, optimisticUpdates);
+
+    try {
+      const response = await api.patch(
+        `/foods/${encodeURIComponent(String(food.food_id))}/availability`,
+        updates,
+      );
+      if (isRecord(response.data?.data)) {
+        onFoodAvailabilityChange(
+          food.food_id,
+          response.data.data as Partial<ChefFood>,
+        );
+      }
+    } catch (requestError) {
+      onFoodAvailabilityChange(food.food_id, previousValues);
+      setAvailabilityError(getErrorMessage(requestError));
+      onRefresh();
+    } finally {
+      setUpdatingAvailabilityId(null);
+    }
+  };
+
+  const toggleFoodAvailability = (food: ChefFood) => {
+    const availability = getFoodAvailability(food, currentTime);
+    const shouldBeAvailable = !availability.available;
+    if (!shouldBeAvailable) {
+      saveAvailability(food, { is_available: false });
+      return;
+    }
+
+    const activeMenu = getActiveMenu(currentTime);
+    if (!availability.scheduledAvailable) {
+      saveAvailability(food, {
+        is_available: true,
+        available_time: activeMenu.timeRange,
+        meal_type: activeMenu.mealType,
+      });
+      return;
+    }
+    saveAvailability(food, { is_available: true });
+  };
+
+  const changeFoodAvailableTime = (food: ChefFood, availableTime: string) => {
+    const selectedPreset = AVAILABLE_TIME_PRESETS.find(
+      preset => preset.value === availableTime,
+    );
+    if (!selectedPreset) {
+      setAvailabilityError('Choose a valid available-time option.');
+      return;
+    }
+    setAvailabilityFood(null);
+    saveAvailability(food, {
+      available_time: selectedPreset.value,
+      meal_type: selectedPreset.mealType,
+      is_available: true,
+    });
+  };
+
   const renderFoodCard = (food: ChefFood, index: number) => {
     const key = food.food_id ?? `${food.food_name || 'food'}-${index}`;
-    const availability = getAvailability(food, currentTime);
+    const availability = getFoodAvailability(food, currentTime);
     const isUpdating = updatingFoodId === food.food_id || isBulkUpdating;
+    const isAvailabilityUpdating = updatingAvailabilityId === food.food_id;
 
     return (
       <View
@@ -429,6 +509,9 @@ function ChefFoodsScreen({
             </Text>
           </View>
           <View className="mt-3 flex-row flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-3">
+            <Text className="w-full text-xs font-semibold text-slate-700">
+              Available time: {food.available_time || food.meal_type || 'Not set'}
+            </Text>
             <Text className="text-xs text-slate-600">
               Preparation: {food.preparation_time ? `${food.preparation_time} min` : '—'}
             </Text>
@@ -436,8 +519,38 @@ function ChefFoodsScreen({
               Price: ₹{Number(food.final_price || 0).toFixed(2)}
             </Text>
           </View>
+          <View className="mt-3 flex-row items-center justify-between gap-2">
+            <View className="min-w-0 flex-1">
+              <Text className="text-[10px] font-semibold text-slate-600">
+                Available now
+              </Text>
+              <Switch
+                accessibilityLabel={`Mark ${food.food_name || 'food'} ${
+                  availability.available ? 'unavailable' : 'available'
+                }`}
+                disabled={isAvailabilityUpdating || isBulkUpdating}
+                onValueChange={() => toggleFoodAvailability(food)}
+                thumbColor="#FFFFFF"
+                trackColor={{ false: '#CBD5E1', true: '#15803D' }}
+                value={availability.available}
+              />
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={isAvailabilityUpdating || isBulkUpdating}
+              onPress={() => setAvailabilityFood(food)}
+              className="max-w-[65%] rounded-lg border border-slate-300 bg-white px-2.5 py-2 disabled:opacity-50"
+            >
+              <Text numberOfLines={1} className="text-[10px] font-semibold text-slate-700">
+                Change time
+              </Text>
+            </Pressable>
+          </View>
           {isUpdating ? (
             <Text className="mt-2 text-[11px] text-slate-500">Saving visibility…</Text>
+          ) : null}
+          {isAvailabilityUpdating ? (
+            <Text className="mt-2 text-[11px] text-slate-500">Saving availability…</Text>
           ) : null}
         </View>
       </View>
@@ -456,7 +569,7 @@ function ChefFoodsScreen({
               All Foods
             </Text>
             <Text className="mt-1 text-sm text-slate-600">
-              Browse and manage food visibility.
+              See when each food is scheduled and manage its availability.
             </Text>
           </View>
           <Pressable
@@ -483,25 +596,36 @@ function ChefFoodsScreen({
             icon: <MenuIcon color="#F6D36A" size={22} />,
           },
           {
-            label: 'Active',
-            value: activeCount,
-            hint: 'Available menu items',
+            label: 'Available now',
+            value: foods.filter(
+              food => getFoodAvailability(food, currentTime).available,
+            ).length,
+            hint: 'Inside the current service window',
             icon: <CustomersIcon color="#F6D36A" size={22} />,
           },
           {
-            label: 'Menu visible',
-            value: visibleCount,
-            hint: 'Shown to customers',
+            label: 'Outside time',
+            value: foods.filter(
+              food => !getFoodAvailability(food, currentTime).scheduledAvailable,
+            ).length,
+            hint: 'Outside available time',
             icon: <OrdersIcon color="#F6D36A" size={22} />,
           },
           {
-            label: 'Hidden',
-            value: foods.length - visibleCount,
-            hint: 'Not shown to customers',
+            label: 'Kitchen ready',
+            value: foods.filter(
+              food => food.is_available !== false && food.is_available !== 0,
+            ).length,
+            hint: 'Marked available by kitchen',
             icon: <MenuIcon color="#F6D36A" size={22} />,
           },
         ]}
       />
+      {availabilityError ? (
+        <Text accessibilityRole="alert" className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
+          {availabilityError}
+        </Text>
+      ) : null}
 
       <View
         className="mb-3 gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5"
@@ -677,6 +801,54 @@ function ChefFoodsScreen({
           </Pressable>
         </View>
       ) : null}
+
+      <BaseModal
+        visible={availabilityFood !== null}
+        onClose={() => {
+          if (updatingAvailabilityId === null) setAvailabilityFood(null);
+        }}
+        title="Set Food Available Time"
+        subtitle={availabilityFood?.food_name || 'Choose when this food can be ordered'}
+        variant="bottom-sheet"
+      >
+        <View className="gap-2 pb-2">
+          {availabilityFood?.available_time &&
+          !AVAILABLE_TIME_PRESETS.some(
+            preset => preset.value === availabilityFood.available_time,
+          ) ? (
+            <View className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <Text className="text-xs font-semibold text-amber-900">
+                Current custom time: {availabilityFood.available_time}
+              </Text>
+            </View>
+          ) : null}
+          {AVAILABLE_TIME_PRESETS.map(preset => (
+            <Pressable
+              accessibilityRole="button"
+              key={preset.value}
+              disabled={updatingAvailabilityId !== null}
+              onPress={() => {
+                if (availabilityFood) {
+                  changeFoodAvailableTime(availabilityFood, preset.value);
+                }
+              }}
+              className="min-h-12 flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 disabled:opacity-50"
+            >
+              <Text className="text-sm font-semibold text-slate-800">
+                {preset.label}
+              </Text>
+              {availabilityFood?.available_time === preset.value ? (
+                <Text className="text-xs font-bold text-emerald-700">Selected</Text>
+              ) : null}
+            </Pressable>
+          ))}
+          {availabilityError ? (
+            <Text accessibilityRole="alert" className="text-xs text-red-700">
+              {availabilityError}
+            </Text>
+          ) : null}
+        </View>
+      </BaseModal>
 
       <BaseModal
         visible={isVisibilityModalOpen}

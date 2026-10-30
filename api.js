@@ -102,6 +102,10 @@ export const getApiErrorMessage = (
 api.interceptors.request.use(
   async (config) => {
     const token = await getStoredToken();
+    const localNow = new Date();
+    config.headers["X-Local-Time-Minutes"] = String(
+      localNow.getHours() * 60 + localNow.getMinutes(),
+    );
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
