@@ -489,9 +489,6 @@ function ChefAttendanceScreen({
         <Text className="text-[23px] font-extrabold text-[#012711]">
           Chef Attendance & Shift Log
         </Text>
-        <Text className="mt-1 text-[13px] leading-5 text-[#6B7280]">
-          Mark your daily check-in, track working hours, and review your shift history.
-        </Text>
       </View>
 
       <View className="overflow-hidden rounded-2xl border border-[#D1E9D5] bg-white p-4">
