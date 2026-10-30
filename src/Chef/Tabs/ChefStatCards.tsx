@@ -21,7 +21,7 @@ function ChefStatCards({
     <View className="flex-row flex-wrap justify-between gap-y-3">
       {stats.map(stat => {
         const cardClassName = `relative min-h-[100px] w-[48%] flex-row items-center overflow-hidden rounded-2xl border bg-[#FFFEF8] px-2 ${
-          stat.isSelected ? 'border-[#07513A]' : 'border-[#E8C654]'
+          stat.isSelected ? 'border-[#07513A]' : 'border-[#E8DFC2]'
         }`;
         const cardContent = (
           <>
@@ -31,7 +31,7 @@ function ChefStatCards({
             />
             <View
               pointerEvents="none"
-              className="absolute -bottom-1 -right-1 h-8 w-14 rounded-tl-full bg-[#E5B92E]"
+              className="absolute -bottom-1 -right-1 h-8 w-14 rounded-tl-full bg-[#E9DFAF]"
             />
             <View
               className="flex-1 flex-row items-center"
@@ -57,7 +57,7 @@ function ChefStatCards({
                 >
                   {isLoading ? '...' : stat.value}
                 </Text>
-                <View className="mb-1 mt-1 h-[3px] w-8 rounded-full bg-[#E5B92E]" />
+                <View className="mb-1 mt-1 h-[3px] w-8 rounded-full bg-[#DCC77A]" />
                 <Text
                   numberOfLines={2}
                   className="text-[9px] leading-3 text-[#667085]"
