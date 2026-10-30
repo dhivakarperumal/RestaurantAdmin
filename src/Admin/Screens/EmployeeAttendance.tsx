@@ -4,13 +4,14 @@ import {
   Alert,
   Platform,
   Pressable,
-  Share,
   ScrollView,
   Text,
   TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
+import RNFS from 'react-native-fs';
+import RNShare from 'react-native-share';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -28,6 +29,7 @@ import {
 } from '../../components/popups';
 import AdminStatCard from '../../components/AdminStatCard';
 import colors from '../../theme/colors';
+import * as XLSX from '@e965/xlsx';
 
 type AttendanceRecord = {
   employee_id: string | number;
@@ -281,6 +283,9 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
   const [historyRecords, setHistoryRecords] = useState<AttendanceRecord[]>([]);
   const [historyError, setHistoryError] = useState('');
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isAttendanceDatePickerOpen, setIsAttendanceDatePickerOpen] =
+    useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -424,6 +429,18 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
     });
   };
 
+  const handleAttendanceDateChange = (
+    event: DateTimePickerEvent,
+    pickedDate?: Date,
+  ) => {
+    if (Platform.OS === 'android' || event.type === 'dismissed') {
+      setIsAttendanceDatePickerOpen(false);
+    }
+    if (event.type !== 'dismissed' && pickedDate) {
+      setSelectedDate(localDateString(pickedDate));
+    }
+  };
+
   const saveRecord = async () => {
     if (!form) {
       return;
@@ -512,7 +529,7 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
     }
   };
 
-  const exportCsv = async () => {
+  const exportExcel = async () => {
     if (!records.length) {
       Alert.alert(
         'Nothing to export',
@@ -521,8 +538,6 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
       return;
     }
 
-    const csvValue = (value: unknown) =>
-      `"${String(value ?? '').replace(/"/g, '""')}"`;
     const headers = [
       'Employee ID',
       'Full Name',
@@ -552,18 +567,40 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
       record.notes,
     ]);
 
+    setIsExporting(true);
     try {
-      await Share.share({
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      worksheet['!cols'] = headers.map((header, index) => ({
+        wch: Math.max(
+          header.length,
+          ...rows.map(row => String(row[index] ?? '').length),
+          12,
+        ),
+      }));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
+      const workbookBase64 = XLSX.write(workbook, {
+        bookType: 'xlsx',
+        type: 'base64',
+      });
+      const fileName = `staff-attendance-${selectedDate}.xlsx`;
+      const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+      await RNFS.writeFile(filePath, workbookBase64, 'base64');
+      await RNShare.open({
         title: `Staff attendance ${selectedDate}`,
-        message: [headers, ...rows]
-          .map(row => row.map(csvValue).join(','))
-          .join('\n'),
+        url: `file://${filePath}`,
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename: fileName,
+        failOnCancel: false,
+        useInternalStorage: true,
       });
     } catch (shareError) {
       Alert.alert(
         'Could not export attendance',
-        getErrorMessage(shareError, 'Unable to share the attendance CSV.'),
+        getErrorMessage(shareError, 'Unable to create or share the Excel file.'),
       );
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -598,12 +635,15 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
           <View className="flex-row gap-2">
            
             <Pressable
-              accessibilityLabel="Export attendance CSV"
+              accessibilityLabel="Export attendance Excel file"
               accessibilityRole="button"
-              onPress={exportCsv}
+              disabled={isExporting}
+              onPress={exportExcel}
               className="rounded-xl bg-[#1F4E42] px-3 py-2.5"
             >
-              <Text className="text-xs font-semibold text-white">Export</Text>
+              <Text className="text-xs font-semibold text-white">
+                {isExporting ? 'Exporting…' : 'Export'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -661,22 +701,52 @@ function EmployeeAttendance({ onBack }: EmployeeAttendanceProps) {
             <Text className="w-12 text-xs font-semibold text-[#4B5563]">
               Date
             </Text>
-            <TextInput
-              accessibilityLabel="Attendance date"
-              className="flex-1 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5 text-sm text-[#012711]"
-              onChangeText={setSelectedDate}
-              placeholder="YYYY-MM-DD"
-              value={selectedDate}
-            />
+            <Pressable
+              accessibilityLabel={`Attendance date: ${formatAttendanceDate(
+                selectedDate,
+              )}`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isAttendanceDatePickerOpen }}
+              onPress={() => setIsAttendanceDatePickerOpen(value => !value)}
+              className="min-h-11 flex-1 flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2.5"
+            >
+              <CalendarIcon size={17} color="#1F4E42" />
+              <Text className="flex-1 text-sm text-[#012711]">
+                {formatAttendanceDate(selectedDate)}
+              </Text>
+            </Pressable>
             <Pressable
               accessibilityLabel="Show today's attendance"
               accessibilityRole="button"
-              onPress={() => setSelectedDate(today)}
+              onPress={() => {
+                setSelectedDate(today);
+                setIsAttendanceDatePickerOpen(false);
+              }}
               className="rounded-xl bg-[#1F4E42] px-3 py-2.5"
             >
               <Text className="text-xs font-bold text-white">Today</Text>
             </Pressable>
           </View>
+          {isAttendanceDatePickerOpen ? (
+            <View>
+              <DateTimePicker
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                mode="date"
+                onChange={handleAttendanceDateChange}
+                value={parseLocalDateTime(selectedDate) || new Date()}
+              />
+              {Platform.OS === 'ios' ? (
+                <Pressable
+                  accessibilityLabel="Done selecting attendance date"
+                  accessibilityRole="button"
+                  onPress={() => setIsAttendanceDatePickerOpen(false)}
+                  className="mt-2 self-end rounded-lg bg-[#116C0B] px-4 py-2"
+                >
+                  <Text className="text-xs font-bold text-white">Done</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
 
           <TextInput
             accessibilityLabel="Search attendance"
