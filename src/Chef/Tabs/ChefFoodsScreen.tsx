@@ -183,7 +183,7 @@ function FoodSkeletonCard({ viewMode }: { viewMode: ViewMode }) {
     >
       <View
         className={`rounded-xl bg-slate-100 ${
-          viewMode === 'grid' ? 'mb-3 h-32 w-full' : 'mr-3 h-16 w-16'
+          viewMode === 'grid' ? 'mb-3 h-48 w-full' : 'mr-3 h-16 w-16'
         }`}
       />
       <View className={viewMode === 'grid' ? '' : 'min-w-0 flex-1'}>
@@ -453,7 +453,7 @@ function ChefFoodsScreen({
         className="mb-3 w-full rounded-2xl border border-slate-200 bg-white p-4"
       >
         <FoodImage
-          className="mb-3 h-32 w-full"
+          className="mb-3 h-48 w-full"
           food={food}
           imageFailed={imageErrors.has(key)}
           onImageError={() =>
