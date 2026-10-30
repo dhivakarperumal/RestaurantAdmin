@@ -1,13 +1,13 @@
 import React, { useCallback } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { CustomAlert as Alert } from '../../../../components/popups';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePrinterSettings } from './hooks/usePrinterSettings';
 import type {

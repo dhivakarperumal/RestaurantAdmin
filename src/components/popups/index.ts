@@ -6,3 +6,4 @@ export * from './DetailsModal';
 export * from './ActionSheet';
 export * from './ToastNotification';
 export * from './FilterSelect';
+export * from './CustomAlert';

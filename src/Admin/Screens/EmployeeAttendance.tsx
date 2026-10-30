@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -25,6 +24,7 @@ import {
   DetailsModal,
   FilterSelect,
   FormModal,
+  CustomAlert as Alert,
   UserIcon,
 } from '../../components/popups';
 import AdminStatCard from '../../components/AdminStatCard';

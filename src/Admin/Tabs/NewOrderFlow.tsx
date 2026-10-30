@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -14,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
 import { MenuIcon, PlusIcon } from '../Navigation/NavigationIcons';
-import { BaseModal } from '../../components/popups';
+import { BaseModal, CustomAlert as Alert } from '../../components/popups';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 import type { NewOrderType } from '../Navigation/DashboardTypes';
 

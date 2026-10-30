@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   Text,
   View,
 } from 'react-native';
+import { CustomAlert as Alert } from '../components/popups';
 import AuthInput from './AuthInput';
 import colors from '../theme/colors';
 import {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   Share,
@@ -14,7 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PlusIcon } from '../Navigation/NavigationIcons';
 import MoreInnerHeader from '../Navigation/MoreInnerHeader';
 import colors from '../../theme/colors';
-import { DetailsModal, PrinterIcon } from '../../components/popups';
+import {
+  CustomAlert as Alert,
+  DetailsModal,
+  PrinterIcon,
+} from '../../components/popups';
 import api from '../../../api';
 import type { BillCompletionDetails } from './Bills';
 

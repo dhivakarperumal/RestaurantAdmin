@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -15,7 +14,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
-import { DetailsModal, PrinterIcon } from '../../components/popups';
+import {
+  CustomAlert as Alert,
+  DetailsModal,
+  PrinterIcon,
+} from '../../components/popups';
 
 type Order = Record<string, unknown>;
 

@@ -32,6 +32,7 @@ import DashboardScreen from './src/Admin/Navigation/DashboardScreen';
 import ChefDashboardScreen from './src/Chef/ChefDashboardScreen';
 import type { HeaderUser } from './src/Admin/Navigation/TopHeader';
 import ServerHome from './src/Servers/SScreens/SHome';
+import { CustomAlertHost } from './src/components/popups/CustomAlert';
 
 const { height, width } = Dimensions.get('window');
 const fallbackWindowMetrics = {
@@ -44,6 +45,7 @@ function App() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics ?? fallbackWindowMetrics}>
       <StatusBar barStyle="dark-content" />
       <AppContent />
+      <CustomAlertHost />
     </SafeAreaProvider>
   );
 }

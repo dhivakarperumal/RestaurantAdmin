@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -14,7 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { API_BASE_URL } from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
-import { BaseModal, CheckIcon, FormModal } from '../../components/popups';
+import {
+  BaseModal,
+  CheckIcon,
+  CustomAlert as Alert,
+  FormModal,
+} from '../../components/popups';
 
 /* ==========================================================================
    Types

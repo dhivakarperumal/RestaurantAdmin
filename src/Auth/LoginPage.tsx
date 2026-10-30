@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { CustomAlert as Alert } from '../components/popups';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import colors from '../theme/colors';
 import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from './AuthIcons';

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -11,7 +10,15 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
-import { ActionSheet, BaseModal, ConfirmDialog, DetailsModal, PhoneIcon, PrinterIcon } from '../../components/popups';
+import {
+  ActionSheet,
+  BaseModal,
+  ConfirmDialog,
+  CustomAlert as Alert,
+  DetailsModal,
+  PhoneIcon,
+  PrinterIcon,
+} from '../../components/popups';
 
 /* ==========================================================================
    Crisp SVG Icons for Server Tools

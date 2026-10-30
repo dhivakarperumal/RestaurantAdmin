@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Linking,
   Modal,
@@ -18,7 +17,11 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import api, { API_BASE_URL, getStoredUser, logoutUser, saveUser } from '../../../api';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
-import { BaseModal, FormModal } from '../../components/popups';
+import {
+  BaseModal,
+  CustomAlert as Alert,
+  FormModal,
+} from '../../components/popups';
 
 /* ==========================================================================
    Crisp Vector SVG Icons

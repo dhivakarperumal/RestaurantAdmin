@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -23,7 +22,12 @@ import ServerMore from './SMore';
 import ServerProfile from './Profile';
 import ServerItems, { type ServerOrderTable } from './SItems';
 import ServerTables from './STables';
-import { BaseModal, ConfirmDialog, DetailsModal } from '../../components/popups';
+import {
+  BaseModal,
+  ConfirmDialog,
+  CustomAlert as Alert,
+  DetailsModal,
+} from '../../components/popups';
 
 /* ==========================================================================
    Types & Utilities
