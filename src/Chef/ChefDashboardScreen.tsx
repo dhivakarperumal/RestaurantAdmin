@@ -1450,36 +1450,90 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         viewMode={inventoryViewMode}
       />
       {filteredRequests.length ? (
-        <View
-          className={`mt-3 ${
-            inventoryViewMode === 'grid'
-              ? 'flex-row flex-wrap justify-between gap-y-3'
-              : 'gap-3'
-          }`}
-        >
+        <View className="mt-3 gap-3">
           {filteredRequests.map((request, index) => {
             const firstItem = firstRequestItem(request);
+            const status = text(request.status, 'Pending');
+            const normalizedStatus = status.toLowerCase();
+            const statusClass =
+              normalizedStatus === 'approved'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : normalizedStatus === 'rejected'
+                  ? 'border-rose-200 bg-rose-50 text-rose-800'
+                  : normalizedStatus === 'completed' ||
+                      normalizedStatus === 'fulfilled'
+                    ? 'border-slate-200 bg-slate-100 text-slate-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-800';
+            const requestItems = Array.isArray(request.items)
+              ? request.items.filter(isRecord)
+              : [];
             return (
               <Card
                 key={text(request.id ?? request.request_number, String(index))}
-                className={
-                  inventoryViewMode === 'grid' ? 'w-[48%]' : 'w-full'
-                }
+                className="w-full border-[#DFEAE2] p-3.5 shadow-sm"
               >
-                <Text className="text-sm font-bold text-[#012711]">
-                  {text(request.request_number, `Request ${index + 1}`)}
-                </Text>
-                <Text className="mt-1.5 text-xs text-[#6B7280]">
-                  {firstItem
-                    ? text(firstItem.product_name, 'Kitchen supplies')
-                    : 'Kitchen supplies'}
-                  {firstItem
-                    ? ` · ${text(firstItem.quantity)} ${text(firstItem.unit, '')}`
-                    : ''}
-                </Text>
-                <Text className="mt-2 text-xs font-bold text-[#116C0B]">
-                  {text(request.status, 'Pending')}
-                </Text>
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                    <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4EC]">
+                      <ReceiptIcon color="#14764A" size={19} />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-[9px] font-extrabold uppercase tracking-wide text-[#14764A]">
+                        KITCHEN REQUEST
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        className="mt-0.5 text-sm font-extrabold text-[#123B2D]"
+                      >
+                        {text(request.request_number, `Request ${index + 1}`)}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    className={`rounded-full border px-2.5 py-1 text-[9px] font-extrabold ${statusClass}`}
+                  >
+                    {status}
+                  </Text>
+                </View>
+
+                <View className="mt-3 rounded-xl border border-[#E8EFEA] bg-[#F8FBF9] px-3 py-2.5">
+                  <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
+                    Requested item{requestItems.length === 1 ? '' : 's'}
+                  </Text>
+                  <View className="mt-1 flex-row items-center justify-between gap-3">
+                    <Text
+                      numberOfLines={2}
+                      className="min-w-0 flex-1 text-xs font-bold text-[#1F2937]"
+                    >
+                      {firstItem
+                        ? text(firstItem.product_name, 'Kitchen supplies')
+                        : 'Kitchen supplies'}
+                      {requestItems.length > 1
+                        ? ` + ${requestItems.length - 1} more`
+                        : ''}
+                    </Text>
+                    {firstItem ? (
+                      <Text className="text-xs font-extrabold text-[#17633D]">
+                        {text(firstItem.quantity)} {text(firstItem.unit, '')}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+
+                <View className="mt-3 flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-[#EEF2EF] pt-2.5">
+                  <Text className="text-[10px] text-[#64748B]">
+                    Requested by{' '}
+                    <Text className="font-semibold text-[#334155]">
+                      {text(request.requested_by, chefName)}
+                    </Text>
+                  </Text>
+                  <Text className="text-[10px] text-[#64748B]">
+                    {text(request.department, 'Kitchen')}
+                    {request.request_date
+                      ? ` · ${formatShortDate(request.request_date)}`
+                      : ''}
+                  </Text>
+                </View>
               </Card>
             );
           })}

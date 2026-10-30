@@ -293,60 +293,70 @@ function ChefStockDetailsScreen({
           </Text>
         </View>
       ) : filteredProducts.length ? (
-        <View
-          className={
-            viewMode === 'grid'
-              ? 'flex-row flex-wrap justify-between gap-y-3'
-              : 'gap-3'
-          }
-        >
+        <View className="gap-3">
           {filteredProducts.map((product, index) => {
             const level = stockLevel(product);
+            const levelStyles = stockLevelClass(level);
             return (
               <View
                 key={String(product.id ?? product.sku ?? index)}
-                className={`gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 ${
-                  viewMode === 'grid' ? 'w-[48%]' : 'w-full'
-                }`}
+                className="w-full gap-3 rounded-2xl border border-[#DFEAE2] bg-white p-3.5 shadow-sm"
               >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="flex-1">
-                    <Text className="text-sm font-bold text-[#123B2D]">
+                <View className="flex-row items-center gap-3">
+                  <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4EC]">
+                    <ProductIcon color="#14764A" size={20} />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[9px] font-extrabold uppercase tracking-wide text-[#718096]">
+                      {product.category_name || 'Stock item'}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      className="mt-0.5 text-sm font-extrabold text-[#123B2D]"
+                    >
                       {product.product_name || 'Unnamed stock item'}
                     </Text>
-                    <Text className="mt-1 text-[10px] text-[#6B7280]">
+                    <Text numberOfLines={1} className="mt-0.5 text-[9px] text-[#718096]">
                       SKU: {product.sku || '—'}
                       {product.barcode ? ` · Barcode: ${product.barcode}` : ''}
                     </Text>
                   </View>
                   <Text
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                      stockLevelClass(level).className
-                    }`}
-                    style={stockLevelClass(level).style}
+                    className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold ${levelStyles.className}`}
+                    style={levelStyles.style}
                   >
                     {level}
                   </Text>
                 </View>
-                <View className="flex-row flex-wrap justify-between gap-2 rounded-xl bg-[#F9FAFB] p-3">
-                  <View>
-                    <Text className="text-[10px] text-[#6B7280]">Current stock</Text>
-                    <Text className="mt-1 text-sm font-bold text-[#111827]">
+
+                <View className="flex-row items-stretch rounded-xl border border-[#E8EFEA] bg-[#F8FBF9] py-2.5">
+                  <View className="min-w-0 flex-1 px-3">
+                    <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
+                      Current stock
+                    </Text>
+                    <Text className="mt-1 text-base font-extrabold text-[#123B2D]">
                       {formatNumber(product.current_stock)}{' '}
                       {product.unit_name || 'units'}
                     </Text>
                   </View>
-                  <View className="items-end">
-                    <Text className="text-[10px] text-[#6B7280]">Category</Text>
-                    <Text className="mt-1 text-xs font-semibold text-[#374151]">
-                      {product.category_name || 'Uncategorized'}
+                  <View className="w-px bg-[#DDE8E0]" />
+                  <View className="min-w-0 flex-1 px-3">
+                    <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
+                      Reorder level
+                    </Text>
+                    <Text className="mt-1 text-sm font-bold text-[#334155]">
+                      {formatNumber(product.reorder_level)}{' '}
+                      {product.unit_name || 'units'}
                     </Text>
                   </View>
                 </View>
+
                 <View className="flex-row items-center justify-between gap-2">
                   <Text className="text-[10px] text-[#6B7280]">
-                    Reorder at {formatNumber(product.reorder_level)}{' '}
-                    {product.unit_name || 'units'} · {product.status || 'Active'}
+                    Product status:{' '}
+                    <Text className="font-semibold text-[#334155]">
+                      {product.status || 'Active'}
+                    </Text>
                   </Text>
                   <Pressable
                     accessibilityLabel={`Request ${product.product_name || 'stock item'}`}
