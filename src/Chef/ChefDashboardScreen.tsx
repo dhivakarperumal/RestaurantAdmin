@@ -565,29 +565,60 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const renderDashboard = () => (
     <>
       <View className="mb-5">
-        <View className="mb-2 h-1 w-10 rounded-full bg-[#D4A843]" />
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="min-w-0 flex-1">
-            <Text className="text-[10px] font-extrabold uppercase tracking-[1.6px] text-[#28704B]">
-              Chef workspace
+        <View className="mb-2.5 flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <View className="mr-2 h-2 w-2 rounded-full bg-[#D4A843]" />
+            <Text className="text-[10px] font-extrabold uppercase tracking-[1.7px] text-[#28704B]">
+              Kitchen workspace
             </Text>
-            <Text className="mt-1 text-[25px] font-extrabold leading-[31px] text-[#123B2D]">
-              Welcome, {chefName}
-            </Text>
-            <Text className="mt-1 text-[13px] text-[#68766D]">
-              Your kitchen, at a glance.
-            </Text>
-            {dashboardUpdatedAt ? (
-              <Text className="mt-2 text-[10px] font-medium text-[#89948D]">
-                Updated{' '}
-                {dashboardUpdatedAt.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
-            ) : null}
           </View>
-        
+          <Text className="text-[10px] font-semibold text-[#7D8981]">
+            {new Date().toLocaleDateString([], {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            })}
+          </Text>
+        </View>
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[26px] font-extrabold leading-[32px] text-[#123B2D]">
+              Welcome back,
+            </Text>
+            <Text
+              numberOfLines={1}
+              className="text-[26px] font-extrabold leading-[32px] text-[#14764A]"
+            >
+              {chefName}
+            </Text>
+            <Text className="mt-1.5 text-[13px] text-[#68766D]">
+              Here’s what’s happening in your kitchen today.
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            disabled={isLoading}
+            onPress={() => setRefreshCount(count => count + 1)}
+            className="h-11 flex-row items-center justify-center rounded-full border border-[#CFE0D4] bg-white px-3.5"
+          >
+            <Text className="mr-1.5 text-base font-bold text-[#14764A]">↻</Text>
+            <Text className="text-[11px] font-bold text-[#123B2D]">
+              {isLoading ? 'Refreshing…' : 'Refresh'}
+            </Text>
+          </Pressable>
+        </View>
+        <View className="mt-3 flex-row items-center">
+          <View className="h-[3px] w-9 rounded-full bg-[#D4A843]" />
+          <View className="ml-1.5 h-[3px] flex-1 rounded-full bg-[#E4EEE7]" />
+          {dashboardUpdatedAt ? (
+            <Text className="ml-2 text-[9px] font-medium text-[#89948D]">
+              Updated{' '}
+              {dashboardUpdatedAt.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          ) : null}
         </View>
       </View>
 
