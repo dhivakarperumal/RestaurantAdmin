@@ -1,3 +1,5 @@
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 import type { NewOrderType } from '../Navigation/DashboardTypes';
 
 export type ApiOrderType = 'dine_in' | 'home_delivery' | 'pickup';
@@ -49,12 +51,20 @@ export function readKitchenOrderReferences(
 }
 
 export function createOrderRequestKey() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, token => {
-    if (token === 'y') {
-      return '89ab'[Math.floor(Math.random() * 4)];
-    }
-    return Math.floor(Math.random() * 16).toString(16);
-  });
+  const key = uuidv4();
+  if (!isValidOrderRequestKey(key)) {
+    throw new Error('Unable to generate a valid order request key.');
+  }
+  return key;
+}
+
+export function isValidOrderRequestKey(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  );
 }
 
 export function getKitchenOrderTypeFields(orderType: ApiOrderType) {

@@ -4,6 +4,7 @@ import {
   getOrderSubmissionError,
   hasValidTableId,
   isValidAdminOrderType,
+  isValidOrderRequestKey,
   readKitchenOrderReferences,
   resolveApiOrderType,
   toApiOrderType,
@@ -18,6 +19,17 @@ describe('admin KOT order submission values', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     expect(secondKey).not.toBe(firstKey);
+    expect(isValidOrderRequestKey(firstKey)).toBe(true);
+    expect(isValidOrderRequestKey(secondKey)).toBe(true);
+  });
+
+  it('rejects missing or malformed order request keys', () => {
+    expect(isValidOrderRequestKey(null)).toBe(false);
+    expect(isValidOrderRequestKey('')).toBe(false);
+    expect(isValidOrderRequestKey('not-a-uuid')).toBe(false);
+    expect(isValidOrderRequestKey('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')).toBe(
+      false,
+    );
   });
 
   it('reads the KOT and bill references returned by kitchen-orders', () => {

@@ -31,6 +31,7 @@ import {
   getKitchenOrderTypeFields,
   getOrderSubmissionError,
   hasValidTableId,
+  isValidOrderRequestKey,
   resolveApiOrderType,
 } from './orderSubmission';
 import type {
@@ -769,6 +770,13 @@ export default function NewOrderFlow({
     }
     submissionLock.current = true;
     setIsSubmitting(true);
+    const requestKeyDiagnostic = {
+      endpoint: '/kitchen-orders',
+      bodyField: 'order_request_key',
+      keyPresent: false,
+      keyValid: false,
+      payloadFields: [] as string[],
+    };
     try {
       const payload: Record<string, unknown> = {
         ...getKitchenOrderTypeFields(apiOrderType),
@@ -953,7 +961,19 @@ export default function NewOrderFlow({
           key: createOrderRequestKey(),
         };
       }
-      payload.order_request_key = orderRequestKeyRef.current.key;
+      const requestKey = orderRequestKeyRef.current.key;
+      requestKeyDiagnostic.keyPresent = Boolean(requestKey);
+      requestKeyDiagnostic.keyValid = isValidOrderRequestKey(requestKey);
+      requestKeyDiagnostic.payloadFields = Object.keys(payload);
+      if (!isValidOrderRequestKey(requestKey)) {
+        console.error('KOT submission has an invalid order request key.', {
+          ...requestKeyDiagnostic,
+        });
+        throw new Error(
+          'Unable to create a valid order request key. Please try again.',
+        );
+      }
+      payload.order_request_key = requestKey;
 
       const response = await api.post('/kitchen-orders', payload);
       if (isRecord(response.data) && response.data.success === false) {
@@ -1012,9 +1032,18 @@ export default function NewOrderFlow({
         ],
       );
     } catch (error) {
+      const errorMessage = getErrorMessage(
+        error,
+        'Please check the connection and try again.',
+      );
+      if (/order[_ ]request[_ ]key/i.test(errorMessage)) {
+        console.error('KOT API rejected the order request key.', {
+          ...requestKeyDiagnostic,
+        });
+      }
       Alert.alert(
         'Unable to send order',
-        getErrorMessage(error, 'Please check the connection and try again.'),
+        errorMessage,
       );
     } finally {
       submissionLock.current = false;

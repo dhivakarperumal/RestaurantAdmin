@@ -28,6 +28,7 @@ import {
 import type { ActiveBillTableReference } from './tableAvailability';
 import {
   createOrderRequestKey,
+  isValidOrderRequestKey,
   readKitchenOrderReferences,
 } from './orderSubmission';
 import type { KitchenOrderReferences } from './orderSubmission';
@@ -153,6 +154,7 @@ function BillPreview({
   const [discount, setDiscount] = useState('0');
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
   const requestKeyRef = useRef<{ signature: string; key: string } | null>(null);
+  const submissionLockRef = useRef(false);
   const hasUnpricedItems = items.some(item => item.amount === null);
   const subtotal = items.reduce(
     (sum, item) => sum + (item.amount ?? 0) * item.quantity,
@@ -238,7 +240,11 @@ function BillPreview({
   };
 
   const sendToKitchen = async () => {
-    if (!canSendToKitchen || !selectedTableRecord) {
+    if (
+      submissionLockRef.current ||
+      !canSendToKitchen ||
+      !selectedTableRecord
+    ) {
       return;
     }
 
@@ -253,7 +259,15 @@ function BillPreview({
       return;
     }
 
+    submissionLockRef.current = true;
     setIsSendingToKitchen(true);
+    const requestKeyDiagnostic = {
+      endpoint: '/kitchen-orders',
+      bodyField: 'order_request_key',
+      keyPresent: false,
+      keyValid: false,
+      payloadFields: [] as string[],
+    };
     try {
       const selectedTableId =
         selectedTableRecord.table_id ?? selectedTableRecord.id;
@@ -355,9 +369,21 @@ function BillPreview({
           key: createOrderRequestKey(),
         };
       }
+      const requestKey = requestKeyRef.current.key;
+      requestKeyDiagnostic.keyPresent = Boolean(requestKey);
+      requestKeyDiagnostic.keyValid = isValidOrderRequestKey(requestKey);
+      requestKeyDiagnostic.payloadFields = Object.keys(payload);
+      if (!isValidOrderRequestKey(requestKey)) {
+        console.error('KOT submission has an invalid order request key.', {
+          ...requestKeyDiagnostic,
+        });
+        throw new Error(
+          'Unable to create a valid order request key. Please try again.',
+        );
+      }
       const response = await api.post('/kitchen-orders', {
         ...payload,
-        order_request_key: requestKeyRef.current.key,
+        order_request_key: requestKey,
       });
 
       if (isRecord(response.data) && response.data.success === false) {
@@ -386,11 +412,21 @@ function BillPreview({
         }`,
       );
     } catch (error) {
+      const errorMessage = getErrorMessage(
+        error,
+        'Please check the connection and try again.',
+      );
+      if (/order[_ ]request[_ ]key/i.test(errorMessage)) {
+        console.error('KOT API rejected the order request key.', {
+          ...requestKeyDiagnostic,
+        });
+      }
       Alert.alert(
         'Unable to send order',
-        getErrorMessage(error, 'Please check the connection and try again.'),
+        errorMessage,
       );
     } finally {
+      submissionLockRef.current = false;
       setIsSendingToKitchen(false);
     }
   };
