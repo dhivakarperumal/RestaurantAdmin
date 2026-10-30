@@ -394,6 +394,13 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
 
   const details = pageDetails[page];
   const filters = isKitchen ? kitchenStatuses : customerStatuses;
+  const usesListControls = [
+    'all',
+    'kitchen',
+    'dining',
+    'new',
+    'pickup',
+  ].includes(page);
   const selectedAddress =
     selectedOrder && isRecord(selectedOrder.address)
       ? selectedOrder.address
@@ -461,13 +468,13 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
         </View>
       ) : null}
 
-      {page === 'all' ? (
+      {usesListControls ? (
         <ChefListControls
           filters={[
             {
               label: 'Status',
               value: statusFilter,
-              options: customerStatuses.map(filter => ({
+              options: filters.map(filter => ({
                 value: filter,
                 label:
                   filter === 'All'
@@ -483,7 +490,7 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
           onViewModeChange={setAllOrdersViewMode}
           placeholder="Search order, customer, phone, or dish..."
           search={search}
-          searchLabel="Search all orders"
+          searchLabel={`Search ${details.title.toLowerCase()}`}
           sort={{
             value: sortLatest ? 'latest' : 'oldest',
             options: [
@@ -576,7 +583,7 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
       ) : visibleOrders.length ? (
         <View
           className={
-            page === 'all' && allOrdersViewMode === 'grid'
+            usesListControls && allOrdersViewMode === 'grid'
               ? 'flex-row flex-wrap justify-between gap-y-3'
               : 'gap-3'
           }
@@ -602,7 +609,7 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
               <View
                 key={`${isKitchen ? 'kitchen' : 'customer'}-${id || index}`}
                 className={`overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white ${
-                  page === 'all' && allOrdersViewMode === 'grid'
+                  usesListControls && allOrdersViewMode === 'grid'
                     ? 'w-[48%]'
                     : 'w-full'
                 }`}
