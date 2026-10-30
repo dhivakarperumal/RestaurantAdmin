@@ -14,7 +14,6 @@ type AuthScreenProps = {
 };
 
 function AuthScreen({ onLogin }: AuthScreenProps) {
-
   return (
     <SafeAreaView
       className="flex-1"
@@ -44,7 +43,7 @@ function AuthScreen({ onLogin }: AuthScreenProps) {
         </Svg>
       </View>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -52,8 +51,10 @@ function AuthScreen({ onLogin }: AuthScreenProps) {
             flexGrow: 1,
             justifyContent: 'center',
             paddingHorizontal: 20,
-            paddingVertical: 32,
+            paddingVertical: 16,
           }}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
         >
           <LoginPage onLogin={onLogin} />
