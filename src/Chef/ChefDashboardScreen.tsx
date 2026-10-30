@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,10 +12,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
-import {
-  CustomersIcon,
-  ReceiptIcon,
-} from '../Admin/Navigation/NavigationIcons';
 import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
 import { FormModal } from '../components/popups';
 import ChefBottomNavigation, { type ChefTab } from './ChefBottomNavigation';
@@ -601,8 +598,13 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-[#D9F2E0] opacity-70"
         />
         <View className="relative flex-row items-center gap-2.5">
-          <View className="h-[50px] w-[50px] items-center justify-center rounded-2xl border border-[#D5EDDD] bg-white/80">
-            <CustomersIcon color="#14764A" size={27} />
+          <View className="h-[78px] w-[58px] shrink-0 items-center justify-center">
+            <Image
+              accessibilityLabel="Chef"
+              resizeMode="contain"
+              source={require('../images/chef.png')}
+              className="h-full w-full"
+            />
           </View>
           <View className="min-w-0 flex-1">
             <View className="flex-row flex-wrap items-center gap-1.5">
@@ -686,8 +688,13 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-[#FCE9B9] opacity-60"
           />
           <View className="relative flex-row items-center gap-2.5">
-            <View className="h-[48px] w-[48px] items-center justify-center rounded-2xl border border-[#F5E3B0] bg-white/80">
-              <ReceiptIcon color="#B57618" size={25} />
+            <View className="h-[65px] w-[58px] shrink-0 items-center justify-center">
+              <Image
+                accessibilityLabel="Event calendar and cake"
+                resizeMode="contain"
+                source={require('../images/eventcalendar.png')}
+                className="h-full w-full"
+              />
             </View>
             <View className="min-w-0 flex-1">
               <View className="flex-row flex-wrap items-center gap-1.5">
