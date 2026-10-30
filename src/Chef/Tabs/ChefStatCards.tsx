@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 
 export type ChefStat = {
   label: string;
@@ -20,48 +19,30 @@ function ChefStatCards({
 }) {
   return (
     <View className="flex-row flex-wrap justify-between gap-y-3">
-      {stats.map(stat => (
-        <Pressable
-          accessibilityRole={stat.onPress ? 'button' : undefined}
-          accessibilityState={
-            stat.onPress ? { selected: Boolean(stat.isSelected) } : undefined
-          }
-          disabled={!stat.onPress}
-          key={stat.label}
-          onPress={stat.onPress}
-          className={`relative min-h-[132px] w-[48%] flex-row items-center overflow-hidden rounded-2xl border bg-[#FFFEF8] px-2 ${
-            stat.isSelected ? 'border-[#07513A]' : 'border-[#E8C654]'
-          }`}
-        >
-          <View
-            pointerEvents="none"
-            className="absolute -bottom-9 -right-7 h-28 w-28 rounded-full bg-[#F0F6E9]"
-          />
-          <Svg
-            pointerEvents="none"
-            width="100%"
-            height="100%"
-            viewBox="0 0 200 132"
-            preserveAspectRatio="none"
-            className="absolute inset-0"
-          >
-            <Path
-              d="M168 132 C183 128 191 119 200 106 L200 132 Z"
-              fill="#E5B92E"
+      {stats.map(stat => {
+        const cardClassName = `relative min-h-[132px] w-[48%] flex-row items-center overflow-hidden rounded-2xl border bg-[#FFFEF8] px-2 ${
+          stat.isSelected ? 'border-[#07513A]' : 'border-[#E8C654]'
+        }`;
+        const cardContent = (
+          <>
+            <View
+              pointerEvents="none"
+              className="absolute -bottom-9 -right-7 h-28 w-28 rounded-full bg-[#F0F6E9]"
             />
-            <Path
-              d="M170 132 C185 128 194 119 200 110"
-              fill="none"
-              stroke="#F8D56A"
-              strokeWidth="2"
+            <View
+              pointerEvents="none"
+              className="absolute -bottom-1 -right-1 h-8 w-14 rounded-tl-full bg-[#E5B92E]"
             />
-          </Svg>
-          <View className="z-10 h-[66px] w-[66px] shrink-0 items-center justify-center rounded-full bg-[#EAF4E7]">
+            <View
+              className="flex-1 flex-row items-center"
+              style={{ position: 'relative', zIndex: 1 }}
+            >
+          <View className="h-[66px] w-[66px] shrink-0 items-center justify-center rounded-full bg-[#EAF4E7]">
             <View className="h-[52px] w-[52px] items-center justify-center rounded-full bg-[#07513A]">
               {stat.icon}
             </View>
           </View>
-          <View className="z-10 min-w-0 flex-1 justify-center py-3 pl-2">
+          <View className="min-w-0 flex-1 justify-center py-3 pl-2">
             <Text
               numberOfLines={1}
               className="text-[9px] font-extrabold uppercase tracking-[0.35px] text-[#07513A]"
@@ -81,8 +62,26 @@ function ChefStatCards({
               {stat.hint}
             </Text>
           </View>
-        </Pressable>
-      ))}
+            </View>
+          </>
+        );
+
+        return stat.onPress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: Boolean(stat.isSelected) }}
+            key={stat.label}
+            onPress={stat.onPress}
+            className={cardClassName}
+          >
+            {cardContent}
+          </Pressable>
+        ) : (
+          <View key={stat.label} className={cardClassName}>
+            {cardContent}
+          </View>
+        );
+      })}
     </View>
   );
 }
