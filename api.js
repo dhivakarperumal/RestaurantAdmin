@@ -99,6 +99,14 @@ export const getApiErrorMessage = (
    REQUEST INTERCEPTOR
 ========================= */
 
+function generateOrderRequestKey() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (token) => {
+    const randomHex = Math.floor(Math.random() * 16);
+    const value = token === "x" ? randomHex : (randomHex & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
 api.interceptors.request.use(
   async (config) => {
     const token = await getStoredToken();
@@ -109,6 +117,48 @@ api.interceptors.request.use(
 
     if (appLockToken) {
       config.headers["X-App-Lock-Token"] = appLockToken;
+    }
+
+    const url = String(config.url || "");
+    const method = String(config.method || "get").toLowerCase();
+    const isKitchenOrderSubmit =
+      url.includes("/kitchen-orders") && ["post", "put", "patch"].includes(method);
+
+    if (isKitchenOrderSubmit) {
+      if (!config.headers) {
+        config.headers = {};
+      }
+
+      const existingKey =
+        (config.data &&
+          typeof config.data === "object" &&
+          (config.data.order_request_key ||
+            config.data.orderRequestKey ||
+            config.data.request_key ||
+            config.data.order_key)) ||
+        config.headers["order-request-key"] ||
+        config.headers["Order-Request-Key"] ||
+        config.headers["x-order-request-key"] ||
+        config.headers["X-Order-Request-Key"] ||
+        config.headers["idempotency-key"] ||
+        config.headers["Idempotency-Key"] ||
+        generateOrderRequestKey();
+
+      const keyStr = String(existingKey).trim();
+
+      config.headers["order-request-key"] = keyStr;
+      config.headers["Order-Request-Key"] = keyStr;
+      config.headers["x-order-request-key"] = keyStr;
+      config.headers["X-Order-Request-Key"] = keyStr;
+      config.headers["idempotency-key"] = keyStr;
+      config.headers["Idempotency-Key"] = keyStr;
+
+      if (config.data && typeof config.data === "object" && !Array.isArray(config.data)) {
+        if (!config.data.order_request_key) config.data.order_request_key = keyStr;
+        if (!config.data.orderRequestKey) config.data.orderRequestKey = keyStr;
+        if (!config.data.request_key) config.data.request_key = keyStr;
+        if (!config.data.order_key) config.data.order_key = keyStr;
+      }
     }
 
     return config;

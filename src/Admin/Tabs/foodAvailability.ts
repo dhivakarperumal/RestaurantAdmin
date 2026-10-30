@@ -12,12 +12,16 @@ function isExplicitlyUnavailable(value: unknown) {
   );
 }
 
-export function isFoodAvailable(food: FoodAvailabilityRecord) {
+export function isFoodAvailable(
+  food: FoodAvailabilityRecord,
+  channelField?: string | number,
+) {
   const availabilityFields = [
     'is_effectively_available',
     'is_available',
     'is_menu_visible',
     'availability',
+    ...(typeof channelField === 'string' && channelField ? [channelField] : []),
   ];
   if (availabilityFields.some(key => isExplicitlyUnavailable(food[key]))) {
     return false;

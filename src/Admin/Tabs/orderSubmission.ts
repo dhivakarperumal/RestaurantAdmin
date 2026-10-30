@@ -1,5 +1,3 @@
-import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
 import type { NewOrderType } from '../Navigation/DashboardTypes';
 
 export type ApiOrderType = 'dine_in' | 'home_delivery' | 'pickup';
@@ -50,21 +48,43 @@ export function readKitchenOrderReferences(
   return Object.values(references).some(Boolean) ? references : null;
 }
 
-export function createOrderRequestKey() {
-  const key = uuidv4();
-  if (!isValidOrderRequestKey(key)) {
-    throw new Error('Unable to generate a valid order request key.');
-  }
-  return key;
+export function createOrderRequestKey(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, token => {
+    const randomHex = Math.floor(Math.random() * 16);
+    const value = token === 'x' ? randomHex : (randomHex & 0x3) | 0x8;
+    return value.toString(16);
+  });
 }
 
-export function isValidOrderRequestKey(value: unknown): boolean {
+export function isValidOrderRequestKey(value: unknown): value is string {
   return (
     typeof value === 'string' &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      value,
+      value.trim(),
     )
   );
+}
+
+export function getOrderRequestKeyPayload(key: string): Record<string, string> {
+  const cleanKey = String(key || '').trim();
+  return {
+    order_request_key: cleanKey,
+    orderRequestKey: cleanKey,
+    request_key: cleanKey,
+    order_key: cleanKey,
+  };
+}
+
+export function getOrderRequestKeyHeaders(key: string): Record<string, string> {
+  const cleanKey = String(key || '').trim();
+  return {
+    'order-request-key': cleanKey,
+    'Order-Request-Key': cleanKey,
+    'x-order-request-key': cleanKey,
+    'X-Order-Request-Key': cleanKey,
+    'idempotency-key': cleanKey,
+    'Idempotency-Key': cleanKey,
+  };
 }
 
 export function getKitchenOrderTypeFields(orderType: ApiOrderType) {

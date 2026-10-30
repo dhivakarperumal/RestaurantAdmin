@@ -10,6 +10,14 @@ describe('food availability', () => {
     expect(isFoodAvailable({ [field]: value })).toBe(false);
   });
 
+  it.each([
+    ['dining_available', 'unavailable'],
+    ['delivery_available', 'not available'],
+    ['takeaway_available', 'out_of_stock'],
+  ])('hides food unavailable for its %s order channel', (field, value) => {
+    expect(isFoodAvailable({ [field]: value }, field)).toBe(false);
+  });
+
   it.each(['inactive', 'unavailable', 'out of stock', 'hidden', 'deleted'])(
     'hides food with %s status',
     status => {

@@ -28,6 +28,8 @@ import {
 import type { ActiveBillTableReference } from './tableAvailability';
 import {
   createOrderRequestKey,
+  getOrderRequestKeyHeaders,
+  getOrderRequestKeyPayload,
   isValidOrderRequestKey,
   readKitchenOrderReferences,
 } from './orderSubmission';
@@ -372,6 +374,7 @@ function BillPreview({
       const requestKey = requestKeyRef.current.key;
       requestKeyDiagnostic.keyPresent = Boolean(requestKey);
       requestKeyDiagnostic.keyValid = isValidOrderRequestKey(requestKey);
+      Object.assign(payload, getOrderRequestKeyPayload(requestKey));
       requestKeyDiagnostic.payloadFields = Object.keys(payload);
       if (!isValidOrderRequestKey(requestKey)) {
         console.error('KOT submission has an invalid order request key.', {
@@ -381,9 +384,9 @@ function BillPreview({
           'Unable to create a valid order request key. Please try again.',
         );
       }
-      const response = await api.post('/kitchen-orders', {
-        ...payload,
-        order_request_key: requestKey,
+
+      const response = await api.post('/kitchen-orders', payload, {
+        headers: getOrderRequestKeyHeaders(requestKey),
       });
 
       if (isRecord(response.data) && response.data.success === false) {
@@ -412,6 +415,7 @@ function BillPreview({
         }`,
       );
     } catch (error) {
+      requestKeyRef.current = null;
       const errorMessage = getErrorMessage(
         error,
         'Please check the connection and try again.',

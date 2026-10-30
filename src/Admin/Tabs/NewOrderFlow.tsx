@@ -29,11 +29,14 @@ import {
 import {
   createOrderRequestKey,
   getKitchenOrderTypeFields,
+  getOrderRequestKeyHeaders,
+  getOrderRequestKeyPayload,
   getOrderSubmissionError,
   hasValidTableId,
   isValidOrderRequestKey,
   resolveApiOrderType,
 } from './orderSubmission';
+import { isFoodAvailable } from './foodAvailability';
 import type {
   AdminTableRecord,
   ExistingBillContext,
@@ -437,14 +440,7 @@ export default function NewOrderFlow({
           : isDelivery
           ? 'delivery_available'
           : 'takeaway_available';
-        const status = text(food.raw.status, 'Active').toLowerCase();
-        return (
-          status !== 'inactive' &&
-          status !== 'deleted' &&
-          flag(food.raw.is_available) &&
-          flag(food.raw.is_menu_visible) &&
-          flag(food.raw[availabilityKey])
-        );
+        return isFoodAvailable(food.raw, availabilityKey);
       }),
     [foods, isDelivery, isDineIn],
   );
@@ -492,7 +488,10 @@ export default function NewOrderFlow({
     setIsLoadingFoods(true);
     setFoodsError('');
     api
-      .get('/foods', { signal: controller.signal })
+      .get('/foods', {
+        params: { include_unavailable: false },
+        signal: controller.signal,
+      })
       .then(response => {
         if (active) {
           setFoods(readFoods(response.data));
@@ -964,6 +963,7 @@ export default function NewOrderFlow({
       const requestKey = orderRequestKeyRef.current.key;
       requestKeyDiagnostic.keyPresent = Boolean(requestKey);
       requestKeyDiagnostic.keyValid = isValidOrderRequestKey(requestKey);
+      Object.assign(payload, getOrderRequestKeyPayload(requestKey));
       requestKeyDiagnostic.payloadFields = Object.keys(payload);
       if (!isValidOrderRequestKey(requestKey)) {
         console.error('KOT submission has an invalid order request key.', {
@@ -973,9 +973,10 @@ export default function NewOrderFlow({
           'Unable to create a valid order request key. Please try again.',
         );
       }
-      payload.order_request_key = requestKey;
 
-      const response = await api.post('/kitchen-orders', payload);
+      const response = await api.post('/kitchen-orders', payload, {
+        headers: getOrderRequestKeyHeaders(requestKey),
+      });
       if (isRecord(response.data) && response.data.success === false) {
         throw new Error(
           typeof response.data.message === 'string'
@@ -1032,6 +1033,7 @@ export default function NewOrderFlow({
         ],
       );
     } catch (error) {
+      orderRequestKeyRef.current = null;
       const errorMessage = getErrorMessage(
         error,
         'Please check the connection and try again.',

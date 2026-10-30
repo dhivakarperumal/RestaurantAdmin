@@ -1,5 +1,7 @@
 import {
   createOrderRequestKey,
+  getOrderRequestKeyHeaders,
+  getOrderRequestKeyPayload,
   getKitchenOrderTypeFields,
   getOrderSubmissionError,
   hasValidTableId,
@@ -21,6 +23,24 @@ describe('admin KOT order submission values', () => {
     expect(secondKey).not.toBe(firstKey);
     expect(isValidOrderRequestKey(firstKey)).toBe(true);
     expect(isValidOrderRequestKey(secondKey)).toBe(true);
+  });
+
+  it('provides all body and header key variations for compatibility', () => {
+    const key = '12345678-1234-4234-8234-123456789abc';
+    expect(getOrderRequestKeyPayload(key)).toEqual({
+      order_request_key: key,
+      orderRequestKey: key,
+      request_key: key,
+      order_key: key,
+    });
+    expect(getOrderRequestKeyHeaders(key)).toEqual({
+      'order-request-key': key,
+      'Order-Request-Key': key,
+      'x-order-request-key': key,
+      'X-Order-Request-Key': key,
+      'idempotency-key': key,
+      'Idempotency-Key': key,
+    });
   });
 
   it('rejects missing or malformed order request keys', () => {
