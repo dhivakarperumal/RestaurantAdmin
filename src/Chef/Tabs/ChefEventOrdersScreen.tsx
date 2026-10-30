@@ -7,6 +7,7 @@ import {
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -278,6 +279,212 @@ function ChefEventOrdersScreen() {
     setKitchenNotes(text(order.admin_notes, ''));
   };
 
+  const renderOrderActions = (order: EventOrder, isUpdating: boolean) => (
+    <View className="flex-row flex-wrap items-center gap-2">
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => openPrepSheet(order)}
+        className="rounded-lg border border-[#D1D5DB] bg-white px-3 py-2"
+      >
+        <Text className="text-[10px] font-bold text-[#374151]">Prep sheet</Text>
+      </Pressable>
+      {order.status === 'Confirmed' ? (
+        <ActionButton
+          label="Start cooking"
+          disabled={isUpdating}
+          onPress={() => void updateStatus(order, 'Preparing')}
+          className="bg-blue-600"
+        />
+      ) : null}
+      {order.status === 'Preparing' ? (
+        <ActionButton
+          label="Mark ready"
+          disabled={isUpdating}
+          onPress={() => void updateStatus(order, 'Ready')}
+          className="bg-emerald-600"
+        />
+      ) : null}
+      {order.status === 'Ready' ? (
+        <ActionButton
+          label="Complete"
+          disabled={isUpdating}
+          onPress={() => void updateStatus(order, 'Completed')}
+          className="bg-[#123B2D]"
+        />
+      ) : null}
+      {order.status === 'Completed' ? (
+        <Text className="px-2 text-[10px] font-bold text-[#6B7280]">
+          Fulfilled
+        </Text>
+      ) : null}
+      {isUpdating ? <ActivityIndicator size="small" color="#116C0B" /> : null}
+    </View>
+  );
+
+  const renderOrderCard = (order: EventOrder) => {
+    const items = Array.isArray(order.items) ? order.items : [];
+    const id = orderId(order);
+    const isUpdating = updatingId === id;
+    return (
+      <View
+        key={id}
+        className="mb-3 w-full overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+      >
+        <View className="gap-3 p-4">
+          <View className="flex-row items-start justify-between gap-3">
+            <View className="min-w-0 flex-1">
+              <Text className="text-[10px] font-extrabold uppercase tracking-wide text-[#14764A]">
+                Order #{text(order.event_order_number)}
+              </Text>
+              <Text className="mt-1 text-base font-extrabold text-[#111827]">
+                {text(order.event_type, 'Catering event')}
+              </Text>
+              <Text className="mt-1 text-[11px] font-medium text-[#6B7280]">
+                {text(order.customer_name)}
+                {order.customer_phone ? ` · ${text(order.customer_phone)}` : ''}
+              </Text>
+            </View>
+            <View className="items-end gap-1.5">
+              <OrderStatus status={text(order.status, 'Confirmed')} />
+              <Text className="rounded-lg bg-[#FFF7E8] px-2 py-1 text-[9px] font-bold text-[#9A6200]">
+                {dateUrgency(order.event_date)}
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row gap-2 rounded-xl bg-[#F8FAFC] p-3">
+            <View className="min-w-0 flex-1">
+              <Text className="text-[9px] font-bold uppercase tracking-wide text-[#94A3B8]">
+                Event date & time
+              </Text>
+              <Text className="mt-1 text-[11px] font-bold text-[#1F2937]">
+                {formatDate(order.event_date)}
+              </Text>
+              <Text className="text-[10px] font-semibold text-[#64748B]">
+                {formatTime(order.event_time)}
+              </Text>
+            </View>
+            <View className="w-px bg-[#E2E8F0]" />
+            <View className="min-w-0 flex-1 pl-2">
+              <Text className="text-[9px] font-bold uppercase tracking-wide text-[#94A3B8]">
+                Guests & diet
+              </Text>
+              <Text className="mt-1 text-[11px] font-extrabold text-[#123B2D]">
+                {text(order.guest_count, '0')} guests
+              </Text>
+              <Text className="text-[10px] text-[#64748B]">
+                {text(order.dietary_preference, 'Mixed')}
+              </Text>
+            </View>
+          </View>
+
+          <View className="rounded-xl border border-[#E8EFEA] bg-[#FBFDFC] p-3">
+            <Text className="text-[10px] font-bold uppercase tracking-wide text-[#64748B]">
+              Dishes · {items.length}
+            </Text>
+            <Text className="mt-1 text-[11px] leading-5 text-[#374151]">
+              {items
+                .slice(0, 4)
+                .map(item => `${text(item.product_name)} ×${text(item.quantity, '1')}`)
+                .join('  ·  ') || 'No dish details'}
+              {items.length > 4 ? `  ·  +${items.length - 4} more` : ''}
+            </Text>
+          </View>
+
+          {order.venue_address ? (
+            <Text numberOfLines={2} className="text-[10px] leading-4 text-[#64748B]">
+              Venue: {text(order.venue_address)}
+            </Text>
+          ) : null}
+          {order.special_requests ? (
+            <View className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2">
+              <Text className="text-[9px] font-bold uppercase text-rose-700">
+                Customer notes
+              </Text>
+              <Text numberOfLines={3} className="mt-1 text-[10px] leading-4 text-rose-900">
+                {text(order.special_requests)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        <View className="border-t border-[#E5E7EB] bg-[#F9FAFB] p-3">
+          {renderOrderActions(order, isUpdating)}
+        </View>
+      </View>
+    );
+  };
+
+  const renderOrderTableRow = (order: EventOrder, index: number) => {
+    const items = Array.isArray(order.items) ? order.items : [];
+    const id = orderId(order);
+    const isUpdating = updatingId === id;
+    return (
+      <View
+        key={id}
+        className="min-h-[72px] w-[1120px] flex-row items-center border-b border-[#EEF2F4] bg-white px-3 py-2"
+      >
+        <View className="w-[52px] items-center px-1">
+          <Text className="text-[11px] font-semibold text-[#475569]">
+            {index + 1}
+          </Text>
+        </View>
+        <View className="w-[165px] px-2">
+          <Text numberOfLines={1} className="text-[10px] font-extrabold text-[#14764A]">
+            #{text(order.event_order_number)}
+          </Text>
+          <Text numberOfLines={2} className="mt-1 text-[11px] font-bold text-[#111827]">
+            {text(order.event_type, 'Catering event')}
+          </Text>
+        </View>
+        <View className="w-[165px] px-2">
+          <Text numberOfLines={2} className="text-[11px] font-semibold text-[#1F2937]">
+            {formatDate(order.event_date)}
+          </Text>
+          <Text className="mt-1 text-[10px] text-[#64748B]">
+            {formatTime(order.event_time)}
+          </Text>
+          <Text className="mt-1 text-[9px] font-bold text-[#9A6200]">
+            {dateUrgency(order.event_date)}
+          </Text>
+        </View>
+        <View className="w-[105px] px-2">
+          <Text className="text-[11px] font-bold text-[#123B2D]">
+            {text(order.guest_count, '0')} guests
+          </Text>
+          <Text numberOfLines={1} className="mt-1 text-[10px] text-[#64748B]">
+            {text(order.dietary_preference, 'Mixed')}
+          </Text>
+        </View>
+        <View className="w-[210px] px-2">
+          <Text className="text-[10px] font-bold text-[#475569]">
+            {items.length} dish{items.length === 1 ? '' : 'es'}
+          </Text>
+          <Text numberOfLines={2} className="mt-1 text-[10px] leading-4 text-[#64748B]">
+            {items
+              .slice(0, 3)
+              .map(item => `${text(item.product_name)} ×${text(item.quantity, '1')}`)
+              .join(' · ') || 'No dish details'}
+            {items.length > 3 ? ` · +${items.length - 3} more` : ''}
+          </Text>
+        </View>
+        <View className="w-[155px] px-2">
+          <Text numberOfLines={2} className="text-[10px] font-semibold text-[#374151]">
+            {text(order.customer_name)}
+          </Text>
+          <Text numberOfLines={1} className="mt-1 text-[9px] text-[#64748B]">
+            {text(order.customer_phone)}
+          </Text>
+        </View>
+        <View className="w-[105px] px-2">
+          <OrderStatus status={text(order.status, 'Confirmed')} />
+        </View>
+        <View className="w-[160px] px-2">
+          {renderOrderActions(order, isUpdating)}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View className="gap-4 pb-6">
       <View>
@@ -404,148 +611,38 @@ function ChefEventOrdersScreen() {
           </Text>
         </View>
       ) : filteredOrders.length ? (
-        <View
-          className={
-            viewMode === 'grid'
-              ? 'flex-row flex-wrap justify-between gap-y-3'
-              : 'gap-3'
-          }
-        >
-          {filteredOrders.map(order => {
-            const items = Array.isArray(order.items) ? order.items : [];
-            const id = orderId(order);
-            const isUpdating = updatingId === id;
-            return (
-              <View
-                key={id}
-                className={`overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white ${
-                  viewMode === 'grid' ? 'w-[48%]' : 'w-full'
-                }`}
-              >
-                <View className="gap-3 p-4">
-                  <View className="flex-row items-start justify-between gap-2">
-                    <View className="flex-1">
-                      <Text className="text-[11px] font-extrabold text-[#123B2D]">
-                        #{text(order.event_order_number)}
-                      </Text>
-                      <Text className="mt-1 text-base font-extrabold text-[#111827]">
-                        {text(order.event_type, 'Catering event')}
-                      </Text>
-                    </View>
-                    <View className="items-end gap-1.5">
-                      <OrderStatus status={text(order.status, 'Confirmed')} />
-                      <Text className="rounded-lg bg-[#F3F4F6] px-2 py-1 text-[9px] font-bold text-[#4B5563]">
-                        {dateUrgency(order.event_date)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row gap-2 rounded-xl bg-[#F9FAFB] p-3">
-                    <View className="flex-1">
-                      <Text className="text-[9px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                        Event date
-                      </Text>
-                      <Text className="mt-1 text-[11px] font-bold text-[#1F2937]">
-                        {formatDate(order.event_date)}
-                      </Text>
-                      <Text className="text-[10px] font-semibold text-[#6B7280]">
-                        {formatTime(order.event_time)}
-                      </Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-[9px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                        Guests & diet
-                      </Text>
-                      <Text className="mt-1 text-[11px] font-extrabold text-[#123B2D]">
-                        {text(order.guest_count, '0')} guests
-                      </Text>
-                      <Text className="text-[10px] text-[#6B7280]">
-                        {text(order.dietary_preference, 'Mixed')}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View>
-                    <Text className="text-xs font-bold text-[#1F2937]">
-                      {items.length} dish{items.length === 1 ? '' : 'es'}
+        viewMode === 'grid' ? (
+          <View className="gap-3">
+            {filteredOrders.map(renderOrderCard)}
+          </View>
+        ) : (
+          <View className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View className="w-[1120px]">
+                <View className="h-10 w-[1120px] flex-row items-center border-b border-[#E5E7EB] bg-[#F8FAFC] px-3">
+                  {[
+                    { label: 'S. No.', width: 'w-[52px]' },
+                    { label: 'Order / Event', width: 'w-[165px]' },
+                    { label: 'Event date', width: 'w-[165px]' },
+                    { label: 'Guests', width: 'w-[105px]' },
+                    { label: 'Dishes', width: 'w-[210px]' },
+                    { label: 'Customer', width: 'w-[155px]' },
+                    { label: 'Status', width: 'w-[105px]' },
+                    { label: 'Actions', width: 'w-[160px]' },
+                  ].map(column => (
+                    <Text
+                      key={column.label}
+                      className={`${column.width} px-2 text-[9px] font-bold uppercase tracking-wide text-[#64748B]`}
+                    >
+                      {column.label}
                     </Text>
-                    <Text className="mt-1 text-[10px] leading-4 text-[#6B7280]">
-                      {items
-                        .slice(0, 3)
-                        .map(item => `${text(item.product_name)} ×${text(item.quantity, '1')}`)
-                        .join(' · ') || 'No dish details'}
-                      {items.length > 3 ? ` · +${items.length - 3} more` : ''}
-                    </Text>
-                  </View>
-
-                  <View>
-                    <Text className="text-[11px] font-semibold text-[#374151]">
-                      {text(order.customer_name)}
-                      {order.customer_phone ? ` · ${text(order.customer_phone)}` : ''}
-                    </Text>
-                    {order.venue_address ? (
-                      <Text className="mt-1 text-[10px] leading-4 text-[#6B7280]">
-                        Venue: {text(order.venue_address)}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  {order.special_requests ? (
-                    <View className="rounded-xl border border-rose-100 bg-rose-50 p-3">
-                      <Text className="text-[9px] font-bold uppercase text-rose-700">
-                        Customer notes
-                      </Text>
-                      <Text className="mt-1 text-[11px] leading-4 text-rose-900">
-                        {text(order.special_requests)}
-                      </Text>
-                    </View>
-                  ) : null}
+                  ))}
                 </View>
-
-                <View className="flex-row flex-wrap items-center justify-between gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] p-3">
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => openPrepSheet(order)}
-                    className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2"
-                  >
-                    <Text className="text-[10px] font-bold text-[#374151]">
-                      Prep sheet
-                    </Text>
-                  </Pressable>
-                  {order.status === 'Confirmed' ? (
-                    <ActionButton
-                      label="Start cooking"
-                      disabled={isUpdating}
-                      onPress={() => void updateStatus(order, 'Preparing')}
-                      className="bg-blue-600"
-                    />
-                  ) : null}
-                  {order.status === 'Preparing' ? (
-                    <ActionButton
-                      label="Mark ready"
-                      disabled={isUpdating}
-                      onPress={() => void updateStatus(order, 'Ready')}
-                      className="bg-emerald-600"
-                    />
-                  ) : null}
-                  {order.status === 'Ready' ? (
-                    <ActionButton
-                      label="Complete"
-                      disabled={isUpdating}
-                      onPress={() => void updateStatus(order, 'Completed')}
-                      className="bg-[#123B2D]"
-                    />
-                  ) : null}
-                  {order.status === 'Completed' ? (
-                    <Text className="text-[10px] font-bold text-[#6B7280]">
-                      Fulfilled
-                    </Text>
-                  ) : null}
-                </View>
+                {filteredOrders.map(renderOrderTableRow)}
               </View>
-            );
-          })}
-        </View>
+            </ScrollView>
+          </View>
+        )
       ) : (
         <View className="items-center rounded-2xl border border-dashed border-[#D1D5DB] bg-white px-5 py-10">
           <Text className="text-center text-sm font-bold text-[#374151]">
