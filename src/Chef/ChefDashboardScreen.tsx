@@ -627,8 +627,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                   ? `Worked ${formatTime(attendance?.check_in)} – ${formatTime(attendance?.check_out)}`
                   : 'Clock in to start your shift'}
             </Text>
-            <View className="mt-2 gap-1.5">
-              <View className="rounded-xl border border-[#D9EDE0] bg-white/80 px-2.5 py-1.5">
+            <View className="mt-2 flex-row gap-1.5">
+              <View className="min-w-0 flex-1 justify-center rounded-xl border border-[#D9EDE0] bg-white/80 px-2.5 py-2">
                 <Text className="text-[8px] font-semibold text-[#52715E]">
                   Today’s working time
                 </Text>
@@ -640,7 +640,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 accessibilityRole="button"
                 disabled={isAttendanceBusy}
                 onPress={updateAttendance}
-                className="items-center rounded-xl bg-[#08623F] px-2.5 py-2.5"
+                className="min-h-[52px] min-w-0 flex-1 items-center justify-center rounded-xl bg-[#08623F] px-2 py-2"
               >
                 <Text numberOfLines={1} className="text-[10px] font-extrabold text-white">
                   {isAttendanceBusy
