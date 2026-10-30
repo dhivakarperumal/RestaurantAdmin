@@ -20,7 +20,7 @@ function ChefStatCards({
   return (
     <View className="flex-row flex-wrap justify-between gap-y-3">
       {stats.map(stat => {
-        const cardClassName = `relative min-h-[112px] w-[48%] flex-row items-center overflow-hidden rounded-2xl border bg-[#FFFEF8] px-2 ${
+        const cardClassName = `relative min-h-[100px] w-[48%] flex-row items-center overflow-hidden rounded-2xl border bg-[#FFFEF8] px-2 ${
           stat.isSelected ? 'border-[#07513A]' : 'border-[#E8C654]'
         }`;
         const cardContent = (
