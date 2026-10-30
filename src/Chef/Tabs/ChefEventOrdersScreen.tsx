@@ -6,13 +6,14 @@ import {
 } from '../../Admin/Navigation/NavigationIcons';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import api from '../../../api';
+import api, { API_BASE_URL } from '../../../api';
 import colors from '../../theme/colors';
 import { DetailsModal } from '../../components/popups';
 import ChefListControls from './ChefListControls';
@@ -107,6 +108,41 @@ function dateUrgency(value: unknown) {
 
 function orderId(order: EventOrder) {
   return text(order.id ?? order.event_order_number, '');
+}
+
+const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+
+function getDishImage(item: Record<string, unknown>) {
+  let image: unknown =
+    item.food_images ??
+    item.food_image ??
+    item.product_image ??
+    item.image_url ??
+    item.image;
+  if (Array.isArray(image)) {
+    image = image[0];
+  }
+  if (typeof image !== 'string' || !image.trim()) {
+    return null;
+  }
+  let imagePath = image.trim();
+  if (imagePath.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(imagePath);
+      imagePath = Array.isArray(parsed) && typeof parsed[0] === 'string'
+        ? parsed[0]
+        : imagePath;
+    } catch {
+      return null;
+    }
+  }
+  if (!imagePath) {
+    return null;
+  }
+  if (/^(https?:|data:|blob:)/i.test(imagePath)) {
+    return imagePath;
+  }
+  return `${backendBaseUrl}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
 }
 
 function OrderStatus({
@@ -325,76 +361,121 @@ function ChefEventOrdersScreen() {
     const items = Array.isArray(order.items) ? order.items : [];
     const id = orderId(order);
     const isUpdating = updatingId === id;
+    const nextAction =
+      order.status === 'Confirmed'
+        ? { label: 'Start cooking', nextStatus: 'Preparing' as const }
+        : order.status === 'Preparing'
+          ? { label: 'Mark ready', nextStatus: 'Ready' as const }
+          : order.status === 'Ready'
+            ? { label: 'Complete order', nextStatus: 'Completed' as const }
+            : null;
     return (
       <View
         key={id}
-        className="mb-3 w-full overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+        className="mb-3 w-full overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white shadow-sm"
       >
-        <View className="gap-3 p-4">
-          <View className="flex-row items-start justify-between gap-3">
+        <View className="gap-3 p-3.5">
+          <View className="flex-row items-start justify-between gap-2">
             <View className="min-w-0 flex-1">
-              <Text className="text-[10px] font-extrabold uppercase tracking-wide text-[#14764A]">
-                Order #{text(order.event_order_number)}
+              <Text className="text-xs font-extrabold uppercase tracking-wide text-[#14764A]">
+                ORDER #{text(order.event_order_number)}
               </Text>
-              <Text className="mt-1 text-base font-extrabold text-[#111827]">
+              <Text className="mt-1 text-lg font-extrabold text-[#111827]">
                 {text(order.event_type, 'Catering event')}
               </Text>
-              <Text className="mt-1 text-[11px] font-medium text-[#6B7280]">
-                {text(order.customer_name)}
-                {order.customer_phone ? ` · ${text(order.customer_phone)}` : ''}
+              <Text className="mt-1 text-xs text-[#475569]">
+                {text(order.customer_name)} · {text(order.customer_phone)}
               </Text>
             </View>
             <View className="items-end gap-1.5">
               <OrderStatus status={text(order.status, 'Confirmed')} />
-              <Text className="rounded-lg bg-[#FFF7E8] px-2 py-1 text-[9px] font-bold text-[#9A6200]">
+              <Text className="rounded-full bg-[#FFF7E8] px-2.5 py-1.5 text-[9px] font-bold text-[#9A6200]">
                 {dateUrgency(order.event_date)}
               </Text>
             </View>
           </View>
 
-          <View className="flex-row gap-2 rounded-xl bg-[#F8FAFC] p-3">
+          <View className="flex-row items-center rounded-2xl bg-[#F7FAF8] p-3">
             <View className="min-w-0 flex-1">
-              <Text className="text-[9px] font-bold uppercase tracking-wide text-[#94A3B8]">
+              <Text className="text-[9px] font-bold uppercase tracking-wide text-[#84918B]">
                 Event date & time
               </Text>
-              <Text className="mt-1 text-[11px] font-bold text-[#1F2937]">
+              <Text className="mt-1 text-xs font-extrabold text-[#1F2937]">
                 {formatDate(order.event_date)}
               </Text>
-              <Text className="text-[10px] font-semibold text-[#64748B]">
+              <Text className="mt-0.5 text-[11px] text-[#64748B]">
                 {formatTime(order.event_time)}
               </Text>
             </View>
-            <View className="w-px bg-[#E2E8F0]" />
-            <View className="min-w-0 flex-1 pl-2">
-              <Text className="text-[9px] font-bold uppercase tracking-wide text-[#94A3B8]">
+            <View className="mx-3 h-12 w-px bg-[#DDE5E0]" />
+            <View className="min-w-0 flex-1">
+              <Text className="text-[9px] font-bold uppercase tracking-wide text-[#84918B]">
                 Guests & diet
               </Text>
-              <Text className="mt-1 text-[11px] font-extrabold text-[#123B2D]">
+              <Text className="mt-1 text-xs font-extrabold text-[#123B2D]">
                 {text(order.guest_count, '0')} guests
               </Text>
-              <Text className="text-[10px] text-[#64748B]">
+              <Text className="mt-0.5 text-[11px] text-[#64748B]">
                 {text(order.dietary_preference, 'Mixed')}
               </Text>
             </View>
           </View>
 
-          <View className="rounded-xl border border-[#E8EFEA] bg-[#FBFDFC] p-3">
-            <Text className="text-[10px] font-bold uppercase tracking-wide text-[#64748B]">
-              Dishes · {items.length}
-            </Text>
-            <Text className="mt-1 text-[11px] leading-5 text-[#374151]">
-              {items
-                .slice(0, 4)
-                .map(item => `${text(item.product_name)} ×${text(item.quantity, '1')}`)
-                .join('  ·  ') || 'No dish details'}
-              {items.length > 4 ? `  ·  +${items.length - 4} more` : ''}
-            </Text>
+          <View className="overflow-hidden rounded-2xl border border-[#E8EFEA] bg-[#FCFDFC] px-3">
+            <View className="h-11 flex-row items-center justify-between border-b border-[#E8EFEA]">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-base text-[#D99B18]">♨</Text>
+                <Text className="text-xs font-extrabold uppercase text-[#1F2937]">
+                  Dishes · {items.length}
+                </Text>
+              </View>
+              <Text className="text-lg font-semibold text-[#334155]">›</Text>
+            </View>
+            {items.length ? (
+              items.map((item, index) => {
+                const image = getDishImage(item);
+                return (
+                  <View
+                    key={`${id}-dish-${text(item.id, String(index))}`}
+                    className={`min-h-[58px] flex-row items-center gap-2.5 py-1.5 ${
+                      index < items.length - 1 ? 'border-b border-[#E8EFEA]' : ''
+                    }`}
+                  >
+                    <View className="h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F1F5F2]">
+                      <Text className="text-lg">🍽️</Text>
+                      {image ? (
+                        <Image
+                          accessibilityLabel={text(item.product_name, 'Dish image')}
+                          source={{ uri: image }}
+                          resizeMode="cover"
+                          className="absolute h-full w-full"
+                        />
+                      ) : null}
+                    </View>
+                    <Text
+                      numberOfLines={2}
+                      className="min-w-0 flex-1 text-xs text-[#1F2937]"
+                    >
+                      {text(item.product_name ?? item.food_name, 'Menu item')}
+                    </Text>
+                    <Text className="text-xs font-extrabold text-[#17633D]">
+                      × {text(item.quantity, '1')}
+                    </Text>
+                  </View>
+                );
+              })
+            ) : (
+              <Text className="py-4 text-xs text-[#64748B]">No dish details</Text>
+            )}
           </View>
 
           {order.venue_address ? (
-            <Text numberOfLines={2} className="text-[10px] leading-4 text-[#64748B]">
-              Venue: {text(order.venue_address)}
-            </Text>
+            <View className="flex-row items-start gap-2 px-1">
+              <Text className="text-sm text-[#D99B18]">●</Text>
+              <Text numberOfLines={2} className="flex-1 text-xs leading-5 text-[#475569]">
+                Venue: {text(order.venue_address)}
+              </Text>
+            </View>
           ) : null}
           {order.special_requests ? (
             <View className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2">
@@ -407,8 +488,33 @@ function ChefEventOrdersScreen() {
             </View>
           ) : null}
         </View>
-        <View className="border-t border-[#E5E7EB] bg-[#F9FAFB] p-3">
-          {renderOrderActions(order, isUpdating)}
+        <View className="flex-row items-center gap-2.5 border-t border-[#E5E7EB] bg-white p-3">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => openPrepSheet(order)}
+            className="min-h-12 flex-row items-center justify-center gap-2 rounded-2xl border border-[#14764A] bg-white px-3"
+          >
+            <ReceiptIcon color="#14764A" size={18} />
+            <Text className="text-xs font-extrabold text-[#145A3A]">Prep sheet</Text>
+          </Pressable>
+          {nextAction ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={isUpdating}
+              onPress={() => void updateStatus(order, nextAction.nextStatus)}
+              className="min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl bg-[#005C3B] px-3 disabled:opacity-50"
+            >
+              <Text className="text-base text-[#F4C84A]">♧</Text>
+              <Text className="text-xs font-extrabold text-white">
+                {isUpdating ? 'Updating...' : nextAction.label}
+              </Text>
+              <Text className="text-base font-bold text-white">→</Text>
+            </Pressable>
+          ) : (
+            <Text className="flex-1 text-center text-xs font-bold text-[#64748B]">
+              Order fulfilled
+            </Text>
+          )}
         </View>
       </View>
     );
