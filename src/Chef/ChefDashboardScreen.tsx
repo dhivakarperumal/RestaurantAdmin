@@ -86,7 +86,7 @@ function errorMessage(error: unknown) {
   return 'Please check your connection and try again.';
 }
 
-function text(value: unknown, fallback = 'â€”') {
+function text(value: unknown, fallback = '-') {
   return value === undefined || value === null || String(value).trim() === ''
     ? fallback
     : String(value);
@@ -138,11 +138,11 @@ function localDateKey(date: Date) {
 
 function formatTime(value: unknown) {
   if (!value) {
-    return 'â€”';
+    return '-';
   }
   const date = new Date(String(value));
   return Number.isNaN(date.getTime())
-    ? 'â€”'
+    ? '-'
     : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -672,7 +672,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               {chefName}
             </Text>
             <Text className="mt-1.5 text-[13px] text-[#68766D]">
-              Hereâ€™s whatâ€™s happening in your kitchen today.
+              Here's what's happening in your kitchen today.
             </Text>
           </View>
           <Pressable
@@ -681,9 +681,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             onPress={() => setRefreshCount(count => count + 1)}
             className="h-11 flex-row items-center justify-center rounded-full border border-[#CFE0D4] bg-white px-3.5"
           >
-            <Text className="mr-1.5 text-base font-bold text-[#14764A]">â†»</Text>
+            <Text className="mr-1.5 text-base font-bold text-[#14764A]">↻</Text>
             <Text className="text-[11px] font-bold text-[#123B2D]">
-              {isLoading ? 'Refreshingâ€¦' : 'Refresh'}
+              {isLoading ? 'Refreshing...' : 'Refresh'}
             </Text>
           </Pressable>
         </View>
@@ -719,7 +719,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           <View className="min-w-0 flex-1">
             <View className="flex-row flex-wrap items-center gap-1.5">
               <Text className="text-[9px] font-extrabold uppercase tracking-[1px] text-[#28704B]">
-                Todayâ€™s Attendance
+                Today's Attendance
               </Text>
               {attendance?.status ? (
                 <Text
@@ -744,13 +744,13 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               {attendanceIsWorking
                 ? `Clocked in at ${formatTime(attendance?.check_in)}`
                 : attendance?.check_in && attendance?.check_out
-                  ? `Worked ${formatTime(attendance?.check_in)} â€“ ${formatTime(attendance?.check_out)}`
+                  ? `Worked ${formatTime(attendance?.check_in)} - ${formatTime(attendance?.check_out)}`
                   : 'Clock in to start your shift'}
             </Text>
             <View className="mt-2 flex-row gap-1.5">
               <View className="min-w-0 flex-1 justify-center rounded-xl border border-[#D9EDE0] bg-white/80 px-2.5 py-2">
                 <Text className="text-[8px] font-semibold text-[#52715E]">
-                  Todayâ€™s working time
+                  Today's working time
                 </Text>
                 <Text className="mt-0.5 text-[10px] font-extrabold text-[#164D35]">
                   {formatDuration(attendanceSeconds)}
@@ -824,8 +824,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 Next: {text(upcomingEventOrders[0].event_type, 'Catering Event')}
               </Text>
               <Text numberOfLines={1} className="mt-1 text-[9px] font-semibold text-[#8A5A2A]">
-                {text(upcomingEventOrders[0].guest_count, 'â€”')} guests
-                {'  Â·  '}
+                {text(upcomingEventOrders[0].guest_count, '-')} guests
+                {'  ·  '}
                 {formatShortDate(upcomingEventOrders[0].event_date)}
               </Text>
               <Pressable
@@ -834,7 +834,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 className="mt-2 items-center rounded-xl bg-[#8A4B14] px-2.5 py-2"
               >
                 <Text className="text-[9px] font-extrabold text-white">
-                  View Event Orders  â€º
+                  View Event Orders {'>'}
                 </Text>
               </Pressable>
             </View>
@@ -895,7 +895,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                   <ReceiptIcon color={stat.color} size={22} />
                 ) : (
                   <Text className="text-[20px] font-extrabold" style={{ color: stat.color }}>
-                    {stat.icon === 'pending' ? 'â—·' : 'â™¨'}
+                    {stat.icon === 'pending' ? '◷' : '♨'}
                   </Text>
                 )}
               </View>
@@ -904,7 +904,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 style={{ backgroundColor: stat.border }}
               >
                 <Text className="text-base font-bold" style={{ color: stat.color }}>
-                  â€º
+                  {'>'}
                 </Text>
               </View>
             </View>
@@ -913,7 +913,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             </Text>
             <View className="mt-0.5 flex-row items-end justify-between gap-1">
               <Text className="text-[26px] font-extrabold leading-8 text-[#123B2D]">
-                {isLoading ? 'â€¦' : stat.value}
+                {isLoading ? '...' : stat.value}
               </Text>
               <Text numberOfLines={1} className="mb-1 flex-1 text-right text-[9px] text-[#66756D]">
                 {stat.detail}
@@ -995,7 +995,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       <View className="mb-3 rounded-[22px] border border-[#E5EDE7] bg-white p-4">
         <View className="mb-4 flex-row items-center gap-2.5">
           <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E8F5EC]">
-            <Text className="text-[20px] font-extrabold text-[#14764A]">â—”</Text>
+            <Text className="text-[20px] font-extrabold text-[#14764A]">#</Text>
           </View>
           <View>
             <Text className="text-sm font-extrabold text-[#123B2D]">
@@ -1052,7 +1052,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
       <Card>
         <Text className="text-sm font-bold text-[#012711]">
-          Todayâ€™s order pace
+          Today's order pace
         </Text>
         <Text className="mt-1 text-xs text-[#6B7280]">
           Order arrivals by time of day
@@ -1196,7 +1196,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             className="rounded-full border border-[#D8E8DC] bg-[#F5FAF6] px-3 py-2"
           >
             <Text className="text-[10px] font-extrabold text-[#14764A]">
-              All orders  â€º
+              All orders {'>'}
             </Text>
           </Pressable>
         </View>
@@ -1209,7 +1209,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               const itemSummary = items
                 .map(
                   item =>
-                    `${text(item.food_name, 'Item')} Ã— ${text(item.quantity, '1')}`,
+                    `${text(item.food_name, 'Item')} x ${text(item.quantity, '1')}`,
                 )
                 .join(', ');
               const status = text(order.status, 'Pending');
@@ -1242,7 +1242,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                         <Text numberOfLines={1} className="mt-0.5 text-[9px] text-[#76827B]">
                           Table {text(order.table_number ?? order.table_id)}
                           {order.created_at
-                            ? ` Â· ${formatTime(order.created_at)}`
+                            ? ` · ${formatTime(order.created_at)}`
                             : ''}
                         </Text>
                       </View>
@@ -1317,7 +1317,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               </Text>
               <Text className="mt-1.5 text-xs text-[#6B7280]">
                 {firstItem ? text(firstItem.product_name, 'Kitchen supplies') : 'Kitchen supplies'}
-                {firstItem ? ` Â· ${text(firstItem.quantity)} ${text(firstItem.unit, '')}` : ''}
+                {firstItem ? ` · ${text(firstItem.quantity)} ${text(firstItem.unit, '')}` : ''}
               </Text>
               <Text className="mt-2 text-xs font-bold text-[#116C0B]">
                 {text(request.status, 'Pending')}
