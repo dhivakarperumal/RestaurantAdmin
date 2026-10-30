@@ -5,6 +5,7 @@ import {
   CustomersIcon,
   MenuIcon,
   OrdersIcon,
+  ProfileIcon,
   ReceiptIcon,
 } from '../../Admin/Navigation/NavigationIcons';
 
@@ -55,7 +56,7 @@ function ChefProfileScreen({ user }: { user: HeaderUser | null }) {
 
         <View className="flex-row border-t border-white/15 px-2 py-3.5">
           <ProfileSummary
-            icon={<StatusIcon />}
+            icon={<ProfileIcon color="#FFFFFF" size={19} />}
             label="Account Role"
             value={role}
           />
@@ -260,29 +261,6 @@ function AccessIcon({
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </Svg>
-  );
-}
-
-function StatusIcon() {
-  return (
-    <Svg width={21} height={21} viewBox="0 0 24 24" fill="none">
-      <Rect
-        x="4"
-        y="5"
-        width="16"
-        height="16"
-        rx="2"
-        stroke="#FFFFFF"
-        strokeWidth="2"
-      />
-      <Path
-        d="M8 3v4m8-4v4M4 10h16"
-        stroke="#FFFFFF"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <Circle cx="9" cy="14" r="1" fill="#FFFFFF" />
     </Svg>
   );
 }
