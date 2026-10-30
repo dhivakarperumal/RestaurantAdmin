@@ -19,7 +19,6 @@ export type BottomBarTab<Key extends string = string> = {
 export type AppTab =
   | 'home'
   | 'billing'
-  | 'billHistory'
   | 'items'
   | 'add'
   | 'orders'

@@ -26,7 +26,6 @@ type BillRecord = Record<string, unknown>;
 type ActiveBillPreviewProps = {
   table: AdminTableRecord;
   onBack: () => void;
-  onViewBillHistory: () => void;
   onAddItems: (details: {
     billId: string;
     tableId: string;
@@ -260,7 +259,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 export default function ActiveBillPreview({
   table,
   onBack,
-  onViewBillHistory,
   onAddItems,
   onCompleted,
 }: ActiveBillPreviewProps) {
@@ -693,16 +691,6 @@ export default function ActiveBillPreview({
                       );
                     })}
                   </View>
-                  <Pressable
-                    accessibilityLabel="Open bill history from settlement options"
-                    accessibilityRole="button"
-                    onPress={onViewBillHistory}
-                    className="mt-3 min-h-11 items-center justify-center rounded-xl border border-[#D7E5D6] bg-white"
-                  >
-                    <Text className="text-sm font-semibold text-[#064E3B]">
-                      Bill History
-                    </Text>
-                  </Pressable>
                 </View>
               </>
             ) : !error ? (
