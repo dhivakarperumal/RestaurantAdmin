@@ -161,9 +161,7 @@ function ChefStockDetailsScreen({
           <Text className="text-[22px] font-extrabold text-[#012711]">
             Inventory Stock
           </Text>
-          <Text className="mt-1 text-xs leading-5 text-[#6B7280]">
-            View current stock levels for kitchen inventory.
-          </Text>
+          
         </View>
         <Pressable
           accessibilityRole="button"
