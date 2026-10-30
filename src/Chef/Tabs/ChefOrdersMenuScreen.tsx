@@ -21,9 +21,7 @@ const orderPages: { key: ChefOrderPage; label: string; subtitle: string }[] = [
 function ChefOrdersMenuScreen({ onSelectPage }: ChefOrdersMenuScreenProps) {
   return (
     <View className="mx-auto w-full max-w-[1100px] px-1 pb-7 pt-2">
-      <Text className="text-[10px] font-bold tracking-[1.2px] text-[#6B7280]">
-        KITCHEN WORKSPACE
-      </Text>
+     
       <Text className="mt-1 text-2xl font-bold text-[#012711]">Orders</Text>
       <Text className="mt-1 text-sm leading-[21px] text-[#6B7280]">
         Choose an order view to review and update kitchen progress.
