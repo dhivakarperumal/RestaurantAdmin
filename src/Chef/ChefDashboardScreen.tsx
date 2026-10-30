@@ -8,9 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import {
-  SafeAreaView,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../api';
 import type { HeaderUser } from '../Admin/Navigation/TopHeader';
 import MoreInnerHeader from '../Admin/Navigation/MoreInnerHeader';
@@ -102,7 +100,7 @@ function formatTime(value: unknown) {
 }
 
 function formatDuration(seconds: number) {
-  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const safeSeconds = Math.max(0, Math.floor(numberValue(seconds)));
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
   const remainingSeconds = safeSeconds % 60;
@@ -113,7 +111,7 @@ function formatShortDate(value: unknown) {
   if (!value) {
     return 'Upcoming';
   }
-  const date = new Date(String(value).slice(0, 10));
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
   return Number.isNaN(date.getTime())
     ? 'Upcoming'
     : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -351,13 +349,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           createdAt.toLocaleDateString() === today
         );
       }).length,
-      events: eventOrders.filter(order =>
-        ['confirmed', 'preparing', 'ready'].includes(
-          text(order.status, '').toLowerCase(),
-        ),
-      ).length,
     };
-  }, [dashboardUpdatedAt, eventOrders, orders]);
+  }, [dashboardUpdatedAt, orders]);
 
   const dailyOrders = useMemo(() => {
     const today = new Date(dashboardUpdatedAt ?? Date.now());
@@ -472,17 +465,15 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     attendance?.check_in && !attendance?.check_out,
   );
   const attendanceSeconds = attendanceIsWorking
-    ? Math.max(
-        0,
-        Math.floor(
-          (attendanceClock - new Date(String(attendance?.check_in)).getTime()) /
-            1000,
-        ),
+    ? numberValue(
+        (attendanceClock -
+          new Date(String(attendance?.check_in)).getTime()) /
+          1000,
       )
-    : numberValue(
-        attendance?.duration_seconds,
-        numberValue(attendance?.total_hours) * 3600,
-      );
+    : attendance?.duration_seconds !== undefined &&
+        attendance?.duration_seconds !== null
+      ? numberValue(attendance.duration_seconds)
+      : numberValue(attendance?.total_hours) * 3600;
 
   const openRequestModal = () => {
     setRequestProduct('');
@@ -602,25 +593,50 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       <Card className="border-emerald-200 bg-[#F0F7EE]">
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-sm font-extrabold text-[#123B2D]">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Text className="text-xs font-bold uppercase tracking-widest text-[#116C0B]">
+                Today’s Attendance
+              </Text>
+              {attendance?.status ? (
+                <Text
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ${
+                    text(attendance.status).toLowerCase() === 'late'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  {text(attendance.status)}
+                </Text>
+              ) : null}
+            </View>
+            <Text className="mt-1 text-sm font-extrabold text-[#123B2D]">
               {attendanceIsWorking
-                ? 'Your shift is in progress'
+                ? 'You are on duty'
                 : attendance?.check_in && attendance?.check_out
-                  ? 'Your shift is complete'
-                  : 'Attendance'}
+                  ? 'Shift completed for today'
+                  : 'Shift not yet started'}
             </Text>
             <Text className="mt-1 text-xs text-[#52665A]">
               {attendanceIsWorking
-                ? `Clocked in at ${formatTime(attendance?.check_in)} · ${formatDuration(attendanceSeconds)}`
+                ? `Clocked in at ${formatTime(attendance?.check_in)} · ${formatDuration(attendanceSeconds)} logged`
                 : attendance?.check_in && attendance?.check_out
-                  ? `Clocked in ${formatTime(attendance?.check_in)} · Clocked out ${formatTime(attendance?.check_out)}`
-                  : 'Start your shift when you are ready.'}
+                  ? `Worked from ${formatTime(attendance?.check_in)} to ${formatTime(attendance?.check_out)} (${text(attendance.total_hours, '0')} hrs total).`
+                  : 'Clock in here or during your scheduled shift to mark attendance.'}
             </Text>
             {shiftInfo ? (
               <Text className="mt-1 text-[11px] text-[#6B7280]">
                 Shift: {text(shiftInfo.name ?? shiftInfo.shift_name ?? shiftInfo.start_time, 'Scheduled')}
               </Text>
             ) : null}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigateToChefTab('attendance')}
+              className="mt-2 self-start"
+            >
+              <Text className="text-xs font-bold text-[#116C0B]">
+                Attendance history
+              </Text>
+            </Pressable>
           </View>
           <Pressable
             accessibilityRole="button"
@@ -634,8 +650,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 : attendanceIsWorking
                   ? 'Clock out'
                   : attendance?.check_in && attendance?.check_out
-                    ? 'Clock in'
-                    : 'Clock in'}
+                    ? 'Resume shift'
+                    : 'Clock in now'}
             </Text>
           </Pressable>
         </View>
@@ -713,7 +729,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           <View className="mt-5 h-36 flex-row items-end justify-between gap-2">
             {dailyOrders.map(day => {
               const maxOrders = Math.max(1, ...dailyOrders.map(item => item.orders));
-              const height = Math.max(8, (day.orders / maxOrders) * 100);
+              const height = day.orders
+                ? Math.max(8, (day.orders / maxOrders) * 100)
+                : 0;
               return (
                 <View
                   key={day.dateKey}
@@ -788,7 +806,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           <View className="mt-5 h-32 flex-row items-end justify-between gap-1">
             {hourlyOrders.map(bucket => {
               const maxOrders = Math.max(1, ...hourlyOrders.map(item => item.orders));
-              const height = Math.max(5, (bucket.orders / maxOrders) * 100);
+              const height = bucket.orders
+                ? Math.max(5, (bucket.orders / maxOrders) * 100)
+                : 0;
               return (
                 <View
                   key={bucket.hour}
