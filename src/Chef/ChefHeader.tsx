@@ -40,6 +40,7 @@ type ChefHeaderProps = {
   activeTitle: string;
   onLogout: () => void;
   onOpenSettings: () => void;
+  onAccountMenuOpenChange: (isOpen: boolean) => void;
 };
 
 function ChefHeader({
@@ -47,12 +48,24 @@ function ChefHeader({
   activeTitle,
   onLogout,
   onOpenSettings,
+  onAccountMenuOpenChange,
 }: ChefHeaderProps) {
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const name = user?.name?.trim() || user?.username?.trim() || 'Chef';
   const initial = name.charAt(0).toUpperCase();
   const email = user?.email?.trim() || 'Chef workspace';
+
+  const closeAccountMenu = () => {
+    setIsAccountMenuOpen(false);
+    onAccountMenuOpenChange(false);
+  };
+
+  const toggleAccountMenu = () => {
+    const nextIsOpen = !isAccountMenuOpen;
+    setIsAccountMenuOpen(nextIsOpen);
+    onAccountMenuOpenChange(nextIsOpen);
+  };
 
   return (
     <ImageBackground
@@ -109,7 +122,7 @@ function ChefHeader({
               accessibilityLabel={`Account menu for ${name}`}
               accessibilityRole="button"
               accessibilityState={{ expanded: isAccountMenuOpen }}
-              onPress={() => setIsAccountMenuOpen(open => !open)}
+              onPress={toggleAccountMenu}
               className="h-9 flex-row items-center gap-1.5 rounded-full border border-[#D4A843] bg-[#0A523B]/90 py-1 pl-1 pr-2.5"
             >
               <View className="h-[27px] w-[27px] items-center justify-center rounded-full bg-[#F4DCAA]">
@@ -129,7 +142,7 @@ function ChefHeader({
         {isAccountMenuOpen ? (
           <View
             accessibilityLabel="Account menu"
-            className="absolute right-3 top-[70px] w-[224px] overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
+            className="absolute right-3 top-[100px] w-[224px] overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
             style={styles.accountMenu}
           >
             <View className="flex-row items-center border-b border-[#EEF0F2] px-3.5 py-3">
@@ -157,7 +170,7 @@ function ChefHeader({
             <Pressable
               accessibilityLabel="Chef profile"
               accessibilityRole="button"
-              onPress={() => setIsAccountMenuOpen(false)}
+              onPress={closeAccountMenu}
               className="min-h-10 flex-row items-center px-3.5 active:bg-[#F3F7F5]"
             >
               <ProfileIcon color="#52665A" size={16} />
@@ -169,7 +182,7 @@ function ChefHeader({
               accessibilityLabel="Open chef settings"
               accessibilityRole="button"
               onPress={() => {
-                setIsAccountMenuOpen(false);
+                closeAccountMenu();
                 onOpenSettings();
               }}
               className="min-h-10 flex-row items-center border-b border-[#EEF0F2] px-3.5 active:bg-[#F3F7F5]"
@@ -183,7 +196,7 @@ function ChefHeader({
               accessibilityLabel="Log out"
               accessibilityRole="button"
               onPress={() => {
-                setIsAccountMenuOpen(false);
+                closeAccountMenu();
                 setIsLogoutConfirmOpen(true);
               }}
               className="min-h-10 flex-row items-center px-3.5 active:bg-red-50"

@@ -167,6 +167,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   >(null);
   const [selectedOrderPage, setSelectedOrderPage] =
     useState<ChefOrderPage | null>(null);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -1061,6 +1062,14 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       edges={isInnerPage ? ['left', 'right', 'bottom'] : ['left', 'right']}
       className="flex-1 bg-[#F9FAFB]"
     >
+      {isAccountMenuOpen ? (
+        <Pressable
+          accessibilityLabel="Close account menu"
+          accessibilityRole="button"
+          onPress={() => setIsAccountMenuOpen(false)}
+          className="absolute inset-0 z-10"
+        />
+      ) : null}
       {isInnerPage ? (
         <MoreInnerHeader
           title={isOrderInnerPage
@@ -1092,6 +1101,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           activeTitle={pageTitles[activeTab]}
           onLogout={onLogout}
           onOpenSettings={() => navigateToChefTab('more')}
+          onAccountMenuOpenChange={setIsAccountMenuOpen}
           user={user}
         />
       )}
