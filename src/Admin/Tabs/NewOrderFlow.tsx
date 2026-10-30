@@ -21,14 +21,17 @@ import {
   canSelectTableForNewOrder,
   getReservationSummary,
   getServerAssignmentLabel,
+  getAssignedServerName,
   getTableStatus,
   isReservationActive,
   tableHasActiveBill,
 } from './tableAvailability';
 import {
+  createOrderRequestKey,
+  getKitchenOrderTypeFields,
   getOrderSubmissionError,
   hasValidTableId,
-  toApiOrderType,
+  resolveApiOrderType,
 } from './orderSubmission';
 import type {
   AdminTableRecord,
@@ -410,8 +413,12 @@ export default function NewOrderFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const submissionLock = useRef(false);
-  const isDineIn = orderType === 'DINE_IN';
-  const isDelivery = orderType === 'HOME_DELIVERY';
+  const orderRequestKeyRef = useRef<{ signature: string; key: string } | null>(
+    null,
+  );
+  const resolvedOrderType = resolveApiOrderType(orderType, selectedTable);
+  const isDineIn = resolvedOrderType === 'dine_in';
+  const isDelivery = resolvedOrderType === 'home_delivery';
   const orderLabel = isDineIn
     ? 'Dine-In / Table'
     : isDelivery
@@ -737,7 +744,7 @@ export default function NewOrderFlow({
       );
       return;
     }
-    const apiOrderType = toApiOrderType(orderType);
+    const apiOrderType = resolveApiOrderType(orderType, selectedTable);
     if (!apiOrderType) {
       Alert.alert(
         'Unable to send order',
@@ -764,7 +771,7 @@ export default function NewOrderFlow({
     setIsSubmitting(true);
     try {
       const payload: Record<string, unknown> = {
-        order_type: apiOrderType,
+        ...getKitchenOrderTypeFields(apiOrderType),
         items: cart.map(line => ({
           food_id:
             Number.isFinite(Number(line.food.id)) && line.food.id.trim()
@@ -902,6 +909,31 @@ export default function NewOrderFlow({
             : tableId;
         payload.table_number =
           existingBill?.tableNumber ?? selectedTable.table_number;
+        const assignedServerId =
+          selectedTable.assigned_server_id ??
+          selectedTable.assigned_employee_id ??
+          selectedTable.server_id ??
+          selectedTable.employee_id ??
+          selectedTable.waiter_id;
+        if (
+          (typeof assignedServerId === 'string' ||
+            typeof assignedServerId === 'number') &&
+          String(assignedServerId).trim()
+        ) {
+          const cleanServerId =
+            Number.isFinite(Number(assignedServerId)) &&
+            String(assignedServerId).trim()
+              ? Number(assignedServerId)
+              : assignedServerId;
+          payload.server_id = cleanServerId;
+          payload.assigned_server_id = cleanServerId;
+          payload.employee_id = cleanServerId;
+        }
+        const assignedServerName = getAssignedServerName(selectedTable);
+        if (assignedServerName) {
+          payload.server_name = assignedServerName;
+          payload.assigned_server_name = assignedServerName;
+        }
       } else {
         if (customerName.trim()) {
           payload.customer_name = customerName.trim();
@@ -913,6 +945,15 @@ export default function NewOrderFlow({
           payload.delivery_address = deliveryAddress.trim();
         }
       }
+
+      const requestSignature = JSON.stringify(payload);
+      if (orderRequestKeyRef.current?.signature !== requestSignature) {
+        orderRequestKeyRef.current = {
+          signature: requestSignature,
+          key: createOrderRequestKey(),
+        };
+      }
+      payload.order_request_key = orderRequestKeyRef.current.key;
 
       const response = await api.post('/kitchen-orders', payload);
       if (isRecord(response.data) && response.data.success === false) {

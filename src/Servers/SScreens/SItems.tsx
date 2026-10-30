@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import api, { API_BASE_URL } from '../../../api';
+import { isFoodAvailable } from '../../Admin/Tabs/foodAvailability';
 import type { HeaderUser } from '../../Admin/Navigation/TopHeader';
 import { BaseModal, CheckIcon, FormModal } from '../../components/popups';
 
@@ -531,13 +532,13 @@ export default function ServerItems({
     setError('');
 
     const [foodResult, billResult] = await Promise.allSettled([
-      api.get('/foods', { params: { include_unavailable: true } }),
+      api.get('/foods'),
       tableId ? api.get(`/table-bills/active/${tableId}`) : Promise.reject(),
     ]);
 
     if (foodResult.status === 'fulfilled') {
       const rows = readRows(foodResult.value.data, ['data', 'foods', 'items']);
-      setFoods(rows);
+      setFoods(rows.filter(isFoodAvailable));
     } else {
       setError('Unable to load food menu. Please pull down to refresh.');
     }

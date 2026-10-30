@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +26,11 @@ import {
   tableHasActiveBill,
 } from './tableAvailability';
 import type { ActiveBillTableReference } from './tableAvailability';
+import {
+  createOrderRequestKey,
+  readKitchenOrderReferences,
+} from './orderSubmission';
+import type { KitchenOrderReferences } from './orderSubmission';
 
 type TableRecord = {
   id?: string | number;
@@ -142,9 +147,12 @@ function BillPreview({
   const [tablesRetry, setTablesRetry] = useState(0);
   const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
   const [isKitchenOrderSent, setIsKitchenOrderSent] = useState(false);
+  const [createdKitchenOrder, setCreatedKitchenOrder] =
+    useState<KitchenOrderReferences | null>(null);
   const [orderType, setOrderType] = useState<'Dine In' | 'Take Away' | 'Delivery'>('Dine In');
   const [discount, setDiscount] = useState('0');
   const [isReceiptPreviewOpen, setIsReceiptPreviewOpen] = useState(false);
+  const requestKeyRef = useRef<{ signature: string; key: string } | null>(null);
   const hasUnpricedItems = items.some(item => item.amount === null);
   const subtotal = items.reduce(
     (sum, item) => sum + (item.amount ?? 0) * item.quantity,
@@ -193,7 +201,9 @@ function BillPreview({
     !isSendingToKitchen &&
     !isKitchenOrderSent;
   const now = new Date();
-  const billNumber = `BF${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-001`;
+  const billNumber =
+    createdKitchenOrder?.billNumber ||
+    `BF${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-001`;
   const receiptText = [
     'BUY FOOD',
     `Bill No: ${billNumber}`,
@@ -321,7 +331,7 @@ function BillPreview({
         Number.isFinite(Number(tableIdentifier))
           ? Number(tableIdentifier)
           : tableIdentifier;
-      const response = await api.post('/kitchen-orders', {
+      const payload = {
         table_id: cleanTableId,
         table_number: selectedTable,
         items: items.map(item => ({
@@ -337,6 +347,17 @@ function BillPreview({
         })),
         total_amount: subtotal,
         status: 'pending',
+      };
+      const requestSignature = JSON.stringify(payload);
+      if (requestKeyRef.current?.signature !== requestSignature) {
+        requestKeyRef.current = {
+          signature: requestSignature,
+          key: createOrderRequestKey(),
+        };
+      }
+      const response = await api.post('/kitchen-orders', {
+        ...payload,
+        order_request_key: requestKeyRef.current.key,
       });
 
       if (isRecord(response.data) && response.data.success === false) {
@@ -347,10 +368,22 @@ function BillPreview({
         );
       }
 
+      const createdOrder = readKitchenOrderReferences(response.data);
+      if (createdOrder) {
+        setCreatedKitchenOrder(createdOrder);
+      }
       setIsKitchenOrderSent(true);
       Alert.alert(
         'Order sent',
-        `The order for Table ${selectedTable} has been sent to the kitchen.`,
+        `${
+          createdOrder?.kotNumber
+            ? `KOT ${createdOrder.kotNumber} for Table ${selectedTable} has been sent to the kitchen.`
+            : `The order for Table ${selectedTable} has been sent to the kitchen.`
+        }${
+          createdOrder?.billNumber
+            ? ` Bill ${createdOrder.billNumber} was created.`
+            : ''
+        }`,
       );
     } catch (error) {
       Alert.alert(

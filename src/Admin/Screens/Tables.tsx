@@ -22,7 +22,6 @@ import {
 } from '../../components/popups';
 import AdminStatCard from '../../components/AdminStatCard';
 import type { AdminTableRecord } from '../Navigation/DashboardTypes';
-import TableMergeModal from './TableMergeModal';
 import {
   canSelectTableForNewOrder,
   getAssignedServerName,
@@ -133,7 +132,6 @@ function Tables({
   const [errorMessage, setErrorMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isMergeOpen, setIsMergeOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<ServerTable | null>(null);
   const [tableNumber, setTableNumber] = useState('');
   const [seatCount, setSeatCount] = useState('');
@@ -517,19 +515,6 @@ function Tables({
               </Pressable>
             ) : null}
           </View>
-        </View>
-
-        <View className="flex-row justify-end">
-          <Pressable
-            accessibilityLabel="Merge active table bills"
-            accessibilityRole="button"
-            onPress={() => setIsMergeOpen(true)}
-            className="min-h-10 items-center justify-center rounded-xl border border-[#116C0B] bg-white px-4"
-          >
-            <Text className="text-sm font-bold text-[#116C0B]">
-              Merge table bills
-            </Text>
-          </Pressable>
         </View>
 
         <View className="flex-row flex-wrap justify-between gap-y-3">
@@ -1045,12 +1030,6 @@ function Tables({
         isDestructive
         isLoading={isDeleting}
         errorMessage={deleteError}
-      />
-      <TableMergeModal
-        visible={isMergeOpen}
-        tables={tables}
-        onClose={() => setIsMergeOpen(false)}
-        onMerged={() => setRefreshKey(current => current + 1)}
       />
     </View>
   );

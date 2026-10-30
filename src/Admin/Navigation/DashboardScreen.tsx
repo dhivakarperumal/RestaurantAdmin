@@ -86,6 +86,7 @@ import GalleryManagementPage from '../Tabs/GalleryManagement';
 import ReviewsManagementPage from '../Tabs/ReviewsManagement';
 import PrinterSetupScreen from '../Tabs/Settings/PrinterSetup/PrinterSetupScreen';
 import TablesScreen from '../Screens/Tables';
+import TableMergeScreen from '../Screens/TableMergeScreen';
 import ActiveBillPreview from '../Tabs/ActiveBillPreview';
 import CustomersScreen from '../Screens/Customers';
 import MorePage, { type MoreFeature } from '../Tabs/More';
@@ -251,6 +252,11 @@ const moreFeatures: MoreFeature[] = [
     title: 'Tables',
     subtitle: 'Manage restaurant tables and seating',
     icon: MenuIcon,
+  },
+  {
+    title: 'Merge Table Bills',
+    subtitle: 'Combine active bills from multiple tables',
+    icon: ReceiptIcon,
   },
   {
     title: 'Printer Setup',
@@ -1800,6 +1806,14 @@ function MainContent({
           onSelectTable={onSelectTable}
           showBackButton={false}
           userId={userId}
+        />
+      );
+    }
+    if (selectedFeature === 'Merge Table Bills') {
+      return (
+        <TableMergeScreen
+          onBack={() => onSelectFeature(null)}
+          onMerged={onRefreshDashboard}
         />
       );
     }
