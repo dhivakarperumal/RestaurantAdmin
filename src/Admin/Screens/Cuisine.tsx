@@ -559,16 +559,16 @@ function Cuisine({
                         source={{ uri: imageUrl }}
                         className={
                           isWide
-                            ? 'h-32 w-full bg-[#F3F4F6]'
-                            : 'h-24 w-full bg-[#F3F4F6]'
+                            ? 'h-40 w-full bg-[#F3F4F6]'
+                            : 'h-32 w-full bg-[#F3F4F6]'
                         }
                       />
                     ) : (
                       <View
                         className={
                           isWide
-                            ? 'h-32 w-full items-center justify-center bg-[#F0F7EE]'
-                            : 'h-24 w-full items-center justify-center bg-[#F0F7EE]'
+                            ? 'h-40 w-full items-center justify-center bg-[#F0F7EE]'
+                            : 'h-32 w-full items-center justify-center bg-[#F0F7EE]'
                         }
                       >
                         <ProductIcon color={colors.primary} size={26} />
