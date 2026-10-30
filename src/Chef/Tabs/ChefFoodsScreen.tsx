@@ -178,7 +178,7 @@ function FoodSkeletonCard({ viewMode }: { viewMode: ViewMode }) {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       className={`mb-3 rounded-2xl border border-slate-200 bg-white p-4 ${
-        viewMode === 'grid' ? 'w-[48%]' : 'w-full flex-row items-center'
+        viewMode === 'grid' ? 'w-full' : 'w-full flex-row items-center'
       }`}
     >
       <View
@@ -450,7 +450,7 @@ function ChefFoodsScreen({
     return (
       <View
         key={String(key)}
-        className="mb-3 w-[48%] rounded-2xl border border-slate-200 bg-white p-4"
+        className="mb-3 w-full rounded-2xl border border-slate-200 bg-white p-4"
       >
         <FoodImage
           className="mb-3 h-32 w-full"
@@ -565,8 +565,13 @@ function ChefFoodsScreen({
     return (
       <View
         key={String(key)}
-        className="min-h-[76px] w-[760px] flex-row items-center border-b border-slate-100 bg-white px-3 py-2"
+        className="min-h-[76px] w-[805px] flex-row items-center border-b border-slate-100 bg-white px-3 py-2"
       >
+        <View className="w-[45px] items-center px-1">
+          <Text className="text-[11px] font-semibold text-slate-600">
+            {pageOffset + index + 1}
+          </Text>
+        </View>
         <View className="w-[200px] flex-row items-center pr-3">
           <FoodImage
             className="mr-3 h-12 w-12 shrink-0"
@@ -874,8 +879,9 @@ function ChefFoodsScreen({
             showsHorizontalScrollIndicator
           >
             <View>
-              <View className="h-10 w-[760px] flex-row items-center border-b border-slate-200 bg-slate-50 px-3">
+              <View className="h-10 w-[805px] flex-row items-center border-b border-slate-200 bg-slate-50 px-3">
                 {[
+                  { label: 'S. No.', width: 'w-[45px]' },
                   { label: 'Food', width: 'w-[200px]' },
                   { label: 'Available time', width: 'w-[145px]' },
                   { label: 'Price', width: 'w-[80px]' },
