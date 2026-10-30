@@ -39,6 +39,7 @@ type ChefHeaderProps = {
   user: HeaderUser | null;
   activeTitle: string;
   onLogout: () => void;
+  onOpenProfile: () => void;
   onOpenSettings: () => void;
   onAccountMenuOpenChange: (isOpen: boolean) => void;
 };
@@ -47,6 +48,7 @@ function ChefHeader({
   user,
   activeTitle,
   onLogout,
+  onOpenProfile,
   onOpenSettings,
   onAccountMenuOpenChange,
 }: ChefHeaderProps) {
@@ -170,7 +172,10 @@ function ChefHeader({
             <Pressable
               accessibilityLabel="Chef profile"
               accessibilityRole="button"
-              onPress={closeAccountMenu}
+              onPress={() => {
+                closeAccountMenu();
+                onOpenProfile();
+              }}
               className="min-h-10 flex-row items-center px-3.5 active:bg-[#F3F7F5]"
             >
               <ProfileIcon color="#52665A" size={16} />

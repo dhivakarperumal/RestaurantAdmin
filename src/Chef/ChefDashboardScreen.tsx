@@ -30,6 +30,7 @@ import ChefListControls from './Tabs/ChefListControls';
 import ChefMoreScreen from './Tabs/ChefMoreScreen';
 import ChefOrdersMenuScreen from './Tabs/ChefOrdersMenuScreen';
 import ChefOrdersScreen, { type ChefOrderPage } from './Tabs/ChefOrdersScreen';
+import ChefProfileScreen from './Tabs/ChefProfileScreen';
 import ChefStockDetailsScreen from './Tabs/ChefStockDetailsScreen';
 
 type ChefDashboardScreenProps = {
@@ -216,7 +217,7 @@ function EmptyState({ message }: { message: string }) {
 function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   const [activeTab, setActiveTab] = useState<ChefTab>('dashboard');
   const [selectedMorePage, setSelectedMorePage] = useState<
-    'inventory' | 'stock' | null
+    'inventory' | 'stock' | 'profile' | null
   >(null);
   const [selectedOrderPage, setSelectedOrderPage] =
     useState<ChefOrderPage | null>(null);
@@ -1456,6 +1457,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     pageContent = renderFoods();
   } else if (activeTab === 'event-orders') {
     pageContent = <ChefEventOrdersScreen />;
+  } else if (activeTab === 'more' && selectedMorePage === 'profile') {
+    pageContent = <ChefProfileScreen user={user} />;
   } else if (activeTab === 'more' && selectedMorePage === 'inventory') {
     pageContent = renderInventory();
   } else if (activeTab === 'more' && selectedMorePage === 'stock') {
@@ -1534,7 +1537,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               }[selectedOrderPage]
             : selectedMorePage === 'inventory'
               ? 'Inventory Requests'
-              : 'Stock Details'}
+              : selectedMorePage === 'stock'
+                ? 'Stock Details'
+                : 'Chef Profile'}
           destination={isOrderInnerPage ? 'Orders' : 'More'}
           subtitle="Chef workspace"
           onBack={() => {
@@ -1549,6 +1554,11 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         <ChefHeader
           activeTitle={pageTitles[activeTab]}
           onLogout={onLogout}
+          onOpenProfile={() => {
+            setActiveTab('more');
+            setSelectedOrderPage(null);
+            setSelectedMorePage('profile');
+          }}
           onOpenSettings={() => navigateToChefTab('more')}
           onAccountMenuOpenChange={setIsAccountMenuOpen}
           user={user}
