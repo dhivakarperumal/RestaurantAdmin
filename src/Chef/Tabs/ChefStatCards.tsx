@@ -20,7 +20,7 @@ function ChefStatCards({
   return (
     <View className="flex-row flex-wrap justify-between gap-y-3">
       {stats.map(stat => {
-        const cardClassName = `relative min-h-[132px] w-[48%] flex-row items-center overflow-hidden rounded-2xl border bg-[#FFFEF8] px-2 ${
+        const cardClassName = `relative min-h-[112px] w-[48%] flex-row items-center overflow-hidden rounded-2xl border bg-[#FFFEF8] px-2 ${
           stat.isSelected ? 'border-[#07513A]' : 'border-[#E8C654]'
         }`;
         const cardContent = (
@@ -37,31 +37,34 @@ function ChefStatCards({
               className="flex-1 flex-row items-center"
               style={{ position: 'relative', zIndex: 1 }}
             >
-          <View className="h-[66px] w-[66px] shrink-0 items-center justify-center rounded-full bg-[#EAF4E7]">
-            <View className="h-[52px] w-[52px] items-center justify-center rounded-full bg-[#07513A]">
-              {stat.icon}
-            </View>
-          </View>
-          <View className="min-w-0 flex-1 justify-center py-3 pl-2">
-            <Text
-              numberOfLines={1}
-              className="text-[9px] font-extrabold uppercase tracking-[0.35px] text-[#07513A]"
-            >
-              {stat.label}
-            </Text>
-            <Text
-              adjustsFontSizeToFit
-              minimumFontScale={0.72}
-              numberOfLines={1}
-              className="mt-0.5 text-[26px] font-extrabold leading-[30px] text-[#06452F]"
-            >
-              {isLoading ? '...' : stat.value}
-            </Text>
-            <View className="mb-1 mt-1 h-[3px] w-8 rounded-full bg-[#E5B92E]" />
-            <Text numberOfLines={2} className="text-[9px] leading-3 text-[#667085]">
-              {stat.hint}
-            </Text>
-          </View>
+              <View className="h-[66px] w-[66px] shrink-0 items-center justify-center rounded-full bg-[#EAF4E7]">
+                <View className="h-[52px] w-[52px] items-center justify-center rounded-full bg-[#07513A]">
+                  {stat.icon}
+                </View>
+              </View>
+              <View className="min-w-0 flex-1 justify-center py-3 pl-2">
+                <Text
+                  numberOfLines={1}
+                  className="text-[9px] font-extrabold uppercase tracking-[0.35px] text-[#07513A]"
+                >
+                  {stat.label}
+                </Text>
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.72}
+                  numberOfLines={1}
+                  className="mt-0.5 text-[26px] font-extrabold leading-[30px] text-[#06452F]"
+                >
+                  {isLoading ? '...' : stat.value}
+                </Text>
+                <View className="mb-1 mt-1 h-[3px] w-8 rounded-full bg-[#E5B92E]" />
+                <Text
+                  numberOfLines={2}
+                  className="text-[9px] leading-3 text-[#667085]"
+                >
+                  {stat.hint}
+                </Text>
+              </View>
             </View>
           </>
         );
