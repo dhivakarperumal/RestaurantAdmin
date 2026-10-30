@@ -16,6 +16,7 @@ export type FormModalProps = Omit<BaseModalProps, 'children' | 'footer'> & {
   onSave?: () => void | Promise<void>;
   saveLabel?: string;
   cancelLabel?: string;
+  cancelButtonVariant?: 'outlined' | 'text';
   isSaving?: boolean;
   isSaveDisabled?: boolean;
   errorMessage?: string | null;
@@ -38,6 +39,7 @@ export function FormModal({
   onSave,
   saveLabel = 'Save',
   cancelLabel = 'Cancel',
+  cancelButtonVariant = 'outlined',
   isSaving = false,
   isSaveDisabled = false,
   errorMessage,
@@ -77,7 +79,21 @@ export function FormModal({
           </Pressable>
         ) : null}
 
-        {cancelLabel ? (
+        {cancelLabel && cancelButtonVariant === 'text' ? (
+          <Pressable
+            accessibilityLabel={cancelLabel}
+            accessibilityRole="button"
+            disabled={isSaving}
+            onPress={onClose}
+            style={({ pressed }) => [
+              styles.cancelTextButton,
+              pressed && styles.buttonPressed,
+              isSaving && styles.buttonDisabled,
+            ]}
+          >
+            <Text style={styles.cancelText}>{cancelLabel}</Text>
+          </Pressable>
+        ) : cancelLabel ? (
           <Pressable
             accessibilityLabel={cancelLabel}
             accessibilityRole="button"
@@ -193,6 +209,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     width: '100%',
+  },
+  cancelTextButton: {
+    alignItems: 'flex-start',
+    alignSelf: 'flex-start',
+    flexGrow: 0,
+    flexShrink: 0,
+    minHeight: 36,
+    paddingHorizontal: 0,
+    paddingVertical: 6,
   },
 
   cancelText: {

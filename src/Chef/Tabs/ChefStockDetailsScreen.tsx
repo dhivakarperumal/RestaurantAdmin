@@ -65,10 +65,8 @@ function formatNumber(value: unknown) {
 
 function ChefStockDetailsScreen({
   onRequestProduct,
-  onAddRequest,
 }: {
   onRequestProduct: (product: StockProduct) => void;
-  onAddRequest: () => void;
 }) {
   const [products, setProducts] = useState<StockProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,15 +160,7 @@ function ChefStockDetailsScreen({
           <Text className="text-[22px] font-extrabold text-[#012711]">
             Inventory Stock
           </Text>
-          
         </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onAddRequest}
-          className="min-h-10 items-center justify-center rounded-xl bg-[#123B2D] px-3"
-        >
-          <Text className="text-[10px] font-bold text-white">Add Request</Text>
-        </Pressable>
       </View>
 
       <ChefStatCards

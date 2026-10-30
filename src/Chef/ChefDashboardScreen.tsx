@@ -19,6 +19,7 @@ import {
   CustomersIcon,
   MenuIcon,
   OrdersIcon,
+  PlusIcon,
   ReceiptIcon,
 } from '../Admin/Navigation/NavigationIcons';
 import { FormModal } from '../components/popups';
@@ -1365,15 +1366,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             subtitle="Track kitchen stock requests."
           />
         </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={openRequestModal}
-          className="rounded-xl bg-[#116C0B] px-3 py-2.5"
-        >
-          <Text className="text-xs font-bold text-white">
-            New request
-          </Text>
-        </Pressable>
       </View>
       <ChefStatCards
         isLoading={isLoading}
@@ -1647,10 +1639,6 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
   } else if (activeTab === 'more' && selectedMorePage === 'stock') {
     pageContent = (
       <ChefStockDetailsScreen
-        onAddRequest={() => {
-          setSelectedMorePage('inventory');
-          openRequestModal();
-        }}
         onRequestProduct={product => {
           setRequestProduct(String(product.product_name || ''));
           setRequestProductId(product.id ?? null);
@@ -1787,6 +1775,22 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         ) : null}
         {pageContent}
       </ScrollView>
+      {isInnerPage &&
+      activeTab === 'more' &&
+      (selectedMorePage === 'inventory' || selectedMorePage === 'stock') ? (
+        <Pressable
+          accessibilityLabel={
+            selectedMorePage === 'stock'
+              ? 'Add inventory request'
+              : 'Create inventory request'
+          }
+          accessibilityRole="button"
+          onPress={openRequestModal}
+          className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-[#07583D] shadow-lg"
+        >
+          <PlusIcon color="#FFFFFF" size={27} />
+        </Pressable>
+      ) : null}
       {!isInnerPage ? (
         <ChefBottomNavigation
           activeTab={activeTab}
@@ -1802,6 +1806,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         onSave={submitInventoryRequest}
         saveLabel="Send Request"
         cancelLabel="Cancel"
+        cancelButtonVariant="text"
         isSaving={isSavingRequest}
         errorMessage={requestError}
       >
