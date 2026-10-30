@@ -338,6 +338,11 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     useState<AdminTableRecord | null>(null);
   const [activeBillTable, setActiveBillTable] =
     useState<AdminTableRecord | null>(null);
+  const [mergePrimaryTableId, setMergePrimaryTableId] = useState<string | null>(
+    null,
+  );
+  const [returnToTableChooserAfterMerge, setReturnToTableChooserAfterMerge] =
+    useState(false);
   const [
     returnToTableChooserAfterBillPreview,
     setReturnToTableChooserAfterBillPreview,
@@ -655,6 +660,37 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsBillPreviewOpen(false);
   };
 
+  const openTableMerge = (table: AdminTableRecord) => {
+    const tableId = table.table_id ?? table.id;
+    setReturnToTableChooserAfterMerge(
+      activeTab === 'add' && newOrderType === 'DINE_IN',
+    );
+    setMergePrimaryTableId(
+      tableId === undefined || tableId === null ? null : String(tableId),
+    );
+    setActiveBillTable(null);
+    setExistingBillContext(null);
+    setInitialOrderTable(null);
+    setNewOrderType(null);
+    setSelectedAction(null);
+    setSelectedFeature('Merge Table Bills');
+    setActiveTab('more');
+    setIsBillPreviewOpen(false);
+    setIsSidebarOpen(false);
+  };
+
+  const closeTableMerge = () => {
+    setMergePrimaryTableId(null);
+    if (returnToTableChooserAfterMerge) {
+      setReturnToTableChooserAfterMerge(false);
+      setNewOrderType('DINE_IN');
+      setSelectedFeature(null);
+      setActiveTab('add');
+    } else {
+      setSelectedFeature(null);
+    }
+  };
+
   const addItemsToTableBill = (
     table: AdminTableRecord,
     context: ExistingBillContext,
@@ -691,6 +727,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
       setReturnToTableChooserAfterBillPreview(false);
     } else {
       setNewOrderType(null);
+      setMergePrimaryTableId(null);
       setSelectedFeature('Tables');
       setActiveTab('more');
     }
@@ -1146,6 +1183,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onSelectTable={openTable}
               onAddItemsToExistingBill={addItemsToExistingBill}
               onAddItemsToTableBill={addItemsToTableBill}
+              onOpenTableMerge={openTableMerge}
+              mergePrimaryTableId={mergePrimaryTableId}
+              onCloseTableMerge={closeTableMerge}
               onActiveBillCompleted={returnToTables}
               onBackToTables={returnToTables}
               onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -1218,6 +1258,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onSelectTable={openTable}
             onAddItemsToExistingBill={addItemsToExistingBill}
             onAddItemsToTableBill={addItemsToTableBill}
+            onOpenTableMerge={openTableMerge}
+            mergePrimaryTableId={mergePrimaryTableId}
+            onCloseTableMerge={closeTableMerge}
             onActiveBillCompleted={returnToTables}
             onBackToTables={returnToTables}
             onRemoveFoodFromBilling={removeFoodFromBilling}
@@ -1752,6 +1795,9 @@ function MainContent({
   onSelectTable,
   onAddItemsToExistingBill,
   onAddItemsToTableBill,
+  onOpenTableMerge,
+  mergePrimaryTableId,
+  onCloseTableMerge,
   onActiveBillCompleted,
   onBackToTables,
   onRemoveFoodFromBilling,
@@ -1812,6 +1858,9 @@ function MainContent({
     table: AdminTableRecord,
     context: ExistingBillContext,
   ) => void;
+  onOpenTableMerge: (table: AdminTableRecord) => void;
+  mergePrimaryTableId: string | null;
+  onCloseTableMerge: () => void;
   onActiveBillCompleted: () => void;
   onBackToTables: () => void;
   onRemoveFoodFromBilling: (itemId: string) => void;
@@ -1884,7 +1933,8 @@ function MainContent({
     if (selectedFeature === 'Merge Table Bills') {
       return (
         <TableMergeScreen
-          onBack={() => onSelectFeature(null)}
+          primaryTableId={mergePrimaryTableId ?? undefined}
+          onBack={onCloseTableMerge}
           onMerged={onRefreshDashboard}
         />
       );
@@ -2073,6 +2123,7 @@ function MainContent({
           existingBill={existingBillContext ?? undefined}
           onOpenActiveBill={onSelectTable}
           onAddItemsToActiveBill={onAddItemsToTableBill}
+          onOpenTableMerge={onOpenTableMerge}
           onBack={onCloseNewOrder}
           onOrderSubmitted={onNewOrderSubmitted}
         />

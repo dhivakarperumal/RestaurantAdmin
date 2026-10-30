@@ -169,11 +169,13 @@ function getErrorMessage(error: unknown) {
 export default function TableMergeModal({
   visible,
   tables,
+  primaryTableId: preferredPrimaryTableId,
   onClose,
   onMerged,
 }: {
   visible: boolean;
   tables: AdminTableRecord[];
+  primaryTableId?: string;
   onClose: () => void;
   onMerged: () => void;
 }) {
@@ -267,7 +269,12 @@ export default function TableMergeModal({
           ];
         });
         setChoices(nextChoices);
-        setPrimaryTableId(nextChoices[0]?.tableId ?? '');
+        const preferredChoice = nextChoices.find(
+          choice => choice.tableId === preferredPrimaryTableId,
+        );
+        setPrimaryTableId(
+          preferredChoice?.tableId ?? nextChoices[0]?.tableId ?? '',
+        );
         setSourceTableIds([]);
       })
       .catch(error => {
@@ -287,7 +294,7 @@ export default function TableMergeModal({
     return () => {
       active = false;
     };
-  }, [tables, visible]);
+  }, [preferredPrimaryTableId, tables, visible]);
 
   const toggleSource = (tableId: string) => {
     setPreview([]);

@@ -34,9 +34,11 @@ function readTables(payload: unknown): AdminTableRecord[] {
 export default function TableMergeScreen({
   onBack,
   onMerged,
+  primaryTableId,
 }: {
   onBack: () => void;
   onMerged: () => void;
+  primaryTableId?: string;
 }) {
   const [tables, setTables] = useState<AdminTableRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,6 +120,7 @@ export default function TableMergeScreen({
     <TableMergeModal
       visible
       tables={tables}
+      primaryTableId={primaryTableId}
       onClose={onBack}
       onMerged={onMerged}
     />

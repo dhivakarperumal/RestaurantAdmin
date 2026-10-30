@@ -400,6 +400,7 @@ export default function NewOrderFlow({
   existingBill,
   onOpenActiveBill,
   onAddItemsToActiveBill,
+  onOpenTableMerge,
   onBack,
   onOrderSubmitted,
 }: {
@@ -411,6 +412,7 @@ export default function NewOrderFlow({
     table: AdminTableRecord,
     context: ExistingBillContext,
   ) => void;
+  onOpenTableMerge: (table: AdminTableRecord) => void;
   onBack: () => void;
   onOrderSubmitted: () => void;
 }) {
@@ -1428,47 +1430,64 @@ export default function NewOrderFlow({
                           </Pressable>
                         ) : null}
                         {canOpenBill ? (
-                          <View className="mt-3 flex-row gap-2">
-                            <Pressable
-                              accessibilityLabel={`View bill for table ${text(
-                                table.table_number,
-                                String(index + 1),
-                              )}`}
-                              accessibilityRole="button"
-                              disabled={addingItemsTableId !== null}
-                              onPress={() => void chooseTable(table)}
-                              className="min-h-10 flex-1 items-center justify-center rounded-xl border border-[#064E3B] bg-white"
-                            >
-                              <Text className="text-xs font-bold text-[#064E3B]">
-                                View Bill
-                              </Text>
-                            </Pressable>
-                            <Pressable
-                              accessibilityLabel={`Add items to bill for table ${text(
-                                table.table_number,
-                                String(index + 1),
-                              )}`}
-                              accessibilityRole="button"
-                              accessibilityState={{
-                                disabled: addingItemsTableId !== null,
-                              }}
-                              disabled={addingItemsTableId !== null}
-                              onPress={() => void addItemsToActiveBill(table)}
-                              className={`min-h-10 flex-1 items-center justify-center rounded-xl bg-[#064E3B] ${
-                                addingItemsTableId ===
-                                String(table.table_id ?? table.id)
-                                  ? 'opacity-70'
-                                  : ''
-                              }`}
-                            >
-                              <Text className="text-xs font-bold text-white">
-                                {addingItemsTableId ===
-                                String(table.table_id ?? table.id)
-                                  ? 'Loading...'
-                                  : 'Add Items'}
-                              </Text>
-                            </Pressable>
-                          </View>
+                          <>
+                            <View className="mt-3 flex-row gap-2">
+                              <Pressable
+                                accessibilityLabel={`View bill for table ${text(
+                                  table.table_number,
+                                  String(index + 1),
+                                )}`}
+                                accessibilityRole="button"
+                                disabled={addingItemsTableId !== null}
+                                onPress={() => void chooseTable(table)}
+                                className="min-h-10 flex-1 items-center justify-center rounded-xl border border-[#064E3B] bg-white"
+                              >
+                                <Text className="text-xs font-bold text-[#064E3B]">
+                                  View Bill
+                                </Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityLabel={`Add items to bill for table ${text(
+                                  table.table_number,
+                                  String(index + 1),
+                                )}`}
+                                accessibilityRole="button"
+                                accessibilityState={{
+                                  disabled: addingItemsTableId !== null,
+                                }}
+                                disabled={addingItemsTableId !== null}
+                                onPress={() => void addItemsToActiveBill(table)}
+                                className={`min-h-10 flex-1 items-center justify-center rounded-xl bg-[#064E3B] ${
+                                  addingItemsTableId ===
+                                  String(table.table_id ?? table.id)
+                                    ? 'opacity-70'
+                                    : ''
+                                }`}
+                              >
+                                <Text className="text-xs font-bold text-white">
+                                  {addingItemsTableId ===
+                                  String(table.table_id ?? table.id)
+                                    ? 'Loading...'
+                                    : 'Add Items'}
+                                </Text>
+                              </Pressable>
+                            </View>
+                            {hasActiveBill ? (
+                              <Pressable
+                                accessibilityLabel={`Merge bill for table ${text(
+                                  table.table_number,
+                                  String(index + 1),
+                                )}`}
+                                accessibilityRole="button"
+                                onPress={() => onOpenTableMerge(table)}
+                                className="mt-2 min-h-9 items-center justify-center rounded-xl border border-[#D1D5DB] bg-[#F8FAFC]"
+                              >
+                                <Text className="text-xs font-semibold text-[#475569]">
+                                  Merge Bills
+                                </Text>
+                              </Pressable>
+                            ) : null}
+                          </>
                         ) : null}
                       </View>
                     );
