@@ -400,6 +400,9 @@ function ChefOrdersScreen({ page }: { page: ChefOrderPage }) {
     'dining',
     'new',
     'pickup',
+    'home-delivery',
+    'delivery',
+    'cancelled',
   ].includes(page);
   const selectedAddress =
     selectedOrder && isRecord(selectedOrder.address)
