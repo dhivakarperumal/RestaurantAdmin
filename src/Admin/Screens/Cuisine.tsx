@@ -539,7 +539,7 @@ function Cuisine({
             </View>
           </ScrollView>
         ) : (
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row flex-wrap justify-between gap-y-3">
             {filteredCuisines.map((cuisine, index) => {
               const name = getCuisineName(cuisine);
               const imageUrl = getImageUrl(cuisine.image);
@@ -558,89 +558,86 @@ function Cuisine({
                       source={{ uri: imageUrl }}
                       className={
                         isWide
-                          ? 'h-80 w-full bg-[#F3F4F6]'
-                          : 'h-40 w-full bg-[#F3F4F6]'
+                          ? 'h-48 w-full bg-[#F3F4F6]'
+                          : 'h-36 w-full bg-[#F3F4F6]'
                       }
                     />
                   ) : (
                     <View
                       className={
                         isWide
-                          ? 'h-80 w-full items-center justify-center bg-[#F0F7EE]'
-                          : 'h-40 w-full items-center justify-center bg-[#F0F7EE]'
+                          ? 'h-48 w-full items-center justify-center bg-[#F0F7EE]'
+                          : 'h-36 w-full items-center justify-center bg-[#F0F7EE]'
                       }
                     >
                       <ProductIcon color={colors.primary} size={26} />
                     </View>
                   )}
-                  <View className="gap-2 p-2.5">
-                    <View className="flex-row flex-wrap items-center gap-2">
+                  <View className="flex-1 gap-2 p-3">
+                    <View className="min-h-10 justify-center">
                       <Text
                         className={
                           isWide
-                            ? 'min-w-0 flex-1 text-sm font-bold text-[#012711]'
-                            : 'min-w-0 flex-1 text-[11px] font-bold text-[#012711]'
+                            ? 'text-sm font-bold text-[#012711]'
+                            : 'text-xs font-bold text-[#012711]'
                         }
                         numberOfLines={1}
                       >
                         {name}
                       </Text>
-                      {isFeatured(cuisine.featured) ? (
-                        <Text
-                          className="rounded-full px-2 py-1 text-[10px] font-semibold"
-                          style={{
-                            backgroundColor: colors.surfaceSecondary,
-                            color: colors.primary,
-                          }}
-                        >
-                          Featured
-                        </Text>
-                      ) : null}
-                    </View>
-                    {cuisineId ? (
-                      <Text className="mt-1 text-[9px] text-[#6B7280]">
-                        {cuisineId}
+                      <Text
+                        className="mt-1 text-[10px] text-[#6B7280]"
+                        numberOfLines={1}
+                      >
+                        {cuisineId || 'Cuisine'}
                       </Text>
-                    ) : null}
+                    </View>
                     {cuisine.description ? (
                       <Text
                         className={
                           isWide
                             ? 'mt-1 text-xs leading-[17px] text-[#6B7280]'
-                            : 'mt-1 text-[9px] leading-3 text-[#6B7280]'
+                            : 'mt-1 text-[10px] leading-[15px] text-[#6B7280]'
                         }
+                        style={{ minHeight: 34 }}
                         numberOfLines={2}
                       >
                         {cuisine.description}
                       </Text>
-                    ) : null}
+                    ) : (
+                      <View style={{ minHeight: 34 }} />
+                    )}
                   </View>
-                  <View className="mx-2.5 mb-2.5 flex-row justify-between border-t border-[#F1F5F9] pt-2">
-                    <CuisineBadge
-                      label={status}
-                      active={status.toLowerCase() !== 'inactive'}
-                    />
-                    {isFeatured(cuisine.featured) ? (
-                      <CuisineBadge label="Featured" active />
-                    ) : null}
-                  </View>
-                  {cuisineId ? (
-                    <View className="mx-2.5 mb-2.5 flex-row justify-end gap-2">
-                      <CuisineActionButton
-                        label={`Edit ${name}`}
-                        tone="edit"
-                        onPress={() => onEditCuisine(cuisine)}
+                  <View className="mt-auto gap-2 px-3 pb-3">
+                    <View className="min-h-8 flex-row items-center justify-between border-t border-[#F1F5F9] pt-2">
+                      <CuisineBadge
+                        label={status}
+                        active={status.toLowerCase() !== 'inactive'}
                       />
-                      <CuisineActionButton
-                        label={`Delete ${name}`}
-                        tone="delete"
-                        onPress={() => {
-                          setDeleteError('');
-                          setCuisineToDelete(cuisine);
-                        }}
-                      />
+                      {isFeatured(cuisine.featured) ? (
+                        <CuisineBadge label="Featured" active />
+                      ) : null}
                     </View>
-                  ) : null}
+                    <View className="min-h-8 flex-row justify-end gap-2">
+                      {cuisineId ? (
+                        <>
+                          <CuisineActionButton
+                            label={`Edit ${name}`}
+                            tone="edit"
+                            onPress={() => onEditCuisine(cuisine)}
+                          />
+                          <CuisineActionButton
+                            label={`Delete ${name}`}
+                            tone="delete"
+                            onPress={() => {
+                              setDeleteError('');
+                              setCuisineToDelete(cuisine);
+                            }}
+                          />
+                        </>
+                      ) : null}
+                    </View>
+                  </View>
                 </AdminManagementCard>
               );
             })}
