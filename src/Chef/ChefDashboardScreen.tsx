@@ -413,7 +413,19 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
   const topDishes = useMemo(() => {
     const quantities = new Map<string, number>();
-    orders.forEach(order => {
+    const today = (dashboardUpdatedAt ?? new Date()).toLocaleDateString();
+    orders
+      .filter(order => {
+        if (!order.created_at) {
+          return false;
+        }
+        const createdAt = new Date(String(order.created_at));
+        return (
+          !Number.isNaN(createdAt.getTime()) &&
+          createdAt.toLocaleDateString() === today
+        );
+      })
+      .forEach(order => {
       const items = Array.isArray(order.items) ? order.items : [];
       items.forEach(item => {
         if (!isRecord(item)) {
@@ -429,11 +441,11 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           (quantities.get(name) ?? 0) + (quantity > 0 ? quantity : 1),
         );
       });
-    });
+      });
     return Array.from(quantities, ([name, quantity]) => ({ name, quantity }))
       .sort((first, second) => second.quantity - first.quantity)
       .slice(0, 5);
-  }, [orders]);
+  }, [dashboardUpdatedAt, orders]);
 
   const orderStatusData = useMemo(() => {
     const statuses = [
