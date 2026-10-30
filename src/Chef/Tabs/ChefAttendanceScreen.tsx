@@ -99,40 +99,45 @@ function AttendanceHistorySkeleton({ tableView }: { tableView: boolean }) {
       className={`flex-row items-center rounded-xl border border-[#E5E7EB] bg-white ${
         tableView
           ? 'mb-2 h-[76px] w-[550px]'
-          : 'mb-2 min-h-[76px] w-full gap-2 p-2'
+          : 'mb-2 min-h-[82px] w-full gap-2 overflow-hidden p-2.5'
       }`}
     >
+      {!tableView ? (
+        <View className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-slate-100" />
+      ) : null}
       <View
-        className={`h-[58px] rounded-lg bg-slate-100 ${
-          tableView ? 'mx-[9px] w-[54px] shrink-0' : 'w-[54px]'
+        className={`rounded-xl bg-slate-100 ${
+          tableView
+            ? 'mx-[9px] h-[58px] w-[54px] shrink-0'
+            : 'ml-1 h-[62px] w-[56px] shrink-0'
         }`}
       />
       <View
         className={
           tableView
             ? 'w-[150px] shrink-0 gap-2 border-l border-[#E5E7EB] px-2'
-            : 'w-[82px] gap-2'
+            : 'w-[88px] gap-2'
         }
       >
         <View className="h-5 w-16 rounded-full bg-slate-100" />
+        <View className="h-2 w-14 rounded-md bg-slate-100" />
         <View className="h-3 w-20 rounded-md bg-slate-100" />
-        <View className="h-3 w-16 rounded-md bg-slate-100" />
       </View>
       <View
         className={`gap-2 border-l border-[#E5E7EB] ${
           tableView
             ? 'w-[218px] shrink-0 px-3'
-            : 'min-w-0 flex-1 pl-2'
+            : 'min-w-0 flex-1 pl-2.5'
         }`}
       >
         <View className="h-3 w-20 rounded-md bg-slate-100" />
         <View className="h-3 w-20 rounded-md bg-slate-100" />
       </View>
       <View
-        className={`h-[58px] items-center justify-center gap-2 rounded-lg bg-[#F0F8F1] ${
+        className={`items-center justify-center gap-2 rounded-lg bg-[#F0F8F1] ${
           tableView
-            ? 'mx-[10px] w-[90px] shrink-0'
-            : 'w-[68px]'
+            ? 'mx-[10px] h-[58px] w-[90px] shrink-0'
+            : 'h-[62px] w-[78px] shrink-0'
         }`}
       >
         <View className="h-4 w-12 rounded-md bg-slate-100" />
@@ -306,28 +311,37 @@ function ChefAttendanceScreen({
         className={`${
           tableView
             ? 'mb-2 h-[76px] w-[550px] flex-row items-center rounded-xl border border-[#E5E7EB] bg-white'
-            : 'mb-2 min-h-[76px] w-full flex-row items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white p-2'
+            : 'mb-2 min-h-[82px] w-full flex-row items-center gap-2 overflow-hidden rounded-2xl border border-[#DDE9E0] bg-white p-2.5 shadow-sm'
         }`}
       >
+        {!tableView ? (
+          <View className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-[#16804A]" />
+        ) : null}
         <View
           className={
             tableView
               ? 'w-[72px] shrink-0 items-center px-2'
-              : 'w-[54px] shrink-0'
+              : 'ml-1 w-[56px] shrink-0'
           }
         >
-          <View className="h-[58px] w-full items-center justify-center rounded-lg bg-[#F7FAFC]">
-            <Text className="text-[8px] font-bold text-[#64748B]">
+          <View
+            className={`h-[62px] w-full items-center justify-center rounded-xl ${
+              tableView
+                ? 'bg-[#F7FAFC]'
+                : 'border border-[#E1EFE5] bg-[#F3F8F4]'
+            }`}
+          >
+            <Text className="text-[8px] font-extrabold tracking-wide text-[#64748B]">
               {parts.weekday}
             </Text>
-            <Text className="text-xl font-extrabold leading-6 text-[#1F2937]">
+            <Text className="text-[21px] font-extrabold leading-6 text-[#1F2937]">
               {parts.day}
             </Text>
-            <Text className="text-[7px] font-semibold text-[#64748B]">
+            <Text className="text-[7px] font-bold text-[#64748B]">
               {parts.monthYear}
             </Text>
             {date === today ? (
-              <Text className="mt-0.5 rounded-full bg-emerald-100 px-1.5 text-[7px] font-bold text-emerald-800">
+              <Text className="mt-0.5 rounded-full bg-emerald-100 px-1.5 text-[7px] font-extrabold text-emerald-800">
                 Today
               </Text>
             ) : null}
@@ -338,21 +352,56 @@ function ChefAttendanceScreen({
           className={`justify-center ${
             tableView
               ? 'w-[150px] shrink-0 border-l border-[#E5E7EB] px-2'
-              : 'w-[82px] shrink-0'
+              : 'w-[88px] shrink-0'
           }`}
         >
-          <Text
-            numberOfLines={1}
-            className={`self-start rounded-full px-2 py-1 text-[8px] font-extrabold ${statusClass}`}
+          <View
+            className={`self-start rounded-full px-2 py-1 ${
+              tableView ? '' : 'flex-row items-center gap-1'
+            } ${statusClass}`}
           >
-            {status}
-          </Text>
-          <Text className="mt-1 text-[8px] text-[#64748B]">Shift Time</Text>
-          <Text numberOfLines={1} className="text-[9px] font-semibold text-[#334155]">
-            {record.start_time
-              ? `${formatShiftTime(record.start_time)} – ${formatShiftTime(record.end_time)}`
-              : '—'}
-          </Text>
+            {!tableView ? (
+              <View
+                className={`h-1.5 w-1.5 rounded-full ${
+                  status === 'Late'
+                    ? 'bg-rose-600'
+                    : status === 'Completed'
+                      ? 'bg-slate-500'
+                      : 'bg-emerald-600'
+                }`}
+              />
+            ) : null}
+            <Text numberOfLines={1} className="text-[8px] font-extrabold">
+              {status}
+            </Text>
+          </View>
+          {tableView ? (
+            <>
+              <Text className="mt-1 text-[8px] text-[#64748B]">Shift Time</Text>
+              <Text
+                numberOfLines={1}
+                className="text-[9px] font-semibold text-[#334155]"
+              >
+                {record.start_time
+                  ? `${formatShiftTime(record.start_time)} – ${formatShiftTime(record.end_time)}`
+                  : '—'}
+              </Text>
+            </>
+          ) : (
+            <View className="mt-1.5">
+              <Text className="text-[8px] font-medium text-[#718096]">
+                Shift time
+              </Text>
+              <Text
+                numberOfLines={1}
+                className="text-[9px] font-bold text-[#334155]"
+              >
+                {record.start_time
+                  ? `${formatShiftTime(record.start_time)} – ${formatShiftTime(record.end_time)}`
+                  : 'Not set'}
+              </Text>
+            </View>
+          )}
           {record.notes ? (
             <Text numberOfLines={1} className="mt-0.5 text-[7px] text-[#64748B]">
               {valueOf(record.notes)}
@@ -361,10 +410,10 @@ function ChefAttendanceScreen({
         </View>
 
         <View
-          className={`justify-center border-l border-[#E5E7EB] pl-2 ${
+          className={`justify-center ${
             tableView
-              ? 'w-[218px] shrink-0 px-3'
-              : 'min-w-0 flex-1'
+              ? 'w-[218px] shrink-0 border-l border-[#E5E7EB] px-3'
+              : 'min-w-0 flex-1 border-l border-[#E8EEE9] pl-2.5'
           }`}
         >
           <View className="flex-row items-center gap-1.5">
@@ -391,7 +440,7 @@ function ChefAttendanceScreen({
           className={`items-center justify-center rounded-lg bg-[#F0F8F1] ${
             tableView
               ? 'mx-[10px] h-[58px] w-[90px] shrink-0'
-              : 'h-[58px] w-[68px] shrink-0'
+              : 'h-[62px] w-[78px] shrink-0 border border-[#E1EFE5]'
           }`}
         >
           <View className="flex-row items-center gap-1">
@@ -399,7 +448,11 @@ function ChefAttendanceScreen({
               color={recordIsWorking ? '#16804A' : '#64748B'}
               size={13}
             />
-            <Text className="text-[10px] font-extrabold text-[#17633D]">
+            <Text
+              className={`${
+                tableView ? 'text-[10px]' : 'text-[11px]'
+              } font-extrabold text-[#17633D]`}
+            >
               {duration}
             </Text>
           </View>
