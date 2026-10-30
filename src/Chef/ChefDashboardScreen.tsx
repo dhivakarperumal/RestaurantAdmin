@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Pressable,
   RefreshControl,
@@ -85,7 +86,7 @@ function errorMessage(error: unknown) {
   return 'Please check your connection and try again.';
 }
 
-function text(value: unknown, fallback = '—') {
+function text(value: unknown, fallback = 'â€”') {
   return value === undefined || value === null || String(value).trim() === ''
     ? fallback
     : String(value);
@@ -96,13 +97,52 @@ function numberValue(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function getOrderDate(order: DataRow) {
+  const value =
+    order.created_at ?? order.order_date ?? order.order_datetime ?? order.createdAt;
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const dateValue = String(value).trim();
+  const localDateTime = dateValue.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?$/,
+  );
+  if (localDateTime) {
+    const [, year, month, day, hour = '0', minute = '0', second = '0'] =
+      localDateTime;
+    const date = new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+    );
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const date = new Date(dateValue);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function formatTime(value: unknown) {
   if (!value) {
-    return '—';
+    return 'â€”';
   }
   const date = new Date(String(value));
   return Number.isNaN(date.getTime())
-    ? '—'
+    ? 'â€”'
     : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -335,7 +375,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       const status = text(order.status, 'Pending').toLowerCase();
       return status !== 'served' && status !== 'cancelled';
     });
-    const today = (dashboardUpdatedAt ?? new Date()).toLocaleDateString();
+    const today = localDateKey(dashboardUpdatedAt ?? new Date());
     return {
       active: activeOrders.length,
       pending: activeOrders.filter(
@@ -348,14 +388,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         order => text(order.status, '').toLowerCase() === 'ready to serve',
       ).length,
       today: orders.filter(order => {
-        if (!order.created_at) {
-          return false;
-        }
-        const createdAt = new Date(String(order.created_at));
-        return (
-          !Number.isNaN(createdAt.getTime()) &&
-          createdAt.toLocaleDateString() === today
-        );
+        const createdAt = getOrderDate(order);
+        return createdAt !== null && localDateKey(createdAt) === today;
       }).length,
     };
   }, [dashboardUpdatedAt, orders]);
@@ -367,7 +401,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       const date = new Date(today);
       date.setDate(today.getDate() - (6 - index));
       return {
-        dateKey: date.toLocaleDateString(),
+        dateKey: localDateKey(date),
         day: date.toLocaleDateString([], { weekday: 'short' }),
         orders: 0,
       };
@@ -375,14 +409,11 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     const countsByDate = new Map(days.map(day => [day.dateKey, day]));
 
     orders.forEach(order => {
-      if (!order.created_at) {
+      const createdAt = getOrderDate(order);
+      if (!createdAt) {
         return;
       }
-      const createdAt = new Date(String(order.created_at));
-      if (Number.isNaN(createdAt.getTime())) {
-        return;
-      }
-      const day = countsByDate.get(createdAt.toLocaleDateString());
+      const day = countsByDate.get(localDateKey(createdAt));
       if (day) {
         day.orders += 1;
       }
@@ -392,6 +423,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
   const hourlyOrders = useMemo(() => {
     const dashboardDate = dashboardUpdatedAt ?? new Date();
+    const today = localDateKey(dashboardDate);
     const buckets = Array.from({ length: 24 }, (_, hour) => ({
       hour,
       label: new Date(2000, 0, 1, hour).toLocaleTimeString([], {
@@ -401,14 +433,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
     }));
 
     orders.forEach(order => {
-      if (!order.created_at) {
-        return;
-      }
-      const createdAt = new Date(String(order.created_at));
-      if (
-        Number.isNaN(createdAt.getTime()) ||
-        createdAt.toLocaleDateString() !== dashboardDate.toLocaleDateString()
-      ) {
+      const createdAt = getOrderDate(order);
+      if (!createdAt || localDateKey(createdAt) !== today) {
         return;
       }
       buckets[createdAt.getHours()].orders += 1;
@@ -418,25 +444,13 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
   const topDishes = useMemo(() => {
     const quantities = new Map<string, number>();
-    const today = (dashboardUpdatedAt ?? new Date()).toLocaleDateString();
-    orders
-      .filter(order => {
-        if (!order.created_at) {
-          return false;
-        }
-        const createdAt = new Date(String(order.created_at));
-        return (
-          !Number.isNaN(createdAt.getTime()) &&
-          createdAt.toLocaleDateString() === today
-        );
-      })
-      .forEach(order => {
+    orders.forEach(order => {
       const items = Array.isArray(order.items) ? order.items : [];
       items.forEach(item => {
         if (!isRecord(item)) {
           return;
         }
-        const name = text(item.food_name, '').trim();
+        const name = text(item.food_name ?? item.product_name, '').trim();
         if (!name) {
           return;
         }
@@ -446,11 +460,11 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           (quantities.get(name) ?? 0) + (quantity > 0 ? quantity : 1),
         );
       });
-      });
+    });
     return Array.from(quantities, ([name, quantity]) => ({ name, quantity }))
       .sort((first, second) => second.quantity - first.quantity)
       .slice(0, 5);
-  }, [dashboardUpdatedAt, orders]);
+  }, [orders]);
 
   const orderStatusData = useMemo(() => {
     const statuses = [
@@ -501,6 +515,48 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       ? numberValue(attendance.duration_seconds)
       : numberValue(attendance?.total_hours) * 3600;
 
+  // Android hardware back button: navigate within chef screens instead of exiting
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        // 1. Account menu open -> close it
+        if (isAccountMenuOpen) {
+          setIsAccountMenuOpen(false);
+          return true;
+        }
+        // 2. Request modal open -> close it
+        if (isRequestModalOpen) {
+          setIsRequestModalOpen(false);
+          return true;
+        }
+        // 3. More inner page (inventory / stock) -> go back to More tab
+        if (activeTab === 'more' && selectedMorePage !== null) {
+          setSelectedMorePage(null);
+          return true;
+        }
+        // 4. Orders inner page -> go back to Orders menu
+        if (activeTab === 'orders' && selectedOrderPage !== null) {
+          setSelectedOrderPage(null);
+          return true;
+        }
+        // 5. Non-dashboard tab -> go to dashboard
+        if (activeTab !== 'dashboard') {
+          navigateToChefTab('dashboard');
+          return true;
+        }
+        // 6. Already on dashboard -> let OS exit the app
+        return false;
+      },
+    );
+    return () => subscription.remove();
+  }, [
+    isAccountMenuOpen,
+    isRequestModalOpen,
+    activeTab,
+    selectedMorePage,
+    selectedOrderPage,
+  ]);
   const openRequestModal = () => {
     setRequestProduct('');
     setRequestProductId(null);
@@ -616,7 +672,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               {chefName}
             </Text>
             <Text className="mt-1.5 text-[13px] text-[#68766D]">
-              Here’s what’s happening in your kitchen today.
+              Hereâ€™s whatâ€™s happening in your kitchen today.
             </Text>
           </View>
           <Pressable
@@ -625,9 +681,9 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             onPress={() => setRefreshCount(count => count + 1)}
             className="h-11 flex-row items-center justify-center rounded-full border border-[#CFE0D4] bg-white px-3.5"
           >
-            <Text className="mr-1.5 text-base font-bold text-[#14764A]">↻</Text>
+            <Text className="mr-1.5 text-base font-bold text-[#14764A]">â†»</Text>
             <Text className="text-[11px] font-bold text-[#123B2D]">
-              {isLoading ? 'Refreshing…' : 'Refresh'}
+              {isLoading ? 'Refreshingâ€¦' : 'Refresh'}
             </Text>
           </Pressable>
         </View>
@@ -663,7 +719,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           <View className="min-w-0 flex-1">
             <View className="flex-row flex-wrap items-center gap-1.5">
               <Text className="text-[9px] font-extrabold uppercase tracking-[1px] text-[#28704B]">
-                Today’s Attendance
+                Todayâ€™s Attendance
               </Text>
               {attendance?.status ? (
                 <Text
@@ -688,13 +744,13 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               {attendanceIsWorking
                 ? `Clocked in at ${formatTime(attendance?.check_in)}`
                 : attendance?.check_in && attendance?.check_out
-                  ? `Worked ${formatTime(attendance?.check_in)} – ${formatTime(attendance?.check_out)}`
+                  ? `Worked ${formatTime(attendance?.check_in)} â€“ ${formatTime(attendance?.check_out)}`
                   : 'Clock in to start your shift'}
             </Text>
             <View className="mt-2 flex-row gap-1.5">
               <View className="min-w-0 flex-1 justify-center rounded-xl border border-[#D9EDE0] bg-white/80 px-2.5 py-2">
                 <Text className="text-[8px] font-semibold text-[#52715E]">
-                  Today’s working time
+                  Todayâ€™s working time
                 </Text>
                 <Text className="mt-0.5 text-[10px] font-extrabold text-[#164D35]">
                   {formatDuration(attendanceSeconds)}
@@ -768,8 +824,8 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 Next: {text(upcomingEventOrders[0].event_type, 'Catering Event')}
               </Text>
               <Text numberOfLines={1} className="mt-1 text-[9px] font-semibold text-[#8A5A2A]">
-                {text(upcomingEventOrders[0].guest_count, '—')} guests
-                {'  ·  '}
+                {text(upcomingEventOrders[0].guest_count, 'â€”')} guests
+                {'  Â·  '}
                 {formatShortDate(upcomingEventOrders[0].event_date)}
               </Text>
               <Pressable
@@ -778,7 +834,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 className="mt-2 items-center rounded-xl bg-[#8A4B14] px-2.5 py-2"
               >
                 <Text className="text-[9px] font-extrabold text-white">
-                  View Event Orders  ›
+                  View Event Orders  â€º
                 </Text>
               </Pressable>
             </View>
@@ -839,7 +895,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                   <ReceiptIcon color={stat.color} size={22} />
                 ) : (
                   <Text className="text-[20px] font-extrabold" style={{ color: stat.color }}>
-                    {stat.icon === 'pending' ? '◷' : '♨'}
+                    {stat.icon === 'pending' ? 'â—·' : 'â™¨'}
                   </Text>
                 )}
               </View>
@@ -848,7 +904,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 style={{ backgroundColor: stat.border }}
               >
                 <Text className="text-base font-bold" style={{ color: stat.color }}>
-                  ›
+                  â€º
                 </Text>
               </View>
             </View>
@@ -857,7 +913,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             </Text>
             <View className="mt-0.5 flex-row items-end justify-between gap-1">
               <Text className="text-[26px] font-extrabold leading-8 text-[#123B2D]">
-                {isLoading ? '…' : stat.value}
+                {isLoading ? 'â€¦' : stat.value}
               </Text>
               <Text numberOfLines={1} className="mb-1 flex-1 text-right text-[9px] text-[#66756D]">
                 {stat.detail}
@@ -939,7 +995,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
       <View className="mb-3 rounded-[22px] border border-[#E5EDE7] bg-white p-4">
         <View className="mb-4 flex-row items-center gap-2.5">
           <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E8F5EC]">
-            <Text className="text-[20px] font-extrabold text-[#14764A]">◔</Text>
+            <Text className="text-[20px] font-extrabold text-[#14764A]">â—”</Text>
           </View>
           <View>
             <Text className="text-sm font-extrabold text-[#123B2D]">
@@ -996,7 +1052,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
 
       <Card>
         <Text className="text-sm font-bold text-[#012711]">
-          Today’s order pace
+          Todayâ€™s order pace
         </Text>
         <Text className="mt-1 text-xs text-[#6B7280]">
           Order arrivals by time of day
@@ -1043,7 +1099,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                 Most-ordered dishes
               </Text>
               <Text className="mt-0.5 text-[10px] text-[#6B7280]">
-                Top dishes from today’s orders
+                Top dishes across kitchen orders
               </Text>
             </View>
           </View>
@@ -1110,7 +1166,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
           </View>
         ) : (
           <Text className="py-7 text-center text-xs text-[#6B7280]">
-            No dishes have been ordered today yet.
+            No dishes are available in kitchen orders yet.
           </Text>
         )}
       </View>
@@ -1140,7 +1196,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
             className="rounded-full border border-[#D8E8DC] bg-[#F5FAF6] px-3 py-2"
           >
             <Text className="text-[10px] font-extrabold text-[#14764A]">
-              All orders  ›
+              All orders  â€º
             </Text>
           </Pressable>
         </View>
@@ -1153,7 +1209,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               const itemSummary = items
                 .map(
                   item =>
-                    `${text(item.food_name, 'Item')} × ${text(item.quantity, '1')}`,
+                    `${text(item.food_name, 'Item')} Ã— ${text(item.quantity, '1')}`,
                 )
                 .join(', ');
               const status = text(order.status, 'Pending');
@@ -1186,7 +1242,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
                         <Text numberOfLines={1} className="mt-0.5 text-[9px] text-[#76827B]">
                           Table {text(order.table_number ?? order.table_id)}
                           {order.created_at
-                            ? ` · ${formatTime(order.created_at)}`
+                            ? ` Â· ${formatTime(order.created_at)}`
                             : ''}
                         </Text>
                       </View>
@@ -1261,7 +1317,7 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               </Text>
               <Text className="mt-1.5 text-xs text-[#6B7280]">
                 {firstItem ? text(firstItem.product_name, 'Kitchen supplies') : 'Kitchen supplies'}
-                {firstItem ? ` · ${text(firstItem.quantity)} ${text(firstItem.unit, '')}` : ''}
+                {firstItem ? ` Â· ${text(firstItem.quantity)} ${text(firstItem.unit, '')}` : ''}
               </Text>
               <Text className="mt-2 text-xs font-bold text-[#116C0B]">
                 {text(request.status, 'Pending')}
