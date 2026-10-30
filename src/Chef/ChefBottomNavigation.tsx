@@ -18,6 +18,14 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 12,
   },
+  activeTab: {
+    backgroundColor: '#FFF9EC',
+    borderRadius: 22,
+  },
+  activeIcon: {
+    backgroundColor: '#07513A',
+    borderRadius: 17,
+  },
 });
 
 export type ChefTab =
@@ -105,14 +113,12 @@ function ChefBottomNavigation({
             className="min-h-[70px] flex-1 items-center justify-center px-px"
           >
             <View
-              className={`min-h-[72px] min-w-[72px] items-center justify-center rounded-[22px] px-1.5 py-1 ${
-                selected ? 'bg-[#FFF9EC]' : 'bg-transparent'
-              }`}
+              className="min-h-[72px] min-w-[72px] items-center justify-center px-1.5 py-1"
+              style={selected ? styles.activeTab : undefined}
             >
               <View
-                className={`h-[46px] w-[46px] items-center justify-center rounded-[17px] ${
-                  selected ? 'bg-[#07513A]' : 'bg-transparent'
-                }`}
+                className="h-[46px] w-[46px] items-center justify-center"
+                style={selected ? styles.activeIcon : undefined}
               >
                 {tab.icon(iconColor)}
               </View>
