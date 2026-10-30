@@ -1052,15 +1052,20 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         )}
       </Card>
 
-      <Card className="p-0">
-        <View className="flex-row items-center justify-between border-b border-[#E5E7EB] px-4 py-4">
-          <View className="flex-1">
-            <Text className="text-sm font-bold text-[#012711]">
-              Recent Kitchen Orders
-            </Text>
-            <Text className="mt-1 text-[11px] text-[#6B7280]">
-              Today: {orderCounts.today}
-            </Text>
+      <View className="mb-3 rounded-[22px] border border-[#E5EDE7] bg-white p-4">
+        <View className="mb-3 flex-row items-center justify-between gap-2">
+          <View className="flex-1 flex-row items-center gap-2.5">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E8F5EC]">
+              <OrdersIcon color="#14764A" size={21} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-extrabold text-[#123B2D]">
+                Recent Kitchen Orders
+              </Text>
+              <Text className="mt-0.5 text-[10px] text-[#6B7280]">
+                {orderCounts.today} orders received today
+              </Text>
+            </View>
           </View>
           <Pressable
             accessibilityRole="button"
@@ -1069,51 +1074,77 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
               setSelectedMorePage(null);
               setSelectedOrderPage('kitchen');
             }}
-            className="px-2 py-2"
+            className="rounded-full border border-[#D8E8DC] bg-[#F5FAF6] px-3 py-2"
           >
-            <Text className="text-xs font-bold text-[#123B2D]">
-              All orders
+            <Text className="text-[10px] font-extrabold text-[#14764A]">
+              All orders  ›
             </Text>
           </Pressable>
         </View>
         {orders.length ? (
-          orders.slice(0, 6).map((order, index) => {
-            const items = Array.isArray(order.items)
-              ? order.items.filter(isRecord)
-              : [];
-            const itemSummary = items
-              .map(
-                item =>
-                  `${text(item.food_name, 'Item')} × ${text(item.quantity, '1')}`,
-              )
-              .join(', ');
-            return (
-              <View
-                key={text(order.order_id ?? order.id, String(index))}
-                className="border-b border-[#F1F5F9] px-4 py-3"
-              >
-                <View className="flex-row items-center justify-between gap-2">
-                  <Text className="flex-1 text-sm font-bold text-[#012711]">
-                    Order {text(order.order_id ?? order.id, `#${index + 1}`)}
-                  </Text>
-                  <Text className="rounded-full bg-[#F0F7EE] px-2.5 py-1 text-[10px] font-bold text-[#116C0B]">
-                    {text(order.status, 'Pending')}
+          <View className="gap-2">
+            {orders.slice(0, 6).map((order, index) => {
+              const items = Array.isArray(order.items)
+                ? order.items.filter(isRecord)
+                : [];
+              const itemSummary = items
+                .map(
+                  item =>
+                    `${text(item.food_name, 'Item')} × ${text(item.quantity, '1')}`,
+                )
+                .join(', ');
+              const status = text(order.status, 'Pending');
+              const statusStyle =
+                status.toLowerCase() === 'preparing'
+                  ? 'bg-[#FFF0F0] text-[#B93838]'
+                  : status.toLowerCase() === 'ready to serve'
+                    ? 'bg-[#EDF7FF] text-[#1768AE]'
+                    : status.toLowerCase() === 'served'
+                      ? 'bg-[#E8F8EF] text-[#08794A]'
+                      : status.toLowerCase() === 'cancelled'
+                        ? 'bg-[#FFF0F0] text-[#B93838]'
+                        : 'bg-[#FFF5DE] text-[#9A6200]';
+              return (
+                <View
+                  key={text(order.order_id ?? order.id, String(index))}
+                  className="rounded-2xl border border-[#E9EFEB] bg-[#FCFDFC] p-3"
+                >
+                  <View className="flex-row items-center justify-between gap-2">
+                    <View className="min-w-0 flex-1 flex-row items-center gap-2">
+                      <View className="h-8 w-8 items-center justify-center rounded-xl bg-[#E8F5EC]">
+                        <Text className="text-[10px] font-extrabold text-[#14764A]">
+                          {String(index + 1).padStart(2, '0')}
+                        </Text>
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <Text numberOfLines={1} className="text-xs font-extrabold text-[#123B2D]">
+                          Order {text(order.order_id ?? order.id, `#${index + 1}`)}
+                        </Text>
+                        <Text numberOfLines={1} className="mt-0.5 text-[9px] text-[#76827B]">
+                          Table {text(order.table_number ?? order.table_id)}
+                          {order.created_at
+                            ? ` · ${formatTime(order.created_at)}`
+                            : ''}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold ${statusStyle}`}>
+                      {status}
+                    </Text>
+                  </View>
+                  <Text numberOfLines={2} className="ml-10 mt-2 text-[10px] leading-4 text-[#58665E]">
+                    {itemSummary || 'No items'}
                   </Text>
                 </View>
-                <Text className="mt-1 text-xs text-[#6B7280]">
-                  Table {text(order.table_number ?? order.table_id)}
-                  {' · '}
-                  {itemSummary || 'No items'}
-                </Text>
-              </View>
-            );
-          })
+              );
+            })}
+          </View>
         ) : (
-          <View className="px-4 py-8">
+          <View className="py-6">
             <EmptyState message="No kitchen orders yet. New server orders will appear here." />
           </View>
         )}
-      </Card>
+      </View>
     </>
   );
 
