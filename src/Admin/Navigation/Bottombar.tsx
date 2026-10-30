@@ -16,7 +16,14 @@ export type BottomBarTab<Key extends string = string> = {
   icon?: ReactNode | ((color: string) => ReactNode);
 };
 
-export type AppTab = 'home' | 'billing' | 'items' | 'add' | 'orders' | 'more';
+export type AppTab =
+  | 'home'
+  | 'billing'
+  | 'billHistory'
+  | 'items'
+  | 'add'
+  | 'orders'
+  | 'more';
 
 type BottombarProps<Key extends string> = {
   tabs: BottomBarTab<Key>[];

@@ -65,6 +65,9 @@ import Bills, {
   type BillCompletionDetails,
   type BillFood,
 } from '../Tabs/Bills';
+import BillHistory, {
+  type BillHistoryEntry,
+} from '../Tabs/BillHistory';
 import NewOrderFlow from '../Tabs/NewOrderFlow';
 import OrderTypeSheet from '../Tabs/OrderTypeSheet';
 import Items from '../Tabs/Items';
@@ -574,6 +577,14 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsAccountMenuOpen(false);
   };
 
+  const openBillHistory = () => {
+    setActiveBillTable(null);
+    setExistingBillContext(null);
+    setInitialOrderTable(null);
+    setNewOrderType(null);
+    navigateToTab('billHistory');
+  };
+
   const startNewOrder = (orderType: NewOrderType) => {
     setActiveBillTable(null);
     setExistingBillContext(null);
@@ -629,6 +640,22 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setNewOrderType('DINE_IN');
     setActiveTab('add');
     setIsBillPreviewOpen(false);
+  };
+
+  const addItemsToHistoryBill = (entry: BillHistoryEntry) => {
+    const table: AdminTableRecord = {
+      id: entry.tableId,
+      table_id: entry.tableId,
+      table_number: entry.tableNumber,
+      status: 'Occupied',
+    };
+    setActiveBillTable(table);
+    setExistingBillContext(entry);
+    setInitialOrderTable(table);
+    setNewOrderType('DINE_IN');
+    setActiveTab('add');
+    setIsBillPreviewOpen(false);
+    setIsSidebarOpen(false);
   };
 
   const returnToActiveBill = () => {
@@ -1087,6 +1114,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               onRemoveFoodFromBilling={removeFoodFromBilling}
               onQuantityChange={updateBillingItemQuantity}
               onOpenBilling={() => navigateToTab('billing')}
+              onOpenBillHistory={openBillHistory}
+              onAddItemsToHistoryBill={addItemsToHistoryBill}
               onBillPreviewVisibilityChange={setIsBillPreviewOpen}
               onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
               onCompleteBill={details => {
@@ -1158,6 +1187,8 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             onRemoveFoodFromBilling={removeFoodFromBilling}
             onQuantityChange={updateBillingItemQuantity}
             onOpenBilling={() => navigateToTab('billing')}
+            onOpenBillHistory={openBillHistory}
+            onAddItemsToHistoryBill={addItemsToHistoryBill}
             onBillPreviewVisibilityChange={setIsBillPreviewOpen}
             onCreateInvoiceFromBillingItems={createInvoiceFromBillingItems}
             onCompleteBill={details => {
@@ -1689,6 +1720,8 @@ function MainContent({
   onRemoveFoodFromBilling,
   onQuantityChange,
   onOpenBilling,
+  onOpenBillHistory,
+  onAddItemsToHistoryBill,
   onBillPreviewVisibilityChange,
   onCreateInvoiceFromBillingItems,
   onCompleteBill,
@@ -1745,6 +1778,8 @@ function MainContent({
   onRemoveFoodFromBilling: (itemId: string) => void;
   onQuantityChange: (itemId: string, quantity: number) => void;
   onOpenBilling: () => void;
+  onOpenBillHistory: () => void;
+  onAddItemsToHistoryBill: (entry: BillHistoryEntry) => void;
   onBillPreviewVisibilityChange: (isVisible: boolean) => void;
   onCreateInvoiceFromBillingItems: () => void;
   onCompleteBill: (details: BillCompletionDetails) => void;
@@ -1765,6 +1800,7 @@ function MainContent({
       <ActiveBillPreview
         table={activeBillTable}
         onBack={onBackToTables}
+        onViewBillHistory={onOpenBillHistory}
         onAddItems={onAddItemsToExistingBill}
         onCompleted={onActiveBillCompleted}
       />
@@ -1967,8 +2003,12 @@ function MainContent({
         invoices={invoices}
         onCreateInvoice={() => onSelectAction('invoice')}
         onCreateInvoiceFromBillingItems={onCreateInvoiceFromBillingItems}
+        onOpenBillHistory={onOpenBillHistory}
       />
     );
+  }
+  if (activeTab === 'billHistory') {
+    return <BillHistory onAddItems={onAddItemsToHistoryBill} />;
   }
   if (activeTab === 'orders') {
     return (
@@ -3633,11 +3673,13 @@ function BillingPage({
   billingItems,
   onCreateInvoice,
   onCreateInvoiceFromBillingItems,
+  onOpenBillHistory,
 }: {
   invoices: LocalRecord[];
   billingItems: BillingLineItem[];
   onCreateInvoice: () => void;
   onCreateInvoiceFromBillingItems: () => void;
+  onOpenBillHistory: () => void;
 }) {
   const billingHasUnpricedItems = billingItems.some(
     item => item.amount === null,
@@ -3671,6 +3713,16 @@ function BillingPage({
           <Text className="text-[13px] font-bold text-white">New invoice</Text>
         </Pressable>
       </View>
+      <Pressable
+        accessibilityLabel="Open bill history"
+        accessibilityRole="button"
+        onPress={onOpenBillHistory}
+        className="mt-4 self-start rounded-xl border border-[#D7E5D6] bg-white px-4 py-2.5"
+      >
+        <Text className="text-sm font-semibold text-[#064E3B]">
+          View table bill history
+        </Text>
+      </Pressable>
       {billingItems.length ? (
         <View className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-4">
           <View className="flex-row items-center justify-between">
@@ -4063,8 +4115,8 @@ function Sidebar({
         />
         <TabButtonLarge
           icon={ReceiptIcon}
-          label="Billing"
-          onPress={() => onNavigate('billing')}
+          label="Bill History"
+          onPress={() => onNavigate('billHistory')}
         />
         <TabButtonLarge
           icon={ProductIcon}

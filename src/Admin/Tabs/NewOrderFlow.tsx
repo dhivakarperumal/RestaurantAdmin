@@ -85,6 +85,8 @@ type CartLine = {
   customizations: Record<string, string[]>;
 };
 
+type TableStatusFilter = 'All' | 'Available' | 'Occupied' | 'Reserved';
+
 type TableRecord = AdminTableRecord & {
   no_of_seats?: number | string;
   reservation_is_active?: unknown;
@@ -387,6 +389,8 @@ export default function NewOrderFlow({
 }) {
   const { width } = useWindowDimensions();
   const [tables, setTables] = useState<TableRecord[]>([]);
+  const [tableStatusFilter, setTableStatusFilter] =
+    useState<TableStatusFilter>('All');
   const [activeBillTables, setActiveBillTables] = useState<
     ActiveBillTableReference[]
   >([]);
@@ -428,6 +432,32 @@ export default function NewOrderFlow({
     : isDelivery
     ? 'Home Delivery'
     : 'Pick Up';
+  const tableStatusCounts = useMemo(() => {
+    const counts: Record<TableStatusFilter, number> = {
+      All: tables.length,
+      Available: 0,
+      Occupied: 0,
+      Reserved: 0,
+    };
+    tables.forEach(table => {
+      const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+      const status = tableStatus(table, hasActiveBill);
+      if (status === 'Available' || status === 'Occupied' || status === 'Reserved') {
+        counts[status] += 1;
+      }
+    });
+    return counts;
+  }, [activeBillTables, tables]);
+  const filteredTables = useMemo(
+    () =>
+      tableStatusFilter === 'All'
+        ? tables
+        : tables.filter(table => {
+            const hasActiveBill = tableHasActiveBill(table, activeBillTables);
+            return tableStatus(table, hasActiveBill) === tableStatusFilter;
+          }),
+    [activeBillTables, tableStatusFilter, tables],
+  );
   const horizontalPadding = width >= 768 ? 24 : 16;
   const cardGap = 12;
   const cardWidth =
@@ -1096,88 +1126,139 @@ export default function NewOrderFlow({
               </Pressable>
             </View>
           ) : tables.length ? (
-            <View className="flex-row flex-wrap" style={{ gap: 12 }}>
-              {tables.map((table, index) => {
-                const hasActiveBill = tableHasActiveBill(
-                  table,
-                  activeBillTables,
-                );
-                const status = tableStatus(table, hasActiveBill);
-                const selectable = canSelectTableForNewOrder(
-                  table,
-                  hasActiveBill,
-                );
-                const reservationSummary = getReservationSummary(table);
-                const serverAssignment = getServerAssignmentLabel(table);
-                return (
-                  <Pressable
-                    accessibilityLabel={`Table ${text(
-                      table.table_number,
-                      String(index + 1),
-                    )}, ${status}${
-                      selectable ? ', available for selection' : ''
-                    }`}
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: !selectable }}
-                    disabled={!selectable}
-                    key={String(
-                      table.table_id ?? table.id ?? table.table_number ?? index,
-                    )}
-                    onPress={() => void chooseTable(table)}
-                    className={`rounded-2xl border bg-white p-4 ${
-                      selectable
-                        ? 'border-[#DCE8D8]'
-                        : 'border-[#E5E7EB] opacity-70'
-                    }`}
-                    style={{ width: cardWidth }}
-                  >
-                    <View className="flex-row items-center justify-between gap-2">
-                      <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F0F7EE]">
-                        <MenuIcon color={colors.primary} size={21} />
-                      </View>
+            <View>
+              <View className="mb-4 flex-row flex-wrap gap-2">
+                {(
+                  ['All', 'Available', 'Occupied', 'Reserved'] as const
+                ).map(filter => {
+                  const isSelected = tableStatusFilter === filter;
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      key={filter}
+                      onPress={() => setTableStatusFilter(filter)}
+                      className={`flex-row items-center gap-1.5 rounded-full border px-3 py-2 ${
+                        isSelected
+                          ? 'border-[#116C0B] bg-[#116C0B]'
+                          : 'border-[#D1D5DB] bg-white'
+                      }`}
+                    >
                       <Text
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                          selectable
-                            ? 'bg-green-50 text-green-700'
-                            : status === 'Occupied'
-                            ? 'bg-orange-50 text-orange-700'
-                            : 'bg-indigo-50 text-indigo-700'
+                        className={`text-xs font-semibold ${
+                          isSelected ? 'text-white' : 'text-[#374151]'
                         }`}
                       >
-                        {status}
+                        {filter}
                       </Text>
-                    </View>
-                    <Text className="mt-3 text-base font-bold text-[#012711]">
-                      Table {text(table.table_number, String(index + 1))}
-                    </Text>
-                    {table.no_of_seats ? (
-                      <Text className="mt-1 text-xs text-[#6B7280]">
-                        {table.no_of_seats} seats
+                      <Text
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-white' : 'text-[#6B7280]'
+                        }`}
+                      >
+                        {tableStatusCounts[filter]}
                       </Text>
-                    ) : null}
-                    <Text
-                      numberOfLines={1}
-                      className="mt-1 text-[10px] text-[#64748B]"
-                    >
-                      {serverAssignment}
-                    </Text>
-                    {reservationSummary ? (
-                      <Text className="mt-1 text-[10px] text-[#6B7280]">
-                        {reservationSummary}
-                      </Text>
-                    ) : null}
-                    {selectable ? (
-                      <Text className="mt-2 text-xs font-semibold text-[#116C0B]">
-                        Tap to select
-                      </Text>
-                    ) : status === 'Reserved' ? (
-                      <Text className="mt-2 text-xs font-semibold text-[#B45309]">
-                        Reserved now
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {filteredTables.length ? (
+                <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+                  {filteredTables.map((table, index) => {
+                    const hasActiveBill = tableHasActiveBill(
+                      table,
+                      activeBillTables,
+                    );
+                    const status = tableStatus(table, hasActiveBill);
+                    const selectable = canSelectTableForNewOrder(
+                      table,
+                      hasActiveBill,
+                    );
+                    const reservationSummary = getReservationSummary(table);
+                    const serverAssignment = getServerAssignmentLabel(table);
+                    return (
+                      <Pressable
+                        accessibilityLabel={`Table ${text(
+                          table.table_number,
+                          String(index + 1),
+                        )}, ${status}${
+                          selectable ? ', available for selection' : ''
+                        }`}
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: !selectable }}
+                        disabled={!selectable}
+                        key={String(
+                          table.table_id ??
+                            table.id ??
+                            table.table_number ??
+                            index,
+                        )}
+                        onPress={() => void chooseTable(table)}
+                        className={`rounded-2xl border bg-white p-4 ${
+                          selectable
+                            ? 'border-[#DCE8D8]'
+                            : 'border-[#E5E7EB] opacity-70'
+                        }`}
+                        style={{ width: cardWidth }}
+                      >
+                        <View className="flex-row items-center justify-between gap-2">
+                          <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#F0F7EE]">
+                            <MenuIcon color={colors.primary} size={21} />
+                          </View>
+                          <Text
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                              selectable
+                                ? 'bg-green-50 text-green-700'
+                                : status === 'Occupied'
+                                ? 'bg-orange-50 text-orange-700'
+                                : 'bg-indigo-50 text-indigo-700'
+                            }`}
+                          >
+                            {status}
+                          </Text>
+                        </View>
+                        <Text className="mt-3 text-base font-bold text-[#012711]">
+                          Table {text(table.table_number, String(index + 1))}
+                        </Text>
+                        {table.no_of_seats ? (
+                          <Text className="mt-1 text-xs text-[#6B7280]">
+                            {table.no_of_seats} seats
+                          </Text>
+                        ) : null}
+                        <Text
+                          numberOfLines={1}
+                          className="mt-1 text-[10px] text-[#64748B]"
+                        >
+                          {serverAssignment}
+                        </Text>
+                        {reservationSummary ? (
+                          <Text className="mt-1 text-[10px] text-[#6B7280]">
+                            {reservationSummary}
+                          </Text>
+                        ) : null}
+                        {selectable ? (
+                          <Text className="mt-2 text-xs font-semibold text-[#116C0B]">
+                            Tap to select
+                          </Text>
+                        ) : status === 'Reserved' ? (
+                          <Text className="mt-2 text-xs font-semibold text-[#B45309]">
+                            Reserved now
+                          </Text>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
+                  <Text className="text-base font-bold text-[#012711]">
+                    No {tableStatusFilter.toLowerCase()} tables
+                  </Text>
+                  <Text className="mt-2 text-center text-sm text-[#6B7280]">
+                    Choose another filter to see tables.
+                  </Text>
+                </View>
+              )}
             </View>
           ) : (
             <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
