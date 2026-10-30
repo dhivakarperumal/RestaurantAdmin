@@ -1450,94 +1450,175 @@ function ChefDashboardScreen({ user, onLogout }: ChefDashboardScreenProps) {
         viewMode={inventoryViewMode}
       />
       {filteredRequests.length ? (
-        <View className="mt-3 gap-3">
-          {filteredRequests.map((request, index) => {
-            const firstItem = firstRequestItem(request);
-            const status = text(request.status, 'Pending');
-            const normalizedStatus = status.toLowerCase();
-            const statusClass =
-              normalizedStatus === 'approved'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                : normalizedStatus === 'rejected'
-                  ? 'border-rose-200 bg-rose-50 text-rose-800'
-                  : normalizedStatus === 'completed' ||
-                      normalizedStatus === 'fulfilled'
-                    ? 'border-slate-200 bg-slate-100 text-slate-700'
-                    : 'border-amber-200 bg-amber-50 text-amber-800';
-            const requestItems = Array.isArray(request.items)
-              ? request.items.filter(isRecord)
-              : [];
-            return (
-              <Card
-                key={text(request.id ?? request.request_number, String(index))}
-                className="w-full border-[#DFEAE2] p-3.5 shadow-sm"
-              >
-                <View className="flex-row items-start justify-between gap-3">
-                  <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                    <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4EC]">
-                      <ReceiptIcon color="#14764A" size={19} />
-                    </View>
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-[9px] font-extrabold uppercase tracking-wide text-[#14764A]">
-                        KITCHEN REQUEST
+        inventoryViewMode === 'table' ? (
+          <View className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View className="w-[825px]">
+                <View className="h-10 w-[825px] flex-row items-center border-b border-[#E5E7EB] bg-[#F8FAFC]">
+                  {[
+                    { label: 'No.', width: 'w-[55px]' },
+                    { label: 'Request', width: 'w-[145px]' },
+                    { label: 'Requested item', width: 'w-[190px]' },
+                    { label: 'Quantity', width: 'w-[100px]' },
+                    { label: 'Requested by', width: 'w-[130px]' },
+                    { label: 'Date', width: 'w-[105px]' },
+                    { label: 'Status', width: 'w-[100px]' },
+                  ].map(column => (
+                    <Text
+                      key={column.label}
+                      className={`${column.width} px-2 text-[9px] font-bold uppercase tracking-wide text-[#64748B]`}
+                    >
+                      {column.label}
+                    </Text>
+                  ))}
+                </View>
+                {filteredRequests.map((request, index) => {
+                  const firstItem = firstRequestItem(request);
+                  const requestItems = Array.isArray(request.items)
+                    ? request.items.filter(isRecord)
+                    : [];
+                  const status = text(request.status, 'Pending');
+                  const normalizedStatus = status.toLowerCase();
+                  const statusClass =
+                    normalizedStatus === 'approved'
+                      ? 'bg-emerald-50 text-emerald-800'
+                      : normalizedStatus === 'rejected'
+                        ? 'bg-rose-50 text-rose-800'
+                        : normalizedStatus === 'completed' ||
+                            normalizedStatus === 'fulfilled'
+                          ? 'bg-slate-100 text-slate-700'
+                          : 'bg-amber-50 text-amber-800';
+                  return (
+                    <View
+                      key={text(request.id ?? request.request_number, String(index))}
+                      className="h-[62px] w-[825px] flex-row items-center border-b border-[#EEF2F4] bg-white"
+                    >
+                      <Text className="w-[55px] px-2 text-[10px] font-semibold text-[#64748B]">
+                        {index + 1}
                       </Text>
-                      <Text
-                        numberOfLines={1}
-                        className="mt-0.5 text-sm font-extrabold text-[#123B2D]"
-                      >
+                      <Text numberOfLines={2} className="w-[145px] px-2 text-[10px] font-bold text-[#123B2D]">
                         {text(request.request_number, `Request ${index + 1}`)}
                       </Text>
+                      <Text numberOfLines={2} className="w-[190px] px-2 text-[10px] text-[#334155]">
+                        {firstItem
+                          ? text(firstItem.product_name, 'Kitchen supplies')
+                          : 'Kitchen supplies'}
+                        {requestItems.length > 1
+                          ? ` + ${requestItems.length - 1} more`
+                          : ''}
+                      </Text>
+                      <Text numberOfLines={1} className="w-[100px] px-2 text-[10px] font-semibold text-[#17633D]">
+                        {firstItem
+                          ? `${text(firstItem.quantity)} ${text(firstItem.unit, '')}`
+                          : '—'}
+                      </Text>
+                      <Text numberOfLines={1} className="w-[130px] px-2 text-[10px] text-[#334155]">
+                        {text(request.requested_by, chefName)}
+                      </Text>
+                      <Text className="w-[105px] px-2 text-[10px] text-[#64748B]">
+                        {formatShortDate(request.request_date)}
+                      </Text>
+                      <View className="w-[100px] px-2">
+                        <Text className={`self-start rounded-full px-2 py-1 text-[9px] font-bold ${statusClass}`}>
+                          {status}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        ) : (
+          <View className="mt-3 gap-3">
+            {filteredRequests.map((request, index) => {
+              const firstItem = firstRequestItem(request);
+              const status = text(request.status, 'Pending');
+              const normalizedStatus = status.toLowerCase();
+              const statusClass =
+                normalizedStatus === 'approved'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : normalizedStatus === 'rejected'
+                    ? 'border-rose-200 bg-rose-50 text-rose-800'
+                    : normalizedStatus === 'completed' ||
+                        normalizedStatus === 'fulfilled'
+                      ? 'border-slate-200 bg-slate-100 text-slate-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-800';
+              const requestItems = Array.isArray(request.items)
+                ? request.items.filter(isRecord)
+                : [];
+              return (
+                <Card
+                  key={text(request.id ?? request.request_number, String(index))}
+                  className="w-full border-[#DFEAE2] p-3.5 shadow-sm"
+                >
+                  <View className="flex-row items-start justify-between gap-3">
+                    <View className="min-w-0 flex-1 flex-row items-center gap-3">
+                      <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4EC]">
+                        <ReceiptIcon color="#14764A" size={19} />
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <Text className="text-[9px] font-extrabold uppercase tracking-wide text-[#14764A]">
+                          KITCHEN REQUEST
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          className="mt-0.5 text-sm font-extrabold text-[#123B2D]"
+                        >
+                          {text(request.request_number, `Request ${index + 1}`)}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text
+                      className={`rounded-full border px-2.5 py-1 text-[9px] font-extrabold ${statusClass}`}
+                    >
+                      {status}
+                    </Text>
+                  </View>
+
+                  <View className="mt-3 rounded-xl border border-[#E8EFEA] bg-[#F8FBF9] px-3 py-2.5">
+                    <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
+                      Requested item{requestItems.length === 1 ? '' : 's'}
+                    </Text>
+                    <View className="mt-1 flex-row items-center justify-between gap-3">
+                      <Text
+                        numberOfLines={2}
+                        className="min-w-0 flex-1 text-xs font-bold text-[#1F2937]"
+                      >
+                        {firstItem
+                          ? text(firstItem.product_name, 'Kitchen supplies')
+                          : 'Kitchen supplies'}
+                        {requestItems.length > 1
+                          ? ` + ${requestItems.length - 1} more`
+                          : ''}
+                      </Text>
+                      {firstItem ? (
+                        <Text className="text-xs font-extrabold text-[#17633D]">
+                          {text(firstItem.quantity)} {text(firstItem.unit, '')}
+                        </Text>
+                      ) : null}
                     </View>
                   </View>
-                  <Text
-                    className={`rounded-full border px-2.5 py-1 text-[9px] font-extrabold ${statusClass}`}
-                  >
-                    {status}
-                  </Text>
-                </View>
 
-                <View className="mt-3 rounded-xl border border-[#E8EFEA] bg-[#F8FBF9] px-3 py-2.5">
-                  <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
-                    Requested item{requestItems.length === 1 ? '' : 's'}
-                  </Text>
-                  <View className="mt-1 flex-row items-center justify-between gap-3">
-                    <Text
-                      numberOfLines={2}
-                      className="min-w-0 flex-1 text-xs font-bold text-[#1F2937]"
-                    >
-                      {firstItem
-                        ? text(firstItem.product_name, 'Kitchen supplies')
-                        : 'Kitchen supplies'}
-                      {requestItems.length > 1
-                        ? ` + ${requestItems.length - 1} more`
+                  <View className="mt-3 flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-[#EEF2EF] pt-2.5">
+                    <Text className="text-[10px] text-[#64748B]">
+                      Requested by{' '}
+                      <Text className="font-semibold text-[#334155]">
+                        {text(request.requested_by, chefName)}
+                      </Text>
+                    </Text>
+                    <Text className="text-[10px] text-[#64748B]">
+                      {text(request.department, 'Kitchen')}
+                      {request.request_date
+                        ? ` · ${formatShortDate(request.request_date)}`
                         : ''}
                     </Text>
-                    {firstItem ? (
-                      <Text className="text-xs font-extrabold text-[#17633D]">
-                        {text(firstItem.quantity)} {text(firstItem.unit, '')}
-                      </Text>
-                    ) : null}
                   </View>
-                </View>
-
-                <View className="mt-3 flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-[#EEF2EF] pt-2.5">
-                  <Text className="text-[10px] text-[#64748B]">
-                    Requested by{' '}
-                    <Text className="font-semibold text-[#334155]">
-                      {text(request.requested_by, chefName)}
-                    </Text>
-                  </Text>
-                  <Text className="text-[10px] text-[#64748B]">
-                    {text(request.department, 'Kitchen')}
-                    {request.request_date
-                      ? ` · ${formatShortDate(request.request_date)}`
-                      : ''}
-                  </Text>
-                </View>
-              </Card>
-            );
-          })}
-        </View>
+                </Card>
+              );
+            })}
+          </View>
+        )
       ) : (
         <View className="mt-3">
           <EmptyState

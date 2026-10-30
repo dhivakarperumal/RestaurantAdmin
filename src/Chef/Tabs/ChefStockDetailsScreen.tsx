@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -293,84 +294,171 @@ function ChefStockDetailsScreen({
           </Text>
         </View>
       ) : filteredProducts.length ? (
-        <View className="gap-3">
-          {filteredProducts.map((product, index) => {
-            const level = stockLevel(product);
-            const levelStyles = stockLevelClass(level);
-            return (
-              <View
-                key={String(product.id ?? product.sku ?? index)}
-                className="w-full gap-3 rounded-2xl border border-[#DFEAE2] bg-white p-3.5 shadow-sm"
-              >
-                <View className="flex-row items-center gap-3">
-                  <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4EC]">
-                    <ProductIcon color="#14764A" size={20} />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-[9px] font-extrabold uppercase tracking-wide text-[#718096]">
-                      {product.category_name || 'Stock item'}
-                    </Text>
+        viewMode === 'table' ? (
+          <View className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View className="w-[792px]">
+                <View className="h-10 w-[792px] flex-row items-center border-b border-[#E5E7EB] bg-[#F8FAFC]">
+                  {[
+                    { label: 'No.', width: 'w-[42px]' },
+                    { label: 'Product', width: 'w-[170px]' },
+                    { label: 'SKU / Barcode', width: 'w-[125px]' },
+                    { label: 'Category', width: 'w-[100px]' },
+                    { label: 'Current stock', width: 'w-[95px]' },
+                    { label: 'Reorder at', width: 'w-[85px]' },
+                    { label: 'Level', width: 'w-[90px]' },
+                    { label: 'Action', width: 'w-[85px]' },
+                  ].map(column => (
                     <Text
-                      numberOfLines={1}
-                      className="mt-0.5 text-sm font-extrabold text-[#123B2D]"
+                      key={column.label}
+                      className={`${column.width} px-1.5 text-[8px] font-bold uppercase tracking-wide text-[#64748B]`}
                     >
-                      {product.product_name || 'Unnamed stock item'}
+                      {column.label}
                     </Text>
-                    <Text numberOfLines={1} className="mt-0.5 text-[9px] text-[#718096]">
-                      SKU: {product.sku || '—'}
-                      {product.barcode ? ` · Barcode: ${product.barcode}` : ''}
-                    </Text>
-                  </View>
-                  <Text
-                    className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold ${levelStyles.className}`}
-                    style={levelStyles.style}
-                  >
-                    {level}
-                  </Text>
+                  ))}
                 </View>
-
-                <View className="flex-row items-stretch rounded-xl border border-[#E8EFEA] bg-[#F8FBF9] py-2.5">
-                  <View className="min-w-0 flex-1 px-3">
-                    <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
-                      Current stock
-                    </Text>
-                    <Text className="mt-1 text-base font-extrabold text-[#123B2D]">
-                      {formatNumber(product.current_stock)}{' '}
-                      {product.unit_name || 'units'}
-                    </Text>
-                  </View>
-                  <View className="w-px bg-[#DDE8E0]" />
-                  <View className="min-w-0 flex-1 px-3">
-                    <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
-                      Reorder level
-                    </Text>
-                    <Text className="mt-1 text-sm font-bold text-[#334155]">
-                      {formatNumber(product.reorder_level)}{' '}
-                      {product.unit_name || 'units'}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-row items-center justify-between gap-2">
-                  <Text className="text-[10px] text-[#6B7280]">
-                    Product status:{' '}
-                    <Text className="font-semibold text-[#334155]">
-                      {product.status || 'Active'}
-                    </Text>
-                  </Text>
-                  <Pressable
-                    accessibilityLabel={`Request ${product.product_name || 'stock item'}`}
-                    accessibilityRole="button"
-                    onPress={() => onRequestProduct(product)}
-                    className="min-h-9 items-center justify-center rounded-lg bg-[#123B2D] px-3"
-                  >
-                    <Text className="text-[10px] font-bold text-white">Request</Text>
-                  </Pressable>
-                </View>
+                {filteredProducts.map((product, index) => {
+                  const level = stockLevel(product);
+                  const levelStyles = stockLevelClass(level);
+                  return (
+                    <View
+                      key={String(product.id ?? product.sku ?? index)}
+                      className="min-h-[58px] w-[792px] flex-row items-center border-b border-[#EEF2F4] bg-white py-1.5"
+                    >
+                      <Text className="w-[42px] px-1.5 text-[9px] font-semibold text-[#64748B]">
+                        {index + 1}
+                      </Text>
+                      <View className="w-[170px] flex-row items-center gap-2 px-1.5">
+                        <View className="h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF4EC]">
+                          <ProductIcon color="#14764A" size={16} />
+                        </View>
+                        <Text numberOfLines={2} className="min-w-0 flex-1 text-[9px] font-bold text-[#123B2D]">
+                          {product.product_name || 'Unnamed stock item'}
+                        </Text>
+                      </View>
+                      <View className="w-[125px] px-1.5">
+                        <Text numberOfLines={1} className="text-[9px] text-[#334155]">
+                          {product.sku || '—'}
+                        </Text>
+                        <Text numberOfLines={1} className="mt-0.5 text-[8px] text-[#718096]">
+                          {product.barcode || 'No barcode'}
+                        </Text>
+                      </View>
+                      <Text numberOfLines={2} className="w-[100px] px-1.5 text-[9px] text-[#475569]">
+                        {product.category_name || 'Uncategorized'}
+                      </Text>
+                      <Text numberOfLines={2} className="w-[95px] px-1.5 text-[9px] font-extrabold text-[#123B2D]">
+                        {formatNumber(product.current_stock)}{' '}
+                        {product.unit_name || 'units'}
+                      </Text>
+                      <Text numberOfLines={2} className="w-[85px] px-1.5 text-[9px] text-[#475569]">
+                        {formatNumber(product.reorder_level)}{' '}
+                        {product.unit_name || 'units'}
+                      </Text>
+                      <View className="w-[90px] px-1.5">
+                        <Text
+                          className={`self-start rounded-full px-2 py-1 text-[8px] font-bold ${levelStyles.className}`}
+                          style={levelStyles.style}
+                        >
+                          {level}
+                        </Text>
+                      </View>
+                      <View className="w-[85px] px-1">
+                        <Pressable
+                          accessibilityLabel={`Request ${product.product_name || 'stock item'}`}
+                          accessibilityRole="button"
+                          onPress={() => onRequestProduct(product)}
+                          className="min-h-8 items-center justify-center rounded-lg bg-[#123B2D] px-2"
+                        >
+                          <Text className="text-[9px] font-bold text-white">Request</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
-            );
-          })}
-        </View>
+            </ScrollView>
+          </View>
+        ) : (
+          <View className="gap-3">
+            {filteredProducts.map((product, index) => {
+              const level = stockLevel(product);
+              const levelStyles = stockLevelClass(level);
+              return (
+                <View
+                  key={String(product.id ?? product.sku ?? index)}
+                  className="w-full gap-3 rounded-2xl border border-[#DFEAE2] bg-white p-3.5 shadow-sm"
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View className="h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4EC]">
+                      <ProductIcon color="#14764A" size={20} />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-[9px] font-extrabold uppercase tracking-wide text-[#718096]">
+                        {product.category_name || 'Stock item'}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        className="mt-0.5 text-sm font-extrabold text-[#123B2D]"
+                      >
+                        {product.product_name || 'Unnamed stock item'}
+                      </Text>
+                      <Text numberOfLines={1} className="mt-0.5 text-[9px] text-[#718096]">
+                        SKU: {product.sku || '—'}
+                        {product.barcode ? ` · Barcode: ${product.barcode}` : ''}
+                      </Text>
+                    </View>
+                    <Text
+                      className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold ${levelStyles.className}`}
+                      style={levelStyles.style}
+                    >
+                      {level}
+                    </Text>
+                  </View>
+
+                  <View className="flex-row items-stretch rounded-xl border border-[#E8EFEA] bg-[#F8FBF9] py-2.5">
+                    <View className="min-w-0 flex-1 px-3">
+                      <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
+                        Current stock
+                      </Text>
+                      <Text className="mt-1 text-base font-extrabold text-[#123B2D]">
+                        {formatNumber(product.current_stock)}{' '}
+                        {product.unit_name || 'units'}
+                      </Text>
+                    </View>
+                    <View className="w-px bg-[#DDE8E0]" />
+                    <View className="min-w-0 flex-1 px-3">
+                      <Text className="text-[8px] font-bold uppercase tracking-wide text-[#718096]">
+                        Reorder level
+                      </Text>
+                      <Text className="mt-1 text-sm font-bold text-[#334155]">
+                        {formatNumber(product.reorder_level)}{' '}
+                        {product.unit_name || 'units'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-center justify-between gap-2">
+                    <Text className="text-[10px] text-[#6B7280]">
+                      Product status:{' '}
+                      <Text className="font-semibold text-[#334155]">
+                        {product.status || 'Active'}
+                      </Text>
+                    </Text>
+                    <Pressable
+                      accessibilityLabel={`Request ${product.product_name || 'stock item'}`}
+                      accessibilityRole="button"
+                      onPress={() => onRequestProduct(product)}
+                      className="min-h-9 items-center justify-center rounded-lg bg-[#123B2D] px-3"
+                    >
+                      <Text className="text-[10px] font-bold text-white">Request</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )
       ) : (
         <View className="items-center rounded-2xl border border-dashed border-[#D1D5DB] bg-white px-5 py-10">
           <Text className="text-center text-sm font-bold text-[#374151]">
