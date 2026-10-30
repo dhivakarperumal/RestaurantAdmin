@@ -185,30 +185,6 @@ export const loginWithIdentifier = async (identifier, password) => {
 };
 
 /* =========================
-   REGISTRATION
-========================= */
-
-export const registerUser = async ({ username, email, phone, password }) => {
-  const normalizedUsername = String(username || "").trim();
-  const normalizedEmail = String(email || "").trim();
-  const normalizedPhone = String(phone || "").trim();
-  const response = await api.post("/users/register", {
-    username: normalizedUsername,
-    firstName: normalizedUsername,
-    email: normalizedEmail,
-    phone: normalizedPhone,
-    mobile_number: normalizedPhone,
-    password: String(password || ""),
-  });
-
-  const data = response.data || {};
-  await setAuthToken(null);
-  await AsyncStorage.removeItem("userProfile");
-
-  return { ...data, message: data.message || "Registration successful" };
-};
-
-/* =========================
    LOGOUT
 ========================= */
 

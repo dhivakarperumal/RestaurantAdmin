@@ -6,7 +6,7 @@ type AdminStatCardProps = {
   value: string | number;
   tint: string;
   iconBackground: string;
-  decorColor: string;
+  decorColor?: string;
   icon: ReactNode;
 };
 
@@ -15,7 +15,7 @@ function AdminStatCard({
   value,
   tint,
   iconBackground,
-  decorColor,
+  decorColor = iconBackground,
   icon,
 }: AdminStatCardProps) {
   return (

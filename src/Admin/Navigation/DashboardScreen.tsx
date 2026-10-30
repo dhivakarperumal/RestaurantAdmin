@@ -71,7 +71,7 @@ import Items from '../Tabs/Items';
 import InventoryScreen from '../Tabs/Inventory';
 import CategoriesScreen from '../Screens/Categories';
 import AddCategoriesScreen from '../Screens/AddCategories';
-import CuisineScreen from '../Screens/Cuisine';
+import CuisineScreen, { type CuisineRecord } from '../Screens/Cuisine';
 import AddCuisineScreen from '../Screens/AddCuisine';
 import EmployeeAttendance from '../Screens/EmployeeAttendance';
 import EmployeesPage from '../Screens/Employees';
@@ -91,8 +91,10 @@ import {
   CheckIcon,
   ConfirmDialog,
   DetailsModal,
+  FilterSelect,
   FormModal,
   LogOutIcon,
+  UserIcon,
   CheckCircle2Icon,
   ClockIcon,
 } from '../../components/popups';
@@ -106,6 +108,18 @@ type DashboardScreenProps = {
 type ItemsAddRequest = { id: number; action: 'product' };
 type ApiUser = {
   role?: string;
+};
+
+type AdminProfile = {
+  id: number;
+  user_id: string;
+  username: string;
+  email: string;
+  mobile_number: string;
+  role: string;
+  status: string;
+  created_at: string;
+  employee_id: string | null;
 };
 
 type ApiListResponse<T> =
@@ -273,12 +287,6 @@ const moreFeatures: MoreFeature[] = [
   },
 
   {
-    title: 'Reports & Analytics',
-    subtitle: 'Business performance overview',
-    icon: ChartIcon,
-  },
-
-  {
     title: 'Staff & Employees',
     subtitle: 'Manage your team',
     icon: CustomersIcon,
@@ -289,11 +297,6 @@ const moreFeatures: MoreFeature[] = [
     icon: ReceiptIcon,
   },
 
-  {
-    title: 'Help & Support',
-    subtitle: 'Get help with your account',
-    icon: ProfileIcon,
-  },
   {
     title: 'Profile',
     subtitle: 'View your account details',
@@ -318,6 +321,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const nextItemsAddRequestId = useRef(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isItemsInnerPageOpen, setIsItemsInnerPageOpen] = useState(false);
   const [isBillPreviewOpen, setIsBillPreviewOpen] = useState(false);
   const [isDeliveryAssignmentOpen, setIsDeliveryAssignmentOpen] =
@@ -327,6 +331,9 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   );
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const cuisineReturnFeature = useRef<string | null>(null);
+  const [cuisineToEdit, setCuisineToEdit] = useState<CuisineRecord | null>(
+    null,
+  );
   const [billingItems, setBillingItems] = useState<BillingLineItem[]>([]);
   const [records, setRecords] = useState<LocalRecord[]>([]);
   const [logoutError, setLogoutError] = useState('');
@@ -554,6 +561,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setSelectedFeature(null);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+    setIsAccountMenuOpen(false);
   };
 
   const startNewOrder = (orderType: NewOrderType) => {
@@ -667,6 +675,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setSelectedFeature(feature);
     setIsSidebarOpen(false);
     setIsNotificationsOpen(false);
+    setIsAccountMenuOpen(false);
   };
 
   const navigateFromSidebar = (tab: AppTab) => {
@@ -710,8 +719,12 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
     setIsNotificationsOpen(false);
   };
 
-  const openAddCuisinePage = (returnFeature: string | null) => {
+  const openAddCuisinePage = (
+    returnFeature: string | null,
+    cuisine?: CuisineRecord,
+  ) => {
     cuisineReturnFeature.current = returnFeature;
+    setCuisineToEdit(cuisine || null);
     setActiveTab('more');
     setSelectedAction(null);
     setSelectedFeature('AddCuisine');
@@ -722,6 +735,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   const closeAddCuisinePage = () => {
     const returnFeature = cuisineReturnFeature.current;
     cuisineReturnFeature.current = null;
+    setCuisineToEdit(null);
     setSelectedFeature(returnFeature);
   };
 
@@ -902,6 +916,10 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
           setIsNotificationsOpen(false);
           return true;
         }
+        if (isAccountMenuOpen) {
+          setIsAccountMenuOpen(false);
+          return true;
+        }
         // 3. Action modal (EntryForm)
         if (selectedAction) {
           setSelectedAction(null);
@@ -937,6 +955,7 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
   }, [
     isSidebarOpen,
     isNotificationsOpen,
+    isAccountMenuOpen,
     selectedAction,
     isMoreFeatureOpen,
     isBillPreviewOpen,
@@ -967,20 +986,22 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
         <TopHeader
           user={user}
           unreadNotifications={0}
+          isAccountMenuOpen={isAccountMenuOpen}
           onToggleSidebar={() => {
             setIsNotificationsOpen(false);
+            setIsAccountMenuOpen(false);
             setIsSidebarOpen(open => !open);
           }}
           onOpenNotifications={() => {
             setIsSidebarOpen(false);
+            setIsAccountMenuOpen(false);
             setIsNotificationsOpen(open => !open);
           }}
-          onOpenProfile={() => {
-            setSelectedAction(null);
-            setSelectedFeature('Profile');
-            setActiveTab('more');
+          onToggleAccountMenu={() => {
+            setIsSidebarOpen(false);
+            setIsNotificationsOpen(false);
+            setIsAccountMenuOpen(open => !open);
           }}
-          onLogout={handleLogout}
         />
       ) : null}
       {!isItemsInnerPageOpen && isMoreFeatureOpen ? (
@@ -1037,12 +1058,14 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
               selectedFeature={selectedFeature}
               userEmail={userEmail}
               userId={String(user?.user_id ?? user?.id ?? '')}
+              profileUserId={String(user?.user_id ?? '')}
               userInitial={userInitial}
               userName={userName}
               itemsAddRequest={itemsAddRequest}
               onItemsAddRequestHandled={handleItemsAddRequestHandled}
               onOpenAddCuisine={openAddCuisinePage}
               onCloseAddCuisine={closeAddCuisinePage}
+              cuisineToEdit={cuisineToEdit}
               onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
               onSelectAction={navigateToAction}
               onAddFoodToBilling={addFoodToBilling}
@@ -1106,12 +1129,14 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             selectedFeature={selectedFeature}
             userEmail={userEmail}
             userId={String(user?.user_id ?? user?.id ?? '')}
+            profileUserId={String(user?.user_id ?? '')}
             userInitial={userInitial}
             userName={userName}
             itemsAddRequest={itemsAddRequest}
             onItemsAddRequestHandled={handleItemsAddRequestHandled}
             onOpenAddCuisine={openAddCuisinePage}
             onCloseAddCuisine={closeAddCuisinePage}
+            cuisineToEdit={cuisineToEdit}
             onInnerPageVisibilityChange={handleItemsInnerPageVisibilityChange}
             onSelectAction={navigateToAction}
             onAddFoodToBilling={addFoodToBilling}
@@ -1205,6 +1230,78 @@ function DashboardScreen({ user, onLogout }: DashboardScreenProps) {
             <Text className="mt-2 text-[13px] leading-5 text-[#6B7280]">
               You’re all caught up. New notifications will appear here.
             </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {isAccountMenuOpen ? (
+        <View
+          className="absolute bottom-0 left-0 right-0 z-[25]"
+          style={{ top: insets.top + 70 }}
+        >
+          <Pressable
+            accessibilityLabel="Close profile menu"
+            onPress={() => setIsAccountMenuOpen(false)}
+            className="absolute bottom-0 left-0 right-0 top-0 bg-[#11182733]"
+          />
+          <View
+            className={`mt-2 w-[320px] max-w-[92%] self-end rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-xl ${
+              width < 480 ? 'mx-3' : 'mx-6'
+            }`}
+            style={{ elevation: 10 }}
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-[#ECFDF3]">
+                <Text className="text-base font-extrabold text-[#116C0B]">
+                  {userInitial}
+                </Text>
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text
+                  numberOfLines={1}
+                  className="text-sm font-bold text-[#012711]"
+                >
+                  {userName}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  className="mt-0.5 text-xs text-[#6B7280]"
+                >
+                  {userEmail}
+                </Text>
+              </View>
+            </View>
+            <View className="my-3 h-px bg-[#E5E7EB]" />
+            <Pressable
+              accessibilityLabel="My Profile and Details"
+              accessibilityRole="button"
+              className="min-h-11 flex-row items-center gap-3 rounded-xl px-2 active:bg-[#F0F7EE]"
+              onPress={() => {
+                setIsAccountMenuOpen(false);
+                setSelectedAction(null);
+                setSelectedFeature('Profile');
+                setActiveTab('more');
+              }}
+            >
+              <UserIcon color="#116C0B" size={19} />
+              <Text className="text-sm font-semibold text-[#344054]">
+                My Profile & Details
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Log out"
+              accessibilityRole="button"
+              className="min-h-11 flex-row items-center gap-3 rounded-xl px-2 active:bg-red-50"
+              onPress={() => {
+                setIsAccountMenuOpen(false);
+                setIsLogoutConfirmOpen(true);
+              }}
+            >
+              <LogOutIcon color="#DC2626" size={19} />
+              <Text className="text-sm font-semibold text-[#B91C1C]">
+                Log Out
+              </Text>
+            </Pressable>
           </View>
         </View>
       ) : null}
@@ -1563,12 +1660,14 @@ function MainContent({
   selectedFeature,
   userEmail,
   userId,
+  profileUserId,
   userInitial,
   userName,
   itemsAddRequest,
   onItemsAddRequestHandled,
   onOpenAddCuisine,
   onCloseAddCuisine,
+  cuisineToEdit,
   onInnerPageVisibilityChange,
   onSelectAction,
   onAddFoodToBilling,
@@ -1614,12 +1713,17 @@ function MainContent({
   selectedFeature: string | null;
   userEmail: string;
   userId: string;
+  profileUserId: string;
   userInitial: string;
   userName: string;
   itemsAddRequest: ItemsAddRequest | null;
   onItemsAddRequestHandled: (id: number) => void;
-  onOpenAddCuisine: (returnFeature: string | null) => void;
+  onOpenAddCuisine: (
+    returnFeature: string | null,
+    cuisine?: CuisineRecord,
+  ) => void;
   onCloseAddCuisine: () => void;
+  cuisineToEdit: CuisineRecord | null;
   onInnerPageVisibilityChange: (isVisible: boolean) => void;
   onSelectAction: (action: QuickActionId) => void;
   onAddFoodToBilling: (food: BillFood) => void;
@@ -1700,6 +1804,7 @@ function MainContent({
       return (
         <CuisineScreen
           onAddCuisine={() => onOpenAddCuisine('Cuisines')}
+          onEditCuisine={cuisine => onOpenAddCuisine('Cuisines', cuisine)}
           onBack={() => onSelectFeature(null)}
           showBackButton={false}
         />
@@ -1707,7 +1812,11 @@ function MainContent({
     }
     if (selectedFeature === 'AddCuisine') {
       return (
-        <AddCuisineScreen onBack={onCloseAddCuisine} showBackButton={true} />
+        <AddCuisineScreen
+          cuisineToEdit={cuisineToEdit}
+          onBack={onCloseAddCuisine}
+          showBackButton={true}
+        />
       );
     }
     if (selectedFeature === 'Categories') {
@@ -1789,19 +1898,12 @@ function MainContent({
     }
     if (selectedFeature === 'Profile') {
       return (
-        <PageShell title="Profile" subtitle="Your account details">
-          <View className="rounded-2xl border border-[#E5E7EB] bg-white p-[18px]">
-            <Avatar initial={userInitial} size={56} />
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-[#012711]">
-                {userName}
-              </Text>
-              <Text className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">
-                {userEmail}
-              </Text>
-            </View>
-          </View>
-        </PageShell>
+        <AdminProfilePage
+          userId={profileUserId}
+          initial={userInitial}
+          fallbackName={userName}
+          fallbackEmail={userEmail}
+        />
       );
     }
     const feature =
@@ -4058,6 +4160,228 @@ function TabButtonLarge({
   );
 }
 
+function AdminProfilePage({
+  userId,
+  initial,
+  fallbackName,
+  fallbackEmail,
+}: {
+  userId: string;
+  initial: string;
+  fallbackName: string;
+  fallbackEmail: string;
+}) {
+  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+
+    const loadProfile = async () => {
+      if (!userId.trim()) {
+        setError('Your account ID is unavailable. Please sign in again.');
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError('');
+      try {
+        const response = await api.get(
+          `/users/profile/${encodeURIComponent(userId)}`,
+          { signal: controller.signal },
+        );
+        if (!isActive) {
+          return;
+        }
+        setProfile(parseAdminProfile(response.data));
+      } catch (profileError) {
+        if (isActive && !controller.signal.aborted) {
+          setError(getErrorMessage(profileError));
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [userId, refreshKey]);
+
+  const displayName = profile?.username || fallbackName;
+  const displayEmail = profile?.email || fallbackEmail;
+  const createdDate = profile ? formatProfileDate(profile.created_at) : '';
+
+  return (
+    <PageShell
+      title="Your profile"
+      subtitle="Your administrator details and account information."
+    >
+      {isLoading ? (
+        <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-8">
+          <ActivityIndicator color="#116C0B" />
+          <Text className="mt-3 text-sm text-[#667085]">
+            Loading profile details...
+          </Text>
+        </View>
+      ) : error ? (
+        <View
+          accessibilityRole="alert"
+          className="items-center rounded-2xl border border-[#FECACA] bg-white p-6"
+        >
+          <Text className="text-center text-sm text-[#B91C1C]">{error}</Text>
+          <Pressable
+            accessibilityRole="button"
+            className="mt-4 rounded-xl bg-[#064E3B] px-4 py-2.5"
+            onPress={() => setRefreshKey(key => key + 1)}
+          >
+            <Text className="text-sm font-bold text-white">Try again</Text>
+          </Pressable>
+        </View>
+      ) : profile ? (
+        <View className="gap-4">
+          <View className="items-center rounded-2xl border border-[#E5E7EB] bg-white p-6">
+            <Avatar initial={initial} size={64} />
+            <Text className="mt-3 text-lg font-bold text-[#012711]">
+              {displayName}
+            </Text>
+            <Text className="mt-1 text-sm text-[#667085]">{displayEmail}</Text>
+            <View className="mt-3 rounded-full bg-[#ECFDF3] px-3 py-1">
+              <Text className="text-xs font-bold capitalize text-[#027A48]">
+                {profile.role}
+              </Text>
+            </View>
+            <View className="mt-5 w-full border-t border-[#F2F4F7] pt-4">
+              <ProfileMetadata label="Account status" value={profile.status} />
+              <ProfileMetadata
+                label="Joined"
+                value={createdDate || 'Not available'}
+              />
+             
+            </View>
+          </View>
+
+          <View className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <Text className="text-[10px] font-bold tracking-[1.2px] text-[#B7791F]">
+              PERSONAL INFORMATION
+            </Text>
+            <Text className="mt-1 text-lg font-bold text-[#012711]">
+              Profile details
+            </Text>
+            <Text className="mt-1 text-sm text-[#667085]">
+              Information associated with your administrator account.
+            </Text>
+            <View className="mt-5 gap-4 border-t border-[#F2F4F7] pt-4">
+              <ProfileDetail label="Full name" value={profile.username} />
+              <ProfileDetail
+                label="Phone number"
+                value={profile.mobile_number}
+              />
+              <ProfileDetail label="Email address" value={profile.email} />
+            </View>
+          </View>
+        </View>
+      ) : null}
+    </PageShell>
+  );
+}
+
+function parseAdminProfile(payload: unknown): AdminProfile {
+  if (typeof payload !== 'object' || payload === null || !('data' in payload)) {
+    throw new Error('The profile response was invalid.');
+  }
+  const envelope = payload as { success?: unknown; data?: unknown };
+  const value = envelope.data;
+  if (
+    envelope.success !== true ||
+    typeof value !== 'object' ||
+    value === null
+  ) {
+    throw new Error('The profile response was invalid.');
+  }
+
+  const record = value as Record<string, unknown>;
+  const profileId = record.id;
+  const userId = record.user_id;
+  const username = record.username;
+  const email = record.email;
+  const mobileNumber = record.mobile_number;
+  const role = record.role;
+  const status = record.status;
+  const createdAt = record.created_at;
+  const employeeId = record.employee_id;
+  if (
+    typeof profileId !== 'number' ||
+    typeof userId !== 'string' ||
+    typeof username !== 'string' ||
+    typeof email !== 'string' ||
+    typeof mobileNumber !== 'string' ||
+    typeof role !== 'string' ||
+    typeof status !== 'string' ||
+    typeof createdAt !== 'string' ||
+    (employeeId !== null && typeof employeeId !== 'string')
+  ) {
+    throw new Error('The profile response was incomplete.');
+  }
+
+  return {
+    id: profileId,
+    user_id: userId,
+    username,
+    email,
+    mobile_number: mobileNumber,
+    role,
+    status,
+    created_at: createdAt,
+    employee_id: employeeId,
+  };
+}
+
+function formatProfileDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+}
+
+function ProfileMetadata({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="mb-3 flex-row justify-between gap-3 last:mb-0">
+      <Text className="text-xs text-[#667085]">{label}</Text>
+      <Text className="flex-1 text-right text-xs font-semibold text-[#344054]">
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function ProfileDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <View>
+      <Text className="mb-1.5 text-xs font-semibold text-[#344054]">
+        {label}
+      </Text>
+      <View className="min-h-11 justify-center rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-3">
+        <Text selectable className="text-sm text-[#344054]">
+          {value || 'Not provided'}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 function PageShell({
   children,
   title,
@@ -4261,6 +4585,20 @@ function KitchenRequestsScreen() {
               className="ml-2 flex-1 py-2 text-sm text-[#012711]"
             />
           </View>
+        </View>
+        <View className="flex-row items-center gap-3">
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'All', label: 'All statuses' },
+              { value: 'Pending', label: 'Pending' },
+              { value: 'Approved', label: 'Approved' },
+              { value: 'Rejected', label: 'Rejected' },
+              { value: 'Completed', label: 'Completed' },
+            ]}
+          />
           <View className="h-10 flex-row items-center gap-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-0.5">
             {(['grid', 'list'] as const).map(mode => {
               const selected = viewMode === mode;
@@ -4287,36 +4625,6 @@ function KitchenRequestsScreen() {
             })}
           </View>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-2"
-        >
-          {['All', 'Pending', 'Approved', 'Rejected', 'Completed'].map(
-            status => (
-              <Pressable
-                key={status}
-                accessibilityLabel={`Filter kitchen requests by ${status}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: statusFilter === status }}
-                onPress={() => setStatusFilter(status)}
-                className={`rounded-full border px-4 py-2 ${
-                  statusFilter === status
-                    ? 'border-[#116C0B] bg-[#116C0B]'
-                    : 'border-[#E5E7EB] bg-white'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-bold ${
-                    statusFilter === status ? 'text-white' : 'text-[#475569]'
-                  }`}
-                >
-                  {status}
-                </Text>
-              </Pressable>
-            ),
-          )}
-        </ScrollView>
         <Text className="text-xs text-[#64748B]">
           {filteredRequests.length} requests
         </Text>

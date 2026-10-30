@@ -22,12 +22,6 @@ import {
   HamburgerIcon,
 } from './NavigationIcons';
 import colors from '../../theme/colors';
-import {
-  ActionSheet,
-  ConfirmDialog,
-  LogOutIcon,
-  UserIcon,
-} from '../../components/popups';
 
 export type HeaderUser = {
   id?: string | number;
@@ -43,10 +37,10 @@ export type HeaderUser = {
 type TopHeaderProps = {
   user: HeaderUser | null;
   unreadNotifications: number;
+  isAccountMenuOpen: boolean;
   onToggleSidebar: () => void;
   onOpenNotifications: () => void;
-  onOpenProfile: () => void;
-  onLogout: () => void;
+  onToggleAccountMenu: () => void;
 };
 
 const HEADER_HEIGHT = 70;
@@ -92,27 +86,20 @@ function IconButton({
 function TopHeader({
   user,
   unreadNotifications,
+  isAccountMenuOpen,
   onToggleSidebar,
   onOpenNotifications,
-  onOpenProfile,
-  onLogout,
+  onToggleAccountMenu,
 }: TopHeaderProps) {
   const { width } = useWindowDimensions();
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
-  const [isAccountSheetOpen, setIsAccountSheetOpen] = useState(false);
-  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const userName = getUserName(user);
-  const userEmail = user?.email?.trim() || 'admin@buyfood.com';
   const initial =
     user?.name?.trim().charAt(0).toUpperCase() ||
     user?.username?.trim().charAt(0).toUpperCase() ||
     'U';
   const badgeCount = Math.max(0, Math.floor(unreadNotifications));
   const compact = width < 480;
-
-  const openAccountActions = () => {
-    setIsAccountSheetOpen(true);
-  };
 
   return (
     <SafeAreaView
@@ -219,11 +206,12 @@ function TopHeader({
           </IconButton>
 
           <Pressable
-            accessibilityLabel={`Open account actions for ${userName}`}
+            accessibilityLabel={`Open profile menu for ${userName}`}
             accessibilityRole="button"
+            accessibilityState={{ expanded: isAccountMenuOpen }}
             onHoverIn={() => setIsAvatarHovered(true)}
             onHoverOut={() => setIsAvatarHovered(false)}
-            onPress={openAccountActions}
+            onPress={onToggleAccountMenu}
             className="relative h-10 w-10 items-center justify-center rounded-xl border border-white/40 bg-white/95"
             style={({ pressed }) => ({
               backgroundColor:
@@ -242,50 +230,6 @@ function TopHeader({
 
       {/* Subtle bottom highlight divider */}
       <View className="h-px w-full bg-white/10" />
-
-      <ActionSheet
-        visible={isAccountSheetOpen}
-        onClose={() => setIsAccountSheetOpen(false)}
-        title={userName}
-        subtitle={userEmail}
-        actions={[
-          {
-            id: 'profile',
-            label: 'My Profile & Details',
-            description: 'View administrative account settings',
-            icon: <UserIcon size={20} color="#0B4D1A" />,
-            onPress: () => {
-              setIsAccountSheetOpen(false);
-              onOpenProfile();
-            },
-          },
-          {
-            id: 'logout',
-            label: 'Log Out',
-            description: 'Sign out of this session safely',
-            icon: <LogOutIcon size={20} color="#DC2626" />,
-            destructive: true,
-            onPress: () => {
-              setIsAccountSheetOpen(false);
-              setIsLogoutConfirmOpen(true);
-            },
-          },
-        ]}
-      />
-
-      <ConfirmDialog
-        visible={isLogoutConfirmOpen}
-        onClose={() => setIsLogoutConfirmOpen(false)}
-        title="Sign Out"
-        message="Are you sure you want to log out of your administrative account?"
-        itemName={userName}
-        confirmLabel="Log Out"
-        variantType="danger"
-        onConfirm={() => {
-          setIsLogoutConfirmOpen(false);
-          onLogout();
-        }}
-      />
     </SafeAreaView>
   );
 }

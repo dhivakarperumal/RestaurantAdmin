@@ -19,6 +19,7 @@ import {
   ConfirmDialog,
   DetailsModal,
   Edit3Icon,
+  EyeIcon,
   FormModal,
   ImageIcon,
   Trash2Icon,
@@ -778,16 +779,22 @@ function ReviewsManagementPage({
             <ScrollView horizontal showsHorizontalScrollIndicator={!isWide}>
               <View
                 className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white"
-                style={{ width: isWide ? 1000 : 760 }}
+                style={{ width: isWide ? 1120 : 960 }}
               >
                 <View className="flex-row items-center bg-[#EAF5EE] px-4 py-3">
-                  <Text className="w-16 text-[10px] font-bold uppercase text-[#64748B]">
+                  <Text className="w-28 text-[10px] font-bold uppercase text-[#64748B]">
                     Rating
                   </Text>
-                  <Text className="flex-1 text-[10px] font-bold uppercase text-[#64748B]">
+                  <Text className="w-[210px] text-[10px] font-bold uppercase text-[#64748B]">
                     Reviewer / Food
                   </Text>
+                  <Text className="w-[280px] text-[10px] font-bold uppercase text-[#64748B]">
+                    Review
+                  </Text>
                   <Text className="w-28 text-[10px] font-bold uppercase text-[#64748B]">
+                    Date
+                  </Text>
+                  <Text className="w-24 text-[10px] font-bold uppercase text-[#64748B]">
                     Status
                   </Text>
                   <Text className="w-32 text-right text-[10px] font-bold uppercase text-[#64748B]">
@@ -797,26 +804,53 @@ function ReviewsManagementPage({
                 {filteredReviews.map(review => (
                   <View
                     key={String(review.id)}
-                    className="min-h-[64px] flex-row items-center border-t border-[#E8F1EB] px-4 py-2"
+                    className="min-h-[92px] flex-row items-center border-t border-[#E8F1EB] px-4 py-3"
                   >
-                    <View className="w-16">
+                    <View className="w-28 gap-1">
                       <StarRating rating={review.rating} />
+                      <Text className="text-[10px] text-[#64748B]">
+                        {review.rating} of 5
+                      </Text>
                     </View>
-                    <View className="min-w-0 flex-1">
+                    <View className="w-[210px] pr-4">
                       <Text
                         className="text-xs font-bold text-[#1E293B]"
-                        numberOfLines={1}
+                        numberOfLines={2}
                       >
-                        {review.reviewer_name} · {review.product_name || 'Food'}
+                        {review.reviewer_name || 'Anonymous reviewer'}
                       </Text>
                       <Text
-                        className="mt-1 text-[10px] text-[#64748B]"
-                        numberOfLines={1}
+                        className="mt-1 text-[11px] text-[#475569]"
+                        numberOfLines={2}
                       >
+                        {review.product_name || 'Food'}
+                      </Text>
+                      <Text className="mt-1 text-[10px] text-[#94A3B8]">
                         {review.review_id}
                       </Text>
                     </View>
-                    <View className="w-28">
+                    <View className="w-[280px] pr-4">
+                      {review.title ? (
+                        <Text
+                          className="text-xs font-bold text-[#1E293B]"
+                          numberOfLines={1}
+                        >
+                          {review.title}
+                        </Text>
+                      ) : null}
+                      <Text
+                        className="text-xs leading-[18px] text-[#475569]"
+                        numberOfLines={3}
+                      >
+                        {review.comment}
+                      </Text>
+                    </View>
+                    <Text className="w-28 text-xs text-[#64748B]">
+                      {review.created_at
+                        ? new Date(review.created_at).toLocaleDateString()
+                        : '—'}
+                    </Text>
+                    <View className="w-24">
                       <StatusBadge status={review.status} />
                     </View>
                     <View className="w-32 flex-row justify-end gap-1.5">
@@ -841,100 +875,106 @@ function ReviewsManagementPage({
               </View>
             </ScrollView>
           ) : (
-            <View className="flex-row flex-wrap gap-3">
+            <View className="gap-4">
               {filteredReviews.map(review => (
                 <View
                   key={String(review.id)}
-                  className="gap-2.5 rounded-2xl border border-[#E5E7EB] bg-white p-3"
-                  style={{
-                    width: isWide ? '48%' : '47%',
-                    flexGrow: 0,
-                    flexShrink: 0,
-                  }}
+                  className="gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-4"
                 >
-                  <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-row items-start justify-between gap-3 border-b border-[#F1F5F9] pb-3">
                     <View className="flex-1">
-                      <Text className="font-mono text-[10px] font-bold text-[#116C0B]">
+                      <Text className="font-mono text-[11px] font-bold text-[#15803D]">
                         {review.review_id}
                       </Text>
                       <Text
-                        className="mt-1 text-sm font-bold text-[#012711]"
-                        numberOfLines={1}
+                        className="mt-1 text-base font-bold text-[#012711]"
+                        numberOfLines={2}
                       >
                         {review.product_name || 'Food'}
                       </Text>
                     </View>
                     <StatusBadge status={review.status} />
                   </View>
+
                   <View className="flex-row items-center gap-3">
-                    <View className="h-10 w-10 items-center justify-center rounded-full bg-[#116C0B]">
+                    <View className="h-11 w-11 items-center justify-center rounded-full bg-[#116C0B]">
                       <Text className="text-sm font-bold text-white">
                         {(review.reviewer_name[0] || 'U').toUpperCase()}
                       </Text>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-[#012711]">
-                        {review.reviewer_name}
+                      <Text className="text-sm font-bold text-[#012711]">
+                        {review.reviewer_name || 'Anonymous reviewer'}
                       </Text>
                       {review.reviewer_email ? (
-                        <Text className="text-xs text-[#6B7280]">
+                        <Text
+                          className="mt-0.5 text-xs text-[#6B7280]"
+                          numberOfLines={2}
+                        >
                           {review.reviewer_email}
                         </Text>
                       ) : null}
                     </View>
-                    <StarRating rating={review.rating} />
+                    <View className="items-end gap-0.5">
+                      <StarRating rating={review.rating} />
+                      <Text className="text-[10px] text-[#64748B]">
+                        {review.rating} / 5
+                      </Text>
+                    </View>
                   </View>
                   {review.title ? (
-                    <Text className="text-sm font-bold text-[#374151]">
+                    <Text className="text-sm font-bold text-[#1E293B]">
                       {review.title}
                     </Text>
                   ) : null}
-                  <Text
-                    numberOfLines={3}
-                    className="text-xs leading-4 text-[#4B5563]"
-                  >
+                  <Text className="text-sm leading-[21px] text-[#475569]">
                     {review.comment}
                   </Text>
                   {review.review_photo ? (
                     <Image
                       accessibilityLabel={`Photo attached to review ${review.review_id}`}
-                      className="h-28 w-full rounded-xl bg-[#F3F4F6]"
+                      className="h-48 w-full rounded-xl bg-[#F3F4F6]"
                       resizeMode="cover"
                       source={{ uri: resolveAssetUrl(review.review_photo) }}
                     />
                   ) : null}
-                  <Text className="text-xs text-[#6B7280]">
-                    {review.created_at
-                      ? new Date(review.created_at).toLocaleDateString()
-                      : 'Date unavailable'}
-                  </Text>
-                  <View className="flex-row justify-end gap-1.5 border-t border-[#F0EBE6] pt-2.5">
-                    <Pressable
-                      accessibilityLabel={`Edit review ${review.review_id}`}
-                      accessibilityRole="button"
-                      onPress={() => openEditForm(review)}
-                      className="h-9 w-9 items-center justify-center rounded-lg border border-[#DCFCE7] bg-[#F0FDF4]"
-                    >
-                      <Edit3Icon size={15} color="#15803D" />
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel={`View review ${review.review_id}`}
-                      accessibilityRole="button"
-                      onPress={() => openReviewDetails(review)}
-                      className="h-9 w-9 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white"
-                    >
-                      <Text className="text-sm font-bold text-[#475569]">
-                        •••
+                  <View className="flex-row flex-wrap items-center justify-between gap-3 border-t border-[#F1F5F9] pt-3">
+                    <View>
+                      <Text className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">
+                        Submitted
                       </Text>
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel={`Delete review ${review.review_id}`}
-                      accessibilityRole="button"
-                      onPress={() => deleteReview(review)}
-                      className="h-9 w-9 items-center justify-center rounded-lg border border-[#FECACA] bg-[#FEF2F2]"
-                    >
-                      <Trash2Icon size={15} color="#DC2626" />
-                    </Pressable>
+                      <Text className="mt-0.5 text-xs text-[#64748B]">
+                        {review.created_at
+                          ? new Date(review.created_at).toLocaleDateString()
+                          : 'Date unavailable'}
+                      </Text>
+                    </View>
+                    <View className="flex-row justify-end gap-2">
+                      <Pressable
+                        accessibilityLabel={`Edit review ${review.review_id}`}
+                        accessibilityRole="button"
+                        onPress={() => openEditForm(review)}
+                        className="h-9 w-9 items-center justify-center rounded-lg border border-[#DCFCE7] bg-[#F0FDF4]"
+                      >
+                        <Edit3Icon size={15} color="#15803D" />
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel={`View review ${review.review_id}`}
+                        accessibilityRole="button"
+                        onPress={() => openReviewDetails(review)}
+                        className="h-9 w-9 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white"
+                      >
+                        <EyeIcon size={17} color="#475569" />
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel={`Delete review ${review.review_id}`}
+                        accessibilityRole="button"
+                        onPress={() => deleteReview(review)}
+                        className="h-9 w-9 items-center justify-center rounded-lg border border-[#FECACA] bg-[#FEF2F2]"
+                      >
+                        <Trash2Icon size={15} color="#DC2626" />
+                      </Pressable>
+                    </View>
                   </View>
                 </View>
               ))}
@@ -1431,7 +1471,7 @@ function ReviewActionButton({
       ) : tone === 'delete' ? (
         <Trash2Icon size={15} color="#DC2626" />
       ) : (
-        <Text className="text-sm font-bold text-[#475569]">•••</Text>
+        <EyeIcon size={17} color="#475569" />
       )}
     </Pressable>
   );

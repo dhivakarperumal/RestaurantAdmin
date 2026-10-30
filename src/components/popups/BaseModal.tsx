@@ -90,8 +90,6 @@ export function BaseModal({
     }
   }, [visible, onClose, backdropAnim]);
 
-  if (!visible) return null;
-
   const content = (
     <View
       accessibilityLabel={accessibilityLabel || title}
@@ -156,6 +154,7 @@ export function BaseModal({
       {scrollable ? (
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
           showsVerticalScrollIndicator={false}
           style={[styles.body, bodyStyle]}
           contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
