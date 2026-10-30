@@ -212,36 +212,44 @@ function EventOrderSkeletonCard({
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        className="min-h-[72px] w-[1120px] flex-row items-center border-b border-[#EEF2F4] bg-white px-3 py-2"
+        className="mb-2 min-h-[112px] w-[1418px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm"
       >
-        <View className="w-[52px] items-center px-1">
-          <View className="h-3 w-5 rounded-md bg-slate-100" />
-        </View>
-        <View className="w-[165px] gap-2 px-2">
-          <View className="h-3 w-20 rounded-md bg-slate-100" />
-          <View className="h-3 w-24 rounded-md bg-slate-100" />
-        </View>
-        <View className="w-[165px] gap-2 px-2">
-          <View className="h-3 w-24 rounded-md bg-slate-100" />
-          <View className="h-3 w-16 rounded-md bg-slate-100" />
-        </View>
-        <View className="w-[105px] gap-2 px-2">
-          <View className="h-3 w-14 rounded-md bg-slate-100" />
-          <View className="h-3 w-16 rounded-md bg-slate-100" />
+        <View className="w-[48px] items-center px-1">
+          <View className="h-7 w-7 rounded-full bg-slate-100" />
         </View>
         <View className="w-[210px] gap-2 px-2">
           <View className="h-3 w-20 rounded-md bg-slate-100" />
-          <View className="h-3 w-32 rounded-md bg-slate-100" />
-        </View>
-        <View className="w-[155px] gap-2 px-2">
+          <View className="h-4 w-28 rounded-md bg-slate-100" />
           <View className="h-3 w-24 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[205px] gap-2 rounded-xl bg-[#F7FAF8] px-3 py-2">
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+          <View className="h-3 w-28 rounded-md bg-slate-100" />
+          <View className="h-3 w-16 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[150px] gap-2 px-2">
+          <View className="h-3 w-14 rounded-md bg-slate-100" />
           <View className="h-3 w-20 rounded-md bg-slate-100" />
         </View>
-        <View className="w-[105px] px-2">
+        <View className="w-[270px] gap-2 px-2">
+          <View className="flex-row items-center gap-2">
+            <View className="h-9 w-9 rounded-lg bg-slate-100" />
+            <View className="h-3 w-32 rounded-md bg-slate-100" />
+          </View>
+          <View className="flex-row items-center gap-2">
+            <View className="h-9 w-9 rounded-lg bg-slate-100" />
+            <View className="h-3 w-24 rounded-md bg-slate-100" />
+          </View>
+        </View>
+        <View className="w-[230px] gap-2 px-2">
+          <View className="h-3 w-28 rounded-md bg-slate-100" />
+          <View className="h-3 w-24 rounded-md bg-slate-100" />
+        </View>
+        <View className="w-[115px] px-2">
           <View className="h-6 w-16 rounded-full bg-slate-100" />
         </View>
-        <View className="w-[160px] px-2">
-          <View className="h-8 w-24 rounded-xl bg-slate-100" />
+        <View className="w-[190px] px-2">
+          <View className="h-10 w-32 rounded-xl bg-slate-100" />
         </View>
       </View>
     );
@@ -650,76 +658,102 @@ function ChefEventOrdersScreen() {
     return (
       <View
         key={id}
-        className="min-h-[72px] w-[1120px] flex-row items-center border-b border-[#EEF2F4] bg-white px-3 py-2"
+        className="mb-2 min-h-[112px] w-[1418px] flex-row items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm"
       >
-        <View className="w-[52px] items-center px-1">
-          <Text className="text-[11px] font-semibold text-[#475569]">
+        <View className="w-[48px] items-center px-1">
+          <Text className="h-7 w-7 rounded-full bg-[#EAF4E7] pt-1.5 text-center text-[10px] font-extrabold text-[#14764A]">
             {index + 1}
           </Text>
         </View>
-        <View className="w-[165px] px-2">
-          <Text numberOfLines={1} className="text-[10px] font-extrabold text-[#14764A]">
-            #{text(order.event_order_number)}
+        <View className="w-[210px] px-2">
+          <Text numberOfLines={1} className="text-[9px] font-extrabold uppercase tracking-wide text-[#14764A]">
+            ORDER #{text(order.event_order_number)}
           </Text>
-          <Text numberOfLines={2} className="mt-1 text-[11px] font-bold text-[#111827]">
+          <Text numberOfLines={2} className="mt-1 text-sm font-extrabold text-[#111827]">
             {text(order.event_type, 'Catering event')}
           </Text>
+          <Text numberOfLines={1} className="mt-1 text-[10px] text-[#475569]">
+            {text(order.customer_name)} · {text(order.customer_phone)}
+          </Text>
         </View>
-        <View className="w-[165px] px-2">
-          <View className="flex-row items-center gap-1">
-            <CalendarIcon color="#14764A" size={12} />
-            <Text numberOfLines={2} className="flex-1 text-[11px] font-semibold text-[#1F2937]">
+        <View className="w-[205px] rounded-xl bg-[#F7FAF8] px-3 py-2">
+          <View className="flex-row items-center gap-1.5">
+            <CalendarIcon color="#14764A" size={13} />
+            <Text numberOfLines={1} className="flex-1 text-[10px] font-extrabold text-[#1F2937]">
               {formatDate(order.event_date)}
             </Text>
           </View>
-          <View className="mt-1 flex-row items-center gap-1">
-            <ClockIcon color="#14764A" size={12} />
+          <View className="mt-1.5 flex-row items-center gap-1.5">
+            <ClockIcon color="#14764A" size={13} />
             <Text className="text-[10px] text-[#64748B]">
               {formatTime(order.event_time)}
             </Text>
           </View>
-          <Text className="mt-1 text-[9px] font-bold text-[#9A6200]">
+          <Text className="mt-1.5 text-[9px] font-bold text-[#9A6200]">
             {dateUrgency(order.event_date)}
           </Text>
         </View>
-        <View className="w-[105px] px-2">
-          <View className="flex-row items-center gap-1">
-            <CustomersIcon color="#14764A" size={12} />
-            <Text className="text-[11px] font-bold text-[#123B2D]">
+        <View className="w-[150px] px-2">
+          <View className="flex-row items-center gap-1.5">
+            <CustomersIcon color="#14764A" size={14} />
+            <Text className="text-[11px] font-extrabold text-[#123B2D]">
               {text(order.guest_count, '0')} guests
             </Text>
           </View>
-          <View className="mt-1 flex-row items-center gap-1">
-            <MenuIcon color="#14764A" size={12} />
-            <Text numberOfLines={1} className="flex-1 text-[10px] text-[#64748B]">
+          <View className="mt-2 flex-row items-center gap-1.5">
+            <MenuIcon color="#14764A" size={14} />
+            <Text numberOfLines={2} className="flex-1 text-[10px] text-[#64748B]">
               {text(order.dietary_preference, 'Mixed')}
             </Text>
           </View>
         </View>
-        <View className="w-[210px] px-2">
-          <Text className="text-[10px] font-bold text-[#475569]">
-            {items.length} dish{items.length === 1 ? '' : 'es'}
+        <View className="w-[270px] rounded-xl border border-[#E8EFEA] bg-[#FCFDFC] px-2.5 py-2">
+          <Text className="mb-1.5 text-[9px] font-extrabold uppercase text-[#1F2937]">
+            Dishes · {items.length}
           </Text>
-          <Text numberOfLines={2} className="mt-1 text-[10px] leading-4 text-[#64748B]">
-            {items
-              .slice(0, 3)
-              .map(item => `${text(item.product_name)} ×${text(item.quantity, '1')}`)
-              .join(' · ') || 'No dish details'}
-            {items.length > 3 ? ` · +${items.length - 3} more` : ''}
-          </Text>
+          {items.length ? (
+            items.slice(0, 2).map((item, dishIndex) => (
+              <View
+                key={`${id}-table-dish-${text(item.id, String(dishIndex))}`}
+                className="mb-1 flex-row items-center gap-2"
+              >
+                <DishThumbnail item={item} />
+                <Text numberOfLines={1} className="min-w-0 flex-1 text-[10px] text-[#1F2937]">
+                  {text(item.product_name ?? item.food_name, 'Menu item')}
+                </Text>
+                <Text className="text-[10px] font-extrabold text-[#17633D]">
+                  ×{text(item.quantity, '1')}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text className="py-1 text-[10px] text-[#64748B]">No dish details</Text>
+          )}
+          {items.length > 2 ? (
+            <Text className="text-[9px] font-semibold text-[#64748B]">
+              +{items.length - 2} more
+            </Text>
+          ) : null}
         </View>
-        <View className="w-[155px] px-2">
-          <Text numberOfLines={2} className="text-[10px] font-semibold text-[#374151]">
-            {text(order.customer_name)}
+        <View className="w-[230px] gap-1 px-2">
+          <Text numberOfLines={2} className="text-[10px] leading-4 text-[#475569]">
+            Venue: {text(order.venue_address, 'Not specified')}
           </Text>
-          <Text numberOfLines={1} className="mt-1 text-[9px] text-[#64748B]">
-            {text(order.customer_phone)}
-          </Text>
+          {order.special_requests ? (
+            <View className="rounded-lg border border-rose-100 bg-rose-50 px-2 py-1.5">
+              <Text className="text-[8px] font-bold uppercase text-rose-700">
+                Customer notes
+              </Text>
+              <Text numberOfLines={2} className="mt-0.5 text-[9px] leading-3 text-rose-900">
+                {text(order.special_requests)}
+              </Text>
+            </View>
+          ) : null}
         </View>
-        <View className="w-[105px] px-2">
+        <View className="w-[115px] px-2">
           <OrderStatus status={text(order.status, 'Confirmed')} />
         </View>
-        <View className="w-[160px] px-2">
+        <View className="w-[190px] px-2">
           {renderOrderActions(order, isUpdating)}
         </View>
       </View>
@@ -850,11 +884,11 @@ function ChefEventOrdersScreen() {
           className={viewMode === 'grid' ? 'gap-3' : ''}
         >
           {viewMode === 'table' ? (
-            <View className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+            <View className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-2">
               <ScrollView horizontal showsHorizontalScrollIndicator>
-                <View className="w-[1120px]">
-                  <View className="h-10 w-[1120px] flex-row items-center border-b border-[#E5E7EB] bg-[#F8FAFC] px-3">
-                    {[52, 165, 165, 105, 210, 155, 105, 160].map(
+                <View className="w-[1418px]">
+                  <View className="mb-2 h-10 w-[1418px] flex-row items-center rounded-xl border border-[#E5E7EB] bg-white px-3">
+                    {[48, 210, 205, 150, 270, 230, 115, 190].map(
                       (width, index) => (
                         <View
                           key={index}
@@ -884,19 +918,19 @@ function ChefEventOrdersScreen() {
             {filteredOrders.map(renderOrderCard)}
           </View>
         ) : (
-          <View className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+          <View className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-2">
             <ScrollView horizontal showsHorizontalScrollIndicator>
-              <View className="w-[1120px]">
-                <View className="h-10 w-[1120px] flex-row items-center border-b border-[#E5E7EB] bg-[#F8FAFC] px-3">
+              <View className="w-[1418px]">
+                <View className="mb-2 h-10 w-[1418px] flex-row items-center rounded-xl border border-[#E5E7EB] bg-white px-3">
                   {[
-                    { label: 'S. No.', width: 'w-[52px]' },
-                    { label: 'Order / Event', width: 'w-[165px]' },
-                    { label: 'Event date', width: 'w-[165px]' },
-                    { label: 'Guests', width: 'w-[105px]' },
-                    { label: 'Dishes', width: 'w-[210px]' },
-                    { label: 'Customer', width: 'w-[155px]' },
-                    { label: 'Status', width: 'w-[105px]' },
-                    { label: 'Actions', width: 'w-[160px]' },
+                    { label: 'No.', width: 'w-[48px]' },
+                    { label: 'Order / Event', width: 'w-[210px]' },
+                    { label: 'Event date & time', width: 'w-[205px]' },
+                    { label: 'Guests & diet', width: 'w-[150px]' },
+                    { label: 'Dishes', width: 'w-[270px]' },
+                    { label: 'Venue / notes', width: 'w-[230px]' },
+                    { label: 'Status', width: 'w-[115px]' },
+                    { label: 'Actions', width: 'w-[190px]' },
                   ].map(column => (
                     <Text
                       key={column.label}
